@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 
+#include "app/orbiting_cube.hpp"
 #include "app/scene.hpp"
 #include "core/result.hpp"
 #include "render/renderer.hpp"
@@ -27,7 +28,7 @@ private:
     render::Renderer* renderer_;
     std::array<render::MeshDraw, 1> meshes_;
     std::vector<render::DebugLine> lines_;
-    std::uint64_t tick_ = 0;
+    OrbitingCube cube_;
 };
 
 }

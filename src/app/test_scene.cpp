@@ -1,25 +1,19 @@
 #include "app/test_scene.hpp"
 
-#include <cmath>
 #include <cstddef>
 #include <utility>
 
 #include "assets/geometry_asset.hpp"
 #include "assets/image_asset.hpp"
 #include "core/log.hpp"
-#include "core/quaternion.hpp"
 
 namespace rr::app {
 namespace {
 
 constexpr sim::EntityId kCubeId{1};
-constexpr float kOrbitRadius = 2.5F;
-constexpr float kOrbitRadiansPerTick = 0.012F;
-constexpr float kSpinRadiansPerTick = 0.03F;
 constexpr int kGridHalfExtent = 10;
 constexpr std::uint32_t kCheckerSizePx = 64;
 constexpr std::uint32_t kCheckerCellPx = 8;
-constexpr Vector3 kUp{.y = 1.0F};
 constexpr Transform kCameraTransform{.position = {.y = 3.0F, .z = 8.0F},
                                      .rotation = {.w = 0.9887711F, .x = -0.1494381F}};
 
@@ -118,20 +112,13 @@ Result<std::unique_ptr<TestScene>> TestScene::Create(render::Renderer& renderer)
     return std::unique_ptr<TestScene>(new TestScene(renderer, draw));
 }
 
-void TestScene::Tick([[maybe_unused]] const sim::InputFrame& input) {
-    ++tick_;
+void TestScene::Tick(const sim::InputFrame& input) {
+    cube_.Tick(input);
 }
 
 void TestScene::Snapshot(sim::RenderSnapshot& out) const {
-    const auto tick = static_cast<float>(tick_);
-    const float orbit = tick * kOrbitRadiansPerTick;
     out.entities.clear();
-    out.entities.push_back(
-        {.id = kCubeId,
-         .transform = {.position = {.x = kOrbitRadius * std::cos(orbit),
-                                    .y = 0.5F,
-                                    .z = kOrbitRadius * std::sin(orbit)},
-                       .rotation = FromAxisAngle(kUp, tick * kSpinRadiansPerTick)}});
+    out.entities.push_back({.id = kCubeId, .transform = cube_.Pose()});
     out.camera = {.transform = kCameraTransform};
 }
 

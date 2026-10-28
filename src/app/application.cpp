@@ -14,7 +14,9 @@
 #include "app/audio_settings.hpp"
 #include "app/audio_startup.hpp"
 #include "app/extensions.hpp"
+#include "app/keyboard_input.hpp"
 #include "app/music_folder_source.hpp"
+#include "app/replay_session.hpp"
 #include "app/startup_settings.hpp"
 #include "app/test_scene.hpp"
 #include "app/track_viewer_scene.hpp"
@@ -148,17 +150,21 @@ Result<Application> Application::Create(GameBoot boot) {
                         .pacer = std::move(*pacer),
                         .pacing = pacing,
                         .track = std::move(boot.commandLine.track),
+                        .recordFile = boot.commandLine.recordFile.transform(PathFromUtf8),
+                        .replayFile = boot.commandLine.replayFile.transform(PathFromUtf8),
                         .startupSummary = std::move(startupSummary)});
 }
 
 Result<void> Application::Run() {
-    Result<std::unique_ptr<overlay::Overlay>> menu = overlay::Overlay::Create(window_, renderer_);
+    Result<ReplaySession> replay = ReplaySession::Start(recordFile_, replayFile_, track_);
+    Result<std::unique_ptr<overlay::Overlay>> menu =
+        replay.and_then([&](const auto&) { return overlay::Overlay::Create(window_, renderer_); });
     Result<void> opened = menu.and_then([&](const auto&) { return OpenScene(track_); });
     if (!opened) {
         return opened;
     }
     events_.Observe([&menu](const SDL_Event& event) { (*menu)->HandleEvent(event); });
-    const std::vector<overlay::SceneChoice> scenes = SceneChoices();
+    events_.Observe([this](const SDL_Event& event) { LatchKey(event, frameLoop_.Input()); });
     audio::MusicPlayer music =
         CreateMusicPlayer(mixer_, vfs_, settingsFile_.parent_path() / kMusicFolderName,
                           extensions_.mods.Enabled(settings_));
@@ -173,19 +179,28 @@ Result<void> Application::Run() {
         }
     });
 
+    frameLoop_.SetTickTap(replay->Tap());
+    RunFrames(**menu, music);
+    frameLoop_.SetTickTap(nullptr);
+    replay->Finish();
+    log::Info("quit requested, shutting down");
+    return {};
+}
+
+void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
+    const std::vector<overlay::SceneChoice> scenes = SceneChoices();
     Nanoseconds lastFrame = platform::Now();
     FrameStats frame;
     while (!events_.IsQuitRequested()) {
         events_.Poll();
         if (events_.WasKeyPressed(kToggleOverlayKey)) {
-            (*menu)->Toggle();
+            menu.Toggle();
         }
         if (events_.WasKeyPressed(kCyclePacingKey)) {
             CyclePacing();
         }
         const Nanoseconds now = platform::Now();
-        Persist(
-            (*menu)->Build(settings_,
+        Persist(menu.Build(settings_,
                            {.frameTime = std::chrono::duration_cast<FloatSeconds>(now - lastFrame),
                             .ticksPerFrame = frame.tickCount,
                             .startupSummary = startupSummary_},
@@ -197,8 +212,6 @@ Result<void> Application::Run() {
         }
         pacer_.WaitForNextFrame();
     }
-    log::Info("quit requested, shutting down");
-    return {};
 }
 
 Application::Application(Parts parts)
@@ -213,6 +226,8 @@ Application::Application(Parts parts)
       pacer_(std::move(parts.pacer)),
       pacing_(parts.pacing),
       track_(std::move(parts.track)),
+      recordFile_(std::move(parts.recordFile)),
+      replayFile_(std::move(parts.replayFile)),
       startupSummary_(std::move(parts.startupSummary)) {}
 
 Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std::string>& track) {

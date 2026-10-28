@@ -11,6 +11,7 @@
 #include "app/game_boot.hpp"
 #include "assets/vfs.hpp"
 #include "audio/mixer.hpp"
+#include "audio/music_player.hpp"
 #include "core/result.hpp"
 #include "overlay/overlay.hpp"
 #include "platform/event_pump.hpp"
@@ -42,6 +43,8 @@ private:
         platform::FramePacer pacer;
         platform::PacingConfig pacing;
         std::optional<std::string> track;
+        std::optional<std::filesystem::path> recordFile;
+        std::optional<std::filesystem::path> replayFile;
         std::string startupSummary;
     };
 
@@ -51,6 +54,7 @@ private:
         const std::optional<std::string>& track);
     [[nodiscard]] Result<void> OpenScene(const std::optional<std::string>& track);
     [[nodiscard]] std::vector<overlay::SceneChoice> SceneChoices();
+    void RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music);
     void CyclePacing();
     void ApplyVideo();
     void Persist(const std::vector<std::string>& keys);
@@ -67,6 +71,8 @@ private:
     platform::FramePacer pacer_;
     platform::PacingConfig pacing_;
     std::optional<std::string> track_;
+    std::optional<std::filesystem::path> recordFile_;
+    std::optional<std::filesystem::path> replayFile_;
     std::string startupSummary_;
     FrameLoop frameLoop_;
 };

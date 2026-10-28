@@ -23,6 +23,9 @@ FrameStats FrameLoop::RunFrame(Nanoseconds now) {
     }
     if (isNewScene) {
         RestartSnapshots(*scene);
+        if (tap_ != nullptr) {
+            tap_->SceneStarted();
+        }
         hooks_.Emit(mods::SceneEntered{});
     }
 
@@ -50,9 +53,16 @@ int FrameLoop::RunTicks(Scene& scene) {
     while (accumulator_ >= kSimTick && tickCount < kMaxStepsPerFrame) {
         std::swap(previous_, current_);
         hooks_.Emit(mods::TickStarted{.tick = tick_ + 1});
-        scene.Tick(input_.TakeFrame());
+        sim::InputFrame input = input_.TakeFrame();
+        if (tap_ != nullptr) {
+            tap_->BeforeTick(input);
+        }
+        scene.Tick(input);
         scene.Snapshot(current_);
         current_.tick = ++tick_;
+        if (tap_ != nullptr) {
+            tap_->AfterTick(input, current_);
+        }
         hooks_.Emit(mods::TickEnded{.tick = tick_});
         accumulator_ -= kSimTick;
         ++tickCount;

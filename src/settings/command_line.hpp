@@ -20,11 +20,14 @@ struct CommandLine {
     std::optional<std::string> gamePath;
     std::optional<std::string> imageDumpFolder;
     std::optional<std::string> track;
+    std::optional<std::string> recordFile;
+    std::optional<std::string> replayFile;
     std::vector<SettingOverride> overrides;
 };
 
-/// Accepts `--game-path <folder>`, `--set key=value`, `--dump-images <folder>` and
-/// `--track <RACECxRy>`, each also as `--flag=value`. `args` excludes the program name.
+/// Accepts `--game-path <folder>`, `--set key=value`, `--dump-images <folder>`,
+/// `--track <RACECxRy>`, `--record <file>` and `--replay <file>`, each also as `--flag=value`.
+/// `args` excludes the program name.
 [[nodiscard]] Result<CommandLine> ParseCommandLine(std::span<const std::string_view> args);
 
 [[nodiscard]] Result<void> ApplyOverrides(Registry& registry,

@@ -2,6 +2,10 @@ rr_add_module(sim
     SOURCES
         input_latch.cpp
         interpolation.cpp
+        replay/replay.cpp
+        replay/replay_bytes.cpp
+        replay/replay_recorder.cpp
+        replay/snapshot_hash.cpp
         route_playback.cpp
     DEPENDS
         rr::assets

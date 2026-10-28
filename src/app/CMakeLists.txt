@@ -10,8 +10,11 @@ rr_add_module(app
         image_dump.cpp
         install_discovery.cpp
         loop_sidecar.cpp
+        keyboard_input.cpp
         music_folder_source.cpp
+        orbiting_cube.cpp
         pace_car.cpp
+        replay_session.cpp
         scene_stack.cpp
         startup_settings.cpp
         startup_timer.cpp
