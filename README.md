@@ -1,1 +1,276 @@
-# racers-rebuilt
+<h1 align="center">racers-rebuilt</h1>
+
+<p align="center">A native Windows port of LEGO Racers (1999).</p>
+
+<p align="center">
+  <a href="https://github.com/chrismacdonaldw/racers-rebuilt/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/chrismacdonaldw/racers-rebuilt?style=flat"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/chrismacdonaldw/racers-rebuilt?style=flat"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/chrismacdonaldw/racers-rebuilt/releases/latest">Download</a> ·
+  <a href="#install">Install</a> ·
+  <a href="#troubleshooting">Troubleshooting</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
+racers-rebuilt is a reimplementation of LEGO Racers for 64-bit Windows. It reads the game's data from your own copy, and runs at any framerate without changing the simulation.
+
+> [!IMPORTANT]
+> **No game files are included.** racers-rebuilt needs an installed copy of the original PC game.
+
+> [!NOTE]
+> v0.1.0 is a track viewer that opens on a test scene. Pick a race track under **Developer → Scenes** in the overlay, or start with `--track`. A pace car drives the track's racing line, with a chase camera behind it.
+
+## Features
+
+- One `.exe` with no installer and no extra DLLs
+- Game data read in place from `LEGO.JAM`, with nothing extracted to disk
+- Any framerate from 30 to 360 FPS, uncapped, or VSync, on a fixed simulation tick
+- Automatic detection of your LEGO Racers install, with a one-time folder picker as the fallback
+- Replacement music in OGG, FLAC, MP3 or WAV, with optional loop points
+- Data mods that replace any file in `LEGO.JAM`
+- An in-game settings overlay on <kbd>F1</kbd>
+
+## Requirements
+
+| Component | Minimum |
+|---|---|
+| OS | Windows 10 or 11, 64-bit |
+| GPU | Direct3D 12 with Shader Model 6.0 |
+| Game | An installed copy of LEGO Racers for PC (the folder with `LEGO.JAM`) |
+
+Tested with the English PC release.
+
+## Install
+
+1. Download `racers-rebuilt-windows-x64.zip` from the [latest release](https://github.com/chrismacdonaldw/racers-rebuilt/releases/latest).
+2. Extract it to any folder.
+3. Run `racers-rebuilt.exe`.
+4. If the game isn't found, a folder picker opens. Choose the LEGO Racers folder that contains `LEGO.JAM`.
+
+The choice is saved, so the picker only shows once.
+
+### How the game is found
+
+Each location is checked in order. The first folder with a valid `LEGO.JAM` wins.
+
+1. `--game-path <folder>` on the command line
+2. `game.path` in `settings.toml`
+3. The folder `racers-rebuilt.exe` is in
+4. The LEGO Racers entries in the Windows registry, left by the original installer
+5. `%ProgramFiles(x86)%\LEGO Media\Games\LEGO Racers`, then the same under `%ProgramFiles%`, then `C:\Games\LEGO Racers`
+6. The folder picker
+
+A folder is valid when `LEGO.JAM` exists and contains the `GAMEDATA` and `MENUDATA` folders. If the picked folder fails that check, the picker opens again with the reason in its title. Closing the picker exits with a message.
+
+`--game-path` doesn't fall back. If that folder is invalid, racers-rebuilt shows the error and exits.
+
+### Data folder
+
+Settings, logs, music and mods live in the data folder, `%APPDATA%\racers-rebuilt\` by default.
+
+To keep everything next to the exe instead, create an empty file named `portable.txt` beside `racers-rebuilt.exe`. That folder becomes the data folder.
+
+```text
+<data>/
+  settings.toml
+  logs/racers-rebuilt.log
+  music/
+  mods/
+```
+
+Create `music/` and `mods/` when you first need them.
+
+## Configuration
+
+Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Enhancements**, **Game** and **Video**, plus **Mods** when a mod is installed, and **Developer**. Video, audio and enhancement changes apply on the next frame. Game and mod changes apply on the next start. Every change saves when an edit finishes.
+
+**Developer** shows frame time, ticks per frame and startup timings. Its **Scenes** list opens the test scene or any race track in your copy.
+
+### Controls
+
+| Key | Action |
+|---|---|
+| <kbd>F1</kbd> | Show or hide the overlay |
+| <kbd>F9</kbd> | Cycle VSync, 30, 60 and 144 FPS, and uncapped |
+
+With **Enhancements → Free camera** on:
+
+| Key | Action |
+|---|---|
+| <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> | Move |
+| <kbd>Q</kbd> / <kbd>E</kbd> | Down / up |
+| Arrow keys | Look |
+| <kbd>Shift</kbd> | Move faster |
+
+### Settings
+
+Every setting lives in `<data>/settings.toml` and shows in the overlay.
+
+| Key | Default | Values |
+|---|---|---|
+| `game.path` | Empty | The LEGO Racers folder |
+| `game.language` | From the original installer, else `ENGLISH` | `ENGLISH`, `GERMAN`, `FRENCH`, `SPANISH`, `ITALIAN`, `DUTCH`, `DANISH`, `NORWEGI`, `SWEDISH` |
+| `video.vsync` | `true` | `true`, `false` |
+| `video.fps_cap` | `144` | `30` to `360`, or `0` for uncapped. Applies only with VSync off. |
+| `video.resolution_scale` | `1.0` | `0.25` to `2.0`. Renders the scene at this fraction of the window size. |
+| `audio.music_volume` | `1.0` | `0.0` to `1.0` |
+| `audio.effects_volume` | `1.0` | `0.0` to `1.0` |
+| `audio.voice_volume` | `1.0` | `0.0` to `1.0` |
+| `enhancements.free_camera` | `false` | `true`, `false` |
+| `enhancements.free_camera_speed` | `40.0` | `1.0` to `400.0` |
+| `mods.<id>.enabled` | The mod's `enabled` value | `true`, `false` |
+
+```toml
+[video]
+vsync = false
+fps_cap = 240
+
+[audio]
+music_volume = 0.6
+```
+
+Out-of-range values are clamped. Unknown keys are kept when the file is saved.
+
+### Command line
+
+| Option | Effect |
+|---|---|
+| `--game-path <folder>` | Use this LEGO Racers folder and skip detection |
+| `--set <key>=<value>` | Override a setting for this run only. Repeatable. |
+| `--track <folder>` | Open a race track instead of the test scene, by its `GAMEDATA` folder, e.g. `RACEC0R0` |
+
+```powershell
+.\racers-rebuilt.exe --set video.vsync=false --set video.fps_cap=60
+```
+
+## Music replacement
+
+Put a file named after a track's id in `<data>/music/`. It plays instead of the original.
+
+- The id is the name of the original `.tun` file in the game folder, in lowercase: `circuit1`, `theme`, `credits`.
+- Supported formats: `.ogg`, `.flac`, `.mp3`, `.wav`.
+- A track loops from start to end unless it has a loop file.
+
+To loop part of a track, add `<id>.toml` beside it. Positions are in samples.
+
+```toml
+loop_start = 441000
+loop_end = 5292000
+```
+
+Either key can be left out. Without `loop_start` the loop starts at the beginning. Without `loop_end` it runs to the end.
+
+A file that fails to decode is logged and skipped. The next source plays instead: an enabled mod's track, then the original.
+
+## Mods
+
+A mod is a folder in `<data>/mods/`. The folder name is the mod's id.
+
+```text
+<data>/mods/
+  hd-bricks/
+    mod.toml
+    files/
+      GAMEDATA/COMMON/RRJMW.GDB
+    music/
+      circuit1.ogg
+```
+
+- `files/` mirrors the paths inside `LEGO.JAM`. Any file there replaces the original. Path case doesn't matter.
+- `music/` works like `<data>/music/`. The music folder wins over every mod.
+
+`mod.toml`:
+
+```toml
+id = "hd-bricks"
+name = "HD bricks"
+version = "1.0.0"
+priority = 10
+enabled = true
+```
+
+| Key | Required | Notes |
+|---|---|---|
+| `id` | Yes | Must match the folder name. Lowercase letters, digits, `_` and `-` only. |
+| `name` | Yes | Shown in the overlay's **Mods** menu |
+| `version` | Yes | Text, e.g. `1.0.0` |
+| `priority` | No | Whole number, default `0`. Higher wins when two mods replace the same file. On a tie, the id that sorts first wins. |
+| `enabled` | No | Default `true`. Sets the starting value of `mods.<id>.enabled`. |
+
+Turning a mod on or off applies on the next start. A mod with a broken `mod.toml` is skipped with a warning in the log.
+
+## Troubleshooting
+
+The log is at `<data>/logs/racers-rebuilt.log`. It's replaced on each launch, so copy it before starting again.
+
+<details>
+<summary>The folder picker keeps coming back</summary>
+
+The chosen folder doesn't have a usable `LEGO.JAM`. The picker's title says why. Choose the installed game folder, not the CD or the `Save` folder.
+
+</details>
+
+<details>
+<summary>racers-rebuilt uses the wrong game folder</summary>
+
+Delete the `game.path` line from `<data>/settings.toml` and start again. Or start with `--game-path <folder>`.
+
+</details>
+
+<details>
+<summary>An error appears before the window opens</summary>
+
+Update the graphics driver. racers-rebuilt needs Direct3D 12. The log names the failing step.
+
+</details>
+
+<details>
+<summary>The game stutters at high framerates</summary>
+
+Turn off external framerate limiters, such as the one in the NVIDIA Control Panel. Set the framerate with <kbd>F9</kbd> or in the overlay's **Video** menu instead.
+
+</details>
+
+<details>
+<summary>Replacement music doesn't play</summary>
+
+Check that the file name matches the track id and the extension is supported. If the file failed to decode, the log names it and the next source plays instead: an enabled mod's track, then the original.
+
+</details>
+
+<details>
+<summary>A mod doesn't load</summary>
+
+Check that the folder name matches `id` in `mod.toml`, and that the mod is on under **Mods** in the overlay. Restart after changing it. The log says why a mod was skipped.
+
+</details>
+
+<details>
+<summary>Reset all settings</summary>
+
+Delete `<data>/settings.toml`. The defaults return on the next start, and the game folder is detected again.
+
+</details>
+
+## Building from source
+
+See [CONTRIBUTING.md](CONTRIBUTING.md#building). Builds need Visual Studio 2022, CMake, Ninja and vcpkg.
+
+## Acknowledgements
+
+- [SDL3](https://www.libsdl.org/) for the window, input, file dialogs and GPU API
+- [miniaudio](https://miniaud.io/) for audio output, mixing and decoding
+- [stb_vorbis](https://github.com/nothings/stb) for OGG Vorbis decoding
+- [Dear ImGui](https://github.com/ocornut/imgui) for the overlay
+- [toml++](https://github.com/marzer/tomlplusplus) for settings and mod manifests
+- [glm](https://github.com/g-truc/glm) for rendering math
+- [doctest](https://github.com/doctest/doctest) for unit tests
+- The [LEGO Racers decompilation](https://github.com/isledecomp/racers) by the isledecomp team, used as a reference for game behavior and file formats
+
+## License
+
+[GPL-3.0](LICENSE).
+
+racers-rebuilt isn't affiliated with or endorsed by the LEGO Group. LEGO is a trademark of the LEGO Group.
