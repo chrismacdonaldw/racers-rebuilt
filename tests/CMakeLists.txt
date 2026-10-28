@@ -19,6 +19,7 @@ add_executable(racers-rebuilt-tests
     assets/bmp_image_test.cpp
     assets/byte_reader_test.cpp
     assets/checkpoints_test.cpp
+    assets/collision_mesh_test.cpp
     assets/game_path_test.cpp
     assets/geometry_database_test.cpp
     assets/image_survey_test.cpp
@@ -30,6 +31,7 @@ add_executable(racers-rebuilt-tests
     assets/material_library_test.cpp
     assets/model_survey_test.cpp
     assets/race_route_test.cpp
+    assets/surface_table_test.cpp
     assets/texture_database_test.cpp
     assets/tga_image_test.cpp
     assets/token_reader_test.cpp
