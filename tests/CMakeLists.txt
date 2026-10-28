@@ -11,12 +11,14 @@ add_executable(racers-rebuilt-tests
     assets/bmp_image_test.cpp
     assets/byte_reader_test.cpp
     assets/game_path_test.cpp
+    assets/geometry_database_test.cpp
     assets/image_survey_test.cpp
     assets/install_test.cpp
     assets/jam_archive_test.cpp
     assets/jam_test.cpp
     assets/lzss_test.cpp
     assets/material_library_test.cpp
+    assets/model_survey_test.cpp
     assets/texture_database_test.cpp
     assets/tga_image_test.cpp
     assets/token_reader_test.cpp
