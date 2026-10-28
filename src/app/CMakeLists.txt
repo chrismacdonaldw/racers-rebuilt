@@ -1,6 +1,7 @@
 rr_add_module(app
     SOURCES
         application.cpp
+        audio_startup.cpp
         frame_loop.cpp
         install_discovery.cpp
         scene_stack.cpp
@@ -10,6 +11,7 @@ rr_add_module(app
         video_settings.cpp
     DEPENDS
         rr::assets
+        rr::audio
         rr::core
         rr::platform
         rr::render
