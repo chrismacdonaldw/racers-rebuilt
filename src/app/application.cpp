@@ -13,6 +13,7 @@
 
 #include "app/audio_startup.hpp"
 #include "app/game_settings.hpp"
+#include "app/image_dump.hpp"
 #include "app/install_discovery.hpp"
 #include "app/startup_settings.hpp"
 #include "app/startup_timer.hpp"
@@ -198,10 +199,14 @@ Result<Application> Application::Create(std::span<const std::string_view> args) 
                         .window = std::move(*window),
                         .renderer = std::move(*renderer),
                         .pacer = std::move(*pacer),
-                        .pacing = pacing});
+                        .pacing = pacing,
+                        .imageDumpFolder = commandLine->imageDumpFolder.transform(PathFromUtf8)});
 }
 
 Result<void> Application::Run() {
+    if (imageDumpFolder_) {
+        return DumpImages(vfs_, *imageDumpFolder_);
+    }
     Result<std::unique_ptr<TestScene>> scene = TestScene::Create(renderer_);
     if (!scene) {
         return std::unexpected(std::move(scene.error()));
@@ -234,7 +239,8 @@ Application::Application(Parts parts)
       window_(std::move(parts.window)),
       renderer_(std::move(parts.renderer)),
       pacer_(std::move(parts.pacer)),
-      pacing_(parts.pacing) {}
+      pacing_(parts.pacing),
+      imageDumpFolder_(std::move(parts.imageDumpFolder)) {}
 
 void Application::CyclePacing() {
     StorePacing(settings_, NextPacingPreset(PacingFromSettings(settings_)));

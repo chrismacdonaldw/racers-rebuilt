@@ -3,6 +3,7 @@ rr_add_module(app
         application.cpp
         audio_startup.cpp
         frame_loop.cpp
+        image_dump.cpp
         install_discovery.cpp
         scene_stack.cpp
         startup_settings.cpp

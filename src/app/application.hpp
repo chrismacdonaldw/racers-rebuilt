@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -36,6 +37,7 @@ private:
         render::Renderer renderer;
         platform::FramePacer pacer;
         platform::PacingConfig pacing;
+        std::optional<std::filesystem::path> imageDumpFolder;
     };
 
     explicit Application(Parts parts);
@@ -53,6 +55,7 @@ private:
     platform::EventPump events_;
     platform::FramePacer pacer_;
     platform::PacingConfig pacing_;
+    std::optional<std::filesystem::path> imageDumpFolder_;
     FrameLoop frameLoop_;
 };
 

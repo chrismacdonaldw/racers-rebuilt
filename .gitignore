@@ -1,4 +1,5 @@
 /build/
+/dumps/
 /out/
 /vcpkg_installed/
 /.vs/
