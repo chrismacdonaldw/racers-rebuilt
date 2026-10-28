@@ -3,6 +3,7 @@ rr_add_module(assets
         bmp_image.cpp
         byte_reader.cpp
         checkpoints.cpp
+        collision_mesh.cpp
         folder_layer.cpp
         game_path.cpp
         geometry_database.cpp
@@ -14,6 +15,7 @@ rr_add_module(assets
         material_library.cpp
         path_index.cpp
         race_route.cpp
+        surface_table.cpp
         texture_database.cpp
         tga_image.cpp
         token_reader.cpp
