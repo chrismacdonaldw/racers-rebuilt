@@ -11,6 +11,7 @@ rr_add_module(app
         install_discovery.cpp
         loop_sidecar.cpp
         music_folder_source.cpp
+        pace_car.cpp
         scene_stack.cpp
         startup_settings.cpp
         startup_timer.cpp
