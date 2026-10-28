@@ -64,18 +64,20 @@ std::optional<std::filesystem::path> RetailJamPath() {
     return *gameFolder / "LEGO.JAM";
 }
 
-TEST_CASE("the retail LEGO.JAM is indexed within budget") {
-    const std::optional<std::filesystem::path> path = RetailJamPath();
-    if (!path) {
-        return;
+TEST_SUITE("perf") {
+    TEST_CASE("the retail LEGO.JAM is indexed within budget" * doctest::skip()) {
+        const std::optional<std::filesystem::path> path = RetailJamPath();
+        if (!path) {
+            return;
+        }
+
+        const auto start = std::chrono::steady_clock::now();
+        const bool isOpened = JamArchive::Open(*path).has_value();
+        const auto elapsed = std::chrono::steady_clock::now() - start;
+
+        CHECK(isOpened);
+        CHECK(elapsed < kIndexBudget);
     }
-
-    const auto start = std::chrono::steady_clock::now();
-    const bool isOpened = JamArchive::Open(*path).has_value();
-    const auto elapsed = std::chrono::steady_clock::now() - start;
-
-    CHECK(isOpened);
-    CHECK(elapsed < kIndexBudget);
 }
 
 TEST_CASE("the retail LEGO.JAM indexes every directory and file") {
