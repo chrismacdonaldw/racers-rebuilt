@@ -13,6 +13,7 @@ enum class Action : std::uint8_t {
     SteerRight,
     UsePowerup,
     Pause,
+    Drift,
     Count,
 };
 

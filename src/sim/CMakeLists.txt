@@ -5,8 +5,12 @@ rr_add_module(sim
         physics/body_forces.cpp
         physics/car_body.cpp
         physics/chassis.cpp
+        physics/drive_controller.cpp
+        physics/driver_input.cpp
         physics/facing.cpp
         physics/ground_contact.cpp
+        physics/racer.cpp
+        physics/racer_controls.cpp
         physics/rigid_body.cpp
         physics/wall_sweep.cpp
         replay/replay.cpp
