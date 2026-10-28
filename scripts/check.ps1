@@ -18,6 +18,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
+. (Join-Path $PSScriptRoot 'msvc.ps1')
 
 $gameDataMagics = @('LJAM', 'ALP ')
 $results = New-Object System.Collections.Generic.List[string]
@@ -60,28 +61,6 @@ function Find-Tool([string]$Name) {
     }
     Fail "$Name not found. Install LLVM or add it to PATH."
     return $null
-}
-
-function Enter-MsvcEnvironment {
-    if (Get-Command cl.exe -ErrorAction SilentlyContinue) {
-        return
-    }
-    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-    if (-not (Test-Path $vswhere)) {
-        Fail 'vswhere.exe not found. Install Visual Studio 2022 Build Tools.'
-        return
-    }
-    $installPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-    if (-not $installPath) {
-        Fail 'MSVC x64 build tools not found. Install Visual Studio 2022 Build Tools.'
-        return
-    }
-    $vcvars = Join-Path $installPath 'VC\Auxiliary\Build\vcvars64.bat'
-    cmd /c "`"$vcvars`" >nul 2>&1 && set" | ForEach-Object {
-        if ($_ -match '^([^=]+)=(.*)$') {
-            Set-Item "env:$($Matches[1])" $Matches[2]
-        }
-    }
 }
 
 function Get-TrackedFiles([string[]]$Patterns) {
@@ -157,7 +136,10 @@ Invoke-Step 'Toolchain' {
         }
     }
     if ($LASTEXITCODE -eq 0) {
-        Enter-MsvcEnvironment
+        $problem = Enter-MsvcEnvironment
+        if ($problem) {
+            Fail $problem
+        }
     }
 }
 
