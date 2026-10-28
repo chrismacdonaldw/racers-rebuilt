@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+#include "core/vector3.hpp"
+
 namespace rr {
 
 struct Quaternion {
@@ -12,6 +14,15 @@ struct Quaternion {
 
     friend constexpr bool operator==(const Quaternion&, const Quaternion&) = default;
 };
+
+/// `axis` must be unit length.
+[[nodiscard]] inline Quaternion FromAxisAngle(const Vector3& axis, float radians) {
+    const float halfSin = std::sin(radians / 2.0F);
+    return {.w = std::cos(radians / 2.0F),
+            .x = axis.x * halfSin,
+            .y = axis.y * halfSin,
+            .z = axis.z * halfSin};
+}
 
 [[nodiscard]] constexpr float Dot(const Quaternion& a, const Quaternion& b) {
     return (a.w * b.w) + (a.x * b.x) + (a.y * b.y) + (a.z * b.z);

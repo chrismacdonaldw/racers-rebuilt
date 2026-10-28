@@ -6,10 +6,13 @@ rr_add_module(app
         scene_stack.cpp
         startup_settings.cpp
         startup_timer.cpp
+        test_scene.cpp
+        video_settings.cpp
     DEPENDS
         rr::assets
         rr::core
         rr::platform
+        rr::render
         rr::settings
         rr::sim
 )

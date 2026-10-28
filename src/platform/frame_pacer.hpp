@@ -26,6 +26,8 @@ class FramePacer {
 public:
     FramePacer(FrameTimer timer, PacingConfig config);
 
+    void SetConfig(PacingConfig config);
+
     /// Only `Capped` waits here. In `Vsync` mode the swapchain present does the waiting.
     void WaitForNextFrame();
 

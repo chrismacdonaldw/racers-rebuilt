@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 #include <string>
 
 #include "core/result.hpp"
@@ -22,7 +21,7 @@ public:
     /// Sizes are in logical pixels and must be positive.
     [[nodiscard]] static Result<Window> Create(const WindowConfig& config);
 
-    [[nodiscard]] std::optional<float> RefreshRateHz() const;
+    [[nodiscard]] SDL_Window* Handle() const { return window_.get(); }
 
 private:
     struct Deleter {

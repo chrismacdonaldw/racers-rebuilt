@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "app/game_settings.hpp"
+#include "app/video_settings.hpp"
 #include "core/assert.hpp"
 #include "core/log.hpp"
 #include "settings/settings_file.hpp"
@@ -13,6 +14,7 @@ namespace {
 settings::Registry DeclaredRegistry() {
     settings::Registry registry;
     DeclareGameSettings(registry);
+    DeclareVideoSettings(registry);
     return registry;
 }
 

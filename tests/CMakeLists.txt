@@ -5,6 +5,7 @@ add_executable(racers-rebuilt-tests
     app/scene_stack_test.cpp
     app/startup_settings_test.cpp
     app/startup_timer_test.cpp
+    app/video_settings_test.cpp
     assets/byte_reader_test.cpp
     assets/game_path_test.cpp
     assets/install_test.cpp
@@ -22,6 +23,7 @@ add_executable(racers-rebuilt-tests
     platform/frame_pacer_test.cpp
     platform/install_locations_test.cpp
     platform/mapped_file_test.cpp
+    render/camera_test.cpp
     settings/command_line_test.cpp
     settings/registry_test.cpp
     settings/settings_file_test.cpp
@@ -35,6 +37,7 @@ target_link_libraries(racers-rebuilt-tests PRIVATE
     rr::assets
     rr::core
     rr::platform
+    rr::render
     rr::settings
     rr::sim
     rr::compile_options

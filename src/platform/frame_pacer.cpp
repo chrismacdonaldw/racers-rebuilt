@@ -8,9 +8,14 @@
 
 namespace rr::platform {
 
-FramePacer::FramePacer(FrameTimer timer, PacingConfig config)
-    : timer_(std::move(timer)), config_(config) {
+FramePacer::FramePacer(FrameTimer timer, PacingConfig config) : timer_(std::move(timer)) {
+    SetConfig(config);
+}
+
+void FramePacer::SetConfig(PacingConfig config) {
+    config_ = config;
     config_.fpsCap = std::clamp(config_.fpsCap, kMinFpsCap, kMaxFpsCap);
+    lastSlot_.reset();
 }
 
 void FramePacer::WaitForNextFrame() {
