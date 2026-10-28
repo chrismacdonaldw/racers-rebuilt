@@ -8,6 +8,7 @@ rr_add_module(platform
         frame_pacer.cpp
         gamepads.cpp
         install_locations.cpp
+        message_box.cpp
         png_file.cpp
         sdl_context.cpp
         window.cpp

@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <optional>
 #include <span>
+#include <string>
 
 #include "assets/jam_archive.hpp"
 #include "core/result.hpp"
@@ -20,6 +21,8 @@ struct InstallHints {
     std::optional<std::filesystem::path> commandLine;
     std::optional<std::filesystem::path> setting;
 };
+
+[[nodiscard]] std::string RejectedFolderMessage(const Error& error);
 
 [[nodiscard]] std::optional<GameInstall> FirstValidInstall(
     std::span<const platform::InstallCandidate> candidates);
