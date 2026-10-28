@@ -8,8 +8,10 @@ option(RR_BUILD_TOOLS "Build developer tools such as jam-dump" ON)
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(compile_options)
 include(module)
+include(shaders)
 
 find_package(SDL3 CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
 
 add_subdirectory(src)
