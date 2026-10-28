@@ -22,6 +22,7 @@ public:
     /// Sizes are in logical pixels and must be positive.
     [[nodiscard]] static Result<Window> Create(const WindowConfig& config);
 
+    [[nodiscard]] SDL_Window* Handle() const { return window_.get(); }
     [[nodiscard]] std::optional<float> RefreshRateHz() const;
 
 private:
