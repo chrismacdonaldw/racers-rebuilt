@@ -35,6 +35,7 @@ private:
         platform::Window window;
         render::Renderer renderer;
         platform::FramePacer pacer;
+        platform::PacingConfig pacing;
     };
 
     explicit Application(Parts parts);
@@ -51,6 +52,7 @@ private:
     render::Renderer renderer_;
     platform::EventPump events_;
     platform::FramePacer pacer_;
+    platform::PacingConfig pacing_;
     FrameLoop frameLoop_;
 };
 
