@@ -1,6 +1,6 @@
 #include "app/application.hpp"
 
-#include <cmath>
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -13,6 +13,7 @@
 #include "app/install_discovery.hpp"
 #include "app/startup_settings.hpp"
 #include "app/startup_timer.hpp"
+#include "app/test_scene.hpp"
 #include "assets/folder_layer.hpp"
 #include "assets/install.hpp"
 #include "core/log.hpp"
@@ -27,8 +28,16 @@ namespace {
 constexpr const char* kWindowTitle = "racers-rebuilt";
 constexpr int kWindowWidthPx = 1280;
 constexpr int kWindowHeightPx = 720;
-constexpr float kFallbackRefreshRateHz = 60.0F;
 constexpr std::string_view kSettingsFileName = "settings.toml";
+constexpr SDL_Keycode kCyclePacingKey = SDLK_F9;
+
+constexpr std::array kPacingPresets{
+    platform::PacingConfig{.mode = platform::PresentMode::Vsync},
+    platform::PacingConfig{.mode = platform::PresentMode::Capped, .fpsCap = 30},
+    platform::PacingConfig{.mode = platform::PresentMode::Capped, .fpsCap = 60},
+    platform::PacingConfig{.mode = platform::PresentMode::Capped, .fpsCap = 144},
+    platform::PacingConfig{.mode = platform::PresentMode::Uncapped},
+};
 
 void OpenLogFile(const std::filesystem::path& dataFolder) {
     const std::filesystem::path logPath = dataFolder / "logs" / "racers-rebuilt.log";
@@ -88,15 +97,26 @@ Result<assets::Vfs> MountGameFiles(GameInstall install) {
     return vfs;
 }
 
-Result<platform::FramePacer> CreatePacer(const platform::Window& window) {
+void LogPacing(const platform::PacingConfig& pacing) {
+    switch (pacing.mode) {
+        case platform::PresentMode::Vsync:
+            log::Info("pacing: VSync");
+            break;
+        case platform::PresentMode::Capped:
+            log::Info("pacing: capped at {} FPS", pacing.fpsCap);
+            break;
+        case platform::PresentMode::Uncapped:
+            log::Info("pacing: uncapped");
+            break;
+    }
+}
+
+Result<platform::FramePacer> CreatePacer(const platform::PacingConfig& pacing) {
     Result<platform::FrameTimer> timer = platform::FrameTimer::Create();
     if (!timer) {
         return std::unexpected(std::move(timer.error()));
     }
-    const float refreshRateHz = window.RefreshRateHz().value_or(kFallbackRefreshRateHz);
-    const platform::PacingConfig pacing{.mode = platform::PresentMode::Capped,
-                                        .fpsCap = static_cast<int>(std::lround(refreshRateHz))};
-    log::Info("pacing capped at {} FPS", pacing.fpsCap);
+    LogPacing(pacing);
     return platform::FramePacer(std::move(*timer), pacing);
 }
 
@@ -130,27 +150,42 @@ Result<Application> Application::Create(std::span<const std::string_view> args) 
 
     Result<platform::Window> window = platform::Window::Create(
         {.title = kWindowTitle, .widthPx = kWindowWidthPx, .heightPx = kWindowHeightPx});
-    Result<platform::FramePacer> pacer = window.and_then(CreatePacer);
+    const platform::PacingConfig pacing = kPacingPresets.front();
+    Result<render::Renderer> renderer = window.and_then(
+        [&](const platform::Window& w) { return render::Renderer::Create(w, pacing.mode); });
+    Result<platform::FramePacer> pacer =
+        renderer.and_then([&](const render::Renderer&) { return CreatePacer(pacing); });
     if (!pacer) {
         return std::unexpected(std::move(pacer.error()));
     }
-    startup.EndPhase("window", platform::Now());
+    startup.EndPhase("window and renderer", platform::Now());
     log::Info("{}", startup.Summary());
 
     return Application({.sdl = std::move(*sdl),
                         .settings = std::move(*registry),
                         .vfs = std::move(*vfs),
                         .window = std::move(*window),
+                        .renderer = std::move(*renderer),
                         .pacer = std::move(*pacer)});
 }
 
-void Application::Run() {
+Result<void> Application::Run() {
+    Result<std::unique_ptr<TestScene>> scene = TestScene::Create(renderer_);
+    if (!scene) {
+        return std::unexpected(std::move(scene.error()));
+    }
+    frameLoop_.Scenes().Push(std::move(*scene));
+
     while (!events_.IsQuitRequested()) {
         events_.Poll();
+        if (events_.WasKeyPressed(kCyclePacingKey)) {
+            CyclePacing();
+        }
         frameLoop_.RunFrame(platform::Now());
         pacer_.WaitForNextFrame();
     }
     log::Info("quit requested, shutting down");
+    return {};
 }
 
 Application::Application(Parts parts)
@@ -158,6 +193,19 @@ Application::Application(Parts parts)
       settings_(std::move(parts.settings)),
       vfs_(std::move(parts.vfs)),
       window_(std::move(parts.window)),
+      renderer_(std::move(parts.renderer)),
       pacer_(std::move(parts.pacer)) {}
+
+void Application::CyclePacing() {
+    pacingPreset_ = (pacingPreset_ + 1) % kPacingPresets.size();
+    const platform::PacingConfig& pacing = kPacingPresets.at(pacingPreset_);
+    Result<void> changed = renderer_.SetPresentMode(pacing.mode);
+    if (!changed) {
+        log::Error("{}", changed.error().message);
+        return;
+    }
+    pacer_.SetConfig(pacing);
+    LogPacing(pacing);
+}
 
 }

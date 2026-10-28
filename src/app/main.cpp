@@ -18,6 +18,10 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    application->Run();
+    const rr::Result<void> ran = application->Run();
+    if (!ran) {
+        rr::platform::ReportFatalError(ran.error());
+        return EXIT_FAILURE;
+    }
     return EXIT_SUCCESS;
 }

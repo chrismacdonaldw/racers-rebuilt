@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 #include <string>
 
 #include "core/result.hpp"
@@ -23,7 +22,6 @@ public:
     [[nodiscard]] static Result<Window> Create(const WindowConfig& config);
 
     [[nodiscard]] SDL_Window* Handle() const { return window_.get(); }
-    [[nodiscard]] std::optional<float> RefreshRateHz() const;
 
 private:
     struct Deleter {

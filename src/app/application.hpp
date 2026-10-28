@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <span>
 #include <string_view>
 
@@ -10,6 +11,7 @@
 #include "platform/frame_pacer.hpp"
 #include "platform/sdl_context.hpp"
 #include "platform/window.hpp"
+#include "render/renderer.hpp"
 #include "settings/registry.hpp"
 
 namespace rr::app {
@@ -20,7 +22,7 @@ public:
     /// `args` excludes the program name.
     [[nodiscard]] static Result<Application> Create(std::span<const std::string_view> args);
 
-    void Run();
+    [[nodiscard]] Result<void> Run();
 
 private:
     struct Parts {
@@ -28,17 +30,22 @@ private:
         settings::Registry settings;
         assets::Vfs vfs;
         platform::Window window;
+        render::Renderer renderer;
         platform::FramePacer pacer;
     };
 
     explicit Application(Parts parts);
 
+    void CyclePacing();
+
     platform::SdlContext sdl_;
     settings::Registry settings_;
     assets::Vfs vfs_;
     platform::Window window_;
+    render::Renderer renderer_;
     platform::EventPump events_;
     platform::FramePacer pacer_;
+    std::size_t pacingPreset_ = 0;
     FrameLoop frameLoop_;
 };
 
