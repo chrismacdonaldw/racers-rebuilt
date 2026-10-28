@@ -3,7 +3,6 @@
 #include <array>
 #include <cstdint>
 #include <format>
-#include <initializer_list>
 #include <optional>
 #include <string>
 #include <utility>
@@ -49,26 +48,14 @@ struct GdbFile {
     float scale = 1.0F;
 };
 
-Result<void> ReadFloats(TokenReader& reader, std::initializer_list<float*> targets) {
-    for (float* target : targets) {
-        Result<void> read = ReadValue(reader, *target);
-        if (!read) {
-            return read;
-        }
-    }
-    return {};
-}
-
 template <VertexLayout Layout>
 Result<void> ReadVertex(TokenReader& reader, GeometryVertex& vertex) {
-    Vector3& position = vertex.position;
-    Result<void> read = ReadFloats(reader, {&position.x, &position.y, &position.z});
+    Result<void> read = ReadValue(reader, vertex.position);
     if constexpr (Layout != VertexLayout::Position) {
         read = read.and_then([&] { return ReadFloats(reader, {&vertex.u, &vertex.v}); });
     }
     if constexpr (Layout == VertexLayout::Lit) {
-        Vector3& normal = vertex.normal;
-        read = read.and_then([&] { return ReadFloats(reader, {&normal.x, &normal.y, &normal.z}); });
+        read = read.and_then([&] { return ReadValue(reader, vertex.normal); });
     }
     if constexpr (Layout == VertexLayout::Colored) {
         read = read.and_then([&] { return ReadValue(reader, vertex.rgba); });

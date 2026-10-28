@@ -26,6 +26,20 @@ Result<void> ReadValue(TokenReader& reader, std::string& value) {
     return reader.ReadString().transform([&value](std::string_view read) { value = read; });
 }
 
+Result<void> ReadValue(TokenReader& reader, Vector3& value) {
+    return ReadFloats(reader, {&value.x, &value.y, &value.z});
+}
+
+Result<void> ReadFloats(TokenReader& reader, std::initializer_list<float*> values) {
+    for (float* value : values) {
+        Result<void> read = ReadValue(reader, *value);
+        if (!read) {
+            return read;
+        }
+    }
+    return {};
+}
+
 Result<void> ReadValue([[maybe_unused]] TokenReader& reader, bool& value) {
     value = true;
     return {};

@@ -3,7 +3,6 @@
 #include <doctest/doctest.h>
 
 #include <cstdint>
-#include <initializer_list>
 #include <string>
 #include <vector>
 
@@ -13,27 +12,10 @@ namespace rr::assets {
 namespace {
 
 using test::Bytes;
+using test::Floats;
+using test::Ints;
 using test::Join;
-
-std::vector<std::byte> ListHeader(std::uint8_t count) {
-    return Bytes({0x07, 0x0B, count, 0x08, 0x05});
-}
-
-std::vector<std::byte> Ints(std::initializer_list<std::uint8_t> values) {
-    std::vector<std::byte> bytes;
-    for (const std::uint8_t value : values) {
-        bytes.insert(bytes.end(), {std::byte{0x0B}, std::byte{value}});
-    }
-    return bytes;
-}
-
-std::vector<std::byte> Floats(std::initializer_list<std::uint8_t> values) {
-    std::vector<std::byte> bytes;
-    for (const std::uint8_t value : values) {
-        bytes.insert(bytes.end(), {std::byte{0x11}, std::byte{value}, std::byte{0x00}});
-    }
-    return bytes;
-}
+using test::ListHeader;
 
 std::vector<std::byte> TwoMaterials() {
     return Join({Bytes({0x27}), ListHeader(2), Bytes({0x02, 'a', 0x00, 0x02, 'b', 0x00, 0x06})});
