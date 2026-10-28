@@ -1,5 +1,7 @@
 add_executable(racers-rebuilt-tests
     main.cpp
+    app/frame_loop_test.cpp
+    app/scene_stack_test.cpp
     core/log_test.cpp
     core/quaternion_test.cpp
     core/result_test.cpp
@@ -12,6 +14,7 @@ add_executable(racers-rebuilt-tests
 set_source_files_properties(main.cpp PROPERTIES COMPILE_DEFINITIONS DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
 target_compile_definitions(racers-rebuilt-tests PRIVATE DOCTEST_CONFIG_USE_STD_HEADERS)
 target_link_libraries(racers-rebuilt-tests PRIVATE
+    rr::app
     rr::core
     rr::platform
     rr::sim

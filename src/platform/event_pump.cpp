@@ -1,20 +1,9 @@
 #include "platform/event_pump.hpp"
 
-#include <SDL3/SDL_error.h>
-
-#include "core/log.hpp"
-
 namespace rr::platform {
 
-void EventPump::Wait() {
+void EventPump::Poll() {
     SDL_Event event;
-    if (!SDL_WaitEvent(&event)) {
-        log::Error("waiting for events failed, quitting: {}", SDL_GetError());
-        isQuitRequested_ = true;
-        return;
-    }
-
-    Handle(event);
     while (SDL_PollEvent(&event)) {
         Handle(event);
     }

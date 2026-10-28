@@ -1,9 +1,12 @@
 rr_add_module(app
     SOURCES
         application.cpp
+        frame_loop.cpp
+        scene_stack.cpp
     DEPENDS
         rr::core
         rr::platform
+        rr::sim
 )
 target_compile_definitions(rr_app PRIVATE RR_VERSION="${PROJECT_VERSION}")
 

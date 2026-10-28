@@ -1,10 +1,12 @@
 #include "app/application.hpp"
 
+#include <cmath>
 #include <filesystem>
 #include <utility>
 
 #include "core/log.hpp"
 #include "core/utf8_path.hpp"
+#include "platform/clock.hpp"
 #include "platform/data_folder.hpp"
 
 namespace rr::app {
@@ -13,6 +15,7 @@ namespace {
 constexpr const char* kWindowTitle = "racers-rebuilt";
 constexpr int kWindowWidthPx = 1280;
 constexpr int kWindowHeightPx = 720;
+constexpr float kFallbackRefreshRateHz = 60.0F;
 
 void OpenLogFile(const std::filesystem::path& dataFolder) {
     const std::filesystem::path logPath = dataFolder / "logs" / "racers-rebuilt.log";
@@ -20,6 +23,12 @@ void OpenLogFile(const std::filesystem::path& dataFolder) {
     if (!opened) {
         log::Warn("{}, logging to stderr only", opened.error().message);
     }
+}
+
+platform::PacingConfig PacingForDisplay(const platform::Window& window) {
+    const float refreshRateHz = window.RefreshRateHz().value_or(kFallbackRefreshRateHz);
+    return {.mode = platform::PresentMode::Capped,
+            .fpsCap = static_cast<int>(std::lround(refreshRateHz))};
 }
 
 }
@@ -43,18 +52,28 @@ Result<Application> Application::Create() {
         return std::unexpected(std::move(window.error()));
     }
 
-    log::Info("window open");
-    return Application(std::move(*sdl), std::move(*window));
+    Result<platform::FrameTimer> timer = platform::FrameTimer::Create();
+    if (!timer) {
+        return std::unexpected(std::move(timer.error()));
+    }
+    const platform::PacingConfig pacing = PacingForDisplay(*window);
+    log::Info("window open, pacing capped at {} FPS", pacing.fpsCap);
+
+    return Application(std::move(*sdl), std::move(*window),
+                       platform::FramePacer(std::move(*timer), pacing));
 }
 
 void Application::Run() {
     while (!events_.IsQuitRequested()) {
-        events_.Wait();
+        events_.Poll();
+        frameLoop_.RunFrame(platform::Now());
+        pacer_.WaitForNextFrame();
     }
     log::Info("quit requested, shutting down");
 }
 
-Application::Application(platform::SdlContext sdl, platform::Window window)
-    : sdl_(std::move(sdl)), window_(std::move(window)) {}
+Application::Application(platform::SdlContext sdl, platform::Window window,
+                         platform::FramePacer pacer)
+    : sdl_(std::move(sdl)), window_(std::move(window)), pacer_(std::move(pacer)) {}
 
 }

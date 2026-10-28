@@ -7,8 +7,7 @@ namespace rr::platform {
 /// Main thread only.
 class EventPump {
 public:
-    /// If waiting fails, logs the error and requests quit.
-    void Wait();
+    void Poll();
 
     [[nodiscard]] bool IsQuitRequested() const;
 
