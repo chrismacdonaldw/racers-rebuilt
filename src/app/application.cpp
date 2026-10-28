@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "app/audio_startup.hpp"
 #include "app/game_settings.hpp"
 #include "app/install_discovery.hpp"
 #include "app/startup_settings.hpp"
@@ -177,12 +178,19 @@ Result<Application> Application::Create(std::span<const std::string_view> args) 
         return std::unexpected(std::move(pacer.error()));
     }
     startup.EndPhase("window and renderer", platform::Now());
+
+    Result<audio::Mixer> mixer = StartAudio(*registry, *vfs);
+    if (!mixer) {
+        return std::unexpected(std::move(mixer.error()));
+    }
+    startup.EndPhase("audio", platform::Now());
     log::Info("{}", startup.Summary());
 
     return Application({.sdl = std::move(*sdl),
                         .settings = std::move(*registry),
                         .settingsFile = settingsFile,
                         .vfs = std::move(*vfs),
+                        .mixer = std::move(*mixer),
                         .window = std::move(*window),
                         .renderer = std::move(*renderer),
                         .pacer = std::move(*pacer)});
@@ -217,6 +225,7 @@ Application::Application(Parts parts)
       settings_(std::move(parts.settings)),
       settingsFile_(std::move(parts.settingsFile)),
       vfs_(std::move(parts.vfs)),
+      mixer_(std::move(parts.mixer)),
       window_(std::move(parts.window)),
       renderer_(std::move(parts.renderer)),
       pacer_(std::move(parts.pacer)) {}

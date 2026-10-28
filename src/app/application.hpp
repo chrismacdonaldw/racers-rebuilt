@@ -6,6 +6,7 @@
 
 #include "app/frame_loop.hpp"
 #include "assets/vfs.hpp"
+#include "audio/mixer.hpp"
 #include "core/result.hpp"
 #include "platform/event_pump.hpp"
 #include "platform/frame_pacer.hpp"
@@ -30,6 +31,7 @@ private:
         settings::Registry settings;
         std::filesystem::path settingsFile;
         assets::Vfs vfs;
+        audio::Mixer mixer;
         platform::Window window;
         render::Renderer renderer;
         platform::FramePacer pacer;
@@ -44,6 +46,7 @@ private:
     settings::Registry settings_;
     std::filesystem::path settingsFile_;
     assets::Vfs vfs_;
+    audio::Mixer mixer_;
     platform::Window window_;
     render::Renderer renderer_;
     platform::EventPump events_;

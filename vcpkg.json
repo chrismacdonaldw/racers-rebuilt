@@ -5,6 +5,7 @@
   "dependencies": [
     "doctest",
     "glm",
+    "miniaudio",
     "sdl3",
     "tomlplusplus"
   ]

@@ -15,6 +15,9 @@ add_executable(racers-rebuilt-tests
     assets/token_schema_test.cpp
     assets/token_survey_test.cpp
     assets/vfs_test.cpp
+    audio/alp_game_files_test.cpp
+    audio/alp_test.cpp
+    audio/mixer_test.cpp
     core/log_test.cpp
     core/quaternion_test.cpp
     core/result_test.cpp
@@ -35,6 +38,7 @@ target_compile_definitions(racers-rebuilt-tests PRIVATE DOCTEST_CONFIG_USE_STD_H
 target_link_libraries(racers-rebuilt-tests PRIVATE
     rr::app
     rr::assets
+    rr::audio
     rr::core
     rr::platform
     rr::render

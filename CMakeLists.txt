@@ -13,6 +13,7 @@ include(shaders)
 find_package(SDL3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
+find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h REQUIRED)
 
 add_subdirectory(src)
 
