@@ -2,6 +2,7 @@ rr_add_module(assets
     SOURCES
         bmp_image.cpp
         byte_reader.cpp
+        checkpoints.cpp
         folder_layer.cpp
         game_path.cpp
         geometry_database.cpp
