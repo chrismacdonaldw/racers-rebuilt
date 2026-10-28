@@ -8,6 +8,7 @@ rr_add_module(platform
         sdl_context.cpp
         window.cpp
         win32/frame_timer.cpp
+        win32/mapped_file.cpp
     DEPENDS
         rr::core
         SDL3::SDL3
