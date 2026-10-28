@@ -1,0 +1,49 @@
+#pragma once
+
+#include <cstdint>
+#include <vector>
+
+#include "core/transform.hpp"
+
+namespace rr::sim {
+
+enum class EntityId : std::uint32_t {};
+
+enum class SnapshotFlags : std::uint8_t {
+    None = 0,
+    Teleported = 1U << 0U,
+};
+
+[[nodiscard]] constexpr SnapshotFlags operator|(SnapshotFlags a, SnapshotFlags b) {
+    return static_cast<SnapshotFlags>(static_cast<std::uint8_t>(a) | static_cast<std::uint8_t>(b));
+}
+
+[[nodiscard]] constexpr bool HasFlag(SnapshotFlags flags, SnapshotFlags flag) {
+    return (static_cast<std::uint8_t>(flags) & static_cast<std::uint8_t>(flag)) != 0;
+}
+
+struct EntitySnapshot {
+    EntityId id{};
+    Transform transform;
+    SnapshotFlags flags = SnapshotFlags::None;
+
+    friend bool operator==(const EntitySnapshot&, const EntitySnapshot&) = default;
+};
+
+struct CameraSnapshot {
+    Transform transform;
+    SnapshotFlags flags = SnapshotFlags::None;
+
+    friend bool operator==(const CameraSnapshot&, const CameraSnapshot&) = default;
+};
+
+/// `entities` stays sorted by id. Reuse a snapshot between ticks so its storage isn't reallocated.
+struct RenderSnapshot {
+    std::uint64_t tick = 0;
+    std::vector<EntitySnapshot> entities;
+    CameraSnapshot camera;
+
+    friend bool operator==(const RenderSnapshot&, const RenderSnapshot&) = default;
+};
+
+}
