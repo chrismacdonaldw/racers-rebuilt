@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 
+#include "archive_survey.hpp"
 #include "assets/jam_archive.hpp"
 #include "assets/token_reader.hpp"
 #include "game_files.hpp"
@@ -27,9 +28,7 @@ constexpr std::array<std::string_view, 38> kTokenizedExtensions{
 constexpr std::size_t kRetailTokenizedFileCount = 2819;
 
 bool IsTokenized(std::string_view name) {
-    const std::size_t dot = name.rfind('.');
-    return dot != std::string_view::npos &&
-           std::ranges::contains(kTokenizedExtensions, name.substr(dot + 1));
+    return std::ranges::contains(kTokenizedExtensions, test::Extension(name));
 }
 
 Result<void> TokenizeToEnd(std::span<const std::byte> bytes) {
@@ -64,28 +63,6 @@ Result<void> TokenizeToEnd(std::span<const std::byte> bytes) {
     }
 }
 
-struct Survey {
-    std::size_t fileCount = 0;
-    std::vector<std::string> failures;
-};
-
-Survey TokenizeArchive(const JamArchive& archive) {
-    Survey survey;
-    for (const IndexEntry& entry : archive.Index().Entries()) {
-        if (entry.info.kind != EntryKind::File || !IsTokenized(entry.Name())) {
-            continue;
-        }
-        ++survey.fileCount;
-        const Result<void> tokenized = archive.Read(entry.info).and_then([](const FileData& data) {
-            return TokenizeToEnd(data.Bytes());
-        });
-        if (!tokenized) {
-            survey.failures.push_back(std::format("{}: {}", entry.path, tokenized.error().message));
-        }
-    }
-    return survey;
-}
-
 TEST_CASE("every tokenized file in the retail LEGO.JAM decodes to the end") {
     const std::optional<std::filesystem::path> gameFolder = test::GameFolder();
     if (!gameFolder) {
@@ -95,7 +72,7 @@ TEST_CASE("every tokenized file in the retail LEGO.JAM decodes to the end") {
     const Result<JamArchive> archive = JamArchive::Open(*gameFolder / "LEGO.JAM");
     REQUIRE(archive.has_value());
 
-    const Survey survey = TokenizeArchive(*archive);
+    const test::Survey survey = test::SurveyLayer(*archive, IsTokenized, TokenizeToEnd);
 
     CHECK(survey.fileCount == kRetailTokenizedFileCount);
     for (const std::string& failure : survey.failures) {

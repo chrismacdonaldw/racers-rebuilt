@@ -9,6 +9,7 @@ add_executable(racers-rebuilt-tests
     assets/bmp_image_test.cpp
     assets/byte_reader_test.cpp
     assets/game_path_test.cpp
+    assets/image_survey_test.cpp
     assets/install_test.cpp
     assets/jam_archive_test.cpp
     assets/jam_test.cpp
