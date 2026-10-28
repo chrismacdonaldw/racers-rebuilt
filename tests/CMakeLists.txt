@@ -7,6 +7,7 @@ add_executable(racers-rebuilt-tests
     app/music_folder_source_test.cpp
     app/keyboard_input_test.cpp
     app/pace_car_test.cpp
+    app/racer_determinism_test.cpp
     app/replay_session_test.cpp
     app/scene_stack_test.cpp
     app/startup_settings_test.cpp
