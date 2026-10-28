@@ -5,6 +5,7 @@ add_executable(racers-rebuilt-tests
     core/result_test.cpp
     core/utf8_path_test.cpp
     platform/data_folder_test.cpp
+    platform/frame_pacer_test.cpp
     sim/input_latch_test.cpp
     sim/interpolation_test.cpp
 )

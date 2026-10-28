@@ -20,6 +20,14 @@ Result<Window> Window::Create(const WindowConfig& config) {
     return Window(window);
 }
 
+std::optional<float> Window::RefreshRateHz() const {
+    const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(window_.get()));
+    if (mode == nullptr || mode->refresh_rate <= 0.0F) {
+        return std::nullopt;
+    }
+    return mode->refresh_rate;
+}
+
 Window::Window(SDL_Window* window) : window_(window) {}
 
 void Window::Deleter::operator()(SDL_Window* window) const {
