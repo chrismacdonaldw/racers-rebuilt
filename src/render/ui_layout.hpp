@@ -1,0 +1,35 @@
+#pragma once
+
+#include <cstdint>
+
+namespace rr::render {
+
+/// UI coordinates span this 4:3 canvas, origin top left.
+inline constexpr float kUiWidth = 640.0F;
+inline constexpr float kUiHeight = 480.0F;
+
+enum class UiFit : std::uint8_t { Centered, Stretched };
+
+struct PixelRect {
+    std::uint32_t xPx = 0;
+    std::uint32_t yPx = 0;
+    std::uint32_t widthPx = 0;
+    std::uint32_t heightPx = 0;
+
+    bool operator==(const PixelRect&) const = default;
+};
+
+struct UiToClip {
+    float scaleX = 0.0F;
+    float scaleY = 0.0F;
+    float offsetX = 0.0F;
+    float offsetY = 0.0F;
+};
+
+/// `Centered` is the largest whole-pixel 4:3 area that fits.
+[[nodiscard]] PixelRect FitUiArea(std::uint32_t widthPx, std::uint32_t heightPx, UiFit fit);
+
+[[nodiscard]] UiToClip UiToClipTransform(const PixelRect& area, std::uint32_t widthPx,
+                                         std::uint32_t heightPx);
+
+}

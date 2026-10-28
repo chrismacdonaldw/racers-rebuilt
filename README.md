@@ -86,7 +86,7 @@ Create `music/` and `mods/` when you first need them.
 
 Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Enhancements**, **Game** and **Video**, plus **Mods** when a mod is installed, and **Developer**. Video, audio and enhancement changes apply on the next frame. Game and mod changes apply on the next start. Every change saves when an edit finishes.
 
-**Developer** shows frame time, ticks per frame and startup timings. Its **Scenes** list opens the test scene or any race track in your copy.
+**Developer** shows frame time, ticks per frame and startup timings. Its **Scenes** list opens the test scene, a sprite test that draws 1000 UI sprites, or any race track in your copy.
 
 ### Controls
 
@@ -115,6 +115,7 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `video.vsync` | `true` | `true`, `false` |
 | `video.fps_cap` | `144` | `30` to `360`, or `0` for uncapped. Applies only with VSync off. |
 | `video.resolution_scale` | `1.0` | `0.25` to `2.0`. Renders the scene at this fraction of the window size. |
+| `video.stretch_ui` | `false` | Stretches the UI to fill the window instead of keeping it 4:3 and centered. |
 | `audio.music_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.effects_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.voice_volume` | `1.0` | `0.0` to `1.0` |

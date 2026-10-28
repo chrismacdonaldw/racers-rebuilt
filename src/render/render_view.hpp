@@ -52,10 +52,28 @@ struct DebugLine {
     Color color;
 };
 
+struct Rect {
+    float x = 0.0F;
+    float y = 0.0F;
+    float width = 0.0F;
+    float height = 0.0F;
+};
+
+/// `bounds` is in UI coordinates and `uv` in texture coordinates.
+struct SpriteDraw {
+    TextureId texture = kWhiteTexture;
+    Rect bounds;
+    Rect uv{.width = 1.0F, .height = 1.0F};
+    Color tint;
+    BlendMode blend = BlendMode::Alpha;
+};
+
+/// Sprites draw over the scene at full window resolution, in submission order.
 struct RenderView {
     Camera camera;
     std::span<const MeshDraw> meshes;
     std::span<const DebugLine> lines;
+    std::span<const SpriteDraw> sprites;
 };
 
 }

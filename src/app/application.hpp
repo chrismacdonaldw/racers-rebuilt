@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -48,11 +49,14 @@ private:
         std::string startupSummary;
     };
 
+    using SceneFactory = std::function<Result<std::unique_ptr<Scene>>()>;
+
     explicit Application(Parts parts);
 
     [[nodiscard]] Result<std::unique_ptr<Scene>> CreateScene(
         const std::optional<std::string>& track);
     [[nodiscard]] Result<void> OpenScene(const std::optional<std::string>& track);
+    [[nodiscard]] Result<void> SwitchScene(const SceneFactory& create);
     [[nodiscard]] std::vector<overlay::SceneChoice> SceneChoices();
     void RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music);
     void CyclePacing();

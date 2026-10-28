@@ -16,6 +16,7 @@ rr_add_module(app
         pace_car.cpp
         replay_session.cpp
         scene_stack.cpp
+        sprite_test_scene.cpp
         startup_settings.cpp
         startup_timer.cpp
         test_scene.cpp
