@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <format>
+#include <initializer_list>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -234,6 +236,78 @@ constexpr std::array kWorldFields{
     RecordList<&WorldAsset::lights, 0x49, kLightFields>(),
 };
 
+struct IndexUse {
+    std::string_view list;
+    std::int32_t index = kNoIndex;
+    std::size_t count = 0;
+};
+
+void AddEntityUses(const WorldAsset& world, const WorldEntity& entity,
+                   std::vector<IndexUse>& uses) {
+    for (const WorldLod& lod : entity.lods) {
+        uses.push_back({.list = "model", .index = lod.model, .count = world.models.size()});
+        uses.push_back(
+            {.list = "scene node", .index = lod.sceneNode, .count = world.sceneNodes.size()});
+        uses.push_back(
+            {.list = "model part", .index = lod.modelPart, .count = world.modelParts.size()});
+        uses.push_back({.list = "bounding shape",
+                        .index = lod.boundingShape,
+                        .count = world.boundingShapes.size()});
+    }
+    for (const std::int32_t table : entity.materialTables) {
+        uses.push_back(
+            {.list = "material table", .index = table, .count = world.materialTables.size()});
+    }
+    for (const MaterialAnimationBinding& binding : entity.materialAnimations) {
+        uses.push_back({.list = "material animation",
+                        .index = binding.animation,
+                        .count = world.materialAnimations.size()});
+    }
+    uses.push_back({.list = "bounding volume",
+                    .index = entity.boundingVolume,
+                    .count = world.boundingVolumes.size()});
+}
+
+std::vector<IndexUse> IndexUses(const WorldAsset& world) {
+    std::vector<IndexUse> uses;
+    for (const std::vector<WorldEntity>* entities :
+         {&world.modelEntities, &world.animatedEntities, &world.collidableEntities,
+          &world.boundedEntities}) {
+        for (const WorldEntity& entity : *entities) {
+            AddEntityUses(world, entity, uses);
+        }
+    }
+    for (const WorldSprite& sprite : world.sprites) {
+        if (sprite.material) {
+            uses.push_back({.list = "material table",
+                            .index = sprite.material->materialTable,
+                            .count = world.materialTables.size()});
+        }
+        if (sprite.animation) {
+            uses.push_back({.list = "material animation",
+                            .index = sprite.animation->animation,
+                            .count = world.materialAnimations.size()});
+        }
+    }
+    for (const WorldCamera& camera : world.cameras) {
+        uses.push_back({.list = "animated entity",
+                        .index = camera.trackedEntity,
+                        .count = world.animatedEntities.size()});
+    }
+    return uses;
+}
+
+Result<void> CheckIndices(const WorldAsset& world) {
+    for (const IndexUse& use : IndexUses(world)) {
+        const bool isInRange = use.index >= 0 && std::cmp_less(use.index, use.count);
+        if (use.index != kNoIndex && !isInRange) {
+            return Fail(ErrorCode::InvalidData, std::format("{} {} is past the {} in the list",
+                                                            use.list, use.index, use.count));
+        }
+    }
+    return {};
+}
+
 }
 
 Result<WorldAsset> ParseWorld(std::span<const std::byte> bytes) {
@@ -241,7 +315,8 @@ Result<WorldAsset> ParseWorld(std::span<const std::byte> bytes) {
     WorldAsset world;
     return ReadFields<WorldAsset>(reader, kWorldFields, world)
         .and_then([&] { return reader.Expect(TokenKind::End); })
-        .transform([&](const Token&) { return std::move(world); });
+        .and_then([&](const Token&) { return CheckIndices(world); })
+        .transform([&] { return std::move(world); });
 }
 
 }
