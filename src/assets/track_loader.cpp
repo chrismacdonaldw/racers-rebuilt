@@ -323,4 +323,15 @@ void TrackLoader::Prune() {
     images_.Prune();
 }
 
+std::vector<std::string> ListRaceTracks(const Vfs& vfs) {
+    std::vector<std::string> tracks;
+    for (VfsEntry& entry : vfs.List("GAMEDATA").value_or(std::vector<VfsEntry>{})) {
+        if (entry.kind == EntryKind::Directory && entry.name.starts_with("RACEC")) {
+            tracks.push_back(std::move(entry.name));
+        }
+    }
+    std::ranges::sort(tracks);
+    return tracks;
+}
+
 }

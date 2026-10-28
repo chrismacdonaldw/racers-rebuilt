@@ -48,10 +48,14 @@ add_executable(racers-rebuilt-tests
     mods/hook_registry_test.cpp
     mods/mod_list_test.cpp
     mods/mod_manifest_test.cpp
+    overlay/input_gate_test.cpp
+    overlay/setting_items_test.cpp
+    overlay/setting_menus_test.cpp
     platform/data_folder_test.cpp
     platform/frame_pacer_test.cpp
     platform/install_locations_test.cpp
     platform/mapped_file_test.cpp
+    render/asset_table_test.cpp
     render/camera_test.cpp
     settings/command_line_test.cpp
     settings/registry_test.cpp
@@ -68,12 +72,14 @@ target_link_libraries(racers-rebuilt-tests PRIVATE
     rr::audio
     rr::core
     rr::mods
+    rr::overlay
     rr::platform
     rr::render
     rr::settings
     rr::sim
     rr::compile_options
     doctest::doctest
+    imgui::imgui
 )
 
 add_test(NAME racers-rebuilt-tests COMMAND racers-rebuilt-tests)

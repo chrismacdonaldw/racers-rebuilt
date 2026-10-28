@@ -85,6 +85,22 @@ TEST_CASE("a value loaded before its declaration is converted on declare") {
     CHECK(registry.Get(kFpsCap) == 360);
 }
 
+TEST_CASE("declarations keep their label, category and range") {
+    Registry registry;
+    constexpr SettingSpec<int> kLabelled{.key = "video.fps_cap",
+                                         .defaultValue = 60,
+                                         .range = SettingRange<int>{.min = 30, .max = 360},
+                                         .label = "Framerate cap",
+                                         .category = "Video"};
+    registry.Declare(kLabelled);
+
+    const Registry::Declaration& declaration = registry.AllDeclarations().at("video.fps_cap");
+    CHECK(declaration.label == "Framerate cap");
+    CHECK(declaration.category == "Video");
+    CHECK(declaration.range ==
+          Registry::Range{SettingValue{std::int64_t{30}}, SettingValue{std::int64_t{360}}});
+}
+
 TEST_CASE("observers hear about changes only") {
     Registry registry = DeclaredRegistry();
     std::vector<std::string> changed;

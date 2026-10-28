@@ -18,6 +18,9 @@
 
 namespace rr::assets {
 
+/// Race track folders under `GAMEDATA`, such as `RACEC0R0`, sorted.
+[[nodiscard]] std::vector<std::string> ListRaceTracks(const Vfs& vfs);
+
 template <typename T>
 using NameMap = std::map<std::string, T, std::less<>>;
 

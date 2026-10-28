@@ -5,6 +5,10 @@
   "dependencies": [
     "doctest",
     "glm",
+    {
+      "name": "imgui",
+      "features": ["sdl3-binding", "sdlgpu3-binding"]
+    },
     "miniaudio",
     "sdl3",
     "stb",
