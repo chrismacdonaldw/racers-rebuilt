@@ -1,9 +1,13 @@
 add_executable(racers-rebuilt-tests
     main.cpp
     app/frame_loop_test.cpp
+    app/install_discovery_test.cpp
     app/scene_stack_test.cpp
+    app/startup_settings_test.cpp
+    app/startup_timer_test.cpp
     assets/byte_reader_test.cpp
     assets/game_path_test.cpp
+    assets/install_test.cpp
     assets/jam_archive_test.cpp
     assets/jam_test.cpp
     assets/token_reader_test.cpp
@@ -16,6 +20,7 @@ add_executable(racers-rebuilt-tests
     core/utf8_path_test.cpp
     platform/data_folder_test.cpp
     platform/frame_pacer_test.cpp
+    platform/install_locations_test.cpp
     platform/mapped_file_test.cpp
     settings/command_line_test.cpp
     settings/registry_test.cpp

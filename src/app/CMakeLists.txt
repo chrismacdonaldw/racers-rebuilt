@@ -2,10 +2,15 @@ rr_add_module(app
     SOURCES
         application.cpp
         frame_loop.cpp
+        install_discovery.cpp
         scene_stack.cpp
+        startup_settings.cpp
+        startup_timer.cpp
     DEPENDS
+        rr::assets
         rr::core
         rr::platform
+        rr::settings
         rr::sim
 )
 target_compile_definitions(rr_app PRIVATE RR_VERSION="${PROJECT_VERSION}")

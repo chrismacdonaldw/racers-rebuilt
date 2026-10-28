@@ -3,6 +3,7 @@ rr_add_module(assets
         byte_reader.cpp
         folder_layer.cpp
         game_path.cpp
+        install.cpp
         jam.cpp
         jam_archive.cpp
         path_index.cpp

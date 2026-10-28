@@ -4,10 +4,13 @@ rr_add_module(platform
         data_folder.cpp
         event_pump.cpp
         fatal_error.cpp
+        folder_picker.cpp
         frame_pacer.cpp
+        install_locations.cpp
         sdl_context.cpp
         window.cpp
         win32/frame_timer.cpp
+        win32/install_locations.cpp
         win32/mapped_file.cpp
         win32/unique_handle.cpp
     DEPENDS
