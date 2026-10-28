@@ -57,6 +57,7 @@ add_executable(racers-rebuilt-tests
     settings/settings_file_test.cpp
     sim/input_latch_test.cpp
     sim/interpolation_test.cpp
+    sim/route_playback_test.cpp
 )
 set_source_files_properties(main.cpp PROPERTIES COMPILE_DEFINITIONS DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
 target_compile_definitions(racers-rebuilt-tests PRIVATE DOCTEST_CONFIG_USE_STD_HEADERS)
