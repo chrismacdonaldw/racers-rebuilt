@@ -4,6 +4,7 @@ rr_add_module(app
         audio_settings.cpp
         audio_startup.cpp
         frame_loop.cpp
+        game_boot.cpp
         image_dump.cpp
         install_discovery.cpp
         loop_sidecar.cpp

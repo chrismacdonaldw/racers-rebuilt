@@ -1,11 +1,9 @@
 #pragma once
 
 #include <filesystem>
-#include <optional>
-#include <span>
-#include <string_view>
 
 #include "app/frame_loop.hpp"
+#include "app/game_boot.hpp"
 #include "assets/vfs.hpp"
 #include "audio/mixer.hpp"
 #include "core/result.hpp"
@@ -21,8 +19,7 @@ namespace rr::app {
 // NOLINTNEXTLINE(bugprone-exception-escape)
 class Application {
 public:
-    /// `args` excludes the program name.
-    [[nodiscard]] static Result<Application> Create(std::span<const std::string_view> args);
+    [[nodiscard]] static Result<Application> Create(GameBoot boot);
 
     [[nodiscard]] Result<void> Run();
 
@@ -37,7 +34,6 @@ private:
         render::Renderer renderer;
         platform::FramePacer pacer;
         platform::PacingConfig pacing;
-        std::optional<std::filesystem::path> imageDumpFolder;
     };
 
     explicit Application(Parts parts);
@@ -55,7 +51,6 @@ private:
     platform::EventPump events_;
     platform::FramePacer pacer_;
     platform::PacingConfig pacing_;
-    std::optional<std::filesystem::path> imageDumpFolder_;
     FrameLoop frameLoop_;
 };
 

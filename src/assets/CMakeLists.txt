@@ -4,10 +4,12 @@ rr_add_module(assets
         byte_reader.cpp
         folder_layer.cpp
         game_path.cpp
+        geometry_database.cpp
         install.cpp
         jam.cpp
         jam_archive.cpp
         lzss.cpp
+        material_library.cpp
         path_index.cpp
         texture_database.cpp
         tga_image.cpp

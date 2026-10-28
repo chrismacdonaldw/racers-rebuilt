@@ -13,23 +13,15 @@
 
 #include "app/audio_settings.hpp"
 #include "app/audio_startup.hpp"
-#include "app/game_settings.hpp"
-#include "app/image_dump.hpp"
-#include "app/install_discovery.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/startup_settings.hpp"
-#include "app/startup_timer.hpp"
 #include "app/test_scene.hpp"
 #include "app/video_settings.hpp"
-#include "assets/folder_layer.hpp"
-#include "assets/install.hpp"
 #include "audio/music_catalog.hpp"
 #include "audio/music_player.hpp"
 #include "core/log.hpp"
 #include "core/utf8_path.hpp"
 #include "platform/clock.hpp"
-#include "platform/data_folder.hpp"
-#include "platform/install_locations.hpp"
 
 namespace rr::app {
 namespace {
@@ -37,7 +29,6 @@ namespace {
 constexpr const char* kWindowTitle = "racers-rebuilt";
 constexpr int kWindowWidthPx = 1280;
 constexpr int kWindowHeightPx = 720;
-constexpr std::string_view kSettingsFileName = "settings.toml";
 constexpr std::string_view kMusicFolderName = "music";
 constexpr SDL_Keycode kCyclePacingKey = SDLK_F9;
 
@@ -48,64 +39,6 @@ constexpr std::array kPacingPresets{
     platform::PacingConfig{.mode = platform::PresentMode::Capped, .fpsCap = 144},
     platform::PacingConfig{.mode = platform::PresentMode::Uncapped},
 };
-
-void OpenLogFile(const std::filesystem::path& dataFolder) {
-    const std::filesystem::path logPath = dataFolder / "logs" / "racers-rebuilt.log";
-    Result<void> opened = log::OpenFile(logPath);
-    if (!opened) {
-        log::Warn("{}, logging to stderr only", opened.error().message);
-    }
-}
-
-std::optional<std::filesystem::path> OptionalPath(std::string_view utf8) {
-    if (utf8.empty()) {
-        return std::nullopt;
-    }
-    return PathFromUtf8(utf8);
-}
-
-std::string_view InstalledLanguage() {
-    const std::optional<std::uint32_t> langId = platform::InstalledLanguageId();
-    const std::optional<std::string_view> language =
-        langId ? assets::LanguageForLangId(*langId) : std::nullopt;
-    return language.value_or(assets::kDefaultLanguage);
-}
-
-Result<GameInstall> ResolveInstall(const settings::CommandLine& commandLine,
-                                   settings::Registry& registry,
-                                   const std::filesystem::path& settingsFile) {
-    Result<GameInstall> install =
-        DiscoverInstall({.commandLine = OptionalPath(commandLine.gamePath.value_or("")),
-                         .setting = OptionalPath(registry.Get(kGamePath))});
-    if (!install) {
-        return install;
-    }
-    std::vector<std::string_view> changedKeys;
-    if (install->wasPicked) {
-        registry.Set(kGamePath, Utf8FromPath(install->folder));
-        changedKeys.push_back(kGamePath.key);
-    }
-    if (registry.Get(kGameLanguage).empty()) {
-        registry.Set(kGameLanguage, std::string(InstalledLanguage()));
-        changedKeys.push_back(kGameLanguage.key);
-    }
-    if (!changedKeys.empty()) {
-        PersistSettings(settingsFile, registry, changedKeys);
-    }
-    return install;
-}
-
-Result<assets::Vfs> MountGameFiles(GameInstall install) {
-    Result<assets::FolderLayer> looseFiles =
-        assets::FolderLayer::Scan(install.folder, assets::ScanDepth::TopLevelFiles);
-    if (!looseFiles) {
-        return std::unexpected(std::move(looseFiles.error()));
-    }
-    assets::Vfs vfs;
-    vfs.Mount(std::make_unique<assets::FolderLayer>(std::move(*looseFiles)));
-    vfs.Mount(std::make_unique<assets::JamArchive>(std::move(install.jam)));
-    return vfs;
-}
 
 bool IsSamePacing(const platform::PacingConfig& a, const platform::PacingConfig& b) {
     return a.mode == b.mode && (a.mode != platform::PresentMode::Capped || a.fpsCap == b.fpsCap);
@@ -169,71 +102,42 @@ Result<platform::FramePacer> CreatePacer(const platform::PacingConfig& pacing) {
 
 }
 
-Result<Application> Application::Create(std::span<const std::string_view> args) {
-    StartupTimer startup(platform::Now());
-    Result<settings::CommandLine> commandLine = settings::ParseCommandLine(args);
-    Result<std::filesystem::path> dataFolder =
-        commandLine.and_then([](const auto&) { return platform::ResolveDataFolder(); });
-    if (!dataFolder) {
-        return std::unexpected(std::move(dataFolder.error()));
-    }
-    OpenLogFile(*dataFolder);
-    log::Info("racers-rebuilt {} starting, data folder {}", RR_VERSION, Utf8FromPath(*dataFolder));
-    const std::filesystem::path settingsFile = *dataFolder / kSettingsFileName;
-    Result<settings::Registry> registry = LoadStartupSettings(settingsFile, commandLine->overrides);
-    if (!registry) {
-        return std::unexpected(std::move(registry.error()));
-    }
-    startup.EndPhase("settings", platform::Now());
-
-    Result<platform::SdlContext> sdl = platform::SdlContext::Create();
-    Result<assets::Vfs> vfs = sdl.and_then([&](const auto&) {
-        return ResolveInstall(*commandLine, *registry, settingsFile).and_then(MountGameFiles);
-    });
-    if (!vfs) {
-        return std::unexpected(std::move(vfs.error()));
-    }
-    startup.EndPhase("game files", platform::Now());
-
+Result<Application> Application::Create(GameBoot boot) {
     Result<platform::Window> window = platform::Window::Create(
         {.title = kWindowTitle, .widthPx = kWindowWidthPx, .heightPx = kWindowHeightPx});
     if (!window) {
         return std::unexpected(std::move(window.error()));
     }
-    startup.EndPhase("window", platform::Now());
+    boot.startup.EndPhase("window", platform::Now());
 
-    const platform::PacingConfig pacing = PacingFromSettings(*registry);
+    const platform::PacingConfig pacing = PacingFromSettings(boot.settings);
     Result<render::Renderer> renderer = render::Renderer::Create(*window, pacing.mode);
     Result<platform::FramePacer> pacer =
         renderer.and_then([&](const render::Renderer&) { return CreatePacer(pacing); });
     if (!pacer) {
         return std::unexpected(std::move(pacer.error()));
     }
-    startup.EndPhase("renderer", platform::Now());
+    boot.startup.EndPhase("renderer", platform::Now());
 
-    Result<audio::Mixer> mixer = StartAudio(*registry, *vfs);
+    Result<audio::Mixer> mixer = StartAudio(boot.settings, boot.vfs);
     if (!mixer) {
         return std::unexpected(std::move(mixer.error()));
     }
-    startup.EndPhase("audio", platform::Now());
-    log::Info("{}", startup.Summary());
+    boot.startup.EndPhase("audio", platform::Now());
+    log::Info("{}", boot.startup.Summary());
 
-    return Application({.sdl = std::move(*sdl),
-                        .settings = std::move(*registry),
-                        .settingsFile = settingsFile,
-                        .vfs = std::move(*vfs),
+    return Application({.sdl = std::move(boot.sdl),
+                        .settings = std::move(boot.settings),
+                        .settingsFile = std::move(boot.settingsFile),
+                        .vfs = std::move(boot.vfs),
                         .mixer = std::move(*mixer),
                         .window = std::move(*window),
                         .renderer = std::move(*renderer),
                         .pacer = std::move(*pacer),
-                        .pacing = pacing,
-                        .imageDumpFolder = commandLine->imageDumpFolder.transform(PathFromUtf8)});
+                        .pacing = pacing});
 }
 
 Result<void> Application::Run() {
-    if (imageDumpFolder_) {
-        return DumpImages(vfs_, *imageDumpFolder_);
-    }
     Result<std::unique_ptr<TestScene>> scene = TestScene::Create(renderer_);
     if (!scene) {
         return std::unexpected(std::move(scene.error()));
@@ -274,8 +178,7 @@ Application::Application(Parts parts)
       window_(std::move(parts.window)),
       renderer_(std::move(parts.renderer)),
       pacer_(std::move(parts.pacer)),
-      pacing_(parts.pacing),
-      imageDumpFolder_(std::move(parts.imageDumpFolder)) {}
+      pacing_(parts.pacing) {}
 
 void Application::CyclePacing() {
     StorePacing(settings_, NextPacingPreset(PacingFromSettings(settings_)));

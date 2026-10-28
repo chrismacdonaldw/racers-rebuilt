@@ -5,8 +5,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -17,6 +19,9 @@
 namespace rr::assets {
 
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, std::int32_t& value);
+
+/// Fails outside 0 to 255.
+[[nodiscard]] Result<void> ReadValue(TokenReader& reader, std::uint8_t& value);
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, float& value);
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, std::string& value);
 
@@ -33,6 +38,13 @@ template <typename T, std::size_t N>
     }
     return {};
 }
+
+template <typename T>
+[[nodiscard]] Result<void> ReadValue(TokenReader& reader, std::optional<T>& value) {
+    return ReadValue(reader, value.emplace());
+}
+
+[[nodiscard]] Result<void> ExpectField(TokenReader& reader, FieldId id);
 
 /// Reads `[ count ] {`, calls `readElement` count times, then reads `}`.
 template <typename ReadElement>
@@ -81,6 +93,36 @@ template <auto Member>
     };
 }
 
+/// Reads no value.
+template <auto Member, auto Value>
+[[nodiscard]] constexpr auto FlagField(FieldId id) {
+    using Target = MemberPointer<decltype(Member)>::Target;
+    return FieldRule<Target>{
+        .id = id,
+        .read = [](TokenReader&, Target& target) -> Result<void> {
+            target.*Member = Value;
+            return {};
+        },
+    };
+}
+
+/// Unknown fields fail.
+template <typename Target>
+[[nodiscard]] Result<void> ReadField(TokenReader& reader,
+                                     std::type_identity_t<std::span<const FieldRule<Target>>> rules,
+                                     Target& target) {
+    Result<Token> field = reader.Expect(TokenKind::Field);
+    if (!field) {
+        return std::unexpected(std::move(field.error()));
+    }
+    const auto rule = std::ranges::find(rules, field->field, &FieldRule<Target>::id);
+    if (rule == rules.end()) {
+        return Fail(ErrorCode::InvalidData, std::format("unknown field 0x{:02X} at offset {}",
+                                                        field->field, field->offset));
+    }
+    return rule->read(reader, target);
+}
+
 /// Stops before `}` or the end of data. Unknown fields fail.
 template <typename Target>
 [[nodiscard]] Result<void> ReadFields(
@@ -94,16 +136,7 @@ template <typename Target>
         if (token->kind == TokenKind::CloseBrace || token->kind == TokenKind::End) {
             return {};
         }
-        Result<Token> field = reader.Expect(TokenKind::Field);
-        if (!field) {
-            return std::unexpected(std::move(field.error()));
-        }
-        const auto rule = std::ranges::find(rules, field->field, &FieldRule<Target>::id);
-        if (rule == rules.end()) {
-            return Fail(ErrorCode::InvalidData, std::format("unknown field 0x{:02X} at offset {}",
-                                                            field->field, field->offset));
-        }
-        Result<void> read = rule->read(reader, target);
+        Result<void> read = ReadField<Target>(reader, rules, target);
         if (!read) {
             return read;
         }
@@ -118,6 +151,28 @@ template <typename Target>
         .and_then([&](const Token&) { return ReadFields<Target>(reader, rules, target); })
         .and_then([&] { return reader.Expect(TokenKind::CloseBrace); })
         .transform([](const Token&) {});
+}
+
+/// Reads a whole file of `field [ count ] { field "name" { fields } ... }`.
+template <typename Entry>
+[[nodiscard]] Result<std::vector<Entry>> ParseNamedLibrary(
+    std::span<const std::byte> bytes, FieldId field,
+    std::type_identity_t<std::span<const FieldRule<Entry>>> rules) {
+    TokenReader reader(bytes);
+    std::vector<Entry> entries;
+    const auto readEntry = [&] {
+        Entry& entry = entries.emplace_back();
+        return ExpectField(reader, field)
+            .and_then([&] { return reader.ReadString(); })
+            .and_then([&](std::string_view name) {
+                entry.name = name;
+                return ReadBlock<Entry>(reader, rules, entry);
+            });
+    };
+    return ExpectField(reader, field)
+        .and_then([&] { return ReadList(reader, readEntry); })
+        .and_then([&] { return reader.Expect(TokenKind::End); })
+        .transform([&](const Token&) { return std::move(entries); });
 }
 
 }
