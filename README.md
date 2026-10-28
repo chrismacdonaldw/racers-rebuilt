@@ -115,7 +115,7 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `video.vsync` | `true` | `true`, `false` |
 | `video.fps_cap` | `144` | `30` to `360`, or `0` for uncapped. Applies only with VSync off. |
 | `video.resolution_scale` | `1.0` | `0.25` to `2.0`. Renders the scene at this fraction of the window size. |
-| `video.stretch_ui` | `false` | Stretches the UI to fill the window instead of keeping it 4:3 and centered. |
+| `video.stretch_ui` | `false` | `true`, `false` |
 | `audio.music_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.effects_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.voice_volume` | `1.0` | `0.0` to `1.0` |
@@ -145,6 +145,8 @@ fps_cap = 240
 [audio]
 music_volume = 0.6
 ```
+
+The UI keeps a centered 4:3 area unless `video.stretch_ui` is on, which stretches it to fill the window.
 
 Out-of-range values are clamped. Unknown keys are kept when the file is saved.
 
