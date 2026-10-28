@@ -25,6 +25,7 @@ add_executable(racers-rebuilt-tests
     assets/token_schema_test.cpp
     assets/token_survey_test.cpp
     assets/vfs_test.cpp
+    assets/world_database_test.cpp
     audio/alp_game_files_test.cpp
     audio/alp_test.cpp
     audio/looping_stream_test.cpp

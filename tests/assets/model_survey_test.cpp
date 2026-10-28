@@ -6,12 +6,14 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "archive_survey.hpp"
 #include "assets/geometry_database.hpp"
 #include "assets/jam_archive.hpp"
 #include "assets/material_library.hpp"
+#include "assets/world_database.hpp"
 #include "game_files.hpp"
 
 namespace rr::assets {
@@ -24,14 +26,22 @@ void CheckSurvey(const test::Survey& survey, std::size_t expectedFiles) {
     }
 }
 
-TEST_CASE("every model and material library in the retail game parses") {
+std::optional<JamArchive> OpenRetailJam() {
     const std::optional<std::filesystem::path> gameFolder = test::GameFolder();
     if (!gameFolder) {
         MESSAGE("RR_GAME_PATH isn't set, skipping");
+        return std::nullopt;
+    }
+    Result<JamArchive> archive = JamArchive::Open(*gameFolder / "LEGO.JAM");
+    REQUIRE(archive.has_value());
+    return std::move(*archive);
+}
+
+TEST_CASE("every model and material library in the retail game parses") {
+    const std::optional<JamArchive> archive = OpenRetailJam();
+    if (!archive) {
         return;
     }
-    const Result<JamArchive> archive = JamArchive::Open(*gameFolder / "LEGO.JAM");
-    REQUIRE(archive.has_value());
 
     std::size_t vertexCount = 0;
     std::size_t indexCount = 0;
@@ -59,6 +69,26 @@ TEST_CASE("every model and material library in the retail game parses") {
     MESSAGE("MDB: ", libraries.fileCount, " files, ", materialCount, " materials");
     CheckSurvey(libraries, 208);
     CHECK(materialCount == 2420);
+}
+
+TEST_CASE("every world in the retail game parses") {
+    const std::optional<JamArchive> archive = OpenRetailJam();
+    if (!archive) {
+        return;
+    }
+
+    std::size_t entityCount = 0;
+    const test::Survey worlds = test::SurveyLayer(
+        *archive, [](std::string_view name) { return test::Extension(name) == "WDB"; },
+        [&](std::span<const std::byte> bytes) {
+            return ParseWorld(bytes).transform([&](const WorldAsset& world) {
+                entityCount += world.modelEntities.size() + world.animatedEntities.size() +
+                               world.collidableEntities.size() + world.boundedEntities.size();
+            });
+        });
+    MESSAGE("WDB: ", worlds.fileCount, " files, ", entityCount, " entities");
+    CheckSurvey(worlds, 133);
+    CHECK(entityCount == 980);
 }
 
 }
