@@ -81,7 +81,10 @@ Result<Renderer> Renderer::Create(const platform::Window& window, platform::Pres
     Result<void> ready = renderer.SetPresentMode(mode)
                              .and_then([&] { return renderer.CreatePipelines(); })
                              .and_then([&] { return renderer.UploadTexture(WhitePixel()); })
-                             .transform([](TextureId white) { RR_VERIFY(white == kWhiteTexture); });
+                             .transform([&](TextureId white) {
+                                 RR_VERIFY(white == kWhiteTexture);
+                                 renderer.textures_.Pin();
+                             });
     if (!ready) {
         return std::unexpected(std::move(ready.error()));
     }
@@ -125,10 +128,9 @@ Result<MeshId> Renderer::UploadMesh(const assets::GeometryAsset& geometry) {
         UploadPart{.bytes = std::as_bytes(indices), .buffer = indexBuffer->Get()},
     };
     return UploadBuffers(parts).transform([&] {
-        meshes_.push_back({.vertices = std::move(*vertexBuffer),
-                           .indices = std::move(*indexBuffer),
-                           .indexCount = static_cast<std::uint32_t>(indices.size())});
-        return MeshId{static_cast<std::uint32_t>(meshes_.size() - 1)};
+        return meshes_.Add({.vertices = std::move(*vertexBuffer),
+                            .indices = std::move(*indexBuffer),
+                            .indexCount = static_cast<std::uint32_t>(indices.size())});
     });
 }
 
@@ -169,13 +171,12 @@ Result<TextureId> Renderer::UploadTexture(const assets::ImageAsset& image) {
     if (!SDL_SubmitGPUCommandBuffer(commands)) {
         return GpuFailure("can't submit a texture upload");
     }
-    textures_.push_back(std::move(texture));
-    return TextureId{static_cast<std::uint32_t>(textures_.size() - 1)};
+    return textures_.Add(std::move(texture));
 }
 
 void Renderer::ReleaseAssets() {
-    meshes_.clear();
-    textures_.clear();
+    meshes_.Release();
+    textures_.Release();
 }
 
 Result<void> Renderer::Draw(const RenderView& view) {
@@ -426,10 +427,7 @@ void Renderer::DrawMeshes(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pas
 void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
                         const MeshDraw& draw, const glm::mat4& viewProjection,
                         SDL_GPUGraphicsPipeline*& bound) const {
-    const auto meshIndex = static_cast<std::size_t>(draw.mesh);
-    const auto textureIndex = static_cast<std::size_t>(draw.material.texture);
-    RR_VERIFY(meshIndex < meshes_.size() && textureIndex < textures_.size());
-    const Mesh& mesh = meshes_[meshIndex];
+    const Mesh& mesh = meshes_.Get(draw.mesh);
     RR_VERIFY(draw.firstIndex <= mesh.indexCount);
     const std::uint32_t indexCount = std::min(draw.indexCount, mesh.indexCount - draw.firstIndex);
     RR_VERIFY(draw.indexCount == kWholeMesh || indexCount == draw.indexCount);
@@ -453,8 +451,8 @@ void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
 
     const SDL_GPUBufferBinding vertices{.buffer = mesh.vertices.Get()};
     const SDL_GPUBufferBinding indices{.buffer = mesh.indices.Get()};
-    const SDL_GPUTextureSamplerBinding texture{.texture = textures_[textureIndex].Get(),
-                                               .sampler = sampler_.Get()};
+    const SDL_GPUTextureSamplerBinding texture{
+        .texture = textures_.Get(draw.material.texture).Get(), .sampler = sampler_.Get()};
     SDL_BindGPUVertexBuffers(pass, 0, &vertices, 1);
     SDL_BindGPUIndexBuffer(pass, &indices, SDL_GPU_INDEXELEMENTSIZE_32BIT);
     SDL_BindGPUFragmentSamplers(pass, 0, &texture, 1);

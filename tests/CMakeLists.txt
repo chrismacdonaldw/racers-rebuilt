@@ -55,6 +55,7 @@ add_executable(racers-rebuilt-tests
     platform/frame_pacer_test.cpp
     platform/install_locations_test.cpp
     platform/mapped_file_test.cpp
+    render/asset_table_test.cpp
     render/camera_test.cpp
     settings/command_line_test.cpp
     settings/registry_test.cpp

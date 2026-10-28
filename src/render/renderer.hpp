@@ -14,6 +14,7 @@
 #include "core/result.hpp"
 #include "platform/frame_pacer.hpp"
 #include "platform/window.hpp"
+#include "render/asset_table.hpp"
 #include "render/gpu_resource.hpp"
 #include "render/overlay_pass.hpp"
 #include "render/render_view.hpp"
@@ -35,7 +36,7 @@ public:
 
     [[nodiscard]] Result<MeshId> UploadMesh(const assets::GeometryAsset& geometry);
     [[nodiscard]] Result<TextureId> UploadTexture(const assets::ImageAsset& image);
-    /// Invalidates every `MeshId` and `TextureId` handed out so far.
+    /// Invalidates every `MeshId` and `TextureId` handed out so far, except `kWhiteTexture`.
     void ReleaseAssets();
 
     /// The scene renders at this fraction of the window size, then scales to fit.
@@ -102,8 +103,8 @@ private:
     OverlayPass* overlay_ = nullptr;
     GpuBuffer lineVertices_;
     GpuTransferBuffer lineUpload_;
-    std::vector<Mesh> meshes_;
-    std::vector<GpuTexture> textures_;
+    AssetTable<Mesh, MeshId> meshes_;
+    AssetTable<GpuTexture, TextureId> textures_;
 };
 
 }
