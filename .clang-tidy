@@ -19,7 +19,7 @@ Checks: >
   -readability-magic-numbers,
   -readability-uppercase-literal-suffix
 WarningsAsErrors: '*'
-ExtraArgs: ['-Wno-unused-command-line-argument']
+ExtraArgs: ['-Wno-unused-command-line-argument', '-Wno-missing-designated-field-initializers']
 HeaderFilterRegex: '.*[/\\](src|tests)[/\\].*'
 FormatStyle: file
 CheckOptions:
