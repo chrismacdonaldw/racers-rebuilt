@@ -8,6 +8,7 @@ rr_add_module(assets
         jam.cpp
         jam_archive.cpp
         lzss.cpp
+        material_library.cpp
         path_index.cpp
         texture_database.cpp
         tga_image.cpp

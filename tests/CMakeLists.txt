@@ -16,6 +16,7 @@ add_executable(racers-rebuilt-tests
     assets/jam_archive_test.cpp
     assets/jam_test.cpp
     assets/lzss_test.cpp
+    assets/material_library_test.cpp
     assets/texture_database_test.cpp
     assets/tga_image_test.cpp
     assets/token_reader_test.cpp
