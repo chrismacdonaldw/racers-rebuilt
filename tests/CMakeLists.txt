@@ -5,7 +5,9 @@ add_executable(racers-rebuilt-tests
     app/install_discovery_test.cpp
     app/loop_sidecar_test.cpp
     app/music_folder_source_test.cpp
+    app/keyboard_input_test.cpp
     app/pace_car_test.cpp
+    app/replay_session_test.cpp
     app/scene_stack_test.cpp
     app/startup_settings_test.cpp
     app/startup_timer_test.cpp
@@ -63,7 +65,9 @@ add_executable(racers-rebuilt-tests
     settings/settings_file_test.cpp
     sim/input_latch_test.cpp
     sim/interpolation_test.cpp
+    sim/replay_test.cpp
     sim/route_playback_test.cpp
+    sim/snapshot_hash_test.cpp
 )
 set_source_files_properties(main.cpp PROPERTIES COMPILE_DEFINITIONS DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
 target_compile_definitions(racers-rebuilt-tests PRIVATE DOCTEST_CONFIG_USE_STD_HEADERS)
