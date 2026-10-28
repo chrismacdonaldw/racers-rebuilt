@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <vector>
 
@@ -23,11 +24,23 @@ TEST_CASE("any change to a snapshot changes its hash") {
     later.tick = 8;
     RenderSnapshot teleported = base;
     teleported.camera.flags = SnapshotFlags::Teleported;
+    RenderSnapshot drifted = base;
+    drifted.simStateHash = 1;
 
     CHECK(HashSnapshot(base) == HashSnapshot(Sample()));
     CHECK(HashSnapshot(nudged) != HashSnapshot(base));
     CHECK(HashSnapshot(later) != HashSnapshot(base));
     CHECK(HashSnapshot(teleported) != HashSnapshot(base));
+    CHECK(HashSnapshot(drifted) != HashSnapshot(base));
+}
+
+TEST_CASE("racer state hashes see velocity the pose doesn't show") {
+    const BodyState body;
+    BodyState moving = body;
+    moving.motion.velocity.y = std::nextafter(0.0F, 1.0F);
+
+    CHECK(HashRacerState(body) == HashRacerState(BodyState{}));
+    CHECK(HashRacerState(moving) != HashRacerState(body));
 }
 
 TEST_CASE("snapshot hashes survive encoding and reject damage") {

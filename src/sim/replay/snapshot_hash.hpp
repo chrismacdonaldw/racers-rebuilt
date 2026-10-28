@@ -6,12 +6,16 @@
 #include <vector>
 
 #include "core/result.hpp"
+#include "sim/physics/body_state.hpp"
 #include "sim/render_snapshot.hpp"
 
 namespace rr::sim {
 
 /// Exact: any bit of difference in a transform changes it.
 [[nodiscard]] std::uint64_t HashSnapshot(const RenderSnapshot& snapshot);
+
+/// Covers what the pose leaves out, for `RenderSnapshot::simStateHash`.
+[[nodiscard]] std::uint64_t HashRacerState(const BodyState& body);
 
 [[nodiscard]] std::vector<std::byte> EncodeSnapshotHashes(std::span<const std::uint64_t> hashes);
 [[nodiscard]] Result<std::vector<std::uint64_t>> DecodeSnapshotHashes(

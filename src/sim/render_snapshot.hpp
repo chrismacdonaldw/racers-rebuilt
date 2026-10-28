@@ -42,6 +42,7 @@ struct RenderSnapshot {
     std::uint64_t tick = 0;
     std::vector<EntitySnapshot> entities;
     CameraSnapshot camera;
+    std::uint64_t simStateHash = 0;
 
     friend bool operator==(const RenderSnapshot&, const RenderSnapshot&) = default;
 };

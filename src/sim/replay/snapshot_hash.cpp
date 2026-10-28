@@ -4,6 +4,7 @@
 #include <bit>
 #include <concepts>
 #include <cstddef>
+#include <initializer_list>
 
 #include "sim/replay/replay_bytes.hpp"
 
@@ -23,13 +24,21 @@ std::uint64_t Mix(std::uint64_t hash, T value) {
     return HashBytes(bytes, hash);
 }
 
-std::uint64_t MixTransform(std::uint64_t hash, const Transform& transform) {
-    for (const float value :
-         {transform.position.x, transform.position.y, transform.position.z, transform.rotation.w,
-          transform.rotation.x, transform.rotation.y, transform.rotation.z}) {
+std::uint64_t MixFloats(std::uint64_t hash, std::initializer_list<float> values) {
+    for (const float value : values) {
         hash = Mix(hash, std::bit_cast<std::uint32_t>(value));
     }
     return hash;
+}
+
+std::uint64_t MixTransform(std::uint64_t hash, const Transform& transform) {
+    return MixFloats(hash, {transform.position.x, transform.position.y, transform.position.z,
+                            transform.rotation.w, transform.rotation.x, transform.rotation.y,
+                            transform.rotation.z});
+}
+
+std::uint64_t MixVector(std::uint64_t hash, const Vector3& v) {
+    return MixFloats(hash, {v.x, v.y, v.z});
 }
 
 }
@@ -42,7 +51,24 @@ std::uint64_t HashSnapshot(const RenderSnapshot& snapshot) {
         hash = Mix(hash, static_cast<std::uint8_t>(entity.flags));
     }
     hash = MixTransform(hash, snapshot.camera.transform);
-    return Mix(hash, static_cast<std::uint8_t>(snapshot.camera.flags));
+    hash = Mix(hash, static_cast<std::uint8_t>(snapshot.camera.flags));
+    return Mix(hash, snapshot.simStateHash);
+}
+
+std::uint64_t HashRacerState(const BodyState& body) {
+    std::uint64_t hash = kFnvOffset;
+    for (const Vector3& v :
+         {body.motion.velocity, body.motion.angularMomentum, body.facing, body.motion.basis.side}) {
+        hash = MixVector(hash, v);
+    }
+    hash = MixFloats(hash, {body.turnRadius, body.thrust, body.steering.gain, body.steering.slip});
+    for (const int value : {body.motion.contactCount, body.impulses.yawMs, body.impulses.pitchMs,
+                            body.impulses.rollMs, body.airborneMs}) {
+        hash = Mix(hash, static_cast<std::uint32_t>(value));
+    }
+    const auto flags = static_cast<std::uint8_t>((body.steering.isSteering ? 1U : 0U) |
+                                                 (body.hasWallYaw ? 2U : 0U));
+    return Mix(hash, flags);
 }
 
 std::vector<std::byte> EncodeSnapshotHashes(std::span<const std::uint64_t> hashes) {

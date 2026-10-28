@@ -11,16 +11,10 @@
 #include "sim/physics/racer.hpp"
 #include "sim/physics/racer_controls.hpp"
 #include "sim/physics/surface.hpp"
+#include "sim/replay/snapshot_hash.hpp"
 
 namespace rr::app {
 namespace {
-
-struct TickState {
-    Transform pose;
-    Vector3 velocity;
-
-    friend bool operator==(const TickState&, const TickState&) = default;
-};
 
 sim::RacerControls ScriptedControls(std::uint64_t tick) {
     const std::uint64_t ms = tick * static_cast<std::uint64_t>(kSimTick.count());
@@ -49,39 +43,48 @@ test::PlaneWorld CourseWorld() {
 
 class RacerScene final : public Scene {
 public:
-    explicit RacerScene(std::vector<TickState>& states) : states_(states) {}
-
     void Tick(const sim::InputFrame& /*input*/) override {
         racer_.Tick(kSimTick, ScriptedControls(tick_++), world_);
-        states_.push_back({.pose = racer_.Pose(), .velocity = racer_.Body().motion.velocity});
     }
 
     void Snapshot(sim::RenderSnapshot& out) const override {
         out.entities.assign(1, {.id = sim::EntityId{1}, .transform = racer_.Pose()});
+        out.simStateHash = sim::HashRacerState(racer_.Body());
     }
 
     void Render(const sim::RenderSnapshot& /*interpolated*/) override {}
 
 private:
-    std::vector<TickState>& states_;
     test::PlaneWorld world_ = CourseWorld();
     sim::Racer racer_{{}, {}, {.position = {.z = 0.2F}}};
     std::uint64_t tick_ = 0;
 };
 
-std::vector<TickState> Run(const std::vector<Nanoseconds>& frameTimes) {
-    std::vector<TickState> states;
+class HashTap final : public TickTap {
+public:
+    void SceneStarted() override { hashes.clear(); }
+    void BeforeTick(sim::InputFrame& /*input*/) override {}
+    void AfterTick(const sim::InputFrame& /*input*/, const sim::RenderSnapshot& after) override {
+        hashes.push_back(sim::HashSnapshot(after));
+    }
+
+    std::vector<std::uint64_t> hashes;
+};
+
+std::vector<std::uint64_t> Run(const std::vector<Nanoseconds>& frameTimes) {
+    HashTap tap;
     FrameLoop loop;
-    loop.Scenes().Push(std::make_unique<RacerScene>(states));
+    loop.SetTickTap(&tap);
+    loop.Scenes().Push(std::make_unique<RacerScene>());
     for (const Nanoseconds now : frameTimes) {
         static_cast<void>(loop.RunFrame(now));
     }
-    return states;
+    return tap.hashes;
 }
 
-TEST_CASE("a scripted drive gives identical per-tick racer state at every framerate") {
+TEST_CASE("a scripted drive gives identical per-tick snapshot hashes at every framerate") {
     const Nanoseconds duration = std::chrono::seconds{7};
-    const std::vector<TickState> uncapped = Run(test::UncappedFrames(duration));
+    const std::vector<std::uint64_t> uncapped = Run(test::UncappedFrames(duration));
 
     REQUIRE(uncapped.size() == duration / kSimTick);
     for (const int fps : {30, 60, 144}) {
