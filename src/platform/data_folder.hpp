@@ -13,6 +13,8 @@ inline constexpr std::string_view kPortableMarker = "portable.txt";
 /// created if missing.
 [[nodiscard]] Result<std::filesystem::path> ResolveDataFolder();
 
+[[nodiscard]] Result<std::filesystem::path> ExeFolder();
+
 [[nodiscard]] bool IsPortable(const std::filesystem::path& exeFolder);
 
 }

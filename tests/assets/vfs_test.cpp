@@ -101,6 +101,17 @@ TEST_CASE_FIXTURE(VfsFixture, "a folder layer skips names that can't be game pat
     CHECK(loose->Index().Children("").size() == 1);
 }
 
+TEST_CASE_FIXTURE(VfsFixture, "a top-level scan indexes only the folder's own files") {
+    WriteText(Loose() / "readme.txt", "top");
+
+    Result<FolderLayer> loose = FolderLayer::Scan(Loose(), ScanDepth::TopLevelFiles);
+
+    REQUIRE(loose.has_value());
+    CHECK(loose->Index().Find("README.TXT").has_value());
+    CHECK_FALSE(loose->Index().Find("GAMEDATA").has_value());
+    CHECK(loose->Index().Children("").size() == 1);
+}
+
 TEST_CASE("scanning a missing folder fails with not found") {
     const test::TempFolder folder;
 

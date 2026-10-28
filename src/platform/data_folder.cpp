@@ -20,15 +20,6 @@ struct SdlFree {
     void operator()(char* text) const { SDL_free(text); }
 };
 
-Result<std::filesystem::path> ExeFolder() {
-    const char* basePath = SDL_GetBasePath();
-    if (basePath == nullptr) {
-        return Fail(ErrorCode::Platform,
-                    std::format("can't find the exe folder: {}", SDL_GetError()));
-    }
-    return PathFromUtf8(basePath);
-}
-
 Result<std::filesystem::path> UserDataFolder() {
     const std::unique_ptr<char, SdlFree> prefPath(SDL_GetPrefPath(nullptr, kAppFolderName));
     if (prefPath == nullptr) {
@@ -38,6 +29,15 @@ Result<std::filesystem::path> UserDataFolder() {
     return PathFromUtf8(prefPath.get());
 }
 
+}
+
+Result<std::filesystem::path> ExeFolder() {
+    const char* basePath = SDL_GetBasePath();
+    if (basePath == nullptr) {
+        return Fail(ErrorCode::Platform,
+                    std::format("can't find the exe folder: {}", SDL_GetError()));
+    }
+    return PathFromUtf8(basePath);
 }
 
 Result<std::filesystem::path> ResolveDataFolder() {

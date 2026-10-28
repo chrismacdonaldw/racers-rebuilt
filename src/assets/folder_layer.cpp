@@ -32,11 +32,14 @@ std::optional<EntryKind> KindOf(const std::filesystem::directory_entry& entry) {
     return std::nullopt;
 }
 
-void AddEntry(ScannedFolder& folder, DirectoryIterator& iterator,
-              const std::filesystem::path& root) {
+void AddEntry(ScannedFolder& folder, DirectoryIterator& iterator, const std::filesystem::path& root,
+              ScanDepth depth) {
     const std::filesystem::path& diskPath = iterator->path();
     const std::optional<EntryKind> kind = KindOf(*iterator);
-    if (!kind) {
+    if (depth == ScanDepth::TopLevelFiles) {
+        iterator.disable_recursion_pending();
+    }
+    if (!kind || (depth == ScanDepth::TopLevelFiles && *kind == EntryKind::Directory)) {
         return;
     }
     Result<std::string> path = NormalizeGamePath(Utf8FromPath(diskPath.lexically_relative(root)));
@@ -55,7 +58,7 @@ void AddEntry(ScannedFolder& folder, DirectoryIterator& iterator,
 
 }
 
-Result<FolderLayer> FolderLayer::Scan(const std::filesystem::path& root) {
+Result<FolderLayer> FolderLayer::Scan(const std::filesystem::path& root, ScanDepth depth) {
     std::error_code error;
     if (!std::filesystem::is_directory(root, error)) {
         return Fail(ErrorCode::NotFound,
@@ -65,7 +68,7 @@ Result<FolderLayer> FolderLayer::Scan(const std::filesystem::path& root) {
     ScannedFolder folder;
     for (DirectoryIterator iterator(root, error); !error && iterator != DirectoryIterator();
          iterator.increment(error)) {
-        AddEntry(folder, iterator, root);
+        AddEntry(folder, iterator, root, depth);
     }
     if (error) {
         return Fail(ErrorCode::Io,
