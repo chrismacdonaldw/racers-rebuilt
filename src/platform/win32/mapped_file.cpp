@@ -1,21 +1,16 @@
 #include "platform/mapped_file.hpp"
 
+#include <windows.h>
+
 #include <format>
 #include <string_view>
 #include <system_error>
 
 #include "core/utf8_path.hpp"
-
-#include <windows.h>
+#include "platform/win32/unique_handle.hpp"
 
 namespace rr::platform {
 namespace {
-
-struct HandleCloser {
-    void operator()(HANDLE handle) const { CloseHandle(handle); }
-};
-
-using UniqueHandle = std::unique_ptr<void, HandleCloser>;
 
 std::unexpected<Error> FailLastError(std::string_view action, const std::filesystem::path& path) {
     const DWORD error = GetLastError();

@@ -52,8 +52,4 @@ void FrameTimer::SleepUntil(Nanoseconds deadline) const {
 
 FrameTimer::FrameTimer(void* handle) : timer_(handle) {}
 
-void FrameTimer::HandleCloser::operator()(void* handle) const {
-    CloseHandle(handle);
-}
-
 }
