@@ -1,6 +1,8 @@
 #include "app/application.hpp"
 
+#include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -14,6 +16,7 @@
 #include "app/startup_settings.hpp"
 #include "app/startup_timer.hpp"
 #include "app/test_scene.hpp"
+#include "app/video_settings.hpp"
 #include "assets/folder_layer.hpp"
 #include "assets/install.hpp"
 #include "core/log.hpp"
@@ -97,6 +100,21 @@ Result<assets::Vfs> MountGameFiles(GameInstall install) {
     return vfs;
 }
 
+bool IsSamePacing(const platform::PacingConfig& a, const platform::PacingConfig& b) {
+    return a.mode == b.mode && (a.mode != platform::PresentMode::Capped || a.fpsCap == b.fpsCap);
+}
+
+platform::PacingConfig NextPacingPreset(const platform::PacingConfig& current) {
+    const auto match = std::ranges::find_if(
+        kPacingPresets,
+        [&](const platform::PacingConfig& preset) { return IsSamePacing(preset, current); });
+    const std::size_t next = match == kPacingPresets.end()
+                                 ? 0
+                                 : (static_cast<std::size_t>(match - kPacingPresets.begin()) + 1) %
+                                       kPacingPresets.size();
+    return kPacingPresets.at(next);
+}
+
 void LogPacing(const platform::PacingConfig& pacing) {
     switch (pacing.mode) {
         case platform::PresentMode::Vsync:
@@ -150,7 +168,7 @@ Result<Application> Application::Create(std::span<const std::string_view> args) 
 
     Result<platform::Window> window = platform::Window::Create(
         {.title = kWindowTitle, .widthPx = kWindowWidthPx, .heightPx = kWindowHeightPx});
-    const platform::PacingConfig pacing = kPacingPresets.front();
+    const platform::PacingConfig pacing = PacingFromSettings(*registry);
     Result<render::Renderer> renderer = window.and_then(
         [&](const platform::Window& w) { return render::Renderer::Create(w, pacing.mode); });
     Result<platform::FramePacer> pacer =
@@ -163,6 +181,7 @@ Result<Application> Application::Create(std::span<const std::string_view> args) 
 
     return Application({.sdl = std::move(*sdl),
                         .settings = std::move(*registry),
+                        .settingsFile = settingsFile,
                         .vfs = std::move(*vfs),
                         .window = std::move(*window),
                         .renderer = std::move(*renderer),
@@ -175,6 +194,11 @@ Result<void> Application::Run() {
         return std::unexpected(std::move(scene.error()));
     }
     frameLoop_.Scenes().Push(std::move(*scene));
+    settings_.Observe([this](std::string_view key) {
+        if (key.starts_with("video.")) {
+            ApplyPacing();
+        }
+    });
 
     while (!events_.IsQuitRequested()) {
         events_.Poll();
@@ -191,14 +215,20 @@ Result<void> Application::Run() {
 Application::Application(Parts parts)
     : sdl_(std::move(parts.sdl)),
       settings_(std::move(parts.settings)),
+      settingsFile_(std::move(parts.settingsFile)),
       vfs_(std::move(parts.vfs)),
       window_(std::move(parts.window)),
       renderer_(std::move(parts.renderer)),
       pacer_(std::move(parts.pacer)) {}
 
 void Application::CyclePacing() {
-    pacingPreset_ = (pacingPreset_ + 1) % kPacingPresets.size();
-    const platform::PacingConfig& pacing = kPacingPresets.at(pacingPreset_);
+    StorePacing(settings_, NextPacingPreset(PacingFromSettings(settings_)));
+    const std::array<std::string_view, 2> keys{kVsyncSetting.key, kFpsCapSetting.key};
+    PersistSettings(settingsFile_, settings_, keys);
+}
+
+void Application::ApplyPacing() {
+    const platform::PacingConfig pacing = PacingFromSettings(settings_);
     Result<void> changed = renderer_.SetPresentMode(pacing.mode);
     if (!changed) {
         log::Error("{}", changed.error().message);

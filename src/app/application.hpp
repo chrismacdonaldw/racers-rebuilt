@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstddef>
+#include <filesystem>
 #include <span>
 #include <string_view>
 
@@ -28,6 +28,7 @@ private:
     struct Parts {
         platform::SdlContext sdl;
         settings::Registry settings;
+        std::filesystem::path settingsFile;
         assets::Vfs vfs;
         platform::Window window;
         render::Renderer renderer;
@@ -37,15 +38,16 @@ private:
     explicit Application(Parts parts);
 
     void CyclePacing();
+    void ApplyPacing();
 
     platform::SdlContext sdl_;
     settings::Registry settings_;
+    std::filesystem::path settingsFile_;
     assets::Vfs vfs_;
     platform::Window window_;
     render::Renderer renderer_;
     platform::EventPump events_;
     platform::FramePacer pacer_;
-    std::size_t pacingPreset_ = 0;
     FrameLoop frameLoop_;
 };
 

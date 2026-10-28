@@ -5,6 +5,7 @@ add_executable(racers-rebuilt-tests
     app/scene_stack_test.cpp
     app/startup_settings_test.cpp
     app/startup_timer_test.cpp
+    app/video_settings_test.cpp
     assets/byte_reader_test.cpp
     assets/game_path_test.cpp
     assets/install_test.cpp
