@@ -1,5 +1,6 @@
 #include "sim/physics/car_body.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <optional>
 
@@ -56,9 +57,8 @@ void RunPass(BodyState& body, const BodyConstants& constants, int dtMs,
 }
 
 int RetryStepMs(int stepMs, float fraction) {
-    const int retryMs =
-        static_cast<int>(std::floor(static_cast<float>(stepMs) * fraction)) - kWallRetryMarginMs;
-    return retryMs < kWallRetryMarginMs ? 0 : retryMs;
+    const int reachedMs = static_cast<int>(std::floor(static_cast<float>(stepMs) * fraction));
+    return std::max(reachedMs - kWallRetryMarginMs, 0);
 }
 
 void RespondToWall(BodyState& body, const BodyConstants& constants, const Vector3& normal) {

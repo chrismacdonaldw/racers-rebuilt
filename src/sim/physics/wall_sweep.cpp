@@ -26,7 +26,7 @@ float WallYawRate(float sideFacing) {
 std::optional<WallHit> SweepBodyPoints(const BodyState& body, const BodyConstants& constants,
                                        const CollisionQuery& world) {
     std::optional<WallHit> deepest;
-    float deepestDepth = 0.0F;
+    float deepestDistanceSquared = 0.0F;
     for (const Vector3& point : constants.bodyPoints) {
         const Vector3 from = body.saved.position + ToWorld(body.saved.basis, point);
         const Vector3 to = body.motion.position + ToWorld(body.motion.basis, point);
@@ -34,9 +34,11 @@ std::optional<WallHit> SweepBodyPoints(const BodyState& body, const BodyConstant
         if (!hit || !hit->isSolid) {
             continue;
         }
-        const float depth = -Dot(to - hit->point, hit->normal);
-        if (depth > deepestDepth) {
-            deepestDepth = depth;
+        const Vector3 overshoot = hit->point - to;
+        const float distanceSquared = Dot(overshoot, overshoot);
+        const bool isBehindPlane = Dot(overshoot, hit->normal) >= 0.0F;
+        if (isBehindPlane && (!deepest || distanceSquared > deepestDistanceSquared)) {
+            deepestDistanceSquared = distanceSquared;
             deepest = WallHit{.normal = hit->normal, .fraction = hit->fraction};
         }
     }

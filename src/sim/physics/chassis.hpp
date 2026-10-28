@@ -12,8 +12,8 @@ inline constexpr int kBodyPointCount = 4;
 struct ChassisSpec {
     float baseMass = 2500.0F;
     Vector3 centreOfMass{.x = -1.0F, .y = 0.0F, .z = -0.5F};
-    float shadowLength = 8.0F;
-    float shadowWidth = 9.0F;
+    float shadowWidth = 8.0F;
+    float shadowLength = 9.0F;
     std::array<Vector3, kWheelCount> wheelPositions{{
         {.x = 1.543F, .y = -1.989F, .z = 0.0F},
         {.x = 1.543F, .y = 1.989F, .z = 0.0F},

@@ -1,7 +1,9 @@
 #include "sim/physics/facing.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstddef>
 
 namespace rr::sim {
 namespace {
@@ -9,9 +11,24 @@ namespace {
 constexpr float kMinFacingSpeed = 0.03F;
 constexpr float kSnapDot = 0.98F;
 constexpr float kSlewRatePerMs = 0.0025F;
+constexpr std::size_t kArccosTableSize = 1024;
+constexpr float kArccosTableScale = static_cast<float>(kArccosTableSize - 1) / 2.0F;
+
+const std::array<float, kArccosTableSize>& ArccosTable() {
+    static const std::array<float, kArccosTableSize> table = [] {
+        std::array<float, kArccosTableSize> angles{};
+        for (std::size_t i = 0; i < kArccosTableSize; ++i) {
+            angles.at(i) =
+                static_cast<float>(std::acos((static_cast<double>(i) / kArccosTableScale) - 1.0));
+        }
+        return angles;
+    }();
+    return table;
+}
 
 float AngleBetween(const Vector3& a, const Vector3& b) {
-    return std::acos(std::clamp(Dot(a, b), -1.0F, 1.0F));
+    const float cosine = std::clamp(Dot(a, b), -1.0F, 1.0F);
+    return ArccosTable().at(static_cast<std::size_t>((cosine + 1.0F) * kArccosTableScale));
 }
 
 Vector3 RotateAbout(const Vector3& v, const Vector3& axis, float radians) {
@@ -25,20 +42,18 @@ Vector3 SlewToward(const Vector3& facing, const Vector3& target, int dtMs) {
         return target;
     }
     const float step = kSlewRatePerMs * static_cast<float>(dtMs);
-    if (step >= AngleBetween(facing, target)) {
+    if (step > AngleBetween(facing, target)) {
         return target;
     }
-    const Vector3 axis = Normalized(Cross(facing, target), {.z = 1.0F});
-    return Normalized(RotateAbout(facing, axis, step), target);
+    return Normalized(RotateAbout(facing, Cross(facing, target), step), target);
 }
 
 Vector3 TurnWithLag(const BodyState& body, int dtMs) {
     const Vector3& forward = body.motion.basis.forward;
     const float turn = body.yawRate * static_cast<float>(dtMs);
     if (AngleBetween(body.facing, forward) + std::abs(turn) > body.steering.lagMaximum) {
-        const Vector3 trailing{.z = body.yawRate > 0.0F ? -1.0F : 1.0F};
-        const Vector3 axis = Normalized(Cross(forward, body.facing), trailing);
-        return RotateAbout(forward, axis, body.steering.lagMaximum);
+        return Normalized(
+            RotateAbout(forward, Cross(forward, body.facing), body.steering.lagMaximum), forward);
     }
     const float x = (body.facing.x * std::cos(turn)) - (body.facing.y * std::sin(turn));
     const float y = (x * std::sin(turn)) + (body.facing.y * std::cos(turn));

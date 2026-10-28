@@ -2,6 +2,8 @@
 
 #include <doctest/doctest.h>
 
+#include <cmath>
+
 namespace rr::sim {
 namespace {
 
@@ -11,6 +13,16 @@ TEST_CASE("retail wheel positions give the retail track width and wheelbase") {
     CHECK(constants.trackWidth == doctest::Approx(3.978F));
     CHECK(constants.wheelbase == doctest::Approx(2.981F));
     CHECK(constants.wheelAnchor == Vector3{.x = 1.543F, .y = 1.989F, .z = 0.0F});
+}
+
+TEST_CASE("body points sit at the corners of the retail shadow") {
+    const BodyConstants constants = MakeBodyConstants({}, {});
+
+    for (const Vector3& point : constants.bodyPoints) {
+        CHECK(std::abs(point.x) == 4.5F);
+        CHECK(std::abs(point.y) == 4.0F);
+        CHECK(point.z == 3.5F);
+    }
 }
 
 TEST_CASE("high pieces add to the mass and scale it by a millionth") {
