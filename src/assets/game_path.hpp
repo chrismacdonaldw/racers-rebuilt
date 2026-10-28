@@ -15,6 +15,8 @@ namespace rr::assets {
 /// root folder is the empty string.
 [[nodiscard]] Result<std::string> NormalizeGamePath(std::string_view path);
 
+[[nodiscard]] std::string ToUpperAscii(std::string_view text);
+
 [[nodiscard]] std::string JoinGamePath(std::string_view folder, std::string_view name);
 
 }

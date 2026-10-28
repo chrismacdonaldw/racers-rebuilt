@@ -8,6 +8,7 @@ rr_add_module(assets
         install.cpp
         jam.cpp
         jam_archive.cpp
+        loader_pool.cpp
         lzss.cpp
         material_library.cpp
         path_index.cpp
@@ -15,6 +16,7 @@ rr_add_module(assets
         tga_image.cpp
         token_reader.cpp
         token_schema.cpp
+        track_loader.cpp
         vfs.cpp
         world_database.cpp
     DEPENDS

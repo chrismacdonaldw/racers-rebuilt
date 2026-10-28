@@ -133,7 +133,7 @@ struct WorldAsset {
     std::vector<WorldLight> lights;
 };
 
-/// Indices into the name lists are kept as written and not checked.
+/// Fails on any index past its list. Node references are not checked.
 [[nodiscard]] Result<WorldAsset> ParseWorld(std::span<const std::byte> bytes);
 
 }

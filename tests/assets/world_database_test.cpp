@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstdint>
 #include <limits>
 #include <string>
@@ -25,8 +26,21 @@ std::vector<std::byte> Records(std::uint8_t field, const std::vector<std::byte>&
                  Bytes({0x06, 0x06})});
 }
 
+std::vector<std::byte> NameLists() {
+    std::vector<std::byte> lists;
+    for (const std::uint8_t field :
+         std::array<std::uint8_t, 9>{0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x3D, 0x40}) {
+        lists = Join({lists, Bytes({field}), ListHeader(8)});
+        for (int i = 0; i < 8; ++i) {
+            lists = Join({lists, Text("N")});
+        }
+        lists = Join({lists, Bytes({0x06})});
+    }
+    return lists;
+}
+
 Result<WorldAsset> ParseEntity(std::uint8_t field, const std::vector<std::byte>& fields) {
-    return ParseWorld(Records(field, Text("e"), fields));
+    return ParseWorld(Join({NameLists(), Records(field, Text("e"), fields)}));
 }
 
 TEST_CASE("name lists fill their tables") {
@@ -166,25 +180,25 @@ TEST_CASE("records may leave out their name") {
 }
 
 TEST_CASE("sprites read their billboard") {
-    const Result<WorldAsset> world = ParseWorld(Records(0x37, {},
-                                                        Join({
-                                                            Bytes({0x2B}),
-                                                            Ints({1, 2}),
-                                                            Bytes({0x31}),
-                                                            Floats({1, 2, 3}),
-                                                            Bytes({0x38}),
-                                                            Floats({0, 0, 1}),
-                                                            Bytes({0x39}),
-                                                            Text("FLAME"),
-                                                            Bytes({0x3A}),
-                                                            Floats({4}),
-                                                            Bytes({0x3B}),
-                                                            Floats({5}),
-                                                            Bytes({0x3C}),
-                                                            Floats({6}),
-                                                            Bytes({0x3E}),
-                                                            Ints({7, 8}),
-                                                        })));
+    const std::vector<std::byte> fields = Join({
+        Bytes({0x2B}),
+        Ints({1, 2}),
+        Bytes({0x31}),
+        Floats({1, 2, 3}),
+        Bytes({0x38}),
+        Floats({0, 0, 1}),
+        Bytes({0x39}),
+        Text("FLAME"),
+        Bytes({0x3A}),
+        Floats({4}),
+        Bytes({0x3B}),
+        Floats({5}),
+        Bytes({0x3C}),
+        Floats({6}),
+        Bytes({0x3E}),
+        Ints({7, 8}),
+    });
+    const Result<WorldAsset> world = ParseWorld(Join({NameLists(), Records(0x37, {}, fields)}));
 
     REQUIRE(world.has_value());
     const WorldSprite& sprite = world->sprites.front();
@@ -203,13 +217,16 @@ TEST_CASE("sprites have no name") {
 }
 
 TEST_CASE("cameras read their lens and target") {
+    const std::vector<std::byte> fields =
+        Join({Bytes({0x2F}), Ints({0, 2}), Bytes({0x44}), Floats({0, 5, 0}), Bytes({0x45}),
+              Floats({2}), Bytes({0x47}), Floats({90})});
     const Result<WorldAsset> world =
-        ParseEntity(0x43, Join({Bytes({0x2F}), Ints({1, 2}), Bytes({0x44}), Floats({0, 5, 0}),
-                                Bytes({0x45}), Floats({2}), Bytes({0x47}), Floats({90})}));
+        ParseWorld(Join({Records(0x2F, {}, {}), Records(0x43, Text("c"), fields)}));
 
     REQUIRE(world.has_value());
     const WorldCamera& camera = world->cameras.front();
-    CHECK(camera.trackedEntity == 1);
+    CHECK(camera.name == "c");
+    CHECK(camera.trackedEntity == 0);
     CHECK(camera.trackedNode == 2);
     CHECK(camera.target == Vector3{.y = 5.0F});
     CHECK(camera.nearClip == 2.0F);
@@ -231,6 +248,47 @@ TEST_CASE("lights read their color and direction") {
     CHECK(world->lights.front().direction == Vector3{.z = -1.0F});
     CHECK_FALSE(
         ParseWorld(Records(0x48, {}, Join({Bytes({0x4B}), Floats({0, 0, 1})}))).has_value());
+}
+
+std::vector<std::byte> TwoModels() {
+    return Join({Bytes({0x2A}), ListHeader(2), Text("A"), Text("B"), Bytes({0x06})});
+}
+
+TEST_CASE("indices must fall inside their lists") {
+    const std::vector<std::byte> model1 =
+        Records(0x2E, {}, Join({Bytes({0x2A}), Ints({1}), Floats({1})}));
+    const std::vector<std::byte> model2 =
+        Records(0x2E, {}, Join({Bytes({0x2A}), Ints({2}), Floats({1})}));
+
+    CHECK(ParseWorld(Join({TwoModels(), model1})).has_value());
+    CHECK_FALSE(ParseWorld(Join({TwoModels(), model2})).has_value());
+}
+
+TEST_CASE("indices are checked after the whole file is read") {
+    const std::vector<std::byte> model1 =
+        Records(0x2E, {}, Join({Bytes({0x2A}), Ints({1}), Floats({1})}));
+
+    CHECK(ParseWorld(Join({model1, TwoModels()})).has_value());
+    CHECK_FALSE(ParseWorld(model1).has_value());
+}
+
+TEST_CASE("a camera must track an existing animated entity") {
+    const std::vector<std::byte> camera = Records(0x43, {}, Join({Bytes({0x2F}), Ints({0, 0})}));
+    const std::vector<std::byte> animated = Records(0x2F, {}, {});
+
+    CHECK(ParseWorld(Join({camera, animated})).has_value());
+    CHECK_FALSE(ParseWorld(camera).has_value());
+}
+
+TEST_CASE("node references and binding tables are not checked") {
+    CHECK(ParseEntity(0x2F, Join({Bytes({0x35}), Ints({3})})).has_value());
+    const std::vector<std::byte> animations =
+        Join({Bytes({0x3D}), ListHeader(1), Text("GLOW"), Bytes({0x06})});
+    const std::vector<std::byte> binding =
+        Records(0x2E, {}, Join({Bytes({0x3E}), ListHeader(1), Ints({0, 0, 0, 5}), Bytes({0x06})}));
+
+    CHECK(ParseWorld(Join({animations, binding})).has_value());
+    CHECK_FALSE(ParseWorld(binding).has_value());
 }
 
 }
