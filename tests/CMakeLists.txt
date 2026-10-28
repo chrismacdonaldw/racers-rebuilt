@@ -9,6 +9,7 @@ add_executable(racers-rebuilt-tests
     app/startup_settings_test.cpp
     app/startup_timer_test.cpp
     app/video_settings_test.cpp
+    assets/asset_cache_test.cpp
     assets/bmp_image_test.cpp
     assets/byte_reader_test.cpp
     assets/game_path_test.cpp
@@ -17,6 +18,7 @@ add_executable(racers-rebuilt-tests
     assets/install_test.cpp
     assets/jam_archive_test.cpp
     assets/jam_test.cpp
+    assets/loader_pool_test.cpp
     assets/lzss_test.cpp
     assets/material_library_test.cpp
     assets/model_survey_test.cpp
@@ -25,6 +27,8 @@ add_executable(racers-rebuilt-tests
     assets/token_reader_test.cpp
     assets/token_schema_test.cpp
     assets/token_survey_test.cpp
+    assets/track_loader_test.cpp
+    assets/track_survey_test.cpp
     assets/vfs_test.cpp
     assets/world_database_test.cpp
     audio/alp_game_files_test.cpp

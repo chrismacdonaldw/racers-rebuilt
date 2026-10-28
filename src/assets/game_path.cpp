@@ -17,10 +17,16 @@ bool IsNameCharacter(char c) {
     return c >= ' ' && c <= '~' && !IsSeparator(c) && !kForbiddenCharacters.contains(c);
 }
 
-char ToUpperAscii(char c) {
+char UpperChar(char c) {
     return c >= 'a' && c <= 'z' ? static_cast<char>(c - 'a' + 'A') : c;
 }
 
+}
+
+std::string ToUpperAscii(std::string_view text) {
+    std::string upper(text.size(), '\0');
+    std::ranges::transform(text, upper.begin(), UpperChar);
+    return upper;
 }
 
 Result<std::string> NormalizeGameName(std::string_view name) {
@@ -31,9 +37,7 @@ Result<std::string> NormalizeGameName(std::string_view name) {
         return Fail(ErrorCode::InvalidData,
                     std::format("\"{}\" has characters that aren't allowed in file names", name));
     }
-    std::string upper(name.size(), '\0');
-    std::ranges::transform(name, upper.begin(), ToUpperAscii);
-    return upper;
+    return ToUpperAscii(name);
 }
 
 Result<std::string> NormalizeGamePath(std::string_view path) {
