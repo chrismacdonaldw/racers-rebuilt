@@ -203,7 +203,7 @@ Result<std::unique_ptr<Scene>> Application::CreateStartScene() {
     const Nanoseconds started = platform::Now();
     assets::LoaderPool pool(assets::LoaderPool::DefaultWorkerCount());
     assets::TrackLoader loader(vfs_, pool);
-    return TrackViewerScene::Create(renderer_, loader, *track_, started).transform(toScene);
+    return TrackViewerScene::Create(renderer_, vfs_, loader, *track_, started).transform(toScene);
 }
 
 void Application::CyclePacing() {

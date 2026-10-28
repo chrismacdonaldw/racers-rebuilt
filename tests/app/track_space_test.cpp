@@ -49,17 +49,15 @@ TEST_CASE("a degenerate placement keeps only its position") {
     CheckNear(placed.position, {.x = 5.0F});
 }
 
-TEST_CASE("the overview camera looks at the center of the bounds") {
-    Bounds bounds;
-    bounds.Add({.x = -100.0F, .y = 0.0F, .z = -50.0F});
-    bounds.Add({.x = 300.0F, .y = 20.0F, .z = 150.0F});
+TEST_CASE("a look-at camera faces its target and stays level") {
+    const Vector3 eye{.x = 1.0F, .y = 5.0F, .z = 2.0F};
+    const Vector3 target{.x = 4.0F, .y = 1.0F, .z = -3.0F};
 
-    const Transform camera = OverviewCamera(bounds, 60.0F);
+    const Transform camera = LookAt(eye, target);
 
-    const Vector3 center{.x = 100.0F, .y = 10.0F, .z = 50.0F};
-    CHECK(camera.position.y > bounds.max.y);
-    CheckNear(Apply({.rotation = camera.rotation}, {.z = -1.0F}),
-              Direction(camera.position, center));
+    CheckNear(camera.position, eye);
+    CheckNear(Apply({.rotation = camera.rotation}, {.z = -1.0F}), Direction(eye, target));
+    CHECK(Apply({.rotation = camera.rotation}, {.x = 1.0F}).y == doctest::Approx(0.0F));
 }
 
 }

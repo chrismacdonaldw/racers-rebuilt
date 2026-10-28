@@ -4,7 +4,9 @@
 #include <cstdint>
 #include <format>
 #include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 #include "assets/game_path.hpp"
 
@@ -103,6 +105,36 @@ render::Material ToRenderMaterial(const assets::MaterialAsset& material,
                          material.transparency.has_value()};
 }
 
+render::Material MaterialFor(const NameMap<render::Material>& materials,
+                             const assets::GeometryAsset& geometry,
+                             const assets::GeometryRange& range) {
+    if (range.material >= geometry.materials.size()) {
+        return {};
+    }
+    const auto material = materials.find(assets::ToUpperAscii(geometry.materials[range.material]));
+    return material == materials.end() ? render::Material{} : material->second;
+}
+
+void AppendDraws(std::vector<render::MeshDraw>& draws, const UploadedModel& model,
+                 const NameMap<render::Material>& materials, const Transform& transform) {
+    for (const assets::GeometryRange& range : model.geometry->ranges) {
+        draws.push_back({.mesh = model.mesh,
+                         .firstIndex = range.firstIndex,
+                         .indexCount = range.indexCount,
+                         .material = MaterialFor(materials, *model.geometry, range),
+                         .transform = transform});
+    }
+}
+
+NameMap<render::Material> ToRenderMaterials(const NameMap<assets::MaterialAsset>& materials,
+                                            const NameMap<render::TextureId>& textures) {
+    NameMap<render::Material> converted;
+    for (const auto& [name, material] : materials) {
+        converted.emplace(name, ToRenderMaterial(material, textures));
+    }
+    return converted;
+}
+
 class TrackBuilder {
 public:
     TrackBuilder(const NameMap<UploadedModel>& models, NameMap<render::Material> materials)
@@ -119,16 +151,9 @@ public:
             return;
         }
         const Transform transform = PlacementToEngine(entity.position, entity.forward, entity.up);
-        const assets::GeometryAsset& geometry = *model->second.geometry;
-        for (const assets::GeometryRange& range : geometry.ranges) {
-            draws_.push_back({.mesh = model->second.mesh,
-                              .firstIndex = range.firstIndex,
-                              .indexCount = range.indexCount,
-                              .material = MaterialFor(geometry, range),
-                              .transform = transform});
-        }
+        AppendDraws(draws_, model->second, materials_, transform);
         Bounds& bounds = isSurface ? surface_ : everything_;
-        for (const assets::GeometryVertex& vertex : geometry.vertices) {
+        for (const assets::GeometryVertex& vertex : model->second.geometry->vertices) {
             bounds.Add(Apply(transform, ToEngine(vertex.position)));
         }
     }
@@ -138,16 +163,6 @@ public:
     }
 
 private:
-    [[nodiscard]] render::Material MaterialFor(const assets::GeometryAsset& geometry,
-                                               const assets::GeometryRange& range) const {
-        if (range.material >= geometry.materials.size()) {
-            return {};
-        }
-        const auto material =
-            materials_.find(assets::ToUpperAscii(geometry.materials[range.material]));
-        return material == materials_.end() ? render::Material{} : material->second;
-    }
-
     const NameMap<UploadedModel>* models_;
     NameMap<render::Material> materials_;
     std::vector<render::MeshDraw> draws_;
@@ -164,11 +179,7 @@ Result<TrackModel> UploadTrack(render::Renderer& renderer, const assets::TrackAs
     if (!models) {
         return std::unexpected(std::move(models.error()));
     }
-    NameMap<render::Material> materials;
-    for (const auto& [name, material] : track.materials) {
-        materials.emplace(name, ToRenderMaterial(material, *textures));
-    }
-    TrackBuilder builder(*models, std::move(materials));
+    TrackBuilder builder(*models, ToRenderMaterials(track.materials, *textures));
     for (const assets::AssetCache<assets::WorldAsset>::Handle& world : track.worlds) {
         for (const assets::WorldEntity& entity : world->modelEntities) {
             builder.Place(*world, entity, false);
@@ -181,6 +192,37 @@ Result<TrackModel> UploadTrack(render::Renderer& renderer, const assets::TrackAs
         }
     }
     return std::move(builder).Finish();
+}
+
+Result<std::vector<render::MeshDraw>> UploadModel(render::Renderer& renderer,
+                                                  const assets::TrackAssets& assets,
+                                                  std::string_view name) {
+    const auto model = assets.models.find(assets::ToUpperAscii(name));
+    if (model == assets.models.end() || model->second->indices.empty()) {
+        return Fail(ErrorCode::NotFound, std::format("no model named {}", name));
+    }
+    NameMap<assets::MaterialAsset> materials;
+    NameMap<assets::AssetCache<assets::ImageAsset>::Handle> images;
+    for (const std::string& materialName : model->second->materials) {
+        const auto material = assets.materials.find(assets::ToUpperAscii(materialName));
+        if (material == assets.materials.end()) {
+            continue;
+        }
+        materials.insert(*material);
+        const auto image = assets.textures.find(assets::ToUpperAscii(material->second.texture));
+        if (image != assets.textures.end()) {
+            images.insert(*image);
+        }
+    }
+    Result<NameMap<render::TextureId>> textures = UploadTextures(renderer, images);
+    Result<NameMap<UploadedModel>> uploaded = textures.and_then(
+        [&](const NameMap<render::TextureId>&) { return UploadModels(renderer, {*model}); });
+    if (!uploaded) {
+        return std::unexpected(std::move(uploaded.error()));
+    }
+    std::vector<render::MeshDraw> draws;
+    AppendDraws(draws, uploaded->begin()->second, ToRenderMaterials(materials, *textures), {});
+    return draws;
 }
 
 }

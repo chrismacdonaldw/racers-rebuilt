@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include "frame_times.hpp"
+
 namespace rr::app {
 namespace {
 
@@ -58,27 +60,6 @@ struct LoopUnderTest {
     PaceScene* scene = nullptr;
 };
 
-std::vector<Nanoseconds> FixedRateFrames(int fps, Nanoseconds duration) {
-    std::vector<Nanoseconds> frames;
-    const std::int64_t frameCount = duration.count() * fps / Nanoseconds{seconds{1}}.count();
-    for (std::int64_t i = 0; i <= frameCount; ++i) {
-        frames.emplace_back(i * Nanoseconds{seconds{1}}.count() / fps);
-    }
-    return frames;
-}
-
-std::vector<Nanoseconds> UncappedFrames(Nanoseconds duration) {
-    constexpr std::int64_t kMinFrameNs = 200'000;
-    constexpr std::int64_t kFrameSpreadNs = 2'800'000;
-    constexpr std::int64_t kStride = 7'919;
-    std::vector<Nanoseconds> frames{Nanoseconds{0}};
-    for (std::int64_t i = 1; frames.back() < duration; ++i) {
-        const Nanoseconds frameTime{kMinFrameNs + (i * kStride * 1'000 % kFrameSpreadNs)};
-        frames.push_back(std::min(frames.back() + frameTime, duration));
-    }
-    return frames;
-}
-
 struct RunResult {
     std::vector<float> positions;
     std::vector<FrameStats> frames;
@@ -96,17 +77,17 @@ RunResult Run(const std::vector<Nanoseconds>& frameTimes) {
 
 TEST_CASE("every framerate produces the same ticks and per-tick state") {
     const Nanoseconds duration = seconds{10};
-    const RunResult uncapped = Run(UncappedFrames(duration));
+    const RunResult uncapped = Run(test::UncappedFrames(duration));
 
     CHECK(uncapped.positions.size() == duration / kSimTick);
     for (const int fps : {30, 60, 144}) {
         CAPTURE(fps);
-        CHECK(Run(FixedRateFrames(fps, duration)).positions == uncapped.positions);
+        CHECK(Run(test::FixedRateFrames(fps, duration)).positions == uncapped.positions);
     }
 }
 
 TEST_CASE("alpha stays within one tick") {
-    for (const FrameStats& frame : Run(UncappedFrames(seconds{2})).frames) {
+    for (const FrameStats& frame : Run(test::UncappedFrames(seconds{2})).frames) {
         CHECK(frame.alpha >= 0.0F);
         CHECK(frame.alpha < 1.0F);
     }

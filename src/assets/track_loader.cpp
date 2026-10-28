@@ -214,36 +214,36 @@ Result<NameMap<MaterialAsset>> LoadMaterials(const Loading& loading,
 
 Result<NameMap<AssetCache<ImageAsset>::Handle>> LoadImages(
     const Loading& loading, AssetCache<ImageAsset>& cache,
-    const NameMap<TextureDefinition>& definitions) {
+    const NameMap<TextureDefinition>& definitions, std::vector<std::string>& missing) {
     std::vector<Request> requests;
-    std::vector<const TextureDefinition*> requested;
-    for (const auto& [name, definition] : definitions) {
-        Result<std::string> path = loading.resolver->Resolve(definition.FileName());
+    std::vector<const std::pair<const std::string, TextureDefinition>*> requested;
+    for (const auto& entry : definitions) {
+        Result<std::string> path = loading.resolver->Resolve(entry.second.FileName());
         if (!path) {
-            return std::unexpected(std::move(path.error()));
+            missing.push_back(entry.second.FileName());
+            continue;
         }
-        requests.push_back({.key = ImageKey(*path, definition), .path = *path});
-        requested.push_back(&definition);
+        requests.push_back({.key = ImageKey(*path, entry.second), .path = *path});
+        requested.push_back(&entry);
     }
     Result<Handles<ImageAsset>> images =
         LoadAll<ImageAsset>(*loading.vfs, *loading.pool, cache, requests,
                             [&](std::size_t index, std::span<const std::byte> bytes) {
-                                return DecodeTexture(bytes, *requested[index]);
+                                return DecodeTexture(bytes, requested[index]->second);
                             });
     if (!images) {
         return std::unexpected(std::move(images.error()));
     }
     NameMap<AssetCache<ImageAsset>::Handle> textures;
-    auto image = images->begin();
-    for (const auto& [name, definition] : definitions) {
-        textures.emplace(name, std::move(*image++));
+    for (std::size_t i = 0; i < requested.size(); ++i) {
+        textures.emplace(requested[i]->first, std::move((*images)[i]));
     }
     return textures;
 }
 
 Result<NameMap<AssetCache<ImageAsset>::Handle>> LoadTextures(
     const Loading& loading, AssetCache<std::vector<TextureDefinition>>& databaseCache,
-    AssetCache<ImageAsset>& imageCache, const NameSet& names) {
+    AssetCache<ImageAsset>& imageCache, const NameSet& names, std::vector<std::string>& missing) {
     return LoadByName<std::vector<TextureDefinition>>(loading, databaseCache, names, ".TDB",
                                                       ParseTextureDatabase)
         .and_then([&](const auto& databases) {
@@ -253,7 +253,7 @@ Result<NameMap<AssetCache<ImageAsset>::Handle>> LoadTextures(
                     definitions.try_emplace(ToUpperAscii(definition.name), definition);
                 }
             }
-            return LoadImages(loading, imageCache, definitions);
+            return LoadImages(loading, imageCache, definitions, missing);
         });
 }
 
@@ -300,8 +300,10 @@ Result<TrackAssets> TrackLoader::Load(std::string_view folder) {
     Result<NameMap<MaterialAsset>> materials = models.and_then([&](const auto&) {
         return LoadMaterials(loading, materialLibraries_, names.materialLibraries);
     });
+    std::vector<std::string> missingTextures;
     Result<NameMap<AssetCache<ImageAsset>::Handle>> textures = materials.and_then([&](const auto&) {
-        return LoadTextures(loading, textureDatabases_, images_, names.textureDatabases);
+        return LoadTextures(loading, textureDatabases_, images_, names.textureDatabases,
+                            missingTextures);
     });
     if (!textures) {
         return std::unexpected(std::move(textures.error()));
@@ -309,7 +311,8 @@ Result<TrackAssets> TrackLoader::Load(std::string_view folder) {
     return TrackAssets{.worlds = std::move(*worlds),
                        .models = std::move(*models),
                        .materials = std::move(*materials),
-                       .textures = std::move(*textures)};
+                       .textures = std::move(*textures),
+                       .missingTextures = std::move(missingTextures)};
 }
 
 void TrackLoader::Prune() {

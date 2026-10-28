@@ -14,6 +14,8 @@ namespace rr::app {
 
 [[nodiscard]] Vector3 Apply(const Transform& transform, const Vector3& point);
 
+[[nodiscard]] Transform LookAt(const Vector3& eye, const Vector3& target);
+
 struct Bounds {
     Vector3 min;
     Vector3 max;
@@ -21,7 +23,5 @@ struct Bounds {
 
     void Add(const Vector3& point);
 };
-
-[[nodiscard]] Transform OverviewCamera(const Bounds& bounds, float verticalFovDegrees);
 
 }

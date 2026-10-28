@@ -1,13 +1,20 @@
 #pragma once
 
+#include <doctest/doctest.h>
+
 #include <cstddef>
+#include <filesystem>
 #include <format>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
+#include "assets/jam_archive.hpp"
 #include "assets/vfs_layer.hpp"
 #include "core/result.hpp"
+#include "game_files.hpp"
 
 namespace rr::test {
 
@@ -38,6 +45,24 @@ template <typename IsWanted, typename Check>
         }
     }
     return survey;
+}
+
+inline void CheckSurvey(const Survey& survey, std::size_t expectedFiles) {
+    CHECK(survey.fileCount == expectedFiles);
+    for (const std::string& failure : survey.failures) {
+        FAIL_CHECK(failure);
+    }
+}
+
+[[nodiscard]] inline std::optional<assets::JamArchive> OpenRetailJam() {
+    const std::optional<std::filesystem::path> gameFolder = GameFolder();
+    if (!gameFolder) {
+        MESSAGE("RR_GAME_PATH isn't set, skipping");
+        return std::nullopt;
+    }
+    Result<assets::JamArchive> archive = assets::JamArchive::Open(*gameFolder / "LEGO.JAM");
+    REQUIRE(archive.has_value());
+    return std::move(*archive);
 }
 
 }

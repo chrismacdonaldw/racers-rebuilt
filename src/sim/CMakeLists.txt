@@ -2,6 +2,8 @@ rr_add_module(sim
     SOURCES
         input_latch.cpp
         interpolation.cpp
+        route_playback.cpp
     DEPENDS
+        rr::assets
         rr::core
 )

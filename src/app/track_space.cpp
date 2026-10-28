@@ -1,8 +1,6 @@
 #include "app/track_space.hpp"
 
 #include <algorithm>
-#include <cmath>
-#include <numbers>
 
 #include "core/quaternion.hpp"
 
@@ -15,8 +13,6 @@ namespace rr::app {
 namespace {
 
 constexpr float kMinLength = 1e-6F;
-constexpr float kOverviewPitchRadians = std::numbers::pi_v<float> / 5.0F;
-constexpr float kOverviewMargin = 1.3F;
 
 glm::vec3 ToGlm(const Vector3& v) {
     return {v.x, v.y, v.z};
@@ -55,6 +51,17 @@ Vector3 Apply(const Transform& transform, const Vector3& point) {
     return FromGlm(ToGlm(transform.position) + (glm::quat(r.w, r.x, r.y, r.z) * ToGlm(point)));
 }
 
+Transform LookAt(const Vector3& eye, const Vector3& target) {
+    const glm::vec3 direction = ToGlm(target) - ToGlm(eye);
+    const glm::vec3 up{0.0F, 1.0F, 0.0F};
+    if (glm::length(glm::cross(direction, up)) < kMinLength) {
+        return {.position = eye};
+    }
+    const glm::quat rotation = glm::quatLookAt(glm::normalize(direction), up);
+    return {.position = eye,
+            .rotation = {.w = rotation.w, .x = rotation.x, .y = rotation.y, .z = rotation.z}};
+}
+
 void Bounds::Add(const Vector3& point) {
     if (isEmpty) {
         min = point;
@@ -68,17 +75,6 @@ void Bounds::Add(const Vector3& point) {
     max = {.x = std::max(max.x, point.x),
            .y = std::max(max.y, point.y),
            .z = std::max(max.z, point.z)};
-}
-
-Transform OverviewCamera(const Bounds& bounds, float verticalFovDegrees) {
-    const glm::vec3 center = (ToGlm(bounds.min) + ToGlm(bounds.max)) / 2.0F;
-    const glm::vec3 size = ToGlm(bounds.max) - ToGlm(bounds.min);
-    const float footprintRadius = std::max(size.x, size.z) / 2.0F;
-    const float distance =
-        kOverviewMargin * footprintRadius / std::tan(glm::radians(verticalFovDegrees) / 2.0F);
-    const glm::vec3 offset{0.0F, std::sin(kOverviewPitchRadians), std::cos(kOverviewPitchRadians)};
-    return {.position = FromGlm(center + (offset * distance)),
-            .rotation = FromAxisAngle({.x = 1.0F}, -kOverviewPitchRadians)};
 }
 
 }
