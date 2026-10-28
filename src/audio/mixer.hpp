@@ -6,6 +6,7 @@
 
 #include "assets/vfs_layer.hpp"
 #include "audio/pcm_stream.hpp"
+#include "core/duration.hpp"
 #include "core/result.hpp"
 
 namespace rr::audio {
@@ -44,10 +45,10 @@ public:
     /// Drops cues once every effect voice is busy.
     void Play(std::span<const SoundCue> cues);
 
-    /// Loops `track` in place of the current one.
-    [[nodiscard]] Result<void> PlayMusic(std::unique_ptr<PcmStream> track);
+    [[nodiscard]] Result<void> PlayMusic(std::unique_ptr<PcmStream> track, Milliseconds crossfade);
+    /// Loops a sound from `AddSound` as music, with no crossfade.
     [[nodiscard]] Result<void> PlayMusic(SoundId track);
-    void StopMusic();
+    void StopMusic(Milliseconds fade = Milliseconds{0});
 
     void Render(std::span<float> interleavedStereo);
 

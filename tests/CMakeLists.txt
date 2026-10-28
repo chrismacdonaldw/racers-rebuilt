@@ -2,6 +2,8 @@ add_executable(racers-rebuilt-tests
     main.cpp
     app/frame_loop_test.cpp
     app/install_discovery_test.cpp
+    app/loop_sidecar_test.cpp
+    app/music_folder_source_test.cpp
     app/scene_stack_test.cpp
     app/startup_settings_test.cpp
     app/startup_timer_test.cpp
@@ -22,7 +24,11 @@ add_executable(racers-rebuilt-tests
     assets/vfs_test.cpp
     audio/alp_game_files_test.cpp
     audio/alp_test.cpp
+    audio/looping_stream_test.cpp
     audio/mixer_test.cpp
+    audio/music_catalog_test.cpp
+    audio/music_player_test.cpp
+    audio/music_source_test.cpp
     core/log_test.cpp
     core/quaternion_test.cpp
     core/result_test.cpp

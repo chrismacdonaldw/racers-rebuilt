@@ -14,6 +14,7 @@ find_package(SDL3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
 find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h REQUIRED)
+find_path(STB_INCLUDE_DIR stb_vorbis.c REQUIRED)
 
 add_subdirectory(src)
 

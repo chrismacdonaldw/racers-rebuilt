@@ -14,14 +14,9 @@ inline constexpr settings::SettingSpec<std::string_view> kGamePath{
 inline constexpr settings::SettingSpec<std::string_view> kGameLanguage{
     .key = "game.language", .defaultValue = "", .label = "Language", .category = "Game"};
 
-/// A game path such as `GAMEDATA/COMMON/321.PCM` or `THEME.TUN`, played once audio starts.
-inline constexpr settings::SettingSpec<std::string_view> kDevPlaySound{
-    .key = "dev.play_sound", .defaultValue = "", .label = "Play sound", .category = "Developer"};
-
 inline void DeclareGameSettings(settings::Registry& registry) {
     registry.Declare(kGamePath);
     registry.Declare(kGameLanguage);
-    registry.Declare(kDevPlaySound);
 }
 
 }

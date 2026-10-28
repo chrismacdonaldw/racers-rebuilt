@@ -24,7 +24,10 @@ Result<void> Voice::Start(ma_engine& engine, ma_sound_group& bus, std::unique_pt
     }
     hasSound_ = true;
     ma_sound_set_volume(&sound_, start.volume);
-    ma_sound_set_looping(&sound_, start.isLooping ? MA_TRUE : MA_FALSE);
+    if (start.fadeIn > Milliseconds{0}) {
+        ma_sound_set_fade_in_milliseconds(&sound_, 0.0F, 1.0F,
+                                          static_cast<ma_uint64>(start.fadeIn.count()));
+    }
     ma_sound_start(&sound_);
     return {};
 }
@@ -36,6 +39,12 @@ void Voice::Stop() {
         hasSound_ = false;
     }
     stream_.reset();
+}
+
+void Voice::FadeOut(Milliseconds fade) {
+    if (hasSound_) {
+        ma_sound_stop_with_fade_in_milliseconds(&sound_, static_cast<ma_uint64>(fade.count()));
+    }
 }
 
 bool Voice::IsPlaying() const {

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "audio/alp.hpp"
+#include "audio/looping_stream.hpp"
 #include "audio/voice.hpp"
 #include "core/assert.hpp"
 #include "core/log.hpp"
@@ -59,7 +60,9 @@ struct Mixer::State {
     State& operator=(State&&) = delete;
 
     ~State() {
-        music.Stop();
+        for (Voice& voice : music) {
+            voice.Stop();
+        }
         for (Voice& voice : effects) {
             voice.Stop();
         }
@@ -76,7 +79,8 @@ struct Mixer::State {
     std::array<ma_sound_group, kBusCount> buses{};
     std::size_t busCount = 0;
     std::array<Voice, kEffectVoiceCount> effects;
-    Voice music;
+    std::array<Voice, 2> music;
+    std::size_t currentMusic = 0;
     std::vector<LoadedSound> sounds;
 };
 
@@ -150,25 +154,33 @@ void Mixer::Play(std::span<const SoundCue> cues) {
         Result<void> started =
             voice->Start(state_->engine, state_->buses[IndexOf(cue.bus)],
                          std::make_unique<AlpDecoder>(state_->sounds[cue.sound.index].sound),
-                         {.volume = cue.volume, .isLooping = false});
+                         {.volume = cue.volume});
         if (!started) {
             log::Warn("{}", started.error().message);
         }
     }
 }
 
-Result<void> Mixer::PlayMusic(std::unique_ptr<PcmStream> track) {
-    return state_->music.Start(state_->engine, state_->buses[IndexOf(Bus::Music)], std::move(track),
-                               {.volume = 1.0F, .isLooping = true});
+Result<void> Mixer::PlayMusic(std::unique_ptr<PcmStream> track, Milliseconds crossfade) {
+    state_->music[state_->currentMusic].FadeOut(crossfade);
+    state_->currentMusic = (state_->currentMusic + 1) % state_->music.size();
+    return state_->music[state_->currentMusic].Start(state_->engine,
+                                                     state_->buses[IndexOf(Bus::Music)],
+                                                     std::move(track), {.fadeIn = crossfade});
 }
 
 Result<void> Mixer::PlayMusic(SoundId track) {
     RR_ASSERT(track.index < state_->sounds.size());
-    return PlayMusic(std::make_unique<AlpDecoder>(state_->sounds[track.index].sound));
+    return PlayMusic(
+        std::make_unique<LoopingStream>(
+            std::make_unique<AlpDecoder>(state_->sounds[track.index].sound), LoopPoints{}),
+        Milliseconds{0});
 }
 
-void Mixer::StopMusic() {
-    state_->music.Stop();
+void Mixer::StopMusic(Milliseconds fade) {
+    for (Voice& voice : state_->music) {
+        voice.FadeOut(fade);
+    }
 }
 
 void Mixer::Render(std::span<float> interleavedStereo) {

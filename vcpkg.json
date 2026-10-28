@@ -7,6 +7,7 @@
     "glm",
     "miniaudio",
     "sdl3",
+    "stb",
     "tomlplusplus"
   ]
 }

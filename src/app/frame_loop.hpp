@@ -18,6 +18,7 @@ inline constexpr int kMaxStepsPerFrame = 8;
 struct FrameStats {
     int tickCount = 0;
     float alpha = 0.0F;
+    bool isNewScene = false;
 };
 
 /// Time beyond `kMaxStepsPerFrame` ticks in one frame is dropped, not simulated.

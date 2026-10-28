@@ -6,7 +6,7 @@
 #include <string_view>
 #include <utility>
 
-#include "app/game_settings.hpp"
+#include "app/audio_settings.hpp"
 #include "assets/game_path.hpp"
 #include "core/log.hpp"
 
@@ -39,8 +39,12 @@ Result<audio::Mixer> StartAudio(const settings::Registry& registry, const assets
         log::Warn("{}, continuing without sound", mixer.error().message);
         mixer = audio::Mixer::CreateHeadless(kSilentMixRateHz);
     }
+    if (!mixer) {
+        return mixer;
+    }
+    ApplyVolumes(registry, *mixer);
     const std::string devSound = registry.Get(kDevPlaySound);
-    if (mixer && !devSound.empty()) {
+    if (!devSound.empty()) {
         const Result<void> played = PlaySound(*mixer, vfs, devSound);
         if (played) {
             log::Info("{}: playing {}", kDevPlaySound.key, devSound);
