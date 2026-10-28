@@ -4,8 +4,11 @@
 #include <array>
 #include <cstring>
 #include <format>
+#include <functional>
 #include <limits>
+#include <ranges>
 #include <utility>
+#include <vector>
 
 #include "core/assert.hpp"
 #include "render/gpu_error.hpp"
@@ -27,9 +30,20 @@ struct DrawUniforms {
 
 struct MaterialUniforms {
     Color tint;
+    Color ambient;
     glm::vec3 lightDirection;
     float alphaCutoff = 0.0F;
+    float modulateWeight = 0.0F;
+    std::array<float, 3> padding{};
 };
+
+assets::ImageAsset WhitePixel() {
+    return {.widthPx = 1, .heightPx = 1, .rgba = std::vector(4, std::byte{0xFF})};
+}
+
+bool IsOpaque(const MeshDraw& draw) {
+    return draw.material.blend == BlendMode::Opaque;
+}
 
 SDL_GPUPresentMode ChoosePresentMode(SDL_GPUDevice* device, SDL_Window* window,
                                      platform::PresentMode mode) {
@@ -58,8 +72,10 @@ Result<Renderer> Renderer::Create(const platform::Window& window, platform::Pres
     owned.get_deleter().window = window.Handle();
 
     Renderer renderer(std::move(owned));
-    Result<void> ready =
-        renderer.SetPresentMode(mode).and_then([&] { return renderer.CreatePipelines(); });
+    Result<void> ready = renderer.SetPresentMode(mode)
+                             .and_then([&] { return renderer.CreatePipelines(); })
+                             .and_then([&] { return renderer.UploadTexture(WhitePixel()); })
+                             .transform([](TextureId white) { RR_VERIFY(white == kWhiteTexture); });
     if (!ready) {
         return std::unexpected(std::move(ready.error()));
     }
@@ -195,16 +211,21 @@ Result<void> Renderer::CreatePipelines() {
     SDL_GPUDevice* device = device_.get();
     const SDL_GPUTextureFormat colorFormat =
         SDL_GetGPUSwapchainTextureFormat(device, device_.get_deleter().window);
-    Result<GpuPipeline> meshPipeline = CreateMeshPipeline(device, colorFormat);
-    Result<GpuPipeline> linePipeline = meshPipeline.and_then(
-        [&](const GpuPipeline&) { return CreateLinePipeline(device, colorFormat); });
+    for (std::size_t mode = 0; mode < kBlendModeCount; ++mode) {
+        Result<GpuPipeline> meshPipeline =
+            CreateMeshPipeline(device, colorFormat, static_cast<BlendMode>(mode));
+        if (!meshPipeline) {
+            return std::unexpected(std::move(meshPipeline.error()));
+        }
+        meshPipelines_.at(mode) = std::move(*meshPipeline);
+    }
+    Result<GpuPipeline> linePipeline = CreateLinePipeline(device, colorFormat);
     Result<GpuBuffer> lineVertices = linePipeline.and_then([&](const GpuPipeline&) {
         return CreateBuffer(SDL_GPU_BUFFERUSAGE_VERTEX, kLineVertexBytes);
     });
     if (!lineVertices) {
         return std::unexpected(std::move(lineVertices.error()));
     }
-    meshPipeline_ = std::move(*meshPipeline);
     linePipeline_ = std::move(*linePipeline);
     lineVertices_ = std::move(*lineVertices);
 
@@ -342,30 +363,51 @@ Result<void> Renderer::EnsureDepthTexture(std::uint32_t widthPx, std::uint32_t h
 
 void Renderer::DrawMeshes(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
                           std::span<const MeshDraw> meshes, const glm::mat4& viewProjection) const {
-    SDL_BindGPUGraphicsPipeline(pass, meshPipeline_.Get());
-    for (const MeshDraw& draw : meshes) {
-        const auto meshIndex = static_cast<std::size_t>(draw.mesh);
-        const auto textureIndex = static_cast<std::size_t>(draw.material.texture);
-        RR_VERIFY(meshIndex < meshes_.size() && textureIndex < textures_.size());
-        const Mesh& mesh = meshes_[meshIndex];
-
-        const DrawUniforms drawUniforms{.model = ModelMatrix(draw.transform),
-                                        .viewProjection = viewProjection};
-        const MaterialUniforms materialUniforms{.tint = draw.material.tint,
-                                                .lightDirection = glm::normalize(kLightDirection),
-                                                .alphaCutoff = draw.material.alphaCutoff};
-        SDL_PushGPUVertexUniformData(commands, 0, &drawUniforms, sizeof(drawUniforms));
-        SDL_PushGPUFragmentUniformData(commands, 0, &materialUniforms, sizeof(materialUniforms));
-
-        const SDL_GPUBufferBinding vertices{.buffer = mesh.vertices.Get()};
-        const SDL_GPUBufferBinding indices{.buffer = mesh.indices.Get()};
-        const SDL_GPUTextureSamplerBinding texture{.texture = textures_[textureIndex].Get(),
-                                                   .sampler = sampler_.Get()};
-        SDL_BindGPUVertexBuffers(pass, 0, &vertices, 1);
-        SDL_BindGPUIndexBuffer(pass, &indices, SDL_GPU_INDEXELEMENTSIZE_32BIT);
-        SDL_BindGPUFragmentSamplers(pass, 0, &texture, 1);
-        SDL_DrawGPUIndexedPrimitives(pass, mesh.indexCount, 1, 0, 0, 0);
+    SDL_GPUGraphicsPipeline* bound = nullptr;
+    for (const MeshDraw& draw : meshes | std::views::filter(IsOpaque)) {
+        DrawMesh(commands, pass, draw, viewProjection, bound);
     }
+    for (const MeshDraw& draw : meshes | std::views::filter(std::not_fn(IsOpaque))) {
+        DrawMesh(commands, pass, draw, viewProjection, bound);
+    }
+}
+
+void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
+                        const MeshDraw& draw, const glm::mat4& viewProjection,
+                        SDL_GPUGraphicsPipeline*& bound) const {
+    const auto meshIndex = static_cast<std::size_t>(draw.mesh);
+    const auto textureIndex = static_cast<std::size_t>(draw.material.texture);
+    RR_VERIFY(meshIndex < meshes_.size() && textureIndex < textures_.size());
+    const Mesh& mesh = meshes_[meshIndex];
+    RR_VERIFY(draw.firstIndex <= mesh.indexCount);
+    const std::uint32_t indexCount = std::min(draw.indexCount, mesh.indexCount - draw.firstIndex);
+    RR_VERIFY(draw.indexCount == kWholeMesh || indexCount == draw.indexCount);
+
+    SDL_GPUGraphicsPipeline* pipeline =
+        meshPipelines_.at(static_cast<std::size_t>(draw.material.blend)).Get();
+    if (pipeline != bound) {
+        SDL_BindGPUGraphicsPipeline(pass, pipeline);
+        bound = pipeline;
+    }
+    const DrawUniforms drawUniforms{.model = ModelMatrix(draw.transform),
+                                    .viewProjection = viewProjection};
+    const MaterialUniforms materialUniforms{
+        .tint = draw.material.tint,
+        .ambient = draw.material.ambient,
+        .lightDirection = glm::normalize(kLightDirection),
+        .alphaCutoff = draw.material.alphaCutoff,
+        .modulateWeight = draw.material.modulates ? 1.0F : 0.0F};
+    SDL_PushGPUVertexUniformData(commands, 0, &drawUniforms, sizeof(drawUniforms));
+    SDL_PushGPUFragmentUniformData(commands, 0, &materialUniforms, sizeof(materialUniforms));
+
+    const SDL_GPUBufferBinding vertices{.buffer = mesh.vertices.Get()};
+    const SDL_GPUBufferBinding indices{.buffer = mesh.indices.Get()};
+    const SDL_GPUTextureSamplerBinding texture{.texture = textures_[textureIndex].Get(),
+                                               .sampler = sampler_.Get()};
+    SDL_BindGPUVertexBuffers(pass, 0, &vertices, 1);
+    SDL_BindGPUIndexBuffer(pass, &indices, SDL_GPU_INDEXELEMENTSIZE_32BIT);
+    SDL_BindGPUFragmentSamplers(pass, 0, &texture, 1);
+    SDL_DrawGPUIndexedPrimitives(pass, indexCount, 1, draw.firstIndex, 0, 0);
 }
 
 void Renderer::DrawLines(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,

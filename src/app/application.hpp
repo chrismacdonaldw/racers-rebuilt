@@ -1,6 +1,9 @@
 #pragma once
 
 #include <filesystem>
+#include <memory>
+#include <optional>
+#include <string>
 
 #include "app/extensions.hpp"
 #include "app/frame_loop.hpp"
@@ -36,10 +39,12 @@ private:
         render::Renderer renderer;
         platform::FramePacer pacer;
         platform::PacingConfig pacing;
+        std::optional<std::string> track;
     };
 
     explicit Application(Parts parts);
 
+    [[nodiscard]] Result<std::unique_ptr<Scene>> CreateStartScene();
     void CyclePacing();
     void ApplyPacing();
 
@@ -54,6 +59,7 @@ private:
     platform::EventPump events_;
     platform::FramePacer pacer_;
     platform::PacingConfig pacing_;
+    std::optional<std::string> track_;
     FrameLoop frameLoop_;
 };
 

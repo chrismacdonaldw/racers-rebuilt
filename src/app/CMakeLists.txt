@@ -15,6 +15,9 @@ rr_add_module(app
         startup_settings.cpp
         startup_timer.cpp
         test_scene.cpp
+        track_model.cpp
+        track_space.cpp
+        track_viewer_scene.cpp
         video_settings.cpp
     DEPENDS
         rr::assets

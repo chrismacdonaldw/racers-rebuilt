@@ -8,6 +8,7 @@ add_executable(racers-rebuilt-tests
     app/scene_stack_test.cpp
     app/startup_settings_test.cpp
     app/startup_timer_test.cpp
+    app/track_space_test.cpp
     app/video_settings_test.cpp
     assets/asset_cache_test.cpp
     assets/bmp_image_test.cpp

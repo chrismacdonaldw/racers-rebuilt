@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL_gpu.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -36,6 +37,8 @@ public:
     [[nodiscard]] Result<void> Draw(const RenderView& view);
 
 private:
+    static constexpr std::size_t kBlendModeCount = 3;
+
     struct DeviceDeleter {
         SDL_Window* window = nullptr;
 
@@ -63,11 +66,13 @@ private:
     Result<void> EnsureDepthTexture(std::uint32_t widthPx, std::uint32_t heightPx);
     void DrawMeshes(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
                     std::span<const MeshDraw> meshes, const glm::mat4& viewProjection) const;
+    void DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, const MeshDraw& draw,
+                  const glm::mat4& viewProjection, SDL_GPUGraphicsPipeline*& bound) const;
     void DrawLines(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, std::size_t lineCount,
                    const glm::mat4& viewProjection) const;
 
     std::unique_ptr<SDL_GPUDevice, DeviceDeleter> device_;
-    GpuPipeline meshPipeline_;
+    std::array<GpuPipeline, kBlendModeCount> meshPipelines_;
     GpuPipeline linePipeline_;
     GpuSampler sampler_;
     GpuTexture depth_;

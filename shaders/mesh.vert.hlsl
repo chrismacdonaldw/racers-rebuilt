@@ -9,6 +9,7 @@ struct VertexInput
     float3 position : TEXCOORD0;
     float3 normal : TEXCOORD1;
     float2 uv : TEXCOORD2;
+    float4 color : TEXCOORD3;
 };
 
 struct VertexOutput
@@ -16,6 +17,7 @@ struct VertexOutput
     float4 position : SV_Position;
     float3 normal : TEXCOORD0;
     float2 uv : TEXCOORD1;
+    float4 color : TEXCOORD2;
 };
 
 VertexOutput main(VertexInput input)
@@ -24,5 +26,6 @@ VertexOutput main(VertexInput input)
     output.position = mul(viewProjection, mul(model, float4(input.position, 1.0)));
     output.normal = mul((float3x3)model, input.normal);
     output.uv = input.uv;
+    output.color = input.color;
     return output;
 }

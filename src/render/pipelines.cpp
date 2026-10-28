@@ -26,6 +26,8 @@ struct PipelineSpec {
     std::span<const SDL_GPUVertexAttribute> attributes;
     std::uint32_t vertexPitch = 0;
     SDL_GPUPrimitiveType primitive = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+    SDL_GPUColorTargetBlendState blend{};
+    bool writesDepth = true;
 };
 
 constexpr std::array kMeshAttributes{
@@ -38,6 +40,9 @@ constexpr std::array kMeshAttributes{
     SDL_GPUVertexAttribute{.location = 2,
                            .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
                            .offset = offsetof(assets::GeometryVertex, u)},
+    SDL_GPUVertexAttribute{.location = 3,
+                           .format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM,
+                           .offset = offsetof(assets::GeometryVertex, rgba)},
 };
 
 constexpr std::array kLineAttributes{
@@ -48,6 +53,22 @@ constexpr std::array kLineAttributes{
                            .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
                            .offset = offsetof(LineVertex, color)},
 };
+
+SDL_GPUColorTargetBlendState BlendState(BlendMode mode) {
+    if (mode == BlendMode::Opaque) {
+        return {};
+    }
+    const SDL_GPUBlendFactor destination = mode == BlendMode::Additive
+                                               ? SDL_GPU_BLENDFACTOR_ONE
+                                               : SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+    return {.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
+            .dst_color_blendfactor = destination,
+            .color_blend_op = SDL_GPU_BLENDOP_ADD,
+            .src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE,
+            .dst_alpha_blendfactor = destination,
+            .alpha_blend_op = SDL_GPU_BLENDOP_ADD,
+            .enable_blend = true};
+}
 
 Result<GpuShader> CreateShader(SDL_GPUDevice* device, const ShaderSpec& spec) {
     const SDL_GPUShaderCreateInfo info{
@@ -77,7 +98,8 @@ Result<GpuPipeline> CreatePipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat c
 
     const SDL_GPUVertexBufferDescription vertexBuffer{
         .slot = 0, .pitch = spec.vertexPitch, .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX};
-    const SDL_GPUColorTargetDescription colorTarget{.format = colorFormat};
+    const SDL_GPUColorTargetDescription colorTarget{.format = colorFormat,
+                                                    .blend_state = spec.blend};
     const SDL_GPUGraphicsPipelineCreateInfo info{
         .vertex_shader = vertexShader->Get(),
         .fragment_shader = fragmentShader->Get(),
@@ -93,7 +115,7 @@ Result<GpuPipeline> CreatePipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat c
                              .enable_depth_clip = true},
         .depth_stencil_state = {.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL,
                                 .enable_depth_test = true,
-                                .enable_depth_write = true},
+                                .enable_depth_write = spec.writesDepth},
         .target_info = {.color_target_descriptions = &colorTarget,
                         .num_color_targets = 1,
                         .depth_stencil_format = kDepthFormat,
@@ -108,7 +130,8 @@ Result<GpuPipeline> CreatePipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat c
 
 }
 
-Result<GpuPipeline> CreateMeshPipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat colorFormat) {
+Result<GpuPipeline> CreateMeshPipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat colorFormat,
+                                       BlendMode blend) {
     return CreatePipeline(
         device, colorFormat,
         {.vertexShader = {.code = shaders::kMeshVertex, .stage = SDL_GPU_SHADERSTAGE_VERTEX},
@@ -117,7 +140,9 @@ Result<GpuPipeline> CreateMeshPipeline(SDL_GPUDevice* device, SDL_GPUTextureForm
                             .samplerCount = 1},
          .attributes = kMeshAttributes,
          .vertexPitch = sizeof(assets::GeometryVertex),
-         .primitive = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST});
+         .primitive = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+         .blend = BlendState(blend),
+         .writesDepth = blend == BlendMode::Opaque});
 }
 
 Result<GpuPipeline> CreateLinePipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat colorFormat) {
