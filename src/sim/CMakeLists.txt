@@ -13,6 +13,9 @@ rr_add_module(sim
         physics/racer_controls.cpp
         physics/rigid_body.cpp
         physics/wall_sweep.cpp
+        race/checkpoint_graph.cpp
+        race/lap_tracker.cpp
+        race/standings.cpp
         replay/replay.cpp
         replay/replay_bytes.cpp
         replay/replay_recorder.cpp
