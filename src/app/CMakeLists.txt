@@ -4,6 +4,7 @@ rr_add_module(app
         audio_settings.cpp
         audio_startup.cpp
         checkpoint_gates.cpp
+        collision_wireframe.cpp
         extensions.cpp
         frame_loop.cpp
         free_camera.cpp

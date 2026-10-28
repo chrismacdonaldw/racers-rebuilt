@@ -43,6 +43,7 @@ public:
                                                         const Vector3& to) const;
 
     [[nodiscard]] const CollisionMesh& Mesh() const { return mesh_; }
+    [[nodiscard]] std::span<const MaterialBinding> Materials() const { return materials_; }
     [[nodiscard]] const std::optional<Placement>& WorldPlacement() const { return placement_; }
 
 private:

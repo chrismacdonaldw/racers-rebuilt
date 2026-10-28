@@ -1,6 +1,7 @@
 add_executable(racers-rebuilt-tests
     main.cpp
     app/checkpoint_gates_test.cpp
+    app/collision_wireframe_test.cpp
     app/frame_loop_test.cpp
     app/free_camera_test.cpp
     app/input_bindings_test.cpp

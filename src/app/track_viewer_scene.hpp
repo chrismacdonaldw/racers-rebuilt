@@ -13,6 +13,7 @@
 #include "assets/vfs.hpp"
 #include "core/duration.hpp"
 #include "core/result.hpp"
+#include "render/render_view.hpp"
 #include "render/renderer.hpp"
 #include "sim/race/checkpoint_graph.hpp"
 #include "sim/race/lap_tracker.hpp"
@@ -41,6 +42,7 @@ private:
         std::size_t firstCarDraw = 0;
         PaceCar paceCar;
         render::Camera camera;
+        std::vector<render::DebugLine> collisionLines;
         Nanoseconds started{};
         std::optional<sim::CheckpointGraph> checkpoints;
     };
@@ -52,7 +54,8 @@ private:
     Parts parts_;
     sim::LapTracker laps_;
     bool showsCheckpoints_ = false;
-    std::vector<render::DebugLine> gateLines_;
+    bool showsCollision_ = false;
+    std::vector<render::DebugLine> debugLines_;
     bool hasDrawn_ = false;
 };
 

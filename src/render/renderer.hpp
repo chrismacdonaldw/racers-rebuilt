@@ -24,7 +24,7 @@
 
 namespace rr::render {
 
-inline constexpr std::size_t kMaxDebugLines = 4096;
+inline constexpr std::size_t kMaxDebugLines = 8192;
 inline constexpr std::size_t kMaxSprites = 8192;
 inline constexpr float kMinResolutionScale = 0.25F;
 inline constexpr float kMaxResolutionScale = 2.0F;
