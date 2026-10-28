@@ -15,6 +15,13 @@ inline constexpr settings::SettingSpec<bool> kFreeCamera{.key = "enhancements.fr
                                                          .label = "Free camera",
                                                          .category = "Enhancements"};
 
+inline constexpr settings::SettingSpec<double> kFreeCameraSpeed{
+    .key = "enhancements.free_camera_speed",
+    .defaultValue = 40.0,
+    .range = settings::SettingRange<double>{.min = 1.0, .max = 400.0},
+    .label = "Free camera speed",
+    .category = "Enhancements"};
+
 struct FlyKeys {
     bool forward = false;
     bool back = false;
@@ -49,6 +56,7 @@ private:
 
     std::function<FlyKeys()> readKeys_;
     bool isEnabled_ = false;
+    float unitsPerSecond_ = 0.0F;
     bool hasPose_ = false;
     Vector3 position_;
     float yawRadians_ = 0.0F;

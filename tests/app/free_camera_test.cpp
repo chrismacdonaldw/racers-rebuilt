@@ -56,8 +56,17 @@ TEST_CASE_FIXTURE(CameraFixture, "flying forward moves along the view and keeps 
     Enable(true);
     keys_.forward = true;
 
+    CHECK(Render().position.z == doctest::Approx(8.0F - kFreeCameraSpeed.defaultValue));
+    CHECK(Render().position.z == doctest::Approx(8.0F - (2.0 * kFreeCameraSpeed.defaultValue)));
+}
+
+TEST_CASE_FIXTURE(CameraFixture, "the speed setting sets how far it flies each second") {
+    Enable(true);
+    settings_.Set(kFreeCameraSpeed, 5.0);
+    hooks_.Emit(mods::SettingChanged{.key = kFreeCameraSpeed.key, .settings = settings_});
+    keys_.forward = true;
+
     CHECK(Render().position.z == doctest::Approx(3.0F));
-    CHECK(Render().position.z == doctest::Approx(-2.0F));
 }
 
 TEST_CASE_FIXTURE(CameraFixture, "a new scene puts it back on the scene camera") {

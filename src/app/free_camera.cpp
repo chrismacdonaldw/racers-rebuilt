@@ -8,7 +8,6 @@
 namespace rr::app {
 namespace {
 
-constexpr float kMoveUnitsPerSecond = 5.0F;
 constexpr float kFastMultiplier = 4.0F;
 constexpr float kLookRadiansPerSecond = 1.5F;
 constexpr float kMaxPitchRadians = 1.5F;
@@ -50,14 +49,19 @@ FlyKeys ReadFlyKeys() {
 
 void FreeCamera::DeclareSettings(settings::Registry& registry) const {
     registry.Declare(kFreeCamera);
+    registry.Declare(kFreeCameraSpeed);
 }
 
 void FreeCamera::Attach(mods::HookRegistry& hooks, const settings::Registry& settings) {
     isEnabled_ = settings.Get(kFreeCamera);
+    unitsPerSecond_ = static_cast<float>(settings.Get(kFreeCameraSpeed));
     hooks.Subscribe<mods::SettingChanged>([this](const mods::SettingChanged& changed) {
         if (changed.key == kFreeCamera.key) {
             isEnabled_ = changed.settings.Get(kFreeCamera);
             hasPose_ = false;
+        }
+        if (changed.key == kFreeCameraSpeed.key) {
+            unitsPerSecond_ = static_cast<float>(changed.settings.Get(kFreeCameraSpeed));
         }
     });
     hooks.Subscribe<mods::SceneEntered>([this](const mods::SceneEntered&) { hasPose_ = false; });
@@ -85,7 +89,7 @@ void FreeCamera::Fly(mods::FrameRendering& frame) {
     const Quaternion rotation = FromYawPitch(yawRadians_, pitchRadians_);
     const Vector3 forward = Forward(rotation);
     const Vector3 right{.x = std::cos(yawRadians_), .z = -std::sin(yawRadians_)};
-    const float step = kMoveUnitsPerSecond * (keys.fast ? kFastMultiplier : 1.0F) * seconds;
+    const float step = unitsPerSecond_ * (keys.fast ? kFastMultiplier : 1.0F) * seconds;
     const float ahead = Axis(keys.forward, keys.back) * step;
     const float aside = Axis(keys.right, keys.left) * step;
     position_ = {.x = position_.x + (forward.x * ahead) + (right.x * aside),
