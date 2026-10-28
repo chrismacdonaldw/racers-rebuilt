@@ -17,7 +17,8 @@ struct LineVertex {
 };
 
 [[nodiscard]] Result<GpuPipeline> CreateMeshPipeline(SDL_GPUDevice* device,
-                                                     SDL_GPUTextureFormat colorFormat);
+                                                     SDL_GPUTextureFormat colorFormat,
+                                                     BlendMode blend);
 [[nodiscard]] Result<GpuPipeline> CreateLinePipeline(SDL_GPUDevice* device,
                                                      SDL_GPUTextureFormat colorFormat);
 
