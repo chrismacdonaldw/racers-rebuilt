@@ -67,6 +67,8 @@ add_executable(racers-rebuilt-tests
     settings/settings_file_test.cpp
     sim/input_latch_test.cpp
     sim/interpolation_test.cpp
+    sim/physics/car_body_test.cpp
+    sim/physics/chassis_test.cpp
     sim/replay_test.cpp
     sim/route_playback_test.cpp
     sim/snapshot_hash_test.cpp

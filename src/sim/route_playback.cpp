@@ -5,10 +5,6 @@
 namespace rr::sim {
 namespace {
 
-Vector3 Add(const Vector3& a, const Vector3& b) {
-    return {.x = a.x + b.x, .y = a.y + b.y, .z = a.z + b.z};
-}
-
 Milliseconds DurationOf(const assets::RoutePoint& point) {
     return Milliseconds{point.durationMs};
 }
@@ -41,7 +37,7 @@ Transform RoutePlayback::Pose() const {
 void RoutePlayback::StartSegment(std::size_t target, Transform from) {
     const assets::RoutePoint& point = route_.points[target];
     target_ = target;
-    to_ = {.position = Add(from.position, point.offset), .rotation = point.rotation};
+    to_ = {.position = from.position + point.offset, .rotation = point.rotation};
     from_ = from;
 }
 

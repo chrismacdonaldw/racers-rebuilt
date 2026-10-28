@@ -2,6 +2,13 @@ rr_add_module(sim
     SOURCES
         input_latch.cpp
         interpolation.cpp
+        physics/body_forces.cpp
+        physics/car_body.cpp
+        physics/chassis.cpp
+        physics/facing.cpp
+        physics/ground_contact.cpp
+        physics/rigid_body.cpp
+        physics/wall_sweep.cpp
         replay/replay.cpp
         replay/replay_bytes.cpp
         replay/replay_recorder.cpp
