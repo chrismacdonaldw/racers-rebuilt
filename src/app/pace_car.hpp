@@ -23,6 +23,7 @@ public:
     void Tick();
 
     [[nodiscard]] Transform Car() const;
+    [[nodiscard]] Transform GamePose() const { return playback_.Pose(); }
     [[nodiscard]] Transform Camera() const;
 
 private:

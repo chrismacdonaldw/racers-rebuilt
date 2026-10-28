@@ -183,6 +183,9 @@ Result<void> Application::Run() {
     AttachEnhancements(extensions_, frameLoop_.Hooks(), settings_);
     settings_.Observe([this, &bindings](std::string_view key) {
         frameLoop_.Hooks().Emit(mods::SettingChanged{.key = key, .settings = settings_});
+        if (Scene* scene = frameLoop_.Scenes().Top(); scene != nullptr) {
+            scene->ApplySettings(settings_);
+        }
         if (key.starts_with("video.")) {
             ApplyVideo();
         }
@@ -270,6 +273,7 @@ Result<void> Application::SwitchScene(const SceneFactory& create) {
     if (!scene) {
         return std::unexpected(std::move(scene.error()));
     }
+    (*scene)->ApplySettings(settings_);
     frameLoop_.Scenes().Push(std::move(*scene));
     return {};
 }

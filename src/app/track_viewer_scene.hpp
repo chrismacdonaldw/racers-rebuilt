@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -13,6 +14,8 @@
 #include "core/duration.hpp"
 #include "core/result.hpp"
 #include "render/renderer.hpp"
+#include "sim/race/checkpoint_graph.hpp"
+#include "sim/race/lap_tracker.hpp"
 
 namespace rr::app {
 
@@ -25,6 +28,7 @@ public:
         render::Renderer& renderer, const assets::Vfs& vfs, assets::TrackLoader& loader,
         std::string_view track, Nanoseconds started);
 
+    void ApplySettings(const settings::Registry& settings) override;
     void Tick(const sim::InputFrame& input) override;
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
@@ -38,11 +42,17 @@ private:
         PaceCar paceCar;
         render::Camera camera;
         Nanoseconds started{};
+        std::optional<sim::CheckpointGraph> checkpoints;
     };
 
     explicit TrackViewerScene(Parts parts) : parts_(std::move(parts)) {}
 
+    void TrackLaps(const sim::CheckpointGraph& checkpoints, const Transform& before);
+
     Parts parts_;
+    sim::LapTracker laps_;
+    bool showsCheckpoints_ = false;
+    std::vector<render::DebugLine> gateLines_;
     bool hasDrawn_ = false;
 };
 

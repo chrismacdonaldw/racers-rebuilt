@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "app/audio_settings.hpp"
+#include "app/checkpoint_gates.hpp"
 #include "app/game_settings.hpp"
 #include "app/input_bindings.hpp"
 #include "app/video_settings.hpp"
@@ -19,6 +20,7 @@ settings::Registry DeclaredRegistry(const Extensions& extensions) {
     DeclareAudioSettings(registry);
     DeclareVideoSettings(registry);
     DeclareInputSettings(registry);
+    registry.Declare(kShowCheckpoints);
     DeclareExtensionSettings(extensions, registry);
     return registry;
 }

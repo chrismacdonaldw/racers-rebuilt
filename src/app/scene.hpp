@@ -2,6 +2,7 @@
 
 #include <string_view>
 
+#include "settings/registry.hpp"
 #include "sim/input_frame.hpp"
 #include "sim/render_snapshot.hpp"
 
@@ -13,6 +14,9 @@ public:
 
     virtual void Enter() {}
     virtual void Exit() {}
+
+    /// Runs when the scene opens and after each setting change, so `Tick` never reads settings.
+    virtual void ApplySettings([[maybe_unused]] const settings::Registry& settings) {}
 
     /// A `MusicCatalog` id. Empty means silence.
     [[nodiscard]] virtual std::string_view MusicTrack() const { return {}; }

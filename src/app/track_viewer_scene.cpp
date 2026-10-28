@@ -2,11 +2,15 @@
 
 #include <cmath>
 #include <format>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "app/checkpoint_gates.hpp"
+#include "app/frame_loop.hpp"
 #include "app/track_model.hpp"
+#include "app/track_space.hpp"
 #include "core/log.hpp"
 #include "platform/clock.hpp"
 
@@ -58,6 +62,13 @@ Result<std::unique_ptr<TrackViewerScene>> TrackViewerScene::Create(render::Rende
     if (model->bounds.isEmpty) {
         return Fail(ErrorCode::InvalidData, std::format("{} places no models", track));
     }
+    Result<sim::CheckpointGraph> loaded = LoadCheckpoints(vfs, folder);
+    std::optional<sim::CheckpointGraph> checkpoints;
+    if (loaded) {
+        checkpoints = std::move(*loaded);
+    } else {
+        log::Warn("{}: no lap counting, {}", track, loaded.error().message);
+    }
     const std::size_t firstCarDraw = model->draws.size();
     model->draws.insert(model->draws.end(), car->begin(), car->end());
     return std::unique_ptr<TrackViewerScene>(
@@ -67,11 +78,32 @@ Result<std::unique_ptr<TrackViewerScene>> TrackViewerScene::Create(render::Rende
                               .firstCarDraw = firstCarDraw,
                               .paceCar = PaceCar(std::move(*route)),
                               .camera = CameraFor(model->bounds),
-                              .started = started}));
+                              .started = started,
+                              .checkpoints = std::move(checkpoints)}));
+}
+
+void TrackViewerScene::ApplySettings(const settings::Registry& settings) {
+    showsCheckpoints_ = settings.Get(kShowCheckpoints);
 }
 
 void TrackViewerScene::Tick([[maybe_unused]] const sim::InputFrame& input) {
+    const Transform before = parts_.paceCar.GamePose();
     parts_.paceCar.Tick();
+    if (parts_.checkpoints) {
+        TrackLaps(*parts_.checkpoints, before);
+    }
+}
+
+void TrackViewerScene::TrackLaps(const sim::CheckpointGraph& checkpoints, const Transform& before) {
+    const Transform after = parts_.paceCar.GamePose();
+    const int laps = laps_.CompletedLaps();
+    if (const auto crossing = checkpoints.FindCrossing(before.position, after.position)) {
+        laps_.Cross(checkpoints, *crossing);
+    }
+    laps_.Update(checkpoints, kSimTick, Apply({.rotation = after.rotation}, {.x = 1.0F}));
+    if (laps_.CompletedLaps() != laps) {
+        log::Info("{}: pace car finished lap {}", parts_.track, laps_.CompletedLaps());
+    }
 }
 
 void TrackViewerScene::Snapshot(sim::RenderSnapshot& out) const {
@@ -87,7 +119,12 @@ void TrackViewerScene::Render(const sim::RenderSnapshot& interpolated) {
     }
     render::Camera camera = parts_.camera;
     camera.transform = interpolated.camera.transform;
-    Result<void> drawn = parts_.renderer->Draw({.camera = camera, .meshes = parts_.draws});
+    gateLines_.clear();
+    if (showsCheckpoints_ && parts_.checkpoints) {
+        DrawGates(*parts_.checkpoints, laps_, gateLines_);
+    }
+    Result<void> drawn =
+        parts_.renderer->Draw({.camera = camera, .meshes = parts_.draws, .lines = gateLines_});
     if (!drawn) {
         log::Error("{}", drawn.error().message);
         return;
