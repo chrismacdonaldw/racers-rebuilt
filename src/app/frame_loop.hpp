@@ -6,6 +6,7 @@
 
 #include "app/scene_stack.hpp"
 #include "core/duration.hpp"
+#include "mods/hook_registry.hpp"
 #include "sim/input_latch.hpp"
 #include "sim/render_snapshot.hpp"
 
@@ -21,7 +22,8 @@ struct FrameStats {
     bool isNewScene = false;
 };
 
-/// Time beyond `kMaxStepsPerFrame` ticks in one frame is dropped, not simulated.
+/// Time beyond `kMaxStepsPerFrame` ticks in one frame is dropped, not simulated. Emits the scene,
+/// tick and frame hooks.
 class FrameLoop {
 public:
     /// `now` is monotonic. The first call only sets the time base.
@@ -29,12 +31,14 @@ public:
 
     [[nodiscard]] SceneStack& Scenes() { return scenes_; }
     [[nodiscard]] sim::InputLatch& Input() { return input_; }
+    [[nodiscard]] mods::HookRegistry& Hooks() { return hooks_; }
 
 private:
     void RestartSnapshots(const Scene& scene);
     int RunTicks(Scene& scene);
 
     SceneStack scenes_;
+    mods::HookRegistry hooks_;
     sim::InputLatch input_;
     std::optional<Nanoseconds> lastFrame_;
     Nanoseconds accumulator_{0};

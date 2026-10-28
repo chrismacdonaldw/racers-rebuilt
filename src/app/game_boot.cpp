@@ -22,6 +22,7 @@ namespace rr::app {
 namespace {
 
 constexpr std::string_view kSettingsFileName = "settings.toml";
+constexpr std::string_view kModsFolderName = "mods";
 
 void OpenLogFile(const std::filesystem::path& dataFolder) {
     const std::filesystem::path logPath = dataFolder / "logs" / "racers-rebuilt.log";
@@ -69,7 +70,8 @@ Result<GameInstall> ResolveInstall(const settings::CommandLine& commandLine,
     return install;
 }
 
-Result<assets::Vfs> MountGameFiles(GameInstall install) {
+Result<assets::Vfs> MountGameFiles(GameInstall install, const mods::ModList& mods,
+                                   const settings::Registry& registry) {
     Result<assets::FolderLayer> looseFiles =
         assets::FolderLayer::Scan(install.folder, assets::ScanDepth::TopLevelFiles);
     if (!looseFiles) {
@@ -78,6 +80,8 @@ Result<assets::Vfs> MountGameFiles(GameInstall install) {
     assets::Vfs vfs;
     vfs.Mount(std::make_unique<assets::FolderLayer>(std::move(*looseFiles)));
     vfs.Mount(std::make_unique<assets::JamArchive>(std::move(install.jam)));
+    mods.MountEnabled(vfs, registry);
+    log::Info("{} mods, {} enabled", mods.All().size(), mods.Enabled(registry).size());
     return vfs;
 }
 
@@ -94,7 +98,9 @@ Result<GameBoot> BootGame(std::span<const std::string_view> args) {
     OpenLogFile(*dataFolder);
     log::Info("racers-rebuilt {} starting, data folder {}", RR_VERSION, Utf8FromPath(*dataFolder));
     std::filesystem::path settingsFile = *dataFolder / kSettingsFileName;
-    Result<settings::Registry> registry = LoadStartupSettings(settingsFile, commandLine->overrides);
+    Extensions extensions = LoadExtensions(*dataFolder / kModsFolderName);
+    Result<settings::Registry> registry =
+        LoadStartupSettings(settingsFile, commandLine->overrides, extensions);
     if (!registry) {
         return std::unexpected(std::move(registry.error()));
     }
@@ -102,7 +108,10 @@ Result<GameBoot> BootGame(std::span<const std::string_view> args) {
 
     Result<platform::SdlContext> sdl = platform::SdlContext::Create();
     Result<assets::Vfs> vfs = sdl.and_then([&](const auto&) {
-        return ResolveInstall(*commandLine, *registry, settingsFile).and_then(MountGameFiles);
+        return ResolveInstall(*commandLine, *registry, settingsFile)
+            .and_then([&](GameInstall install) {
+                return MountGameFiles(std::move(install), extensions.mods, *registry);
+            });
     });
     if (!vfs) {
         return std::unexpected(std::move(vfs.error()));
@@ -113,6 +122,7 @@ Result<GameBoot> BootGame(std::span<const std::string_view> args) {
                     .commandLine = std::move(*commandLine),
                     .settings = std::move(*registry),
                     .settingsFile = std::move(settingsFile),
+                    .extensions = std::move(extensions),
                     .sdl = std::move(*sdl),
                     .vfs = std::move(*vfs)};
 }

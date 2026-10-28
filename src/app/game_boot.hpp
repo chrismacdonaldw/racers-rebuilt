@@ -4,6 +4,7 @@
 #include <span>
 #include <string_view>
 
+#include "app/extensions.hpp"
 #include "app/startup_timer.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -19,6 +20,7 @@ struct GameBoot {
     settings::CommandLine commandLine;
     settings::Registry settings;
     std::filesystem::path settingsFile;
+    Extensions extensions;
     platform::SdlContext sdl;
     assets::Vfs vfs;
 };

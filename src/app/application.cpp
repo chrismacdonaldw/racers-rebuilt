@@ -13,6 +13,7 @@
 
 #include "app/audio_settings.hpp"
 #include "app/audio_startup.hpp"
+#include "app/extensions.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/startup_settings.hpp"
 #include "app/test_scene.hpp"
@@ -70,12 +71,16 @@ void LogPacing(const platform::PacingConfig& pacing) {
 }
 
 audio::MusicPlayer CreateMusicPlayer(audio::Mixer& mixer, const assets::Vfs& vfs,
-                                     const std::filesystem::path& musicFolder) {
+                                     const std::filesystem::path& musicFolder,
+                                     std::span<const mods::Mod* const> enabledMods) {
     Result<audio::MusicCatalog> catalog = audio::MusicCatalog::Scan(vfs);
     log::Info("{} music tracks, replacements read from {}", catalog ? catalog->Ids().size() : 0,
               Utf8FromPath(musicFolder));
     std::vector<std::unique_ptr<audio::MusicSource>> sources;
     sources.push_back(std::make_unique<MusicFolderSource>(musicFolder));
+    for (const mods::Mod* mod : enabledMods) {
+        sources.push_back(std::make_unique<MusicFolderSource>(mod->MusicFolder()));
+    }
     sources.push_back(std::make_unique<audio::OriginalTrackSource>(vfs));
     return {mixer, std::move(sources)};
 }
@@ -129,6 +134,7 @@ Result<Application> Application::Create(GameBoot boot) {
     return Application({.sdl = std::move(boot.sdl),
                         .settings = std::move(boot.settings),
                         .settingsFile = std::move(boot.settingsFile),
+                        .extensions = std::move(boot.extensions),
                         .vfs = std::move(boot.vfs),
                         .mixer = std::move(*mixer),
                         .window = std::move(*window),
@@ -144,8 +150,11 @@ Result<void> Application::Run() {
     }
     frameLoop_.Scenes().Push(std::move(*scene));
     audio::MusicPlayer music =
-        CreateMusicPlayer(mixer_, vfs_, settingsFile_.parent_path() / kMusicFolderName);
+        CreateMusicPlayer(mixer_, vfs_, settingsFile_.parent_path() / kMusicFolderName,
+                          extensions_.mods.Enabled(settings_));
+    AttachEnhancements(extensions_, frameLoop_.Hooks(), settings_);
     settings_.Observe([this](std::string_view key) {
+        frameLoop_.Hooks().Emit(mods::SettingChanged{.key = key, .settings = settings_});
         if (key.starts_with("video.")) {
             ApplyPacing();
         }
@@ -173,6 +182,7 @@ Application::Application(Parts parts)
     : sdl_(std::move(parts.sdl)),
       settings_(std::move(parts.settings)),
       settingsFile_(std::move(parts.settingsFile)),
+      extensions_(std::move(parts.extensions)),
       vfs_(std::move(parts.vfs)),
       mixer_(std::move(parts.mixer)),
       window_(std::move(parts.window)),

@@ -12,23 +12,25 @@
 namespace rr::app {
 namespace {
 
-settings::Registry DeclaredRegistry() {
+settings::Registry DeclaredRegistry(const Extensions& extensions) {
     settings::Registry registry;
     DeclareGameSettings(registry);
     DeclareAudioSettings(registry);
     DeclareVideoSettings(registry);
+    DeclareExtensionSettings(extensions, registry);
     return registry;
 }
 
 }
 
-Result<settings::Registry> LoadStartupSettings(
-    const std::filesystem::path& file, std::span<const settings::SettingOverride> overrides) {
-    settings::Registry registry = DeclaredRegistry();
+Result<settings::Registry> LoadStartupSettings(const std::filesystem::path& file,
+                                               std::span<const settings::SettingOverride> overrides,
+                                               const Extensions& extensions) {
+    settings::Registry registry = DeclaredRegistry(extensions);
     Result<void> loaded = settings::LoadSettings(registry, file);
     if (!loaded) {
         log::Warn("{}, using default settings", loaded.error().message);
-        registry = DeclaredRegistry();
+        registry = DeclaredRegistry(extensions);
     }
     Result<void> applied = settings::ApplyOverrides(registry, overrides);
     if (!applied) {
@@ -39,7 +41,7 @@ Result<settings::Registry> LoadStartupSettings(
 
 void PersistSettings(const std::filesystem::path& file, const settings::Registry& current,
                      std::span<const std::string_view> keys) {
-    settings::Registry stored = DeclaredRegistry();
+    settings::Registry stored = DeclaredRegistry(Extensions{});
     Result<void> loaded = settings::LoadSettings(stored, file);
     if (!loaded) {
         log::Warn("{}, not saving settings over it", loaded.error().message);

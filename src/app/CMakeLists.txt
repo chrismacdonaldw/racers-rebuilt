@@ -3,7 +3,9 @@ rr_add_module(app
         application.cpp
         audio_settings.cpp
         audio_startup.cpp
+        extensions.cpp
         frame_loop.cpp
+        free_camera.cpp
         game_boot.cpp
         image_dump.cpp
         install_discovery.cpp
@@ -18,6 +20,7 @@ rr_add_module(app
         rr::assets
         rr::audio
         rr::core
+        rr::mods
         rr::platform
         rr::render
         rr::settings
