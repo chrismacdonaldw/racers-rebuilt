@@ -5,6 +5,8 @@
 #include <array>
 #include <string>
 
+#include "assets/install.hpp"
+#include "core/utf8_path.hpp"
 #include "install_fixture.hpp"
 #include "temp_folder.hpp"
 
@@ -56,6 +58,18 @@ TEST_CASE("a valid --game-path is used before the saved setting") {
 
     REQUIRE(install.has_value());
     CHECK(install->folder == folder.Path() / "command line");
+}
+
+TEST_CASE("a rejected folder message names the folder, the problem and the right folder") {
+    const test::TempFolder folder;
+    Result<assets::JamArchive> jam = assets::OpenInstall(folder.Path());
+    REQUIRE_FALSE(jam.has_value());
+
+    const std::string message = RejectedFolderMessage(jam.error());
+
+    CHECK(message.find(Utf8FromPath(folder.Path())) != std::string::npos);
+    CHECK(message.find("Problem: " + jam.error().message) != std::string::npos);
+    CHECK(message.find("LEGORacers.exe") != std::string::npos);
 }
 
 TEST_CASE("a valid game.path setting is found with no prompt") {

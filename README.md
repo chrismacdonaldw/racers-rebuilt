@@ -62,7 +62,7 @@ Each location is checked in order. The first folder with a valid `LEGO.JAM` wins
 5. `%ProgramFiles(x86)%\LEGO Media\Games\LEGO Racers`, then the same under `%ProgramFiles%`, then `C:\Games\LEGO Racers`
 6. The folder picker
 
-A folder is valid when `LEGO.JAM` exists and contains the `GAMEDATA` and `MENUDATA` folders. If the picked folder fails that check, the picker opens again with the reason in its title. Closing the picker exits with a message.
+A folder is valid when `LEGO.JAM` exists and contains the `GAMEDATA` and `MENUDATA` folders. If the picked folder fails that check, a message says why and the picker opens again. Closing the picker exits with a message.
 
 `--game-path` doesn't fall back. If that folder is invalid, racers-rebuilt shows the error and exits.
 
@@ -223,7 +223,7 @@ The log is at `<data>/logs/racers-rebuilt.log`. It's replaced on each launch, so
 <details>
 <summary>The folder picker keeps coming back</summary>
 
-The chosen folder doesn't have a usable `LEGO.JAM`. The picker's title says why. Choose the installed game folder, not the CD or the `Save` folder.
+The chosen folder doesn't have a usable `LEGO.JAM`. The message before the picker reopens says why. Choose the installed game folder, not the CD or the `Save` folder.
 
 </details>
 

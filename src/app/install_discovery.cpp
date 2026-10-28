@@ -12,11 +12,15 @@
 #include "core/utf8_path.hpp"
 #include "platform/data_folder.hpp"
 #include "platform/folder_picker.hpp"
+#include "platform/message_box.hpp"
 
 namespace rr::app {
 namespace {
 
 constexpr std::string_view kPickerTitle = "Choose the LEGO Racers folder, the one with LEGO.JAM";
+constexpr std::string_view kRightFolderHint =
+    "Choose the folder LEGO Racers is installed in. It holds LEGO.JAM and LEGORacers.exe, and is "
+    R"(usually Program Files (x86)\LEGO Media\Games\LEGO Racers.)";
 constexpr std::string_view kNoInstallMessage =
     "racers-rebuilt needs the files from your copy of LEGO Racers. Run it again and choose the "
     "folder that contains LEGO.JAM, or start it with --game-path <folder>.";
@@ -38,7 +42,7 @@ std::vector<platform::InstallCandidate> AutomaticCandidates(
 }
 
 Result<GameInstall> PickInstall() {
-    std::string title(kPickerTitle);
+    const std::string title(kPickerTitle);
     while (true) {
         Result<std::optional<std::filesystem::path>> picked = platform::PickFolder(title);
         if (!picked) {
@@ -53,10 +57,15 @@ Result<GameInstall> PickInstall() {
                 .folder = std::move(**picked), .jam = std::move(*jam), .wasPicked = true};
         }
         log::Warn("picked folder rejected: {}", jam.error().message);
-        title = std::format("{}. {}", jam.error().message, kPickerTitle);
+        platform::ShowErrorBox(RejectedFolderMessage(jam.error()));
     }
 }
 
+}
+
+std::string RejectedFolderMessage(const Error& error) {
+    return std::format("That folder isn't a LEGO Racers install.\n\nProblem: {}\n\n{}",
+                       error.message, kRightFolderHint);
 }
 
 std::optional<GameInstall> FirstValidInstall(
