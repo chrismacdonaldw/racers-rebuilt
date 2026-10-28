@@ -1,12 +1,15 @@
 rr_add_module(assets
     SOURCES
+        bmp_image.cpp
         byte_reader.cpp
         folder_layer.cpp
         game_path.cpp
         install.cpp
         jam.cpp
         jam_archive.cpp
+        lzss.cpp
         path_index.cpp
+        tga_image.cpp
         token_reader.cpp
         token_schema.cpp
         vfs.cpp
