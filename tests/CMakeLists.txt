@@ -17,6 +17,9 @@ add_executable(racers-rebuilt-tests
     platform/data_folder_test.cpp
     platform/frame_pacer_test.cpp
     platform/mapped_file_test.cpp
+    settings/command_line_test.cpp
+    settings/registry_test.cpp
+    settings/settings_file_test.cpp
     sim/input_latch_test.cpp
     sim/interpolation_test.cpp
 )
@@ -27,6 +30,7 @@ target_link_libraries(racers-rebuilt-tests PRIVATE
     rr::assets
     rr::core
     rr::platform
+    rr::settings
     rr::sim
     rr::compile_options
     doctest::doctest

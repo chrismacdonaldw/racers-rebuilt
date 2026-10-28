@@ -1,0 +1,12 @@
+rr_add_module(settings
+    SOURCES
+        command_line.cpp
+        registry.cpp
+        settings_file.cpp
+    DEPENDS
+        rr::core
+)
+target_include_directories(rr_settings SYSTEM PRIVATE
+    $<TARGET_PROPERTY:tomlplusplus::tomlplusplus,INTERFACE_INCLUDE_DIRECTORIES>
+)
+target_compile_definitions(rr_settings PRIVATE TOML_HEADER_ONLY=1 TOML_EXCEPTIONS=0)

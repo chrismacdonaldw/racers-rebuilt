@@ -1,5 +1,6 @@
 add_subdirectory(core)
 add_subdirectory(platform)
 add_subdirectory(assets)
+add_subdirectory(settings)
 add_subdirectory(sim)
 add_subdirectory(app)
