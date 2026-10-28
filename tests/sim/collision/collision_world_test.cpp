@@ -2,10 +2,12 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <optional>
 #include <vector>
 
 #include "sim/collision/world_list.hpp"
+#include "sim/physics/car_body.hpp"
 #include "test_meshes.hpp"
 
 namespace rr::sim {
@@ -117,6 +119,31 @@ TEST_CASE("a world list holds the track and four more worlds") {
     }
     CHECK_FALSE(list.Add(extras[4]));
     CHECK(list.WorldCount() == kMaxRacerWorlds);
+}
+
+TEST_CASE("a car drives through a gate world and is stopped by the track wall") {
+    const assets::CollisionMeshAsset trackMesh =
+        test::FloorAndWall({"road", "wall"}, 200.0F, 60.0F);
+    const assets::CollisionMeshAsset gateMesh = test::FloorAndWall({"road", "in"}, 200.0F, 30.0F);
+    const std::vector<MaterialBinding> gateMaterials = BindMaterials(gateMesh, Surfaces(), false);
+    const CollisionWorld track =
+        CollisionWorld::Track(CollisionMesh::Create(trackMesh).value(), {});
+    const CollisionWorld gate =
+        CollisionWorld::Placed(CollisionMesh::Create(gateMesh).value(), gateMaterials, {});
+    WorldList worlds(track);
+    REQUIRE(worlds.Add(gate));
+    const BodyConstants constants = MakeBodyConstants({}, {});
+    BodyState body = MakeBody(constants, {.z = 0.2F}, {});
+    SetDrive(body, constants, 54.0F, 120.0F);
+    float furthestX = 0.0F;
+
+    for (int elapsedMs = 0; elapsedMs < 6000; elapsedMs += 12) {
+        StepBody(body, constants, 12, worlds);
+        furthestX = std::max(furthestX, body.motion.position.x);
+    }
+
+    CHECK(furthestX > 40.0F);
+    CHECK(furthestX < 56.0F);
 }
 
 }

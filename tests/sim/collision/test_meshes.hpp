@@ -10,19 +10,21 @@
 
 namespace rr::test {
 
-/// A 20 × 20 floor at z = 0 around the origin, and a wall at x = 5 facing -x, 10 high.
-[[nodiscard]] inline assets::CollisionMeshAsset FloorAndWall(std::vector<std::string> materials = {
-                                                                 "road", "wall"}) {
+/// A floor at z = 0 reaching `halfSize` from the origin, and a wall at `wallX` facing -x, 10 high.
+[[nodiscard]] inline assets::CollisionMeshAsset FloorAndWall(
+    std::vector<std::string> materials = {"road", "wall"}, float halfSize = 10.0F,
+    float wallX = 5.0F) {
+    const float h = halfSize;
     return {
         .materials = std::move(materials),
-        .vertices = {{.x = -10.0F, .y = -10.0F},
-                     {.x = 10.0F, .y = -10.0F},
-                     {.x = 10.0F, .y = 10.0F},
-                     {.x = -10.0F, .y = 10.0F},
-                     {.x = 5.0F, .y = -10.0F},
-                     {.x = 5.0F, .y = 10.0F},
-                     {.x = 5.0F, .y = 10.0F, .z = 10.0F},
-                     {.x = 5.0F, .y = -10.0F, .z = 10.0F}},
+        .vertices = {{.x = -h, .y = -h},
+                     {.x = h, .y = -h},
+                     {.x = h, .y = h},
+                     {.x = -h, .y = h},
+                     {.x = wallX, .y = -h},
+                     {.x = wallX, .y = h},
+                     {.x = wallX, .y = h, .z = 10.0F},
+                     {.x = wallX, .y = -h, .z = 10.0F}},
         .triangles = {{.vertices = {0, 1, 2}, .material = 0},
                       {.vertices = {0, 2, 3}, .material = 0},
                       {.vertices = {4, 6, 5}, .material = 1},
