@@ -37,7 +37,8 @@
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "RR_BUILD_TESTS": "OFF"
+        "RR_BUILD_TESTS": "OFF",
+        "RR_BUILD_TOOLS": "OFF"
       }
     },
     {
