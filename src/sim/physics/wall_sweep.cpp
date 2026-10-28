@@ -1,6 +1,8 @@
 #include "sim/physics/wall_sweep.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 
 #include "sim/physics/rigid_body.hpp"
 
@@ -21,25 +23,38 @@ float WallYawRate(float sideFacing) {
     return kWallYawRate * (((1.0F - sideFacing) / 2.0F) + 0.5F);
 }
 
+bool IsBehindPlane(const SegmentHit& hit, const Vector3& overshoot) {
+    const float depth = Dot(overshoot, hit.normal);
+    return hit.isTrackWorld ? depth >= 0.0F : depth > 0.0F;
+}
+
 }
 
 std::optional<WallHit> SweepBodyPoints(const BodyState& body, const BodyConstants& constants,
-                                       const CollisionQuery& world) {
+                                       const CollisionQuery& query) {
+    std::array<bool, kBodyPointCount> isPointHit{};
     std::optional<WallHit> deepest;
     float deepestDistanceSquared = 0.0F;
-    for (const Vector3& point : constants.bodyPoints) {
-        const Vector3 from = body.saved.position + ToWorld(body.saved.basis, point);
-        const Vector3 to = body.motion.position + ToWorld(body.motion.basis, point);
-        const std::optional<SegmentHit> hit = world.CastSegment(from, to);
-        if (!hit || !hit->isSolid) {
-            continue;
-        }
-        const Vector3 overshoot = hit->point - to;
-        const float distanceSquared = Dot(overshoot, overshoot);
-        const bool isBehindPlane = Dot(overshoot, hit->normal) >= 0.0F;
-        if (isBehindPlane && (!deepest || distanceSquared > deepestDistanceSquared)) {
-            deepestDistanceSquared = distanceSquared;
-            deepest = WallHit{.normal = hit->normal, .fraction = hit->fraction};
+    for (std::size_t world = 0; world < query.WorldCount(); ++world) {
+        for (std::size_t i = 0; i < kBodyPointCount; ++i) {
+            if (isPointHit.at(i)) {
+                continue;
+            }
+            const Vector3& point = constants.bodyPoints.at(i);
+            const Vector3 from = body.saved.position + ToWorld(body.saved.basis, point);
+            const Vector3 to = body.motion.position + ToWorld(body.motion.basis, point);
+            const std::optional<SegmentHit> hit = query.CastSegment(world, from, to);
+            if (!hit || !hit->isSolid) {
+                continue;
+            }
+            const Vector3 overshoot = hit->point - to;
+            const float distanceSquared = Dot(overshoot, overshoot);
+            if (IsBehindPlane(*hit, overshoot) &&
+                (!deepest || distanceSquared > deepestDistanceSquared)) {
+                isPointHit.at(i) = true;
+                deepestDistanceSquared = distanceSquared;
+                deepest = WallHit{.normal = hit->normal, .fraction = hit->fraction};
+            }
         }
     }
     return deepest;

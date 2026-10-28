@@ -17,7 +17,7 @@ struct WallHit {
 /// Each body point starts at its pose in `body.saved`. The deepest hit wins.
 [[nodiscard]] std::optional<WallHit> SweepBodyPoints(const BodyState& body,
                                                      const BodyConstants& constants,
-                                                     const CollisionQuery& world);
+                                                     const CollisionQuery& query);
 
 void ApplyWallResponse(BodyState& body, const BodyConstants& constants, const Vector3& normal);
 
