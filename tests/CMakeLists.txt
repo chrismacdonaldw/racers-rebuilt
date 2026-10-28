@@ -1,6 +1,7 @@
 add_executable(racers-rebuilt-tests
     main.cpp
     core/log_test.cpp
+    core/quaternion_test.cpp
     core/result_test.cpp
     core/utf8_path_test.cpp
     platform/data_folder_test.cpp
