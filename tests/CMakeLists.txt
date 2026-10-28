@@ -5,6 +5,7 @@ add_executable(racers-rebuilt-tests
     app/install_discovery_test.cpp
     app/loop_sidecar_test.cpp
     app/music_folder_source_test.cpp
+    app/pace_car_test.cpp
     app/scene_stack_test.cpp
     app/startup_settings_test.cpp
     app/startup_timer_test.cpp
