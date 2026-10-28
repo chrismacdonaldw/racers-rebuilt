@@ -110,6 +110,9 @@ void InputBindings::Handle(const SDL_Event& event, sim::InputLatch& latch) {
         case SDL_EVENT_GAMEPAD_AXIS_MOTION:
             HandleAxis(event.gaxis, latch);
             return;
+        case SDL_EVENT_GAMEPAD_REMOVED:
+            latch.SetSteerLeftAxis(0);
+            return;
         default:
             return;
     }

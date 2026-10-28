@@ -96,5 +96,17 @@ TEST_CASE("the left stick steers left as positive with a dead zone") {
     CHECK(latch.TakeFrame().steerLeftAxis == 0);
 }
 
+TEST_CASE("disconnecting a gamepad centres the stick") {
+    InputBindings bindings(DefaultRegistry());
+    sim::InputLatch latch;
+    bindings.Handle(Axis(SDL_GAMEPAD_AXIS_LEFTX, -32768), latch);
+    SDL_Event removed{};
+    removed.type = SDL_EVENT_GAMEPAD_REMOVED;
+
+    bindings.Handle(removed, latch);
+
+    CHECK(latch.TakeFrame().steerLeftAxis == 0);
+}
+
 }
 }

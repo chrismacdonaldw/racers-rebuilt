@@ -48,6 +48,21 @@ TEST_CASE("the steer axis holds its last value across frames") {
     CHECK(latch.TakeFrame().steerLeftAxis == -40);
 }
 
+TEST_CASE("releasing everything releases only what was held and centres the axis") {
+    InputLatch latch;
+    latch.Press(Action::Accelerate);
+    latch.SetSteerLeftAxis(90);
+    static_cast<void>(latch.TakeFrame());
+
+    latch.ReleaseAll();
+    const InputFrame frame = latch.TakeFrame();
+
+    CHECK(frame.WasReleased(Action::Accelerate));
+    CHECK_FALSE(frame.IsHeld(Action::Accelerate));
+    CHECK_FALSE(frame.WasReleased(Action::Brake));
+    CHECK(frame.steerLeftAxis == 0);
+}
+
 TEST_CASE("releasing an action that isn't held is ignored") {
     InputLatch latch;
 

@@ -190,6 +190,7 @@ Result<void> Application::Run() {
             ApplyVolumes(settings_, mixer_);
         }
         if (key.starts_with("input.")) {
+            frameLoop_.Input().ReleaseAll();
             bindings = InputBindings(settings_);
         }
     });
