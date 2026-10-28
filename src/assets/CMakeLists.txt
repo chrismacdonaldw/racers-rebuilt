@@ -1,0 +1,10 @@
+rr_add_module(assets
+    SOURCES
+        byte_reader.cpp
+        game_path.cpp
+        jam.cpp
+        path_index.cpp
+    DEPENDS
+        rr::core
+        rr::platform
+)
