@@ -2,7 +2,6 @@
 
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
-#include <imgui_internal.h>
 
 namespace rr::overlay {
 
@@ -14,8 +13,8 @@ void InputGate::Forward(const SDL_Event& event) const {
 
 void InputGate::SetOpen(bool isOpen) {
     if (isOpen && !isOpen_) {
-        ImGui::GetCurrentContext()->InputEventsQueue.resize(0);
         ImGuiIO& io = ImGui::GetIO();
+        io.ClearEventsQueue();
         io.ClearInputKeys();
         io.ClearInputMouse();
     }

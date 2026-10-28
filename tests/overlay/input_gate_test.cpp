@@ -1,11 +1,10 @@
-#include "overlay/input_gate.hpp"
+﻿#include "overlay/input_gate.hpp"
 
 #include <doctest/doctest.h>
 
 #include "overlay/headless_ui.hpp"
 
 #include <imgui.h>
-#include <imgui_internal.h>
 
 namespace rr::overlay {
 namespace {
@@ -18,7 +17,7 @@ void Click() {
     ImGui::GetIO().AddMouseButtonEvent(0, false);
 }
 
-TEST_CASE("a closed gate queues no events") {
+TEST_CASE("a closed gate passes no events on") {
     const HeadlessUi ui;
     const InputGate gate;
     SDL_Event event{};
@@ -28,7 +27,9 @@ TEST_CASE("a closed gate queues no events") {
 
     gate.Forward(event);
 
-    CHECK(ImGui::GetCurrentContext()->InputEventsQueue.empty());
+    ImGui::NewFrame();
+    CHECK_FALSE(ImGui::IsMouseDown(ImGuiMouseButton_Left));
+    ImGui::EndFrame();
 }
 
 TEST_CASE("a click left over from before opening doesn't apply") {
