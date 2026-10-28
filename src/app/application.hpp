@@ -7,13 +7,10 @@
 
 namespace rr::app {
 
-/// Composition root. Builds every system in dependency order and runs until the user quits.
 class Application {
 public:
-    /// Resolves the data folder, opens the log, starts SDL and opens the main window.
     [[nodiscard]] static Result<Application> Create();
 
-    /// Handles events until the user closes the window.
     void Run();
 
 private:
