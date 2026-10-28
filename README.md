@@ -122,6 +122,20 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `enhancements.free_camera` | `false` | `true`, `false` |
 | `enhancements.free_camera_speed` | `40.0` | `1.0` to `400.0` |
 | `mods.<id>.enabled` | The mod's `enabled` value | `true`, `false` |
+| `input.keys.<action>` | See below | Comma-separated SDL key names, such as `Up,W` or `Left Shift` |
+| `input.buttons.<action>` | See below | Comma-separated SDL gamepad names: buttons such as `a` or `dpleft`, or `lefttrigger` and `righttrigger` |
+
+Each `<action>` has a key and a button default. The left stick always steers.
+
+| Action | Keys | Buttons |
+|---|---|---|
+| `accelerate` | `Up,W` | `a,righttrigger` |
+| `brake` | `Down,S` | `b,lefttrigger` |
+| `steer_left` | `Left,A` | `dpleft` |
+| `steer_right` | `Right,D` | `dpright` |
+| `drift` | `Left Shift,Right Shift` | `rightshoulder,leftshoulder` |
+| `use_powerup` | `Space` | `x` |
+| `pause` | `Escape` | `start` |
 
 ```toml
 [video]

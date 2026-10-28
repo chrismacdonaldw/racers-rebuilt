@@ -6,6 +6,7 @@ rr_add_module(platform
         fatal_error.cpp
         folder_picker.cpp
         frame_pacer.cpp
+        gamepads.cpp
         install_locations.cpp
         png_file.cpp
         sdl_context.cpp

@@ -4,6 +4,7 @@
 #include <bit>
 #include <concepts>
 #include <cstddef>
+#include <initializer_list>
 
 #include "sim/replay/replay_bytes.hpp"
 
@@ -23,14 +24,79 @@ std::uint64_t Mix(std::uint64_t hash, T value) {
     return HashBytes(bytes, hash);
 }
 
-std::uint64_t MixTransform(std::uint64_t hash, const Transform& transform) {
-    for (const float value :
-         {transform.position.x, transform.position.y, transform.position.z, transform.rotation.w,
-          transform.rotation.x, transform.rotation.y, transform.rotation.z}) {
+std::uint64_t MixFloats(std::uint64_t hash, std::initializer_list<float> values) {
+    for (const float value : values) {
         hash = Mix(hash, std::bit_cast<std::uint32_t>(value));
     }
     return hash;
 }
+
+std::uint64_t MixTransform(std::uint64_t hash, const Transform& transform) {
+    return MixFloats(hash, {transform.position.x, transform.position.y, transform.position.z,
+                            transform.rotation.w, transform.rotation.x, transform.rotation.y,
+                            transform.rotation.z});
+}
+
+class StateHash {
+public:
+    [[nodiscard]] std::uint64_t Value() const { return value_; }
+
+    void Add(float value) { value_ = Mix(value_, std::bit_cast<std::uint32_t>(value)); }
+    void Add(int value) { value_ = Mix(value_, static_cast<std::uint32_t>(value)); }
+    void Add(bool value) { value_ = Mix(value_, static_cast<std::uint8_t>(value ? 1U : 0U)); }
+    void Add(const Vector3& v) { Add(v.x, v.y, v.z); }
+    void Add(const Basis& basis) { Add(basis.forward, basis.side, basis.up); }
+
+    void Add(const Surface& surface) {
+        Add(surface.rollingResistance, surface.supportThreshold, surface.friction,
+            surface.lateralGrip, surface.force);
+    }
+
+    void Add(const WheelProbe& wheel) {
+        Add(wheel.position, wheel.hasHit, wheel.hitPoint, wheel.hitNormal, wheel.hitHeight,
+            wheel.isInContact, wheel.contactForce, wheel.hitSurface, wheel.surface);
+    }
+
+    void Add(const BodyMotion& motion) {
+        Add(motion.position, motion.basis, motion.velocity, motion.angularMomentum);
+        for (const WheelProbe& wheel : motion.wheels) {
+            Add(wheel);
+        }
+        Add(motion.contactCount, motion.supportNormal);
+    }
+
+    void Add(const DerivedMotion& derived) {
+        Add(derived.speed, derived.velocityDirection, derived.forwardSpeed, derived.forwardVelocity,
+            derived.lateralVelocity, derived.isAtRest);
+    }
+
+    void Add(const SteeringState& steering) {
+        Add(steering.isSteering, steering.gain, steering.slip, steering.alignmentMinimum,
+            steering.lagMaximum);
+    }
+
+    void Add(const ImpulseTimers& timers) { Add(timers.yawMs, timers.pitchMs, timers.rollMs); }
+
+    void Add(const BodyState& body) {
+        Add(body.motion, body.saved, body.angularVelocity, body.force, body.torque, body.facing,
+            body.derived, body.turnRadius, body.yawRate, body.thrust, body.maxSpeed,
+            body.dragCoefficient, body.steering, body.impulses, body.hasWallYaw,
+            body.hasWallContact, body.airborneMs, body.supportForce);
+    }
+
+    void Add(const DriverState& driver) {
+        Add(driver.steering, driver.isDrifting, driver.isHardDrift);
+    }
+
+    template <typename... Fields>
+        requires(sizeof...(Fields) > 1)
+    void Add(const Fields&... fields) {
+        (Add(fields), ...);
+    }
+
+private:
+    std::uint64_t value_ = kFnvOffset;
+};
 
 }
 
@@ -42,7 +108,14 @@ std::uint64_t HashSnapshot(const RenderSnapshot& snapshot) {
         hash = Mix(hash, static_cast<std::uint8_t>(entity.flags));
     }
     hash = MixTransform(hash, snapshot.camera.transform);
-    return Mix(hash, static_cast<std::uint8_t>(snapshot.camera.flags));
+    hash = Mix(hash, static_cast<std::uint8_t>(snapshot.camera.flags));
+    return Mix(hash, snapshot.simStateHash);
+}
+
+std::uint64_t HashRacerState(const Racer& racer) {
+    StateHash hash;
+    hash.Add(racer.Body(), racer.Driver());
+    return hash.Value();
 }
 
 std::vector<std::byte> EncodeSnapshotHashes(std::span<const std::uint64_t> hashes) {

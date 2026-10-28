@@ -8,9 +8,9 @@ rr_add_module(app
         free_camera.cpp
         game_boot.cpp
         image_dump.cpp
+        input_bindings.cpp
         install_discovery.cpp
         loop_sidecar.cpp
-        keyboard_input.cpp
         music_folder_source.cpp
         orbiting_cube.cpp
         pace_car.cpp

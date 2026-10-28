@@ -20,6 +20,16 @@ void InputLatch::Release(Action action) {
     pending_.released.set(index);
 }
 
+void InputLatch::SetSteerLeftAxis(std::int8_t value) {
+    pending_.steerLeftAxis = value;
+}
+
+void InputLatch::ReleaseAll() {
+    pending_.released |= pending_.held;
+    pending_.held.reset();
+    pending_.steerLeftAxis = 0;
+}
+
 InputFrame InputLatch::TakeFrame() {
     const InputFrame frame = pending_;
     pending_.pressed.reset();

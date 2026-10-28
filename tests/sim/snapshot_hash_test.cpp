@@ -3,8 +3,11 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <vector>
+
+#include "sim/physics/plane_world.hpp"
 
 namespace rr::sim {
 namespace {
@@ -23,11 +26,26 @@ TEST_CASE("any change to a snapshot changes its hash") {
     later.tick = 8;
     RenderSnapshot teleported = base;
     teleported.camera.flags = SnapshotFlags::Teleported;
+    RenderSnapshot drifted = base;
+    drifted.simStateHash = 1;
 
     CHECK(HashSnapshot(base) == HashSnapshot(Sample()));
     CHECK(HashSnapshot(nudged) != HashSnapshot(base));
     CHECK(HashSnapshot(later) != HashSnapshot(base));
     CHECK(HashSnapshot(teleported) != HashSnapshot(base));
+    CHECK(HashSnapshot(drifted) != HashSnapshot(base));
+}
+
+TEST_CASE("racer state hashes see the driver's steering") {
+    const test::PlaneWorld world = test::FlatGround();
+    Racer straight{{}, {}, {}};
+    Racer steering{{}, {}, {}};
+
+    CHECK(HashRacerState(straight) == HashRacerState(steering));
+    straight.Tick(Milliseconds{12}, {}, world);
+    steering.Tick(Milliseconds{12}, {.isLeftHeld = true}, world);
+
+    CHECK(HashRacerState(steering) != HashRacerState(straight));
 }
 
 TEST_CASE("snapshot hashes survive encoding and reject damage") {

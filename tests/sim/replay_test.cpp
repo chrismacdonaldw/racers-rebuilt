@@ -31,6 +31,9 @@ Replay SampleReplay() {
     frames.push_back(tap);
     frames.insert(frames.end(), 50, Held({Action::Accelerate}));
     frames.insert(frames.end(), 20, Held({Action::Accelerate, Action::SteerLeft}));
+    InputFrame stick = Held({Action::Accelerate});
+    stick.steerLeftAxis = -90;
+    frames.insert(frames.end(), 10, stick);
     return {.buildVersion = "0.1.0",
             .scene = "RACEC0R0",
             .seed = 0x1234'5678'9ABC'DEF0ULL,
@@ -55,7 +58,7 @@ std::vector<std::byte> TwoLongStreams() {
     for (std::uint8_t racer = 0; racer < kRacers; ++racer) {
         AppendU32(bytes, 1);
         AppendU32(bytes, kTicksPerRacer);
-        bytes.insert(bytes.end(), 3, std::byte{0});
+        bytes.insert(bytes.end(), 4, std::byte{0});
     }
     AppendChecksum(bytes);
     return bytes;
@@ -111,7 +114,7 @@ TEST_CASE("a damaged replay is rejected") {
     }
     SUBCASE("an unknown action") {
         std::vector<std::byte> bytes = good;
-        bytes[good.size() - kChecksumBytes - 3] = std::byte{0xFF};
+        bytes[good.size() - kChecksumBytes - 4] = std::byte{0xFF};
         CHECK_FALSE(DecodeReplay(Resealed(bytes)).has_value());
     }
     SUBCASE("streams that add up to too many ticks") {

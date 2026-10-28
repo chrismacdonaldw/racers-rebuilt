@@ -1,5 +1,6 @@
 #include "sim/replay/replay.hpp"
 
+#include <bit>
 #include <format>
 #include <limits>
 #include <utility>
@@ -40,6 +41,7 @@ void AppendStream(std::vector<std::byte>& out, const std::vector<InputFrame>& fr
         AppendU8(out, static_cast<std::uint8_t>(run.frame.held.to_ulong()));
         AppendU8(out, static_cast<std::uint8_t>(run.frame.pressed.to_ulong()));
         AppendU8(out, static_cast<std::uint8_t>(run.frame.released.to_ulong()));
+        AppendU8(out, std::bit_cast<std::uint8_t>(run.frame.steerLeftAxis));
     }
 }
 
@@ -67,6 +69,11 @@ Result<Run> ReadRun(assets::ByteReader& reader) {
         }
         *actions = *read;
     }
+    Result<std::uint8_t> axis = reader.ReadU8();
+    if (!axis) {
+        return std::unexpected(std::move(axis.error()));
+    }
+    run.frame.steerLeftAxis = std::bit_cast<std::int8_t>(*axis);
     return run;
 }
 

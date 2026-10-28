@@ -2,11 +2,12 @@ add_executable(racers-rebuilt-tests
     main.cpp
     app/frame_loop_test.cpp
     app/free_camera_test.cpp
+    app/input_bindings_test.cpp
     app/install_discovery_test.cpp
     app/loop_sidecar_test.cpp
     app/music_folder_source_test.cpp
-    app/keyboard_input_test.cpp
     app/pace_car_test.cpp
+    app/racer_determinism_test.cpp
     app/replay_session_test.cpp
     app/scene_stack_test.cpp
     app/startup_settings_test.cpp
@@ -69,6 +70,9 @@ add_executable(racers-rebuilt-tests
     sim/interpolation_test.cpp
     sim/physics/car_body_test.cpp
     sim/physics/chassis_test.cpp
+    sim/physics/drive_controller_test.cpp
+    sim/physics/driver_input_test.cpp
+    sim/physics/racer_test.cpp
     sim/replay_test.cpp
     sim/route_playback_test.cpp
     sim/snapshot_hash_test.cpp

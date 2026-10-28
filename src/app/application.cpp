@@ -14,7 +14,7 @@
 #include "app/audio_settings.hpp"
 #include "app/audio_startup.hpp"
 #include "app/extensions.hpp"
-#include "app/keyboard_input.hpp"
+#include "app/input_bindings.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/replay_session.hpp"
 #include "app/sprite_test_scene.hpp"
@@ -29,6 +29,7 @@
 #include "core/log.hpp"
 #include "core/utf8_path.hpp"
 #include "platform/clock.hpp"
+#include "platform/gamepads.hpp"
 
 namespace rr::app {
 namespace {
@@ -170,18 +171,27 @@ Result<void> Application::Run() {
         return opened;
     }
     events_.Observe([&menu](const SDL_Event& event) { (*menu)->HandleEvent(event); });
-    events_.Observe([this](const SDL_Event& event) { LatchKey(event, frameLoop_.Input()); });
+    platform::Gamepads gamepads;
+    InputBindings bindings(settings_);
+    events_.Observe([this, &gamepads, &bindings](const SDL_Event& event) {
+        gamepads.Handle(event);
+        bindings.Handle(event, frameLoop_.Input());
+    });
     audio::MusicPlayer music =
         CreateMusicPlayer(mixer_, vfs_, settingsFile_.parent_path() / kMusicFolderName,
                           extensions_.mods.Enabled(settings_));
     AttachEnhancements(extensions_, frameLoop_.Hooks(), settings_);
-    settings_.Observe([this](std::string_view key) {
+    settings_.Observe([this, &bindings](std::string_view key) {
         frameLoop_.Hooks().Emit(mods::SettingChanged{.key = key, .settings = settings_});
         if (key.starts_with("video.")) {
             ApplyVideo();
         }
         if (key.starts_with("audio.")) {
             ApplyVolumes(settings_, mixer_);
+        }
+        if (key.starts_with("input.")) {
+            frameLoop_.Input().ReleaseAll();
+            bindings = InputBindings(settings_);
         }
     });
 

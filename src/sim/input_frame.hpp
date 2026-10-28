@@ -13,6 +13,7 @@ enum class Action : std::uint8_t {
     SteerRight,
     UsePowerup,
     Pause,
+    Drift,
     Count,
 };
 
@@ -23,6 +24,7 @@ struct InputFrame {
     std::bitset<kActionCount> held;
     std::bitset<kActionCount> pressed;
     std::bitset<kActionCount> released;
+    std::int8_t steerLeftAxis = 0;
 
     [[nodiscard]] bool IsHeld(Action action) const { return held.test(Index(action)); }
     [[nodiscard]] bool WasPressed(Action action) const { return pressed.test(Index(action)); }
