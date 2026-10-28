@@ -10,6 +10,7 @@ include(compile_options)
 include(module)
 
 find_package(SDL3 CONFIG REQUIRED)
+find_package(tomlplusplus CONFIG REQUIRED)
 
 add_subdirectory(src)
 
