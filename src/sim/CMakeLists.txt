@@ -1,5 +1,9 @@
 rr_add_module(sim
     SOURCES
+        collision/collision_mesh.cpp
+        collision/collision_world.cpp
+        collision/track_collision.cpp
+        collision/world_list.cpp
         input_latch.cpp
         interpolation.cpp
         physics/body_forces.cpp

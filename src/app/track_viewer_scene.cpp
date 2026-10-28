@@ -8,11 +8,13 @@
 #include <vector>
 
 #include "app/checkpoint_gates.hpp"
+#include "app/collision_wireframe.hpp"
 #include "app/frame_loop.hpp"
 #include "app/track_model.hpp"
 #include "app/track_space.hpp"
 #include "core/log.hpp"
 #include "platform/clock.hpp"
+#include "sim/collision/track_collision.hpp"
 
 namespace rr::app {
 namespace {
@@ -33,6 +35,15 @@ render::Camera CameraFor(const Bounds& bounds) {
     camera.nearPlane = radius * kNearPlaneRadii;
     camera.farPlane = radius * kFarPlaneRadii;
     return camera;
+}
+
+std::vector<render::DebugLine> CollisionLines(const assets::Vfs& vfs, std::string_view track) {
+    const Result<sim::TrackCollision> collision = sim::LoadTrackCollision(vfs, track);
+    if (!collision) {
+        log::Warn("no collision wireframe: {}", collision.error().message);
+        return {};
+    }
+    return BuildCollisionWireframe(*collision);
 }
 
 Result<std::vector<render::MeshDraw>> UploadPaceCar(render::Renderer& renderer,
@@ -78,12 +89,14 @@ Result<std::unique_ptr<TrackViewerScene>> TrackViewerScene::Create(render::Rende
                               .firstCarDraw = firstCarDraw,
                               .paceCar = PaceCar(std::move(*route)),
                               .camera = CameraFor(model->bounds),
+                              .collisionLines = CollisionLines(vfs, track),
                               .started = started,
                               .checkpoints = std::move(checkpoints)}));
 }
 
 void TrackViewerScene::ApplySettings(const settings::Registry& settings) {
     showsCheckpoints_ = settings.Get(kShowCheckpoints);
+    showsCollision_ = settings.Get(kCollisionWireframe);
 }
 
 void TrackViewerScene::Tick([[maybe_unused]] const sim::InputFrame& input) {
@@ -119,12 +132,16 @@ void TrackViewerScene::Render(const sim::RenderSnapshot& interpolated) {
     }
     render::Camera camera = parts_.camera;
     camera.transform = interpolated.camera.transform;
-    gateLines_.clear();
+    debugLines_.clear();
     if (showsCheckpoints_ && parts_.checkpoints) {
-        DrawGates(*parts_.checkpoints, laps_, gateLines_);
+        DrawGates(*parts_.checkpoints, laps_, debugLines_);
+    }
+    if (showsCollision_) {
+        debugLines_.insert(debugLines_.end(), parts_.collisionLines.begin(),
+                           parts_.collisionLines.end());
     }
     Result<void> drawn =
-        parts_.renderer->Draw({.camera = camera, .meshes = parts_.draws, .lines = gateLines_});
+        parts_.renderer->Draw({.camera = camera, .meshes = parts_.draws, .lines = debugLines_});
     if (!drawn) {
         log::Error("{}", drawn.error().message);
         return;

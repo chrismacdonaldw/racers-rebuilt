@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <limits>
 #include <optional>
 #include <utility>
@@ -24,7 +25,10 @@ class PlaneWorld final : public sim::CollisionQuery {
 public:
     explicit PlaneWorld(std::vector<TestPlane> planes) : planes_(std::move(planes)) {}
 
-    [[nodiscard]] std::optional<sim::SegmentHit> CastSegment(const Vector3& from,
+    [[nodiscard]] std::size_t WorldCount() const override { return 1; }
+
+    [[nodiscard]] std::optional<sim::SegmentHit> CastSegment(std::size_t /*world*/,
+                                                             const Vector3& from,
                                                              const Vector3& to) const override {
         std::optional<sim::SegmentHit> nearest;
         for (const TestPlane& plane : planes_) {

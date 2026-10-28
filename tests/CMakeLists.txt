@@ -1,6 +1,7 @@
 add_executable(racers-rebuilt-tests
     main.cpp
     app/checkpoint_gates_test.cpp
+    app/collision_wireframe_test.cpp
     app/frame_loop_test.cpp
     app/free_camera_test.cpp
     app/input_bindings_test.cpp
@@ -70,6 +71,9 @@ add_executable(racers-rebuilt-tests
     settings/command_line_test.cpp
     settings/registry_test.cpp
     settings/settings_file_test.cpp
+    sim/collision/collision_mesh_test.cpp
+    sim/collision/collision_world_test.cpp
+    sim/collision/track_collision_test.cpp
     sim/input_latch_test.cpp
     sim/interpolation_test.cpp
     sim/physics/car_body_test.cpp

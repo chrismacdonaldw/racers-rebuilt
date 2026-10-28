@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <format>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -12,6 +13,7 @@
 #include <vector>
 
 #include "assets/jam_archive.hpp"
+#include "assets/vfs.hpp"
 #include "assets/vfs_layer.hpp"
 #include "core/result.hpp"
 #include "game_files.hpp"
@@ -63,6 +65,16 @@ inline void CheckSurvey(const Survey& survey, std::size_t expectedFiles) {
     Result<assets::JamArchive> archive = assets::JamArchive::Open(*gameFolder / "LEGO.JAM");
     REQUIRE(archive.has_value());
     return std::move(*archive);
+}
+
+[[nodiscard]] inline std::optional<assets::Vfs> OpenRetailVfs() {
+    std::optional<assets::JamArchive> archive = OpenRetailJam();
+    if (!archive) {
+        return std::nullopt;
+    }
+    assets::Vfs vfs;
+    vfs.Mount(std::make_unique<assets::JamArchive>(std::move(*archive)));
+    return vfs;
 }
 
 }

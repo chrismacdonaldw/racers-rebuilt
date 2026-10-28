@@ -20,30 +20,45 @@ constexpr float kBounceScale = 1.15F;
 constexpr std::array<std::size_t, kWheelCount> kLengthwisePartner{2, 3, 0, 1};
 constexpr std::array<std::size_t, kWheelCount> kSidewaysPartner{1, 0, 3, 2};
 
+void CastWheelRay(WheelProbe& wheel, const CollisionQuery& query, std::size_t world,
+                  float sweepHeight, float sweepDistance) {
+    const Vector3 end = wheel.position - Vector3{.z = sweepDistance};
+    const std::optional<SegmentHit> hit =
+        query.CastSegment(world, wheel.position + Vector3{.z = sweepHeight}, end);
+    if (!hit) {
+        return;
+    }
+    wheel.hasHit = true;
+    wheel.hitSurface = hit->surface;
+    wheel.hitPoint = hit->point;
+    wheel.hitNormal = hit->normal;
+    wheel.hitHeight = hit->point.z - end.z;
+}
+
 std::optional<std::size_t> CastWheelRays(BodyState& body, const BodyConstants& constants, int dtMs,
-                                         const CollisionQuery& world) {
+                                         const CollisionQuery& query) {
     BodyMotion& motion = body.motion;
     const float drop = std::max(0.0F, body.saved.position.z - motion.position.z);
     const float sweepHeight = constants.boundsRadius + drop;
     const float sweepDistance =
         IsGrounded(motion) ? static_cast<float>(dtMs) * kFollowRatePerMs : 0.0F;
-    std::optional<std::size_t> highest;
-    for (std::size_t i = 0; i < kWheelCount; ++i) {
-        WheelProbe& wheel = motion.wheels[i];
-        const Vector3 end = wheel.position - Vector3{.z = sweepDistance};
-        const std::optional<SegmentHit> hit =
-            world.CastSegment(wheel.position + Vector3{.z = sweepHeight}, end);
-        wheel.hasHit = hit.has_value();
+    for (WheelProbe& wheel : motion.wheels) {
+        wheel.hasHit = false;
         wheel.isInContact = false;
         wheel.contactForce = {};
-        wheel.hitSurface = hit ? hit->surface : Surface{};
-        if (!hit) {
-            continue;
+        wheel.hitSurface = {};
+    }
+    for (std::size_t world = 0; world < query.WorldCount(); ++world) {
+        for (WheelProbe& wheel : motion.wheels) {
+            if (!wheel.hasHit) {
+                CastWheelRay(wheel, query, world, sweepHeight, sweepDistance);
+            }
         }
-        wheel.hitPoint = hit->point;
-        wheel.hitNormal = hit->normal;
-        wheel.hitHeight = hit->point.z - end.z;
-        if (!highest || wheel.hitHeight > motion.wheels[*highest].hitHeight) {
+    }
+    std::optional<std::size_t> highest;
+    for (std::size_t i = 0; i < kWheelCount; ++i) {
+        const WheelProbe& wheel = motion.wheels[i];
+        if (wheel.hasHit && (!highest || wheel.hitHeight > motion.wheels[*highest].hitHeight)) {
             highest = i;
         }
     }
