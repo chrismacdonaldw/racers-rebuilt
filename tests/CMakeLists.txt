@@ -2,10 +2,10 @@ add_executable(racers-rebuilt-tests
     main.cpp
     app/frame_loop_test.cpp
     app/free_camera_test.cpp
+    app/input_bindings_test.cpp
     app/install_discovery_test.cpp
     app/loop_sidecar_test.cpp
     app/music_folder_source_test.cpp
-    app/keyboard_input_test.cpp
     app/pace_car_test.cpp
     app/racer_determinism_test.cpp
     app/replay_session_test.cpp
