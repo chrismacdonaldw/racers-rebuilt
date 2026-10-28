@@ -4,12 +4,9 @@
 
 namespace rr::platform {
 
-/// Owns SDL's video and event subsystems for the lifetime of the app.
-///
 /// Create exactly one, before any window, and destroy it after every other SDL object.
 class SdlContext {
 public:
-    /// Initializes SDL's video and event subsystems.
     [[nodiscard]] static Result<SdlContext> Create();
 
     SdlContext(SdlContext&& other) noexcept;

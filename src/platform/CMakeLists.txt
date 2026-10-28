@@ -1,10 +1,13 @@
 rr_add_module(platform
     SOURCES
+        clock.cpp
         data_folder.cpp
         event_pump.cpp
         fatal_error.cpp
+        frame_pacer.cpp
         sdl_context.cpp
         window.cpp
+        win32/frame_timer.cpp
     DEPENDS
         rr::core
         SDL3::SDL3

@@ -8,7 +8,7 @@
 
 namespace rr::test {
 
-/// Empty folder under the system temp folder, unique to one test run and deleted on destruction.
+/// Unique per test run. Deleted on destruction.
 class TempFolder {
 public:
     TempFolder() : path_(UniquePath()) { std::filesystem::create_directories(path_); }
