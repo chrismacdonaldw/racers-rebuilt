@@ -49,7 +49,7 @@ public:
 
     void Snapshot(sim::RenderSnapshot& out) const override {
         out.entities.assign(1, {.id = sim::EntityId{1}, .transform = racer_.Pose()});
-        out.simStateHash = sim::HashRacerState(racer_.Body());
+        out.simStateHash = sim::HashRacerState(racer_);
     }
 
     void Render(const sim::RenderSnapshot& /*interpolated*/) override {}

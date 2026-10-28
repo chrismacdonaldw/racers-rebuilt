@@ -28,6 +28,8 @@ public:
 
     [[nodiscard]] const BodyState& Body() const { return body_; }
 
+    [[nodiscard]] const DriverState& Driver() const { return driver_.State(); }
+
 private:
     void KeepInWorldBounds();
 

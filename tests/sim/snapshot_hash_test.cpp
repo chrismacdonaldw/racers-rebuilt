@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <vector>
 
+#include "sim/physics/plane_world.hpp"
+
 namespace rr::sim {
 namespace {
 
@@ -34,13 +36,16 @@ TEST_CASE("any change to a snapshot changes its hash") {
     CHECK(HashSnapshot(drifted) != HashSnapshot(base));
 }
 
-TEST_CASE("racer state hashes see velocity the pose doesn't show") {
-    const BodyState body;
-    BodyState moving = body;
-    moving.motion.velocity.y = std::nextafter(0.0F, 1.0F);
+TEST_CASE("racer state hashes see the driver's steering") {
+    const test::PlaneWorld world = test::FlatGround();
+    Racer straight{{}, {}, {}};
+    Racer steering{{}, {}, {}};
 
-    CHECK(HashRacerState(body) == HashRacerState(BodyState{}));
-    CHECK(HashRacerState(moving) != HashRacerState(body));
+    CHECK(HashRacerState(straight) == HashRacerState(steering));
+    straight.Tick(Milliseconds{12}, {}, world);
+    steering.Tick(Milliseconds{12}, {.isLeftHeld = true}, world);
+
+    CHECK(HashRacerState(steering) != HashRacerState(straight));
 }
 
 TEST_CASE("snapshot hashes survive encoding and reject damage") {

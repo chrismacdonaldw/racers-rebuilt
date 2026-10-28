@@ -34,59 +34,60 @@ float SteerToward(float steering, float direction, float rate, float seconds) {
 DriveCommand DriverInput::Update(const RacerControls& controls, bool canStartDrift, int dtMs) {
     UpdateSteering(controls, dtMs);
     const float drive = UpdateDrive(controls, canStartDrift);
-    return {.steering = steering_,
+    return {.steering = state_.steering,
             .drive = drive,
-            .isDrifting = isDrifting_,
-            .isHardDrift = isHardDrift_};
+            .isDrifting = state_.isDrifting,
+            .isHardDrift = state_.isHardDrift};
 }
 
 void DriverInput::EndDrift() {
-    isDrifting_ = false;
-    isHardDrift_ = false;
+    state_.isDrifting = false;
+    state_.isHardDrift = false;
 }
 
 void DriverInput::UpdateSteering(const RacerControls& controls, int dtMs) {
     const float seconds = static_cast<float>(dtMs) / 1000.0F;
     const bool isKeyHeld = controls.isLeftHeld || controls.isRightHeld;
-    const float rate = TurnRate(controls, isDrifting_, isKeyHeld);
+    const float rate = TurnRate(controls, state_.isDrifting, isKeyHeld);
     float lower = -1.0F;
     float upper = 1.0F;
     if (controls.isLeftHeld != controls.isRightHeld) {
-        steering_ = SteerToward(steering_, controls.isLeftHeld ? 1.0F : -1.0F, rate, seconds);
+        state_.steering =
+            SteerToward(state_.steering, controls.isLeftHeld ? 1.0F : -1.0F, rate, seconds);
     } else if (isKeyHeld) {
-        steering_ = Approach(steering_, 0.0F, kReturnRate * seconds);
+        state_.steering = Approach(state_.steering, 0.0F, kReturnRate * seconds);
     } else {
         const float axis = std::clamp(controls.steerLeftAxis, -1.0F, 1.0F);
         const float axisRate = rate * (0.5F + (0.5F * (1.0F - std::abs(axis))));
         if (axis > 0.0F) {
             upper = axis;
-            steering_ = SteerToward(steering_, 1.0F, axisRate, seconds);
+            state_.steering = SteerToward(state_.steering, 1.0F, axisRate, seconds);
         } else if (axis < 0.0F) {
             lower = axis;
-            steering_ = SteerToward(steering_, -1.0F, axisRate, seconds);
+            state_.steering = SteerToward(state_.steering, -1.0F, axisRate, seconds);
         } else {
-            steering_ = Approach(steering_, 0.0F, kReturnRate * seconds);
+            state_.steering = Approach(state_.steering, 0.0F, kReturnRate * seconds);
         }
     }
-    steering_ = std::clamp(steering_, lower, upper);
+    state_.steering = std::clamp(state_.steering, lower, upper);
 }
 
 float DriverInput::UpdateDrive(const RacerControls& controls, bool canStartDrift) {
     const float throttle = controls.isThrottleHeld ? 1.0F : 0.0F;
     const float brake = controls.isBrakeHeld ? -1.0F : 0.0F;
     float drive = throttle + brake;
-    if (throttle > 0.0F && brake < 0.0F && !isDrifting_) {
+    if (throttle > 0.0F && brake < 0.0F && !state_.isDrifting) {
         drive = kBothPedalsDrive;
     }
     if (!controls.isDriftHeld || throttle <= 0.0F) {
         EndDrift();
         return drive;
     }
-    if (steering_ == 0.0F) {
+    if (state_.steering == 0.0F) {
         EndDrift();
-    } else if (!isDrifting_ && canStartDrift) {
-        isDrifting_ = true;
-        isHardDrift_ = brake < 0.0F;
+    } else if (!state_.isDrifting && canStartDrift) {
+        state_.isDrifting = true;
+        state_.isHardDrift = brake < 0.0F;
     }
     return 1.0F;
 }

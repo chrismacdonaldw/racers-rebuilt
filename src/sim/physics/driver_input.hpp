@@ -11,19 +11,25 @@ struct DriveCommand {
     bool isHardDrift = false;
 };
 
+struct DriverState {
+    float steering = 0.0F;
+    bool isDrifting = false;
+    bool isHardDrift = false;
+};
+
 class DriverInput {
 public:
     [[nodiscard]] DriveCommand Update(const RacerControls& controls, bool canStartDrift, int dtMs);
 
     void EndDrift();
 
+    [[nodiscard]] const DriverState& State() const { return state_; }
+
 private:
     void UpdateSteering(const RacerControls& controls, int dtMs);
     [[nodiscard]] float UpdateDrive(const RacerControls& controls, bool canStartDrift);
 
-    float steering_ = 0.0F;
-    bool isDrifting_ = false;
-    bool isHardDrift_ = false;
+    DriverState state_;
 };
 
 }
