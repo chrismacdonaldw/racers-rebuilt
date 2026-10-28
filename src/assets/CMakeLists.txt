@@ -1,9 +1,12 @@
 rr_add_module(assets
     SOURCES
         byte_reader.cpp
+        folder_layer.cpp
         game_path.cpp
         jam.cpp
+        jam_archive.cpp
         path_index.cpp
+        vfs.cpp
     DEPENDS
         rr::core
         rr::platform

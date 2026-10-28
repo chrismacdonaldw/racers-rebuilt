@@ -4,7 +4,9 @@ add_executable(racers-rebuilt-tests
     app/scene_stack_test.cpp
     assets/byte_reader_test.cpp
     assets/game_path_test.cpp
+    assets/jam_archive_test.cpp
     assets/jam_test.cpp
+    assets/vfs_test.cpp
     core/log_test.cpp
     core/quaternion_test.cpp
     core/result_test.cpp
