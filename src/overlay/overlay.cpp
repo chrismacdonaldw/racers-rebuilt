@@ -75,19 +75,15 @@ Overlay::~Overlay() {
     ImGui::DestroyContext();
 }
 
-void Overlay::HandleEvent(const SDL_Event& event) {
-    ImGui_ImplSDL3_ProcessEvent(&event);
-}
-
 void Overlay::Toggle() {
-    isVisible_ = !isVisible_;
+    input_.SetOpen(!input_.IsOpen());
     hasFrame_ = false;
-    renderer_->SetOverlay(isVisible_ ? this : nullptr);
+    renderer_->SetOverlay(input_.IsOpen() ? this : nullptr);
 }
 
 std::vector<std::string> Overlay::Build(settings::Registry& registry, const DeveloperStats& stats,
                                         std::span<const SceneChoice> scenes) {
-    if (!isVisible_) {
+    if (!input_.IsOpen()) {
         return {};
     }
     const Nanoseconds start = platform::Now();

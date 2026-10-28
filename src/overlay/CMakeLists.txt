@@ -1,5 +1,6 @@
 rr_add_module(overlay
     SOURCES
+        input_gate.cpp
         overlay.cpp
         setting_menus.cpp
     DEPENDS

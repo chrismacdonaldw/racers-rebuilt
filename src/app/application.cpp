@@ -158,7 +158,7 @@ Result<void> Application::Run() {
     if (!opened) {
         return opened;
     }
-    events_.Observe(&overlay::Overlay::HandleEvent);
+    events_.Observe([&menu](const SDL_Event& event) { (*menu)->HandleEvent(event); });
     const std::array scenes{overlay::SceneChoice{.name = "Test scene", .open = [this] {
                                                      const Result<void> reopened =
                                                          OpenScene(std::nullopt);

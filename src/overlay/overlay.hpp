@@ -11,6 +11,7 @@
 
 #include "core/duration.hpp"
 #include "core/result.hpp"
+#include "overlay/input_gate.hpp"
 #include "platform/window.hpp"
 #include "render/overlay_pass.hpp"
 #include "render/renderer.hpp"
@@ -41,9 +42,9 @@ public:
     Overlay& operator=(Overlay&&) = delete;
     ~Overlay() override;
 
-    static void HandleEvent(const SDL_Event& event);
+    void HandleEvent(const SDL_Event& event) const { input_.Forward(event); }
     void Toggle();
-    [[nodiscard]] bool IsVisible() const { return isVisible_; }
+    [[nodiscard]] bool IsVisible() const { return input_.IsOpen(); }
 
     /// Does nothing while hidden. Returns the setting keys whose edit finished, to persist.
     [[nodiscard]] std::vector<std::string> Build(settings::Registry& registry,
@@ -57,7 +58,7 @@ private:
     explicit Overlay(render::Renderer& renderer) : renderer_(&renderer) {}
 
     render::Renderer* renderer_;
-    bool isVisible_ = false;
+    InputGate input_;
     bool hasFrame_ = false;
     Nanoseconds frameCost_{0};
     Nanoseconds lastFrameCost_{0};

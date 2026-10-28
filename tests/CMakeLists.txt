@@ -48,6 +48,7 @@ add_executable(racers-rebuilt-tests
     mods/hook_registry_test.cpp
     mods/mod_list_test.cpp
     mods/mod_manifest_test.cpp
+    overlay/input_gate_test.cpp
     overlay/setting_items_test.cpp
     overlay/setting_menus_test.cpp
     platform/data_folder_test.cpp
