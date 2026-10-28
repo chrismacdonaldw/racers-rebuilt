@@ -35,6 +35,8 @@ public:
 
     [[nodiscard]] Result<MeshId> UploadMesh(const assets::GeometryAsset& geometry);
     [[nodiscard]] Result<TextureId> UploadTexture(const assets::ImageAsset& image);
+    /// Invalidates every `MeshId` and `TextureId` handed out so far.
+    void ReleaseAssets();
 
     /// The scene renders at this fraction of the window size, then scales to fit.
     void SetResolutionScale(float scale);

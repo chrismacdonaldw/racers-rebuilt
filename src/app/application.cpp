@@ -25,7 +25,6 @@
 #include "audio/music_player.hpp"
 #include "core/log.hpp"
 #include "core/utf8_path.hpp"
-#include "overlay/overlay.hpp"
 #include "platform/clock.hpp"
 
 namespace rr::app {
@@ -159,13 +158,7 @@ Result<void> Application::Run() {
         return opened;
     }
     events_.Observe([&menu](const SDL_Event& event) { (*menu)->HandleEvent(event); });
-    const std::array scenes{overlay::SceneChoice{.name = "Test scene", .open = [this] {
-                                                     const Result<void> reopened =
-                                                         OpenScene(std::nullopt);
-                                                     if (!reopened) {
-                                                         log::Error("{}", reopened.error().message);
-                                                     }
-                                                 }}};
+    const std::vector<overlay::SceneChoice> scenes = SceneChoices();
     audio::MusicPlayer music =
         CreateMusicPlayer(mixer_, vfs_, settingsFile_.parent_path() / kMusicFolderName,
                           extensions_.mods.Enabled(settings_));
@@ -222,26 +215,45 @@ Application::Application(Parts parts)
       track_(std::move(parts.track)),
       startupSummary_(std::move(parts.startupSummary)) {}
 
-Result<void> Application::OpenScene(const std::optional<std::string>& track) {
+Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std::string>& track) {
     const auto toScene = [](auto scene) -> std::unique_ptr<Scene> { return scene; };
-    Result<std::unique_ptr<Scene>> scene = [&] {
-        if (!track) {
-            return TestScene::Create(renderer_).transform(toScene);
-        }
-        const Nanoseconds started = platform::Now();
-        assets::LoaderPool pool(assets::LoaderPool::DefaultWorkerCount());
-        assets::TrackLoader loader(vfs_, pool);
-        return TrackViewerScene::Create(renderer_, vfs_, loader, *track, started)
-            .transform(toScene);
-    }();
+    if (!track) {
+        return TestScene::Create(renderer_).transform(toScene);
+    }
+    const Nanoseconds started = platform::Now();
+    assets::LoaderPool pool(assets::LoaderPool::DefaultWorkerCount());
+    assets::TrackLoader loader(vfs_, pool);
+    return TrackViewerScene::Create(renderer_, vfs_, loader, *track, started).transform(toScene);
+}
+
+Result<void> Application::OpenScene(const std::optional<std::string>& track) {
+    if (frameLoop_.Scenes().Top() != nullptr) {
+        frameLoop_.Scenes().Pop();
+        renderer_.ReleaseAssets();
+    }
+    Result<std::unique_ptr<Scene>> scene = CreateScene(track);
     if (!scene) {
         return std::unexpected(std::move(scene.error()));
     }
-    if (frameLoop_.Scenes().Top() != nullptr) {
-        frameLoop_.Scenes().Pop();
-    }
     frameLoop_.Scenes().Push(std::move(*scene));
     return {};
+}
+
+std::vector<overlay::SceneChoice> Application::SceneChoices() {
+    const auto choice = [this](std::string name, std::optional<std::string> track) {
+        return overlay::SceneChoice{.name = std::move(name),
+                                    .open = [this, track = std::move(track)] {
+                                        const Result<void> opened = OpenScene(track);
+                                        if (!opened) {
+                                            log::Error("{}", opened.error().message);
+                                        }
+                                    }};
+    };
+    std::vector<overlay::SceneChoice> choices{choice("Test scene", std::nullopt)};
+    for (std::string& track : assets::ListRaceTracks(vfs_)) {
+        choices.push_back(choice(track, track));
+    }
+    return choices;
 }
 
 void Application::CyclePacing() {

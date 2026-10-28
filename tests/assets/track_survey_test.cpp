@@ -19,11 +19,9 @@ namespace {
 constexpr std::size_t kRaceFolderCount = 13;
 
 std::vector<std::string> RaceFolders(const Vfs& vfs) {
-    std::vector<std::string> folders;
-    for (const VfsEntry& entry : vfs.List("GAMEDATA").value_or(std::vector<VfsEntry>{})) {
-        if (entry.kind == EntryKind::Directory && entry.name.starts_with("RACEC")) {
-            folders.push_back("GAMEDATA/" + entry.name);
-        }
+    std::vector<std::string> folders = ListRaceTracks(vfs);
+    for (std::string& folder : folders) {
+        folder.insert(0, "GAMEDATA/");
     }
     return folders;
 }

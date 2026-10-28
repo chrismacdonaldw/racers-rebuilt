@@ -173,6 +173,11 @@ Result<TextureId> Renderer::UploadTexture(const assets::ImageAsset& image) {
     return TextureId{static_cast<std::uint32_t>(textures_.size() - 1)};
 }
 
+void Renderer::ReleaseAssets() {
+    meshes_.clear();
+    textures_.clear();
+}
+
 Result<void> Renderer::Draw(const RenderView& view) {
     SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(device_.get());
     if (commands == nullptr) {
