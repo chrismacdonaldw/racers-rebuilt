@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "assets/folder_layer.hpp"
+#include "assets/game_path.hpp"
 #include "assets/token_bytes.hpp"
 #include "temp_folder.hpp"
 
@@ -88,13 +89,15 @@ TEST_CASE_FIXTURE(TrackFixture, "loading a track again reuses the cached files")
     CHECK(first->textures.at("WOOD") == second->textures.at("WOOD"));
 }
 
-TEST_CASE_FIXTURE(TrackFixture, "a missing texture file fails with its name") {
+TEST_CASE_FIXTURE(TrackFixture, "a missing texture file is skipped and named") {
     Remove("gamedata/common/wood.tga");
 
     const Result<TrackAssets> track = Load();
 
-    REQUIRE_FALSE(track.has_value());
-    CHECK(track.error().message.contains("WOOD.TGA"));
+    REQUIRE(track.has_value());
+    CHECK(track->textures.empty());
+    REQUIRE(track->missingTextures.size() == 1);
+    CHECK(assets::ToUpperAscii(track->missingTextures.front()) == "WOOD.TGA");
 }
 
 }

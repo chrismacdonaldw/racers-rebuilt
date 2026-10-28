@@ -28,6 +28,7 @@ struct TrackAssets {
     NameMap<AssetCache<GeometryAsset>::Handle> models;
     NameMap<MaterialAsset> materials;
     NameMap<AssetCache<ImageAsset>::Handle> textures;
+    std::vector<std::string> missingTextures;
 };
 
 /// Main thread only. `vfs` and `pool` must outlive the loader.

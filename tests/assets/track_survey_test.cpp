@@ -38,6 +38,7 @@ void CheckTrackLoads(const Vfs& vfs, LoaderPool& pool, const std::string& folder
         FAIL_CHECK(track.error().message);
         return;
     }
+    CHECK(track->missingTextures.empty());
     MESSAGE(std::format("{}: {} worlds, {} models, {} materials, {} textures in {:.0f} ms", folder,
                         track->worlds.size(), track->models.size(), track->materials.size(),
                         track->textures.size(), elapsed.count()));
