@@ -16,6 +16,7 @@ constexpr std::size_t kAdpcmTagOffset = 8;
 constexpr std::size_t kChannelCountOffset = 15;
 constexpr std::uint64_t kPreambleBytes = 8;
 constexpr std::uint64_t kShortHeaderBytes = 16;
+constexpr std::uint64_t kRateHeaderBytes = 20;
 constexpr std::uint32_t kStreamedRateHz = 22050;
 
 constexpr std::int32_t kMinSample = -32768;
@@ -64,7 +65,8 @@ Result<AlpSound> ParseAlp(std::span<const std::byte> bytes) {
         return Fail(ErrorCode::InvalidData, "ALP header is cut short");
     }
     const std::uint64_t dataOffset = *headerBytes + kPreambleBytes;
-    if (dataOffset < kShortHeaderBytes || dataOffset > bytes.size()) {
+    const bool hasPartialRate = dataOffset > kShortHeaderBytes && dataOffset < kRateHeaderBytes;
+    if (dataOffset < kShortHeaderBytes || hasPartialRate || dataOffset > bytes.size()) {
         return Fail(ErrorCode::InvalidData,
                     std::format("ALP header size {} is out of range", *headerBytes));
     }

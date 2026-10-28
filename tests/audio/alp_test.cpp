@@ -58,6 +58,9 @@ TEST_CASE("files that aren't usable ALP ADPCM are rejected") {
     file[4] = std::byte{0x40};
     CHECK(ParseAlp(file).error().message.find("out of range") != std::string::npos);
 
+    file[4] = std::byte{10};
+    CHECK(ParseAlp(file).error().message.find("out of range") != std::string::npos);
+
     file[0] = std::byte{'X'};
     CHECK(ParseAlp(file).error().code == ErrorCode::InvalidData);
     CHECK(ParseAlp({}).error().code == ErrorCode::InvalidData);

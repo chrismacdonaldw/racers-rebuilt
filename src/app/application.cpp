@@ -11,16 +11,20 @@
 #include <utility>
 #include <vector>
 
+#include "app/audio_settings.hpp"
 #include "app/audio_startup.hpp"
 #include "app/game_settings.hpp"
 #include "app/image_dump.hpp"
 #include "app/install_discovery.hpp"
+#include "app/music_folder_source.hpp"
 #include "app/startup_settings.hpp"
 #include "app/startup_timer.hpp"
 #include "app/test_scene.hpp"
 #include "app/video_settings.hpp"
 #include "assets/folder_layer.hpp"
 #include "assets/install.hpp"
+#include "audio/music_catalog.hpp"
+#include "audio/music_player.hpp"
 #include "core/log.hpp"
 #include "core/utf8_path.hpp"
 #include "platform/clock.hpp"
@@ -34,6 +38,7 @@ constexpr const char* kWindowTitle = "racers-rebuilt";
 constexpr int kWindowWidthPx = 1280;
 constexpr int kWindowHeightPx = 720;
 constexpr std::string_view kSettingsFileName = "settings.toml";
+constexpr std::string_view kMusicFolderName = "music";
 constexpr SDL_Keycode kCyclePacingKey = SDLK_F9;
 
 constexpr std::array kPacingPresets{
@@ -131,6 +136,28 @@ void LogPacing(const platform::PacingConfig& pacing) {
     }
 }
 
+audio::MusicPlayer CreateMusicPlayer(audio::Mixer& mixer, const assets::Vfs& vfs,
+                                     const std::filesystem::path& musicFolder) {
+    Result<audio::MusicCatalog> catalog = audio::MusicCatalog::Scan(vfs);
+    log::Info("{} music tracks, replacements read from {}", catalog ? catalog->Ids().size() : 0,
+              Utf8FromPath(musicFolder));
+    std::vector<std::unique_ptr<audio::MusicSource>> sources;
+    sources.push_back(std::make_unique<MusicFolderSource>(musicFolder));
+    sources.push_back(std::make_unique<audio::OriginalTrackSource>(vfs));
+    return {mixer, std::move(sources)};
+}
+
+void PlaySceneMusic(audio::MusicPlayer& music, const Scene& scene) {
+    if (scene.MusicTrack().empty()) {
+        music.Stop();
+        return;
+    }
+    Result<void> played = music.Play(scene.MusicTrack());
+    if (!played) {
+        log::Warn("{}", played.error().message);
+    }
+}
+
 Result<platform::FramePacer> CreatePacer(const platform::PacingConfig& pacing) {
     Result<platform::FrameTimer> timer = platform::FrameTimer::Create();
     if (!timer) {
@@ -212,9 +239,14 @@ Result<void> Application::Run() {
         return std::unexpected(std::move(scene.error()));
     }
     frameLoop_.Scenes().Push(std::move(*scene));
+    audio::MusicPlayer music =
+        CreateMusicPlayer(mixer_, vfs_, settingsFile_.parent_path() / kMusicFolderName);
     settings_.Observe([this](std::string_view key) {
         if (key.starts_with("video.")) {
             ApplyPacing();
+        }
+        if (key.starts_with("audio.")) {
+            ApplyVolumes(settings_, mixer_);
         }
     });
 
@@ -223,7 +255,10 @@ Result<void> Application::Run() {
         if (events_.WasKeyPressed(kCyclePacingKey)) {
             CyclePacing();
         }
-        frameLoop_.RunFrame(platform::Now());
+        const FrameStats frame = frameLoop_.RunFrame(platform::Now());
+        if (frame.isNewScene && frameLoop_.Scenes().Top() != nullptr) {
+            PlaySceneMusic(music, *frameLoop_.Scenes().Top());
+        }
         pacer_.WaitForNextFrame();
     }
     log::Info("quit requested, shutting down");

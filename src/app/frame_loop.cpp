@@ -27,7 +27,7 @@ FrameStats FrameLoop::RunFrame(Nanoseconds now) {
                         static_cast<float>(Nanoseconds{kSimTick}.count());
     sim::Interpolate(previous_, current_, alpha, interpolated_);
     scene->Render(interpolated_);
-    return {.tickCount = tickCount, .alpha = alpha};
+    return {.tickCount = tickCount, .alpha = alpha, .isNewScene = isNewScene};
 }
 
 void FrameLoop::RestartSnapshots(const Scene& scene) {

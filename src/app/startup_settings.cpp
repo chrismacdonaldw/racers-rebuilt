@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "app/audio_settings.hpp"
 #include "app/game_settings.hpp"
 #include "app/video_settings.hpp"
 #include "core/assert.hpp"
@@ -14,6 +15,7 @@ namespace {
 settings::Registry DeclaredRegistry() {
     settings::Registry registry;
     DeclareGameSettings(registry);
+    DeclareAudioSettings(registry);
     DeclareVideoSettings(registry);
     return registry;
 }

@@ -16,6 +16,7 @@ public:
     /// `renderer` must outlive the scene.
     [[nodiscard]] static Result<std::unique_ptr<TestScene>> Create(render::Renderer& renderer);
 
+    [[nodiscard]] std::string_view MusicTrack() const override { return "circuit1"; }
     void Tick(const sim::InputFrame& input) override;
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
