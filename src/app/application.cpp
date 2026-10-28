@@ -17,6 +17,7 @@
 #include "app/keyboard_input.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/replay_session.hpp"
+#include "app/sprite_test_scene.hpp"
 #include "app/startup_settings.hpp"
 #include "app/test_scene.hpp"
 #include "app/track_viewer_scene.hpp"
@@ -46,6 +47,11 @@ constexpr std::array kPacingPresets{
     platform::PacingConfig{.mode = platform::PresentMode::Capped, .fpsCap = 144},
     platform::PacingConfig{.mode = platform::PresentMode::Uncapped},
 };
+
+template <typename T>
+std::unique_ptr<Scene> ToScene(std::unique_ptr<T> scene) {
+    return scene;
+}
 
 bool IsSamePacing(const platform::PacingConfig& a, const platform::PacingConfig& b) {
     return a.mode == b.mode && (a.mode != platform::PresentMode::Capped || a.fpsCap == b.fpsCap);
@@ -128,7 +134,7 @@ Result<Application> Application::Create(GameBoot boot) {
     if (!pacer) {
         return std::unexpected(std::move(pacer.error()));
     }
-    renderer->SetResolutionScale(static_cast<float>(boot.settings.Get(kResolutionScaleSetting)));
+    ApplyRendererSettings(boot.settings, *renderer);
     boot.startup.EndPhase("renderer", platform::Now());
 
     Result<audio::Mixer> mixer = StartAudio(boot.settings, boot.vfs);
@@ -231,22 +237,26 @@ Application::Application(Parts parts)
       startupSummary_(std::move(parts.startupSummary)) {}
 
 Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std::string>& track) {
-    const auto toScene = [](auto scene) -> std::unique_ptr<Scene> { return scene; };
     if (!track) {
-        return TestScene::Create(renderer_).transform(toScene);
+        return TestScene::Create(renderer_).transform(ToScene<TestScene>);
     }
     const Nanoseconds started = platform::Now();
     assets::LoaderPool pool(assets::LoaderPool::DefaultWorkerCount());
     assets::TrackLoader loader(vfs_, pool);
-    return TrackViewerScene::Create(renderer_, vfs_, loader, *track, started).transform(toScene);
+    return TrackViewerScene::Create(renderer_, vfs_, loader, *track, started)
+        .transform(ToScene<TrackViewerScene>);
 }
 
 Result<void> Application::OpenScene(const std::optional<std::string>& track) {
+    return SwitchScene([&] { return CreateScene(track); });
+}
+
+Result<void> Application::SwitchScene(const SceneFactory& create) {
     if (frameLoop_.Scenes().Top() != nullptr) {
         frameLoop_.Scenes().Pop();
         renderer_.ReleaseAssets();
     }
-    Result<std::unique_ptr<Scene>> scene = CreateScene(track);
+    Result<std::unique_ptr<Scene>> scene = create();
     if (!scene) {
         return std::unexpected(std::move(scene.error()));
     }
@@ -255,18 +265,23 @@ Result<void> Application::OpenScene(const std::optional<std::string>& track) {
 }
 
 std::vector<overlay::SceneChoice> Application::SceneChoices() {
-    const auto choice = [this](std::string name, std::optional<std::string> track) {
+    const auto choice = [this](std::string name, SceneFactory create) {
         return overlay::SceneChoice{.name = std::move(name),
-                                    .open = [this, track = std::move(track)] {
-                                        const Result<void> opened = OpenScene(track);
+                                    .open = [this, create = std::move(create)] {
+                                        const Result<void> opened = SwitchScene(create);
                                         if (!opened) {
                                             log::Error("{}", opened.error().message);
                                         }
                                     }};
     };
-    std::vector<overlay::SceneChoice> choices{choice("Test scene", std::nullopt)};
-    for (std::string& track : assets::ListRaceTracks(vfs_)) {
-        choices.push_back(choice(track, track));
+    std::vector<overlay::SceneChoice> choices{
+        choice("Test scene", [this] { return CreateScene(std::nullopt); }),
+        choice("Sprite test", [this] {
+            return SpriteTestScene::Create(renderer_).transform(ToScene<SpriteTestScene>);
+        })};
+    for (const std::string& track : assets::ListRaceTracks(vfs_)) {
+        choices.push_back(
+            choice(track, std::bind_front(&Application::CreateScene, this, std::optional(track))));
     }
     return choices;
 }
@@ -285,7 +300,7 @@ void Application::Persist(const std::vector<std::string>& keys) {
 }
 
 void Application::ApplyVideo() {
-    renderer_.SetResolutionScale(static_cast<float>(settings_.Get(kResolutionScaleSetting)));
+    ApplyRendererSettings(settings_, renderer_);
     const platform::PacingConfig pacing = PacingFromSettings(settings_);
     if (IsSamePacing(pacing, pacing_)) {
         return;

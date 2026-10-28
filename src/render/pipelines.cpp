@@ -9,6 +9,7 @@
 #include "assets/geometry_asset.hpp"
 #include "render/gpu_error.hpp"
 #include "render/shader_code.hpp"
+#include "render/sprite_batch.hpp"
 
 namespace rr::render {
 namespace {
@@ -28,6 +29,7 @@ struct PipelineSpec {
     SDL_GPUPrimitiveType primitive = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
     SDL_GPUColorTargetBlendState blend{};
     bool writesDepth = true;
+    bool hasDepth = true;
 };
 
 constexpr std::array kMeshAttributes{
@@ -52,6 +54,18 @@ constexpr std::array kLineAttributes{
     SDL_GPUVertexAttribute{.location = 1,
                            .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
                            .offset = offsetof(LineVertex, color)},
+};
+
+constexpr std::array kSpriteAttributes{
+    SDL_GPUVertexAttribute{.location = 0,
+                           .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
+                           .offset = offsetof(SpriteVertex, x)},
+    SDL_GPUVertexAttribute{.location = 1,
+                           .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
+                           .offset = offsetof(SpriteVertex, u)},
+    SDL_GPUVertexAttribute{.location = 2,
+                           .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+                           .offset = offsetof(SpriteVertex, color)},
 };
 
 SDL_GPUColorTargetBlendState BlendState(BlendMode mode) {
@@ -114,12 +128,13 @@ Result<GpuPipeline> CreatePipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat c
                              .front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE,
                              .enable_depth_clip = true},
         .depth_stencil_state = {.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL,
-                                .enable_depth_test = true,
+                                .enable_depth_test = spec.hasDepth,
                                 .enable_depth_write = spec.writesDepth},
         .target_info = {.color_target_descriptions = &colorTarget,
                         .num_color_targets = 1,
-                        .depth_stencil_format = kDepthFormat,
-                        .has_depth_stencil_target = true},
+                        .depth_stencil_format =
+                            spec.hasDepth ? kDepthFormat : SDL_GPU_TEXTUREFORMAT_INVALID,
+                        .has_depth_stencil_target = spec.hasDepth},
     };
     SDL_GPUGraphicsPipeline* pipeline = SDL_CreateGPUGraphicsPipeline(device, &info);
     if (pipeline == nullptr) {
@@ -155,6 +170,22 @@ Result<GpuPipeline> CreateLinePipeline(SDL_GPUDevice* device, SDL_GPUTextureForm
          .attributes = kLineAttributes,
          .vertexPitch = sizeof(LineVertex),
          .primitive = SDL_GPU_PRIMITIVETYPE_LINELIST});
+}
+
+Result<GpuPipeline> CreateSpritePipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat colorFormat,
+                                         BlendMode blend) {
+    return CreatePipeline(
+        device, colorFormat,
+        {.vertexShader = {.code = shaders::kSpriteVertex, .stage = SDL_GPU_SHADERSTAGE_VERTEX},
+         .fragmentShader = {.code = shaders::kSpriteFragment,
+                            .stage = SDL_GPU_SHADERSTAGE_FRAGMENT,
+                            .samplerCount = 1,
+                            .uniformBufferCount = 0},
+         .attributes = kSpriteAttributes,
+         .vertexPitch = sizeof(SpriteVertex),
+         .blend = BlendState(blend),
+         .writesDepth = false,
+         .hasDepth = false});
 }
 
 }

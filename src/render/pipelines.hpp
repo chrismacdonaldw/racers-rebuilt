@@ -21,5 +21,8 @@ struct LineVertex {
                                                      BlendMode blend);
 [[nodiscard]] Result<GpuPipeline> CreateLinePipeline(SDL_GPUDevice* device,
                                                      SDL_GPUTextureFormat colorFormat);
+[[nodiscard]] Result<GpuPipeline> CreateSpritePipeline(SDL_GPUDevice* device,
+                                                       SDL_GPUTextureFormat colorFormat,
+                                                       BlendMode blend);
 
 }

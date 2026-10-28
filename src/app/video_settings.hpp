@@ -26,10 +26,15 @@ inline constexpr settings::SettingSpec<double> kResolutionScaleSetting{
     .label = "Resolution scale",
     .category = "Video"};
 
+inline constexpr settings::SettingSpec<bool> kStretchUiSetting{
+    .key = "video.stretch_ui", .defaultValue = false, .label = "Stretch UI", .category = "Video"};
+
 void DeclareVideoSettings(settings::Registry& registry);
 
 [[nodiscard]] platform::PacingConfig PacingFromSettings(const settings::Registry& registry);
 
 void StorePacing(settings::Registry& registry, const platform::PacingConfig& pacing);
+
+void ApplyRendererSettings(const settings::Registry& registry, render::Renderer& renderer);
 
 }

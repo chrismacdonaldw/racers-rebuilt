@@ -23,6 +23,9 @@ namespace {
 constexpr SDL_FColor kClearColor{.r = 0.08F, .g = 0.09F, .b = 0.12F, .a = 1.0F};
 constexpr glm::vec3 kLightDirection{-0.36F, -0.86F, -0.36F};
 constexpr std::size_t kLineVertexBytes = kMaxDebugLines * 2 * sizeof(LineVertex);
+constexpr std::size_t kSpriteVertexBytes = kMaxSprites * kVerticesPerSprite * sizeof(SpriteVertex);
+static_assert(kMaxSprites * kVerticesPerSprite <=
+              std::size_t{std::numeric_limits<std::uint16_t>::max()} + 1);
 
 std::uint32_t Scaled(std::uint32_t sizePx, float scale) {
     return std::max(1U,
@@ -45,6 +48,16 @@ struct MaterialUniforms {
 
 assets::ImageAsset WhitePixel() {
     return {.widthPx = 1, .heightPx = 1, .rgba = std::vector(4, std::byte{0xFF})};
+}
+
+GpuSampler CreateSampler(SDL_GPUDevice* device, SDL_GPUSamplerAddressMode addressMode) {
+    const SDL_GPUSamplerCreateInfo info{.min_filter = SDL_GPU_FILTER_LINEAR,
+                                        .mag_filter = SDL_GPU_FILTER_LINEAR,
+                                        .mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+                                        .address_mode_u = addressMode,
+                                        .address_mode_v = addressMode,
+                                        .address_mode_w = addressMode};
+    return {device, SDL_CreateGPUSampler(device, &info)};
 }
 
 bool IsOpaque(const MeshDraw& draw) {
@@ -80,6 +93,7 @@ Result<Renderer> Renderer::Create(const platform::Window& window, platform::Pres
     Renderer renderer(std::move(owned));
     Result<void> ready = renderer.SetPresentMode(mode)
                              .and_then([&] { return renderer.CreatePipelines(); })
+                             .and_then([&] { return renderer.CreateResources(); })
                              .and_then([&] { return renderer.UploadTexture(WhitePixel()); })
                              .transform([&](TextureId white) {
                                  RR_VERIFY(white == kWhiteTexture);
@@ -186,10 +200,12 @@ Result<void> Renderer::Draw(const RenderView& view) {
     }
     const std::span<const DebugLine> lines =
         view.lines.first(std::min(view.lines.size(), kMaxDebugLines));
+    const std::span<const SpriteDraw> sprites =
+        view.sprites.first(std::min(view.sprites.size(), kMaxSprites));
     SDL_GPUTexture* swapchain = nullptr;
     std::uint32_t widthPx = 0;
     std::uint32_t heightPx = 0;
-    Result<void> prepared = UploadLines(commands, lines).and_then([&]() -> Result<void> {
+    Result<void> prepared = UploadFrame(commands, lines, sprites).and_then([&]() -> Result<void> {
         if (!SDL_WaitAndAcquireGPUSwapchainTexture(commands, device_.get_deleter().window,
                                                    &swapchain, &widthPx, &heightPx)) {
             return GpuFailure("can't acquire the swapchain");
@@ -211,6 +227,7 @@ Result<void> Renderer::Draw(const RenderView& view) {
                 .filter = SDL_GPU_FILTER_LINEAR};
             SDL_BlitGPUTexture(commands, &blit);
         }
+        DrawSprites(commands, swapchain, widthPx, heightPx);
         if (overlay_ != nullptr) {
             DrawOverlay(commands, swapchain);
         }
@@ -226,40 +243,50 @@ Renderer::Renderer(std::unique_ptr<SDL_GPUDevice, DeviceDeleter> device)
 
 Result<void> Renderer::CreatePipelines() {
     SDL_GPUDevice* device = device_.get();
-    const SDL_GPUTextureFormat colorFormat =
-        SDL_GetGPUSwapchainTextureFormat(device, device_.get_deleter().window);
-    colorFormat_ = colorFormat;
+    colorFormat_ = SDL_GetGPUSwapchainTextureFormat(device, device_.get_deleter().window);
     for (std::size_t mode = 0; mode < kBlendModeCount; ++mode) {
-        Result<GpuPipeline> meshPipeline =
-            CreateMeshPipeline(device, colorFormat, static_cast<BlendMode>(mode));
-        if (!meshPipeline) {
-            return std::unexpected(std::move(meshPipeline.error()));
+        const auto blend = static_cast<BlendMode>(mode);
+        Result<GpuPipeline> meshPipeline = CreateMeshPipeline(device, colorFormat_, blend);
+        Result<GpuPipeline> spritePipeline = meshPipeline.and_then(
+            [&](const GpuPipeline&) { return CreateSpritePipeline(device, colorFormat_, blend); });
+        if (!spritePipeline) {
+            return std::unexpected(std::move(spritePipeline.error()));
         }
         meshPipelines_.at(mode) = std::move(*meshPipeline);
+        spritePipelines_.at(mode) = std::move(*spritePipeline);
     }
-    Result<GpuPipeline> linePipeline = CreateLinePipeline(device, colorFormat);
-    Result<GpuBuffer> lineVertices = linePipeline.and_then([&](const GpuPipeline&) {
-        return CreateBuffer(SDL_GPU_BUFFERUSAGE_VERTEX, kLineVertexBytes);
-    });
-    if (!lineVertices) {
-        return std::unexpected(std::move(lineVertices.error()));
+    Result<GpuPipeline> linePipeline = CreateLinePipeline(device, colorFormat_);
+    if (!linePipeline) {
+        return std::unexpected(std::move(linePipeline.error()));
     }
     linePipeline_ = std::move(*linePipeline);
-    lineVertices_ = std::move(*lineVertices);
+    return {};
+}
 
-    const SDL_GPUTransferBufferCreateInfo uploadInfo{
-        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-        .size = static_cast<std::uint32_t>(kLineVertexBytes)};
-    lineUpload_ = GpuTransferBuffer(device, SDL_CreateGPUTransferBuffer(device, &uploadInfo));
-    const SDL_GPUSamplerCreateInfo samplerInfo{.min_filter = SDL_GPU_FILTER_LINEAR,
-                                               .mag_filter = SDL_GPU_FILTER_LINEAR,
-                                               .mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
-                                               .address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
-                                               .address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
-                                               .address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_REPEAT};
-    sampler_ = GpuSampler(device, SDL_CreateGPUSampler(device, &samplerInfo));
-    if (lineUpload_.Get() == nullptr || sampler_.Get() == nullptr) {
-        return GpuFailure("can't create renderer resources");
+Result<void> Renderer::CreateResources() {
+    const std::vector<std::uint16_t> indices = SpriteIndices(kMaxSprites);
+    Result<StreamBuffer> lineStream = CreateStream(kLineVertexBytes);
+    Result<StreamBuffer> spriteStream =
+        lineStream.and_then([&](const StreamBuffer&) { return CreateStream(kSpriteVertexBytes); });
+    Result<GpuBuffer> spriteIndices = spriteStream.and_then([&](const StreamBuffer&) {
+        return CreateBuffer(SDL_GPU_BUFFERUSAGE_INDEX, std::span(indices).size_bytes());
+    });
+    if (!spriteIndices) {
+        return std::unexpected(std::move(spriteIndices.error()));
+    }
+    const std::array parts{
+        UploadPart{.bytes = std::as_bytes(std::span(indices)), .buffer = spriteIndices->Get()}};
+    Result<void> uploaded = UploadBuffers(parts);
+    if (!uploaded) {
+        return uploaded;
+    }
+    lineStream_ = std::move(*lineStream);
+    spriteStream_ = std::move(*spriteStream);
+    spriteIndices_ = std::move(*spriteIndices);
+    sampler_ = CreateSampler(device_.get(), SDL_GPU_SAMPLERADDRESSMODE_REPEAT);
+    uiSampler_ = CreateSampler(device_.get(), SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE);
+    if (sampler_.Get() == nullptr || uiSampler_.Get() == nullptr) {
+        return GpuFailure("can't create renderer samplers");
     }
     return {};
 }
@@ -276,6 +303,20 @@ Result<GpuBuffer> Renderer::CreateBuffer(SDL_GPUBufferUsageFlags usage, std::siz
         return GpuFailure("can't create a GPU buffer");
     }
     return GpuBuffer(device_.get(), buffer);
+}
+
+Result<Renderer::StreamBuffer> Renderer::CreateStream(std::size_t sizeBytes) {
+    Result<GpuBuffer> vertices = CreateBuffer(SDL_GPU_BUFFERUSAGE_VERTEX, sizeBytes);
+    if (!vertices) {
+        return std::unexpected(std::move(vertices.error()));
+    }
+    const SDL_GPUTransferBufferCreateInfo info{.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+                                               .size = static_cast<std::uint32_t>(sizeBytes)};
+    GpuTransferBuffer upload(device_.get(), SDL_CreateGPUTransferBuffer(device_.get(), &info));
+    if (upload.Get() == nullptr) {
+        return GpuFailure("can't create a per-frame upload buffer");
+    }
+    return StreamBuffer{.vertices = std::move(*vertices), .upload = std::move(upload)};
 }
 
 Result<GpuTransferBuffer> Renderer::Stage(std::span<const std::span<const std::byte>> parts) {
@@ -333,30 +374,42 @@ Result<void> Renderer::UploadBuffers(std::span<const UploadPart> parts) {
     return {};
 }
 
-Result<void> Renderer::UploadLines(SDL_GPUCommandBuffer* commands,
-                                   std::span<const DebugLine> lines) {
-    if (lines.empty()) {
+Result<void> Renderer::UploadFrame(SDL_GPUCommandBuffer* commands, std::span<const DebugLine> lines,
+                                   std::span<const SpriteDraw> sprites) {
+    lineVertices_.clear();
+    for (const DebugLine& line : lines) {
+        lineVertices_.push_back({.position = line.from, .color = line.color});
+        lineVertices_.push_back({.position = line.to, .color = line.color});
+    }
+    BatchSprites(sprites, spriteVertices_, spriteBatches_);
+    if (lines.empty() && sprites.empty()) {
         return {};
     }
-    void* mapped = SDL_MapGPUTransferBuffer(device_.get(), lineUpload_.Get(), true);
-    if (mapped == nullptr) {
-        return GpuFailure("can't map debug lines");
-    }
-    auto* vertices = static_cast<LineVertex*>(mapped);
-    for (const DebugLine& line : lines) {
-        *vertices++ = {.position = line.from, .color = line.color};
-        *vertices++ = {.position = line.to, .color = line.color};
-    }
-    SDL_UnmapGPUTransferBuffer(device_.get(), lineUpload_.Get());
-
+    const std::array uploads{
+        StreamUpload{.stream = &lineStream_, .bytes = std::as_bytes(std::span(lineVertices_))},
+        StreamUpload{.stream = &spriteStream_, .bytes = std::as_bytes(std::span(spriteVertices_))}};
     SDL_GPUCopyPass* copy = SDL_BeginGPUCopyPass(commands);
-    const SDL_GPUTransferBufferLocation source{.transfer_buffer = lineUpload_.Get()};
-    const SDL_GPUBufferRegion destination{
-        .buffer = lineVertices_.Get(),
-        .size = static_cast<std::uint32_t>(lines.size() * 2 * sizeof(LineVertex))};
-    SDL_UploadToGPUBuffer(copy, &source, &destination, true);
+    Result<void> uploaded;
+    for (const StreamUpload& upload : uploads) {
+        if (upload.bytes.empty()) {
+            continue;
+        }
+        SDL_GPUTransferBuffer* staging = upload.stream->upload.Get();
+        void* mapped = SDL_MapGPUTransferBuffer(device_.get(), staging, true);
+        if (mapped == nullptr) {
+            uploaded = GpuFailure("can't map per-frame vertices");
+            break;
+        }
+        std::ranges::copy(upload.bytes, static_cast<std::byte*>(mapped));
+        SDL_UnmapGPUTransferBuffer(device_.get(), staging);
+        const SDL_GPUTransferBufferLocation source{.transfer_buffer = staging};
+        const SDL_GPUBufferRegion destination{
+            .buffer = upload.stream->vertices.Get(),
+            .size = static_cast<std::uint32_t>(upload.bytes.size())};
+        SDL_UploadToGPUBuffer(copy, &source, &destination, true);
+    }
     SDL_EndGPUCopyPass(copy);
-    return {};
+    return uploaded;
 }
 
 Result<void> Renderer::EnsureSceneTargets(std::uint32_t widthPx, std::uint32_t heightPx) {
@@ -402,6 +455,38 @@ void Renderer::DrawScene(SDL_GPUCommandBuffer* commands, const RenderView& view,
     SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(commands, &color, 1, &depth);
     DrawMeshes(commands, pass, view.meshes, viewProjection);
     DrawLines(commands, pass, lineCount, viewProjection);
+    SDL_EndGPURenderPass(pass);
+}
+
+void Renderer::DrawSprites(SDL_GPUCommandBuffer* commands, SDL_GPUTexture* swapchain,
+                           std::uint32_t widthPx, std::uint32_t heightPx) const {
+    if (spriteBatches_.empty()) {
+        return;
+    }
+    const UiToClip uiToClip =
+        UiToClipTransform(FitUiArea(widthPx, heightPx, uiFit_), widthPx, heightPx);
+    SDL_PushGPUVertexUniformData(commands, 0, &uiToClip, sizeof(uiToClip));
+    const SDL_GPUColorTargetInfo color{
+        .texture = swapchain, .load_op = SDL_GPU_LOADOP_LOAD, .store_op = SDL_GPU_STOREOP_STORE};
+    SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(commands, &color, 1, nullptr);
+    const SDL_GPUBufferBinding vertices{.buffer = spriteStream_.vertices.Get()};
+    const SDL_GPUBufferBinding indices{.buffer = spriteIndices_.Get()};
+    SDL_BindGPUVertexBuffers(pass, 0, &vertices, 1);
+    SDL_BindGPUIndexBuffer(pass, &indices, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+    const SDL_GPUGraphicsPipeline* bound = nullptr;
+    for (const SpriteBatch& batch : spriteBatches_) {
+        SDL_GPUGraphicsPipeline* pipeline =
+            spritePipelines_.at(static_cast<std::size_t>(batch.blend)).Get();
+        if (pipeline != bound) {
+            SDL_BindGPUGraphicsPipeline(pass, pipeline);
+            bound = pipeline;
+        }
+        const SDL_GPUTextureSamplerBinding texture{.texture = textures_.Get(batch.texture).Get(),
+                                                   .sampler = uiSampler_.Get()};
+        SDL_BindGPUFragmentSamplers(pass, 0, &texture, 1);
+        SDL_DrawGPUIndexedPrimitives(pass, batch.spriteCount * kIndicesPerSprite, 1,
+                                     batch.firstSprite * kIndicesPerSprite, 0, 0);
+    }
     SDL_EndGPURenderPass(pass);
 }
 
@@ -466,7 +551,7 @@ void Renderer::DrawLines(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass
     }
     SDL_BindGPUGraphicsPipeline(pass, linePipeline_.Get());
     SDL_PushGPUVertexUniformData(commands, 0, &viewProjection, sizeof(viewProjection));
-    const SDL_GPUBufferBinding vertices{.buffer = lineVertices_.Get()};
+    const SDL_GPUBufferBinding vertices{.buffer = lineStream_.vertices.Get()};
     SDL_BindGPUVertexBuffers(pass, 0, &vertices, 1);
     SDL_DrawGPUPrimitives(pass, static_cast<std::uint32_t>(lineCount * 2), 1, 0, 0);
 }
