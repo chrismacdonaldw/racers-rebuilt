@@ -16,6 +16,7 @@ rr_add_module(assets
         token_reader.cpp
         token_schema.cpp
         vfs.cpp
+        world_database.cpp
     DEPENDS
         rr::core
         rr::platform

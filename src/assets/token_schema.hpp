@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <initializer_list>
 #include <optional>
 #include <span>
 #include <string>
@@ -15,6 +16,7 @@
 
 #include "assets/token_reader.hpp"
 #include "core/result.hpp"
+#include "core/vector3.hpp"
 
 namespace rr::assets {
 
@@ -24,6 +26,8 @@ namespace rr::assets {
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, std::uint8_t& value);
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, float& value);
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, std::string& value);
+[[nodiscard]] Result<void> ReadValue(TokenReader& reader, Vector3& value);
+[[nodiscard]] Result<void> ReadFloats(TokenReader& reader, std::initializer_list<float*> values);
 
 /// Reads nothing: a flag field's presence sets it.
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, bool& value);
@@ -82,14 +86,21 @@ struct MemberPointer<Value Class::*> {
     using Target = Class;
 };
 
-/// The member is read by the `ReadValue` overload for its type.
-template <auto Member>
+template <auto... Members, typename Target>
+[[nodiscard]] Result<void> ReadMembers(TokenReader& reader, Target& target) {
+    Result<void> read;
+    ((read = read.and_then([&] { return ReadValue(reader, target.*Members); })), ...);
+    return read;
+}
+
+/// The members are read in order, each by the `ReadValue` overload for its type.
+template <auto Member, auto... More>
 [[nodiscard]] constexpr auto Field(FieldId id) {
     using Target = MemberPointer<decltype(Member)>::Target;
     return FieldRule<Target>{
         .id = id,
         .read = [](TokenReader& reader,
-                   Target& target) { return ReadValue(reader, target.*Member); },
+                   Target& target) { return ReadMembers<Member, More...>(reader, target); },
     };
 }
 
