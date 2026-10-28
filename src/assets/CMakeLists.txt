@@ -6,6 +6,8 @@ rr_add_module(assets
         jam.cpp
         jam_archive.cpp
         path_index.cpp
+        token_reader.cpp
+        token_schema.cpp
         vfs.cpp
     DEPENDS
         rr::core
