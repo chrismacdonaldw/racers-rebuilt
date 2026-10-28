@@ -17,7 +17,10 @@
 #include "app/music_folder_source.hpp"
 #include "app/startup_settings.hpp"
 #include "app/test_scene.hpp"
+#include "app/track_viewer_scene.hpp"
 #include "app/video_settings.hpp"
+#include "assets/loader_pool.hpp"
+#include "assets/track_loader.hpp"
 #include "audio/music_catalog.hpp"
 #include "audio/music_player.hpp"
 #include "core/log.hpp"
@@ -140,11 +143,12 @@ Result<Application> Application::Create(GameBoot boot) {
                         .window = std::move(*window),
                         .renderer = std::move(*renderer),
                         .pacer = std::move(*pacer),
-                        .pacing = pacing});
+                        .pacing = pacing,
+                        .track = std::move(boot.commandLine.track)});
 }
 
 Result<void> Application::Run() {
-    Result<std::unique_ptr<TestScene>> scene = TestScene::Create(renderer_);
+    Result<std::unique_ptr<Scene>> scene = CreateStartScene();
     if (!scene) {
         return std::unexpected(std::move(scene.error()));
     }
@@ -188,7 +192,19 @@ Application::Application(Parts parts)
       window_(std::move(parts.window)),
       renderer_(std::move(parts.renderer)),
       pacer_(std::move(parts.pacer)),
-      pacing_(parts.pacing) {}
+      pacing_(parts.pacing),
+      track_(std::move(parts.track)) {}
+
+Result<std::unique_ptr<Scene>> Application::CreateStartScene() {
+    const auto toScene = [](auto scene) -> std::unique_ptr<Scene> { return scene; };
+    if (!track_) {
+        return TestScene::Create(renderer_).transform(toScene);
+    }
+    const Nanoseconds started = platform::Now();
+    assets::LoaderPool pool(assets::LoaderPool::DefaultWorkerCount());
+    assets::TrackLoader loader(vfs_, pool);
+    return TrackViewerScene::Create(renderer_, loader, *track_, started).transform(toScene);
+}
 
 void Application::CyclePacing() {
     StorePacing(settings_, NextPacingPreset(PacingFromSettings(settings_)));

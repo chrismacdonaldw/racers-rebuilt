@@ -31,6 +31,15 @@ TEST_CASE("the command line takes an image dump folder") {
     CHECK_FALSE(commandLine->gamePath.has_value());
 }
 
+TEST_CASE("the command line takes a track to view") {
+    constexpr std::array<std::string_view, 2> kArgs{"--track", "RACEC0R0"};
+
+    Result<CommandLine> commandLine = ParseCommandLine(kArgs);
+
+    REQUIRE(commandLine.has_value());
+    CHECK(commandLine->track == "RACEC0R0");
+}
+
 TEST_CASE("the command line rejects unknown options and missing values") {
     constexpr std::array<std::string_view, 1> kUnknown{"--fullscreen"};
     constexpr std::array<std::string_view, 1> kMissing{"--game-path"};

@@ -9,6 +9,7 @@ namespace {
 constexpr std::string_view kGamePathFlag = "--game-path";
 constexpr std::string_view kSetFlag = "--set";
 constexpr std::string_view kDumpImagesFlag = "--dump-images";
+constexpr std::string_view kTrackFlag = "--track";
 
 struct FlagValue {
     std::string_view flag;
@@ -57,6 +58,8 @@ Result<CommandLine> ParseCommandLine(std::span<const std::string_view> args) {
             commandLine.overrides.push_back(std::move(*setting));
         } else if (flag->flag == kDumpImagesFlag) {
             commandLine.imageDumpFolder = std::string(flag->value);
+        } else if (flag->flag == kTrackFlag) {
+            commandLine.track = std::string(flag->value);
         } else {
             return Fail(ErrorCode::InvalidData, std::format("unknown option {}", flag->flag));
         }
