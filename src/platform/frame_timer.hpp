@@ -1,9 +1,8 @@
 #pragma once
 
-#include <memory>
-
 #include "core/duration.hpp"
 #include "core/result.hpp"
+#include "platform/win32/unique_handle.hpp"
 
 namespace rr::platform {
 
@@ -15,13 +14,9 @@ public:
     void SleepUntil(Nanoseconds deadline) const;
 
 private:
-    struct HandleCloser {
-        void operator()(void* handle) const;
-    };
-
     explicit FrameTimer(void* handle);
 
-    std::unique_ptr<void, HandleCloser> timer_;
+    UniqueHandle timer_;
 };
 
 }

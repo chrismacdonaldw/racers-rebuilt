@@ -177,7 +177,7 @@ Invoke-Step 'clang-format' {
 Invoke-Step 'clang-tidy' {
     $clangTidy = Find-Tool 'clang-tidy'
     if ($clangTidy) {
-        & $clangTidy -p "build/$Preset" --quiet (Get-TrackedFiles @('src/*.cpp', 'tests/*.cpp'))
+        & $clangTidy -p "build/$Preset" --quiet (Get-TrackedFiles @('src/*.cpp', 'tests/*.cpp', 'tools/*.cpp'))
     }
 }
 
