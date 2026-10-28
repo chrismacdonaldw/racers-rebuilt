@@ -13,6 +13,7 @@
 
 #include "app/audio_startup.hpp"
 #include "app/game_settings.hpp"
+#include "app/image_dump.hpp"
 #include "app/install_discovery.hpp"
 #include "app/startup_settings.hpp"
 #include "app/startup_timer.hpp"
@@ -169,15 +170,19 @@ Result<Application> Application::Create(std::span<const std::string_view> args) 
 
     Result<platform::Window> window = platform::Window::Create(
         {.title = kWindowTitle, .widthPx = kWindowWidthPx, .heightPx = kWindowHeightPx});
+    if (!window) {
+        return std::unexpected(std::move(window.error()));
+    }
+    startup.EndPhase("window", platform::Now());
+
     const platform::PacingConfig pacing = PacingFromSettings(*registry);
-    Result<render::Renderer> renderer = window.and_then(
-        [&](const platform::Window& w) { return render::Renderer::Create(w, pacing.mode); });
+    Result<render::Renderer> renderer = render::Renderer::Create(*window, pacing.mode);
     Result<platform::FramePacer> pacer =
         renderer.and_then([&](const render::Renderer&) { return CreatePacer(pacing); });
     if (!pacer) {
         return std::unexpected(std::move(pacer.error()));
     }
-    startup.EndPhase("window and renderer", platform::Now());
+    startup.EndPhase("renderer", platform::Now());
 
     Result<audio::Mixer> mixer = StartAudio(*registry, *vfs);
     if (!mixer) {
@@ -193,10 +198,15 @@ Result<Application> Application::Create(std::span<const std::string_view> args) 
                         .mixer = std::move(*mixer),
                         .window = std::move(*window),
                         .renderer = std::move(*renderer),
-                        .pacer = std::move(*pacer)});
+                        .pacer = std::move(*pacer),
+                        .pacing = pacing,
+                        .imageDumpFolder = commandLine->imageDumpFolder.transform(PathFromUtf8)});
 }
 
 Result<void> Application::Run() {
+    if (imageDumpFolder_) {
+        return DumpImages(vfs_, *imageDumpFolder_);
+    }
     Result<std::unique_ptr<TestScene>> scene = TestScene::Create(renderer_);
     if (!scene) {
         return std::unexpected(std::move(scene.error()));
@@ -228,7 +238,9 @@ Application::Application(Parts parts)
       mixer_(std::move(parts.mixer)),
       window_(std::move(parts.window)),
       renderer_(std::move(parts.renderer)),
-      pacer_(std::move(parts.pacer)) {}
+      pacer_(std::move(parts.pacer)),
+      pacing_(parts.pacing),
+      imageDumpFolder_(std::move(parts.imageDumpFolder)) {}
 
 void Application::CyclePacing() {
     StorePacing(settings_, NextPacingPreset(PacingFromSettings(settings_)));
@@ -238,12 +250,16 @@ void Application::CyclePacing() {
 
 void Application::ApplyPacing() {
     const platform::PacingConfig pacing = PacingFromSettings(settings_);
+    if (IsSamePacing(pacing, pacing_)) {
+        return;
+    }
     Result<void> changed = renderer_.SetPresentMode(pacing.mode);
     if (!changed) {
         log::Error("{}", changed.error().message);
         return;
     }
     pacer_.SetConfig(pacing);
+    pacing_ = pacing;
     LogPacing(pacing);
 }
 

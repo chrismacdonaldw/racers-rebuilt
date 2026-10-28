@@ -21,6 +21,16 @@ TEST_CASE("the command line takes a game path and setting overrides") {
     CHECK(commandLine->overrides[1].value.empty());
 }
 
+TEST_CASE("the command line takes an image dump folder") {
+    constexpr std::array<std::string_view, 1> kArgs{"--dump-images=dumps/images"};
+
+    Result<CommandLine> commandLine = ParseCommandLine(kArgs);
+
+    REQUIRE(commandLine.has_value());
+    CHECK(commandLine->imageDumpFolder == "dumps/images");
+    CHECK_FALSE(commandLine->gamePath.has_value());
+}
+
 TEST_CASE("the command line rejects unknown options and missing values") {
     constexpr std::array<std::string_view, 1> kUnknown{"--fullscreen"};
     constexpr std::array<std::string_view, 1> kMissing{"--game-path"};
