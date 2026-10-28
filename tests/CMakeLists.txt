@@ -6,6 +6,7 @@ add_executable(racers-rebuilt-tests
     assets/game_path_test.cpp
     assets/jam_archive_test.cpp
     assets/jam_test.cpp
+    assets/token_reader_test.cpp
     assets/vfs_test.cpp
     core/log_test.cpp
     core/quaternion_test.cpp
