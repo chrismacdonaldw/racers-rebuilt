@@ -23,6 +23,7 @@ add_executable(racers-rebuilt-tests
     assets/lzss_test.cpp
     assets/material_library_test.cpp
     assets/model_survey_test.cpp
+    assets/race_route_test.cpp
     assets/texture_database_test.cpp
     assets/tga_image_test.cpp
     assets/token_reader_test.cpp

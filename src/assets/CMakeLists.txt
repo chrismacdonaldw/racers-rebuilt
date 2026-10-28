@@ -12,6 +12,7 @@ rr_add_module(assets
         lzss.cpp
         material_library.cpp
         path_index.cpp
+        race_route.cpp
         texture_database.cpp
         tga_image.cpp
         token_reader.cpp
