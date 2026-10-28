@@ -1,5 +1,6 @@
 add_executable(racers-rebuilt-tests
     main.cpp
+    app/checkpoint_gates_test.cpp
     app/frame_loop_test.cpp
     app/free_camera_test.cpp
     app/input_bindings_test.cpp
@@ -17,6 +18,7 @@ add_executable(racers-rebuilt-tests
     assets/asset_cache_test.cpp
     assets/bmp_image_test.cpp
     assets/byte_reader_test.cpp
+    assets/checkpoints_test.cpp
     assets/game_path_test.cpp
     assets/geometry_database_test.cpp
     assets/image_survey_test.cpp
@@ -73,6 +75,9 @@ add_executable(racers-rebuilt-tests
     sim/physics/drive_controller_test.cpp
     sim/physics/driver_input_test.cpp
     sim/physics/racer_test.cpp
+    sim/race/checkpoint_graph_test.cpp
+    sim/race/lap_tracker_test.cpp
+    sim/race/standings_test.cpp
     sim/replay_test.cpp
     sim/route_playback_test.cpp
     sim/snapshot_hash_test.cpp
