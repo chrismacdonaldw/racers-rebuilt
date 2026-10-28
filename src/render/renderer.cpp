@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstring>
 #include <format>
 #include <functional>
@@ -22,6 +23,11 @@ namespace {
 constexpr SDL_FColor kClearColor{.r = 0.08F, .g = 0.09F, .b = 0.12F, .a = 1.0F};
 constexpr glm::vec3 kLightDirection{-0.36F, -0.86F, -0.36F};
 constexpr std::size_t kLineVertexBytes = kMaxDebugLines * 2 * sizeof(LineVertex);
+
+std::uint32_t Scaled(std::uint32_t sizePx, float scale) {
+    return std::max(1U,
+                    static_cast<std::uint32_t>(std::lround(static_cast<float>(sizePx) * scale)));
+}
 
 struct DrawUniforms {
     glm::mat4 model;
@@ -90,6 +96,10 @@ Result<void> Renderer::SetPresentMode(platform::PresentMode mode) {
         return GpuFailure("can't set the present mode");
     }
     return {};
+}
+
+void Renderer::SetResolutionScale(float scale) {
+    resolutionScale_ = std::clamp(scale, kMinResolutionScale, kMaxResolutionScale);
 }
 
 Result<MeshId> Renderer::UploadMesh(const assets::GeometryAsset& geometry) {
@@ -178,25 +188,26 @@ Result<void> Renderer::Draw(const RenderView& view) {
                                                    &swapchain, &widthPx, &heightPx)) {
             return GpuFailure("can't acquire the swapchain");
         }
-        return swapchain == nullptr ? Result<void>{} : EnsureDepthTexture(widthPx, heightPx);
+        return swapchain == nullptr ? Result<void>{}
+                                    : EnsureSceneTargets(Scaled(widthPx, resolutionScale_),
+                                                         Scaled(heightPx, resolutionScale_));
     });
     if (prepared && swapchain != nullptr) {
-        const SDL_GPUColorTargetInfo color{.texture = swapchain,
-                                           .clear_color = kClearColor,
-                                           .load_op = SDL_GPU_LOADOP_CLEAR,
-                                           .store_op = SDL_GPU_STOREOP_STORE};
-        const SDL_GPUDepthStencilTargetInfo depth{.texture = depth_.Get(),
-                                                  .clear_depth = 1.0F,
-                                                  .load_op = SDL_GPU_LOADOP_CLEAR,
-                                                  .store_op = SDL_GPU_STOREOP_DONT_CARE,
-                                                  .stencil_load_op = SDL_GPU_LOADOP_DONT_CARE,
-                                                  .stencil_store_op = SDL_GPU_STOREOP_DONT_CARE};
-        const glm::mat4 viewProjection =
-            ViewProjection(view.camera, static_cast<float>(widthPx) / static_cast<float>(heightPx));
-        SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(commands, &color, 1, &depth);
-        DrawMeshes(commands, pass, view.meshes, viewProjection);
-        DrawLines(commands, pass, lines.size(), viewProjection);
-        SDL_EndGPURenderPass(pass);
+        if (overlay_ != nullptr) {
+            overlay_->Prepare(commands);
+        }
+        DrawScene(commands, view, lines.size(), IsScaled() ? sceneColor_.Get() : swapchain);
+        if (IsScaled()) {
+            const SDL_GPUBlitInfo blit{
+                .source = {.texture = sceneColor_.Get(), .w = sceneWidthPx_, .h = sceneHeightPx_},
+                .destination = {.texture = swapchain, .w = widthPx, .h = heightPx},
+                .load_op = SDL_GPU_LOADOP_DONT_CARE,
+                .filter = SDL_GPU_FILTER_LINEAR};
+            SDL_BlitGPUTexture(commands, &blit);
+        }
+        if (overlay_ != nullptr) {
+            DrawOverlay(commands, swapchain);
+        }
     }
     if (!SDL_SubmitGPUCommandBuffer(commands)) {
         return GpuFailure("can't submit a frame");
@@ -211,6 +222,7 @@ Result<void> Renderer::CreatePipelines() {
     SDL_GPUDevice* device = device_.get();
     const SDL_GPUTextureFormat colorFormat =
         SDL_GetGPUSwapchainTextureFormat(device, device_.get_deleter().window);
+    colorFormat_ = colorFormat;
     for (std::size_t mode = 0; mode < kBlendModeCount; ++mode) {
         Result<GpuPipeline> meshPipeline =
             CreateMeshPipeline(device, colorFormat, static_cast<BlendMode>(mode));
@@ -341,24 +353,58 @@ Result<void> Renderer::UploadLines(SDL_GPUCommandBuffer* commands,
     return {};
 }
 
-Result<void> Renderer::EnsureDepthTexture(std::uint32_t widthPx, std::uint32_t heightPx) {
-    if (depth_.Get() != nullptr && widthPx == depthWidthPx_ && heightPx == depthHeightPx_) {
+Result<void> Renderer::EnsureSceneTargets(std::uint32_t widthPx, std::uint32_t heightPx) {
+    const bool needsColor = IsScaled() && sceneColor_.Get() == nullptr;
+    if (depth_.Get() != nullptr && !needsColor && widthPx == sceneWidthPx_ &&
+        heightPx == sceneHeightPx_) {
         return {};
     }
-    const SDL_GPUTextureCreateInfo info{.type = SDL_GPU_TEXTURETYPE_2D,
-                                        .format = kDepthFormat,
-                                        .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
-                                        .width = widthPx,
-                                        .height = heightPx,
-                                        .layer_count_or_depth = 1,
-                                        .num_levels = 1};
+    SDL_GPUTextureCreateInfo info{.type = SDL_GPU_TEXTURETYPE_2D,
+                                  .format = kDepthFormat,
+                                  .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
+                                  .width = widthPx,
+                                  .height = heightPx,
+                                  .layer_count_or_depth = 1,
+                                  .num_levels = 1};
     depth_ = GpuTexture(device_.get(), SDL_CreateGPUTexture(device_.get(), &info));
-    if (depth_.Get() == nullptr) {
-        return GpuFailure("can't create the depth buffer");
+    info.format = colorFormat_;
+    info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+    sceneColor_ = IsScaled() ? GpuTexture(device_.get(), SDL_CreateGPUTexture(device_.get(), &info))
+                             : GpuTexture();
+    if (depth_.Get() == nullptr || (IsScaled() && sceneColor_.Get() == nullptr)) {
+        return GpuFailure("can't create the scene targets");
     }
-    depthWidthPx_ = widthPx;
-    depthHeightPx_ = heightPx;
+    sceneWidthPx_ = widthPx;
+    sceneHeightPx_ = heightPx;
     return {};
+}
+
+void Renderer::DrawScene(SDL_GPUCommandBuffer* commands, const RenderView& view,
+                         std::size_t lineCount, SDL_GPUTexture* target) {
+    const SDL_GPUColorTargetInfo color{.texture = target,
+                                       .clear_color = kClearColor,
+                                       .load_op = SDL_GPU_LOADOP_CLEAR,
+                                       .store_op = SDL_GPU_STOREOP_STORE};
+    const SDL_GPUDepthStencilTargetInfo depth{.texture = depth_.Get(),
+                                              .clear_depth = 1.0F,
+                                              .load_op = SDL_GPU_LOADOP_CLEAR,
+                                              .store_op = SDL_GPU_STOREOP_DONT_CARE,
+                                              .stencil_load_op = SDL_GPU_LOADOP_DONT_CARE,
+                                              .stencil_store_op = SDL_GPU_STOREOP_DONT_CARE};
+    const glm::mat4 viewProjection = ViewProjection(
+        view.camera, static_cast<float>(sceneWidthPx_) / static_cast<float>(sceneHeightPx_));
+    SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(commands, &color, 1, &depth);
+    DrawMeshes(commands, pass, view.meshes, viewProjection);
+    DrawLines(commands, pass, lineCount, viewProjection);
+    SDL_EndGPURenderPass(pass);
+}
+
+void Renderer::DrawOverlay(SDL_GPUCommandBuffer* commands, SDL_GPUTexture* swapchain) {
+    const SDL_GPUColorTargetInfo color{
+        .texture = swapchain, .load_op = SDL_GPU_LOADOP_LOAD, .store_op = SDL_GPU_STOREOP_STORE};
+    SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(commands, &color, 1, nullptr);
+    overlay_->Draw(commands, pass);
+    SDL_EndGPURenderPass(pass);
 }
 
 void Renderer::DrawMeshes(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,

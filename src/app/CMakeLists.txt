@@ -25,6 +25,7 @@ rr_add_module(app
         rr::audio
         rr::core
         rr::mods
+        rr::overlay
         rr::platform
         rr::render
         rr::settings

@@ -25,6 +25,7 @@
 #include "audio/music_player.hpp"
 #include "core/log.hpp"
 #include "core/utf8_path.hpp"
+#include "overlay/overlay.hpp"
 #include "platform/clock.hpp"
 
 namespace rr::app {
@@ -35,6 +36,7 @@ constexpr int kWindowWidthPx = 1280;
 constexpr int kWindowHeightPx = 720;
 constexpr std::string_view kMusicFolderName = "music";
 constexpr SDL_Keycode kCyclePacingKey = SDLK_F9;
+constexpr SDL_Keycode kToggleOverlayKey = SDLK_F1;
 
 constexpr std::array kPacingPresets{
     platform::PacingConfig{.mode = platform::PresentMode::Vsync},
@@ -125,6 +127,7 @@ Result<Application> Application::Create(GameBoot boot) {
     if (!pacer) {
         return std::unexpected(std::move(pacer.error()));
     }
+    renderer->SetResolutionScale(static_cast<float>(boot.settings.Get(kResolutionScaleSetting)));
     boot.startup.EndPhase("renderer", platform::Now());
 
     Result<audio::Mixer> mixer = StartAudio(boot.settings, boot.vfs);
@@ -132,7 +135,8 @@ Result<Application> Application::Create(GameBoot boot) {
         return std::unexpected(std::move(mixer.error()));
     }
     boot.startup.EndPhase("audio", platform::Now());
-    log::Info("{}", boot.startup.Summary());
+    std::string startupSummary = boot.startup.Summary();
+    log::Info("{}", startupSummary);
 
     return Application({.sdl = std::move(boot.sdl),
                         .settings = std::move(boot.settings),
@@ -144,15 +148,24 @@ Result<Application> Application::Create(GameBoot boot) {
                         .renderer = std::move(*renderer),
                         .pacer = std::move(*pacer),
                         .pacing = pacing,
-                        .track = std::move(boot.commandLine.track)});
+                        .track = std::move(boot.commandLine.track),
+                        .startupSummary = std::move(startupSummary)});
 }
 
 Result<void> Application::Run() {
-    Result<std::unique_ptr<Scene>> scene = CreateStartScene();
-    if (!scene) {
-        return std::unexpected(std::move(scene.error()));
+    Result<std::unique_ptr<overlay::Overlay>> menu = overlay::Overlay::Create(window_, renderer_);
+    Result<void> opened = menu.and_then([&](const auto&) { return OpenScene(track_); });
+    if (!opened) {
+        return opened;
     }
-    frameLoop_.Scenes().Push(std::move(*scene));
+    events_.Observe(&overlay::Overlay::HandleEvent);
+    const std::array scenes{overlay::SceneChoice{.name = "Test scene", .open = [this] {
+                                                     const Result<void> reopened =
+                                                         OpenScene(std::nullopt);
+                                                     if (!reopened) {
+                                                         log::Error("{}", reopened.error().message);
+                                                     }
+                                                 }}};
     audio::MusicPlayer music =
         CreateMusicPlayer(mixer_, vfs_, settingsFile_.parent_path() / kMusicFolderName,
                           extensions_.mods.Enabled(settings_));
@@ -160,19 +173,32 @@ Result<void> Application::Run() {
     settings_.Observe([this](std::string_view key) {
         frameLoop_.Hooks().Emit(mods::SettingChanged{.key = key, .settings = settings_});
         if (key.starts_with("video.")) {
-            ApplyPacing();
+            ApplyVideo();
         }
         if (key.starts_with("audio.")) {
             ApplyVolumes(settings_, mixer_);
         }
     });
 
+    Nanoseconds lastFrame = platform::Now();
+    FrameStats frame;
     while (!events_.IsQuitRequested()) {
         events_.Poll();
+        if (events_.WasKeyPressed(kToggleOverlayKey)) {
+            (*menu)->Toggle();
+        }
         if (events_.WasKeyPressed(kCyclePacingKey)) {
             CyclePacing();
         }
-        const FrameStats frame = frameLoop_.RunFrame(platform::Now());
+        const Nanoseconds now = platform::Now();
+        Persist(
+            (*menu)->Build(settings_,
+                           {.frameTime = std::chrono::duration_cast<FloatSeconds>(now - lastFrame),
+                            .ticksPerFrame = frame.tickCount,
+                            .startupSummary = startupSummary_},
+                           scenes));
+        lastFrame = now;
+        frame = frameLoop_.RunFrame(now);
         if (frame.isNewScene && frameLoop_.Scenes().Top() != nullptr) {
             PlaySceneMusic(music, *frameLoop_.Scenes().Top());
         }
@@ -193,17 +219,29 @@ Application::Application(Parts parts)
       renderer_(std::move(parts.renderer)),
       pacer_(std::move(parts.pacer)),
       pacing_(parts.pacing),
-      track_(std::move(parts.track)) {}
+      track_(std::move(parts.track)),
+      startupSummary_(std::move(parts.startupSummary)) {}
 
-Result<std::unique_ptr<Scene>> Application::CreateStartScene() {
+Result<void> Application::OpenScene(const std::optional<std::string>& track) {
     const auto toScene = [](auto scene) -> std::unique_ptr<Scene> { return scene; };
-    if (!track_) {
-        return TestScene::Create(renderer_).transform(toScene);
+    Result<std::unique_ptr<Scene>> scene = [&] {
+        if (!track) {
+            return TestScene::Create(renderer_).transform(toScene);
+        }
+        const Nanoseconds started = platform::Now();
+        assets::LoaderPool pool(assets::LoaderPool::DefaultWorkerCount());
+        assets::TrackLoader loader(vfs_, pool);
+        return TrackViewerScene::Create(renderer_, vfs_, loader, *track, started)
+            .transform(toScene);
+    }();
+    if (!scene) {
+        return std::unexpected(std::move(scene.error()));
     }
-    const Nanoseconds started = platform::Now();
-    assets::LoaderPool pool(assets::LoaderPool::DefaultWorkerCount());
-    assets::TrackLoader loader(vfs_, pool);
-    return TrackViewerScene::Create(renderer_, vfs_, loader, *track_, started).transform(toScene);
+    if (frameLoop_.Scenes().Top() != nullptr) {
+        frameLoop_.Scenes().Pop();
+    }
+    frameLoop_.Scenes().Push(std::move(*scene));
+    return {};
 }
 
 void Application::CyclePacing() {
@@ -212,7 +250,15 @@ void Application::CyclePacing() {
     PersistSettings(settingsFile_, settings_, keys);
 }
 
-void Application::ApplyPacing() {
+void Application::Persist(const std::vector<std::string>& keys) {
+    if (!keys.empty()) {
+        const std::vector<std::string_view> views(keys.begin(), keys.end());
+        PersistSettings(settingsFile_, settings_, views);
+    }
+}
+
+void Application::ApplyVideo() {
+    renderer_.SetResolutionScale(static_cast<float>(settings_.Get(kResolutionScaleSetting)));
     const platform::PacingConfig pacing = PacingFromSettings(settings_);
     if (IsSamePacing(pacing, pacing_)) {
         return;

@@ -12,7 +12,7 @@
 namespace rr::settings {
 namespace {
 
-using Range = std::pair<SettingValue, SettingValue>;
+using Range = Registry::Range;
 
 std::string_view TypeName(const SettingValue& value) {
     constexpr std::array<std::string_view, 4> kNames{"true or false", "a whole number", "a number",

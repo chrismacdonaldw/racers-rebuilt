@@ -15,11 +15,14 @@
 #include "platform/frame_pacer.hpp"
 #include "platform/window.hpp"
 #include "render/gpu_resource.hpp"
+#include "render/overlay_pass.hpp"
 #include "render/render_view.hpp"
 
 namespace rr::render {
 
 inline constexpr std::size_t kMaxDebugLines = 4096;
+inline constexpr float kMinResolutionScale = 0.25F;
+inline constexpr float kMaxResolutionScale = 2.0F;
 
 /// Must not outlive the window it draws to. Main thread only.
 class Renderer {
@@ -32,6 +35,15 @@ public:
 
     [[nodiscard]] Result<MeshId> UploadMesh(const assets::GeometryAsset& geometry);
     [[nodiscard]] Result<TextureId> UploadTexture(const assets::ImageAsset& image);
+
+    /// The scene renders at this fraction of the window size, then scales to fit.
+    void SetResolutionScale(float scale);
+
+    /// `overlay` must outlive the renderer or be replaced. Null removes it.
+    void SetOverlay(OverlayPass* overlay) { overlay_ = overlay; }
+
+    [[nodiscard]] SDL_GPUDevice* Device() const { return device_.get(); }
+    [[nodiscard]] SDL_GPUTextureFormat ColorFormat() const { return colorFormat_; }
 
     /// Lines past `kMaxDebugLines` are dropped.
     [[nodiscard]] Result<void> Draw(const RenderView& view);
@@ -63,7 +75,11 @@ private:
     Result<GpuTransferBuffer> Stage(std::span<const std::span<const std::byte>> parts);
     Result<void> UploadBuffers(std::span<const UploadPart> parts);
     Result<void> UploadLines(SDL_GPUCommandBuffer* commands, std::span<const DebugLine> lines);
-    Result<void> EnsureDepthTexture(std::uint32_t widthPx, std::uint32_t heightPx);
+    Result<void> EnsureSceneTargets(std::uint32_t widthPx, std::uint32_t heightPx);
+    [[nodiscard]] bool IsScaled() const { return resolutionScale_ != 1.0F; }
+    void DrawScene(SDL_GPUCommandBuffer* commands, const RenderView& view, std::size_t lineCount,
+                   SDL_GPUTexture* target);
+    void DrawOverlay(SDL_GPUCommandBuffer* commands, SDL_GPUTexture* swapchain);
     void DrawMeshes(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
                     std::span<const MeshDraw> meshes, const glm::mat4& viewProjection) const;
     void DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, const MeshDraw& draw,
@@ -75,9 +91,13 @@ private:
     std::array<GpuPipeline, kBlendModeCount> meshPipelines_;
     GpuPipeline linePipeline_;
     GpuSampler sampler_;
+    SDL_GPUTextureFormat colorFormat_ = SDL_GPU_TEXTUREFORMAT_INVALID;
+    float resolutionScale_ = 1.0F;
+    GpuTexture sceneColor_;
     GpuTexture depth_;
-    std::uint32_t depthWidthPx_ = 0;
-    std::uint32_t depthHeightPx_ = 0;
+    std::uint32_t sceneWidthPx_ = 0;
+    std::uint32_t sceneHeightPx_ = 0;
+    OverlayPass* overlay_ = nullptr;
     GpuBuffer lineVertices_;
     GpuTransferBuffer lineUpload_;
     std::vector<Mesh> meshes_;

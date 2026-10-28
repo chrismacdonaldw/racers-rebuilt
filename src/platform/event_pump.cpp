@@ -1,6 +1,7 @@
 #include "platform/event_pump.hpp"
 
 #include <algorithm>
+#include <utility>
 
 namespace rr::platform {
 
@@ -8,8 +9,15 @@ void EventPump::Poll() {
     pressedKeys_.clear();
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        for (const Observer& observer : observers_) {
+            observer(event);
+        }
         Handle(event);
     }
+}
+
+void EventPump::Observe(Observer observer) {
+    observers_.push_back(std::move(observer));
 }
 
 bool EventPump::IsQuitRequested() const {

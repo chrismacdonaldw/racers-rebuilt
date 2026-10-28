@@ -1,6 +1,7 @@
 #pragma once
 
 #include "platform/frame_pacer.hpp"
+#include "render/renderer.hpp"
 #include "settings/registry.hpp"
 #include "settings/setting_spec.hpp"
 
@@ -15,6 +16,14 @@ inline constexpr settings::SettingSpec<int> kFpsCapSetting{
     .defaultValue = 144,
     .range = settings::SettingRange<int>{.min = 0, .max = platform::kMaxFpsCap},
     .label = "Frame rate cap",
+    .category = "Video"};
+
+inline constexpr settings::SettingSpec<double> kResolutionScaleSetting{
+    .key = "video.resolution_scale",
+    .defaultValue = 1.0,
+    .range = settings::SettingRange<double>{.min = render::kMinResolutionScale,
+                                            .max = render::kMaxResolutionScale},
+    .label = "Resolution scale",
     .category = "Video"};
 
 void DeclareVideoSettings(settings::Registry& registry);

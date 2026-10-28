@@ -5,6 +5,7 @@ namespace rr::app {
 void DeclareVideoSettings(settings::Registry& registry) {
     registry.Declare(kVsyncSetting);
     registry.Declare(kFpsCapSetting);
+    registry.Declare(kResolutionScaleSetting);
 }
 
 platform::PacingConfig PacingFromSettings(const settings::Registry& registry) {

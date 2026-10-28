@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "app/extensions.hpp"
 #include "app/frame_loop.hpp"
@@ -40,13 +41,15 @@ private:
         platform::FramePacer pacer;
         platform::PacingConfig pacing;
         std::optional<std::string> track;
+        std::string startupSummary;
     };
 
     explicit Application(Parts parts);
 
-    [[nodiscard]] Result<std::unique_ptr<Scene>> CreateStartScene();
+    [[nodiscard]] Result<void> OpenScene(const std::optional<std::string>& track);
     void CyclePacing();
-    void ApplyPacing();
+    void ApplyVideo();
+    void Persist(const std::vector<std::string>& keys);
 
     platform::SdlContext sdl_;
     settings::Registry settings_;
@@ -60,6 +63,7 @@ private:
     platform::FramePacer pacer_;
     platform::PacingConfig pacing_;
     std::optional<std::string> track_;
+    std::string startupSummary_;
     FrameLoop frameLoop_;
 };
 

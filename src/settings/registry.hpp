@@ -20,14 +20,27 @@ class Registry {
 public:
     using Observer = std::function<void(std::string_view key)>;
     using Values = std::map<std::string, SettingValue, std::less<>>;
+    using Range = std::pair<SettingValue, SettingValue>;
+
+    struct Declaration {
+        SettingValue defaultValue;
+        std::optional<Range> range;
+        std::string label;
+        std::string category;
+    };
+
+    using Declarations = std::map<std::string, Declaration, std::less<>>;
 
     template <SettingType T>
     void Declare(const SettingSpec<T>& spec) {
-        std::optional<std::pair<SettingValue, SettingValue>> range;
+        std::optional<Range> range;
         if (spec.range) {
             range.emplace(ToSettingValue(spec.range->min), ToSettingValue(spec.range->max));
         }
-        DeclareValue(spec.key, {.defaultValue = ToSettingValue(spec.defaultValue), .range = range});
+        DeclareValue(spec.key, {.defaultValue = ToSettingValue(spec.defaultValue),
+                                .range = range,
+                                .label = std::string(spec.label),
+                                .category = std::string(spec.category)});
     }
 
     /// `spec` must be declared.
@@ -57,19 +70,15 @@ public:
     void Observe(Observer observer);
 
     [[nodiscard]] const Values& AllValues() const { return values_; }
+    [[nodiscard]] const Declarations& AllDeclarations() const { return declarations_; }
 
 private:
-    struct Declaration {
-        SettingValue defaultValue;
-        std::optional<std::pair<SettingValue, SettingValue>> range;
-    };
-
     void DeclareValue(std::string_view key, Declaration declaration);
     void SetDeclared(std::string_view key, SettingValue value);
     void Store(std::string_view key, SettingValue value);
     [[nodiscard]] const SettingValue& DeclaredValue(std::string_view key) const;
 
-    std::map<std::string, Declaration, std::less<>> declarations_;
+    Declarations declarations_;
     Values values_;
     std::vector<Observer> observers_;
 };
