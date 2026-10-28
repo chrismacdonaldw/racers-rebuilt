@@ -1,6 +1,11 @@
 #include "sim/physics/racer_controls.hpp"
 
 namespace rr::sim {
+namespace {
+
+constexpr float kAxisScale = 127.0F;
+
+}
 
 RacerControls ControlsFrom(const InputFrame& input) {
     return {.isLeftHeld = input.IsHeld(Action::SteerLeft),
@@ -8,7 +13,7 @@ RacerControls ControlsFrom(const InputFrame& input) {
             .isThrottleHeld = input.IsHeld(Action::Accelerate),
             .isBrakeHeld = input.IsHeld(Action::Brake),
             .isDriftHeld = input.IsHeld(Action::Drift),
-            .steerLeftAxis = 0.0F};
+            .steerLeftAxis = static_cast<float>(input.steerLeftAxis) / kAxisScale};
 }
 
 }

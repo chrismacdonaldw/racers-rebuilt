@@ -39,6 +39,15 @@ TEST_CASE("key repeat while held doesn't count as a new press") {
     CHECK_FALSE(latch.TakeFrame().WasPressed(Action::SteerLeft));
 }
 
+TEST_CASE("the steer axis holds its last value across frames") {
+    InputLatch latch;
+
+    latch.SetSteerLeftAxis(-40);
+
+    CHECK(latch.TakeFrame().steerLeftAxis == -40);
+    CHECK(latch.TakeFrame().steerLeftAxis == -40);
+}
+
 TEST_CASE("releasing an action that isn't held is ignored") {
     InputLatch latch;
 
