@@ -1,0 +1,11 @@
+rr_add_module(platform
+    SOURCES
+        data_folder.cpp
+        event_pump.cpp
+        fatal_error.cpp
+        sdl_context.cpp
+        window.cpp
+    DEPENDS
+        rr::core
+        SDL3::SDL3
+)
