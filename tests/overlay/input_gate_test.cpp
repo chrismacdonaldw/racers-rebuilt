@@ -1,4 +1,4 @@
-﻿#include "overlay/input_gate.hpp"
+#include "overlay/input_gate.hpp"
 
 #include <doctest/doctest.h>
 
