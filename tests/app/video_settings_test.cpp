@@ -49,7 +49,7 @@ TEST_CASE("command-line overrides reach the pacing") {
                                settings::SettingOverride{.key = "video.fps_cap", .value = "0"}};
 
     const Result<settings::Registry> registry =
-        LoadStartupSettings(folder.Path() / "settings.toml", overrides);
+        LoadStartupSettings(folder.Path() / "settings.toml", overrides, Extensions{});
 
     REQUIRE(registry.has_value());
     CHECK(PacingFromSettings(*registry).mode == platform::PresentMode::Uncapped);

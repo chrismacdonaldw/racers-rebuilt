@@ -26,7 +26,7 @@ TEST_CASE("command-line overrides apply for the session but aren't saved") {
     const std::array overrides{
         settings::SettingOverride{.key = "game.language", .value = "GERMAN"}};
 
-    Result<settings::Registry> registry = LoadStartupSettings(file, overrides);
+    Result<settings::Registry> registry = LoadStartupSettings(file, overrides, Extensions{});
     REQUIRE(registry.has_value());
     CHECK(registry->Get(kGameLanguage) == "GERMAN");
     registry->Set(kGamePath, "D:/Racers");
@@ -42,7 +42,7 @@ TEST_CASE("a settings file that can't be parsed is never overwritten") {
     const std::filesystem::path file = folder.Path() / "settings.toml";
     std::ofstream(file, std::ios::binary) << "[game\n";
 
-    Result<settings::Registry> registry = LoadStartupSettings(file, {});
+    Result<settings::Registry> registry = LoadStartupSettings(file, {}, Extensions{});
     REQUIRE(registry.has_value());
     registry->Set(kGamePath, "D:/Racers");
     PersistSettings(file, *registry, kChangedKeys);
@@ -54,7 +54,8 @@ TEST_CASE("an override for an unknown setting stops startup") {
     const test::TempFolder folder;
     const std::array overrides{settings::SettingOverride{.key = "video.missing", .value = "1"}};
 
-    CHECK_FALSE(LoadStartupSettings(folder.Path() / "settings.toml", overrides).has_value());
+    CHECK_FALSE(
+        LoadStartupSettings(folder.Path() / "settings.toml", overrides, Extensions{}).has_value());
 }
 
 }

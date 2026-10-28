@@ -1,6 +1,7 @@
 add_executable(racers-rebuilt-tests
     main.cpp
     app/frame_loop_test.cpp
+    app/free_camera_test.cpp
     app/install_discovery_test.cpp
     app/loop_sidecar_test.cpp
     app/music_folder_source_test.cpp
@@ -37,6 +38,9 @@ add_executable(racers-rebuilt-tests
     core/quaternion_test.cpp
     core/result_test.cpp
     core/utf8_path_test.cpp
+    mods/hook_registry_test.cpp
+    mods/mod_list_test.cpp
+    mods/mod_manifest_test.cpp
     platform/data_folder_test.cpp
     platform/frame_pacer_test.cpp
     platform/install_locations_test.cpp
@@ -55,6 +59,7 @@ target_link_libraries(racers-rebuilt-tests PRIVATE
     rr::assets
     rr::audio
     rr::core
+    rr::mods
     rr::platform
     rr::render
     rr::settings

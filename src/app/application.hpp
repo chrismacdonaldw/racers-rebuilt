@@ -2,6 +2,7 @@
 
 #include <filesystem>
 
+#include "app/extensions.hpp"
 #include "app/frame_loop.hpp"
 #include "app/game_boot.hpp"
 #include "assets/vfs.hpp"
@@ -28,6 +29,7 @@ private:
         platform::SdlContext sdl;
         settings::Registry settings;
         std::filesystem::path settingsFile;
+        Extensions extensions;
         assets::Vfs vfs;
         audio::Mixer mixer;
         platform::Window window;
@@ -44,6 +46,7 @@ private:
     platform::SdlContext sdl_;
     settings::Registry settings_;
     std::filesystem::path settingsFile_;
+    Extensions extensions_;
     assets::Vfs vfs_;
     audio::Mixer mixer_;
     platform::Window window_;
