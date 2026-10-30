@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <map>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -11,6 +12,7 @@
 #include "assets/image_asset.hpp"
 #include "assets/loader_pool.hpp"
 #include "assets/material_library.hpp"
+#include "assets/model_files.hpp"
 #include "assets/texture_database.hpp"
 #include "assets/vfs.hpp"
 #include "assets/world_database.hpp"
@@ -34,6 +36,8 @@ struct TrackAssets {
     std::vector<std::string> missingTextures;
 };
 
+class NameResolver;
+
 /// Main thread only. `vfs` and `pool` must outlive the loader.
 class TrackLoader {
 public:
@@ -43,10 +47,20 @@ public:
     /// `GAMEDATA/COMMON`.
     [[nodiscard]] Result<TrackAssets> Load(std::string_view folder);
 
+    /// Looks names up as `Load` does, without any worlds, skipping empty ones.
+    [[nodiscard]] Result<TrackAssets> LoadModels(std::string_view folder,
+                                                 std::span<const ModelFiles> models);
+
     /// Drops cached files that no loaded track still uses.
     void Prune();
 
 private:
+    struct Names;
+
+    [[nodiscard]] Result<TrackAssets> LoadNamed(const NameResolver& resolver,
+                                                std::vector<AssetCache<WorldAsset>::Handle> worlds,
+                                                const Names& names);
+
     const Vfs* vfs_;
     LoaderPool* pool_;
     AssetCache<WorldAsset> worlds_;

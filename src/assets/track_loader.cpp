@@ -74,6 +74,8 @@ Result<NameSet> ListFiles(const Vfs& vfs, std::string_view folder) {
     });
 }
 
+}
+
 // NOLINTNEXTLINE(bugprone-exception-escape)
 class NameResolver {
 public:
@@ -132,6 +134,8 @@ private:
     NameSet local_;
     NameSet common_;
 };
+
+namespace {
 
 struct Loading {
     const Vfs* vfs = nullptr;
@@ -257,44 +261,65 @@ Result<NameMap<AssetCache<ImageAsset>::Handle>> LoadTextures(
         });
 }
 
+void InsertUpper(NameSet& names, std::string_view name) {
+    if (!name.empty()) {
+        names.insert(ToUpperAscii(name));
+    }
+}
+
+void InsertAllUpper(NameSet& names, std::span<const std::string> source) {
+    for (const std::string& name : source) {
+        InsertUpper(names, name);
+    }
+}
+
+}
+
 // NOLINTNEXTLINE(bugprone-exception-escape)
-struct WorldNames {
+struct TrackLoader::Names {
     NameSet models;
     NameSet materialLibraries;
     NameSet textureDatabases;
 };
-
-WorldNames CollectNames(const Handles<WorldAsset>& worlds) {
-    WorldNames names;
-    for (const AssetCache<WorldAsset>::Handle& world : worlds) {
-        for (const std::string& model : world->models) {
-            names.models.insert(ToUpperAscii(model));
-        }
-        for (const std::string& library : world->materialLibraries) {
-            names.materialLibraries.insert(ToUpperAscii(library));
-        }
-        for (const std::string& database : world->textureLists) {
-            names.textureDatabases.insert(ToUpperAscii(database));
-        }
-    }
-    return names;
-}
-
-}
 
 Result<TrackAssets> TrackLoader::Load(std::string_view folder) {
     Result<NameResolver> resolver = NameResolver::Create(*vfs_, folder);
     if (!resolver) {
         return std::unexpected(std::move(resolver.error()));
     }
-    const Loading loading{.vfs = vfs_, .pool = pool_, .resolver = &*resolver};
     Result<Handles<WorldAsset>> worlds = LoadAll<WorldAsset>(
         *vfs_, *pool_, worlds_, resolver->LocalFilesWithExtension(".WDB"),
         [](std::size_t, std::span<const std::byte> bytes) { return ParseWorld(bytes); });
     if (!worlds) {
         return std::unexpected(std::move(worlds.error()));
     }
-    const WorldNames names = CollectNames(*worlds);
+    Names names;
+    for (const AssetCache<WorldAsset>::Handle& world : *worlds) {
+        InsertAllUpper(names.models, world->models);
+        InsertAllUpper(names.materialLibraries, world->materialLibraries);
+        InsertAllUpper(names.textureDatabases, world->textureLists);
+    }
+    return LoadNamed(*resolver, std::move(*worlds), names);
+}
+
+Result<TrackAssets> TrackLoader::LoadModels(std::string_view folder,
+                                            std::span<const ModelFiles> models) {
+    Result<NameResolver> resolver = NameResolver::Create(*vfs_, folder);
+    if (!resolver) {
+        return std::unexpected(std::move(resolver.error()));
+    }
+    Names names;
+    for (const ModelFiles& files : models) {
+        InsertUpper(names.models, files.geometry);
+        InsertUpper(names.materialLibraries, files.materials);
+        InsertUpper(names.textureDatabases, files.textures);
+    }
+    return LoadNamed(*resolver, {}, names);
+}
+
+Result<TrackAssets> TrackLoader::LoadNamed(const NameResolver& resolver, Handles<WorldAsset> worlds,
+                                           const Names& names) {
+    const Loading loading{.vfs = vfs_, .pool = pool_, .resolver = &resolver};
     Result<NameMap<AssetCache<GeometryAsset>::Handle>> models =
         LoadByName<GeometryAsset>(loading, models_, names.models, ".GDB", ParseGeometry);
     Result<NameMap<MaterialAsset>> materials = models.and_then([&](const auto&) {
@@ -308,7 +333,7 @@ Result<TrackAssets> TrackLoader::Load(std::string_view folder) {
     if (!textures) {
         return std::unexpected(std::move(textures.error()));
     }
-    return TrackAssets{.worlds = std::move(*worlds),
+    return TrackAssets{.worlds = std::move(worlds),
                        .models = std::move(*models),
                        .materials = std::move(*materials),
                        .textures = std::move(*textures),

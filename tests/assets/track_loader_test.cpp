@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -55,11 +56,14 @@ public:
 
     void Remove(std::string_view path) const { std::filesystem::remove(folder_.Path() / path); }
 
+    Result<void> Mount() {
+        return FolderLayer::Scan(folder_.Path()).transform([&](FolderLayer layer) {
+            vfs_.Mount(std::make_unique<FolderLayer>(std::move(layer)));
+        });
+    }
+
     Result<TrackAssets> Load() {
-        Result<FolderLayer> layer = FolderLayer::Scan(folder_.Path());
-        REQUIRE(layer.has_value());
-        vfs_.Mount(std::make_unique<FolderLayer>(std::move(*layer)));
-        return loader_.Load("gamedata/racex");
+        return Mount().and_then([&] { return loader_.Load("gamedata/racex"); });
     }
 
 protected:
@@ -87,6 +91,21 @@ TEST_CASE_FIXTURE(TrackFixture, "loading a track again reuses the cached files")
     REQUIRE(second.has_value());
     CHECK(first->worlds.front() == second->worlds.front());
     CHECK(first->textures.at("WOOD") == second->textures.at("WOOD"));
+}
+
+TEST_CASE_FIXTURE(TrackFixture, "models load the files they name without worlds") {
+    Write("gamedata/common/car.mdb", OneEntryLibrary("Paint"));
+    const std::array models{ModelFiles{.materials = "car", .textures = "", .geometry = ""},
+                            ModelFiles{.materials = "mat", .textures = "tex", .geometry = ""}};
+
+    const Result<TrackAssets> loaded =
+        Mount().and_then([&] { return loader_.LoadModels("gamedata/racex", models); });
+
+    REQUIRE(loaded.has_value());
+    CHECK(loaded->worlds.empty());
+    CHECK(loaded->materials.contains("PAINT"));
+    CHECK(loaded->materials.contains("GLASS"));
+    CHECK(loaded->textures.contains("WOOD"));
 }
 
 TEST_CASE_FIXTURE(TrackFixture, "a missing texture file is skipped and named") {

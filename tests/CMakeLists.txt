@@ -12,6 +12,8 @@ add_executable(racers-rebuilt-tests
     app/race_status_test.cpp
     app/racer/animation_player_test.cpp
     app/racer/body_lean_test.cpp
+    app/racer/racer_assets_test.cpp
+    app/racer/racer_visuals_test.cpp
     app/racer/skeleton_pose_test.cpp
     app/racer_determinism_test.cpp
     app/replay_session_test.cpp
@@ -26,6 +28,7 @@ add_executable(racers-rebuilt-tests
     assets/byte_reader_test.cpp
     assets/car_survey_test.cpp
     assets/champion_database_test.cpp
+    assets/circuit_database_test.cpp
     assets/chassis_database_test.cpp
     assets/checkpoints_test.cpp
     assets/collision_mesh_test.cpp

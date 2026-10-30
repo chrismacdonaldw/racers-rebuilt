@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "app/chase_camera.hpp"
+#include "app/racer/racer_grid.hpp"
 #include "app/scene.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
@@ -57,7 +58,7 @@ private:
         render::Renderer* renderer = nullptr;
         std::string track;
         std::vector<render::MeshDraw> trackDraws;
-        std::vector<render::MeshDraw> carDraws;
+        RacerGrid racers;
         render::Camera camera;
         std::unique_ptr<sim::RaceTrack> raceTrack;
         std::unique_ptr<sim::WorldList> world;
@@ -79,6 +80,7 @@ private:
     std::string status_;
     bool showsCheckpoints_ = false;
     bool showsCollision_ = false;
+    std::optional<Nanoseconds> lastRender_;
     bool hasDrawn_ = false;
 };
 

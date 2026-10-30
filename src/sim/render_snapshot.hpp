@@ -37,10 +37,20 @@ struct CameraSnapshot {
     friend bool operator==(const CameraSnapshot&, const CameraSnapshot&) = default;
 };
 
+/// `turnRadius` is in world units, positive turning left and 0 when driving straight.
+struct RacerSnapshot {
+    EntityId id{};
+    float forwardSpeed = 0.0F;
+    float turnRadius = 0.0F;
+
+    friend bool operator==(const RacerSnapshot&, const RacerSnapshot&) = default;
+};
+
 /// `entities` stays sorted by id. Reuse a snapshot between ticks so its storage isn't reallocated.
 struct RenderSnapshot {
     std::uint64_t tick = 0;
     std::vector<EntitySnapshot> entities;
+    std::vector<RacerSnapshot> racers;
     CameraSnapshot camera;
     std::uint64_t simStateHash = 0;
 

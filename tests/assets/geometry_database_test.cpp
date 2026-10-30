@@ -66,9 +66,10 @@ TEST_CASE("triangles draw through the vertex cache") {
     REQUIRE(geometry.has_value());
     CHECK(geometry->materials == std::vector<std::string>{"a", "b"});
     CHECK(geometry->indices == std::vector<std::uint32_t>{0, 1, 2, 2, 1, 0});
-    CHECK(geometry->ranges ==
-          std::vector<GeometryRange>{{.firstIndex = 0, .indexCount = 3, .material = 0},
-                                     {.firstIndex = 3, .indexCount = 3, .material = 1}});
+    CHECK(geometry->ranges == std::vector<GeometryRange>{
+                                  {.firstIndex = 0, .indexCount = 3, .material = 0, .joint = 7},
+                                  {.firstIndex = 3, .indexCount = 3, .material = 1, .joint = 7}});
+    CHECK(geometry->scale == 2.0F);
     REQUIRE(geometry->vertices.size() == 3);
     const GeometryVertex& vertex = geometry->vertices[1];
     CHECK(vertex.position == Vector3{.x = 2.0F});
@@ -85,6 +86,17 @@ TEST_CASE("draws with the same material share a range") {
     REQUIRE(geometry.has_value());
     CHECK(geometry->ranges ==
           std::vector<GeometryRange>{{.firstIndex = 0, .indexCount = 6, .material = 0}});
+}
+
+TEST_CASE("triangles under another joint start a new range") {
+    const Result<GeometryAsset> geometry =
+        ParseModel(4, Join({Bytes({0x31}), Ints({5, 1, 2}), Bytes({0x32}), Ints({2}), Bytes({0x31}),
+                            Ints({4, 0, 1}), Bytes({0x2D}), Ints({0, 2})}));
+
+    REQUIRE(geometry.has_value());
+    CHECK(geometry->ranges == std::vector<GeometryRange>{
+                                  {.firstIndex = 0, .indexCount = 3, .material = 0, .joint = 2},
+                                  {.firstIndex = 3, .indexCount = 3, .material = 0, .joint = 0}});
 }
 
 TEST_CASE("a corner on an empty cache slot fails") {
