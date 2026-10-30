@@ -121,6 +121,8 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `audio.voice_volume` | `1.0` | `0.0` to `1.0` |
 | `enhancements.free_camera` | `false` | `true`, `false` |
 | `enhancements.free_camera_speed` | `40.0` | `1.0` to `400.0` |
+| `race.respawn` | `true` | `true`, `false`. Puts a racer back on the track after it falls off or stays in the air too long. Applies from the next race. |
+| `race.respawn_seconds` | `3` | `1` to `30`. Seconds in the air before a respawn. Applies from the next race. |
 | `mods.<id>.enabled` | The mod's `enabled` value | `true`, `false` |
 | `input.keys.<action>` | See below | Comma-separated SDL key names, such as `Up,W` or `Left Shift` |
 | `input.buttons.<action>` | See below | Comma-separated SDL gamepad names: buttons such as `a` or `dpleft`, or `lefttrigger` and `righttrigger` |
@@ -157,6 +159,7 @@ Out-of-range values are clamped. Unknown keys are kept when the file is saved.
 | `--game-path <folder>` | Use this LEGO Racers folder and skip detection |
 | `--set <key>=<value>` | Override a setting for this run only. Repeatable. |
 | `--track <folder>` | Open a race track instead of the test scene, by its `GAMEDATA` folder, e.g. `RACEC0R0` |
+| `--race <folder>` | Start a race on a track instead of the test scene, by its `GAMEDATA` folder. Can't be combined with `--track`. |
 
 ```powershell
 .\racers-rebuilt.exe --set video.vsync=false --set video.fps_cap=60

@@ -18,6 +18,10 @@ using assets::NameMap;
 constexpr float kColorKeyCutoff = 0.5F;
 constexpr float kBlendedCutoff = 1.0F / 255.0F;
 constexpr float kChannelMax = 255.0F;
+constexpr float kNearPlaneRadii = 0.001F;
+constexpr float kFarPlaneRadii = 8.0F;
+constexpr std::string_view kStandInCarFolder = "MENUDATA/CIRCUIT1";
+constexpr std::string_view kStandInCarModel = "CR_CAR";
 
 struct UploadedModel {
     render::MeshId mesh{};
@@ -223,6 +227,24 @@ Result<std::vector<render::MeshDraw>> UploadModel(render::Renderer& renderer,
     std::vector<render::MeshDraw> draws;
     AppendDraws(draws, uploaded->begin()->second, ToRenderMaterials(materials, *textures), {});
     return draws;
+}
+
+Result<std::vector<render::MeshDraw>> UploadStandInCar(render::Renderer& renderer,
+                                                       assets::TrackLoader& loader) {
+    return loader.Load(kStandInCarFolder).and_then([&](const assets::TrackAssets& assets) {
+        return UploadModel(renderer, assets, kStandInCarModel);
+    });
+}
+
+render::Camera TrackCamera(const Bounds& bounds) {
+    const Vector3 size{.x = bounds.max.x - bounds.min.x,
+                       .y = bounds.max.y - bounds.min.y,
+                       .z = bounds.max.z - bounds.min.z};
+    const float radius = Length(size) / 2.0F;
+    render::Camera camera;
+    camera.nearPlane = radius * kNearPlaneRadii;
+    camera.farPlane = radius * kFarPlaneRadii;
+    return camera;
 }
 
 }

@@ -12,6 +12,9 @@ namespace rr::app {
 [[nodiscard]] Transform PlacementToEngine(const Vector3& position, const Vector3& forward,
                                           const Vector3& up);
 
+/// A game-space pose with +X forward, as the engine-space pose of a model that faces game +Y.
+[[nodiscard]] Transform CarToEngine(const Transform& game);
+
 [[nodiscard]] Transform LookAt(const Vector3& eye, const Vector3& target);
 
 struct Bounds {

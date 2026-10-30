@@ -13,19 +13,6 @@
 namespace rr::app {
 namespace {
 
-constexpr float kChaseDistance = 7.0F;
-constexpr float kChaseHeight = 3.0F;
-constexpr float kLookHeight = 1.0F;
-constexpr float kChaseBlend = 0.1F;
-
-Vector3 Raised(const Vector3& point, float height) {
-    return {.x = point.x, .y = point.y + height, .z = point.z};
-}
-
-Vector3 ChaseSpot(const Transform& car) {
-    return Raised(Apply(car, ToEngine({.y = -kChaseDistance})), kChaseHeight);
-}
-
 bool IsRoute(const assets::VfsEntry& entry) {
     return entry.kind == assets::EntryKind::File &&
            assets::ToUpperAscii(entry.name).ends_with(".RRB");
@@ -47,23 +34,19 @@ Result<assets::RaceRoute> LoadPaceRoute(const assets::Vfs& vfs, std::string_view
             [](const assets::FileData& file) { return assets::ParseRaceRoute(file.Bytes()); });
 }
 
-PaceCar::PaceCar(assets::RaceRoute route)
-    : playback_(std::move(route)), cameraPosition_(ChaseSpot(Car())) {}
+PaceCar::PaceCar(assets::RaceRoute route) : playback_(std::move(route)), camera_(Car()) {}
 
 void PaceCar::Tick() {
     playback_.Advance(kSimTick);
-    cameraPosition_ = Lerp(cameraPosition_, ChaseSpot(Car()), kChaseBlend);
+    camera_.Follow(Car());
 }
 
 Transform PaceCar::Car() const {
-    const Transform game = playback_.Pose();
-    const Vector3 right = Apply({.rotation = game.rotation}, {.y = -1.0F});
-    const Vector3 up = Apply({.rotation = game.rotation}, {.z = 1.0F});
-    return PlacementToEngine(game.position, right, up);
+    return CarToEngine(playback_.Pose());
 }
 
 Transform PaceCar::Camera() const {
-    return LookAt(cameraPosition_, Raised(Car().position, kLookHeight));
+    return camera_.Pose(Car());
 }
 
 }

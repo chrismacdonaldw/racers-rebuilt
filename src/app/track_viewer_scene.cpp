@@ -20,23 +20,7 @@
 namespace rr::app {
 namespace {
 
-constexpr float kNearPlaneRadii = 0.001F;
-constexpr float kFarPlaneRadii = 8.0F;
-constexpr std::string_view kPaceCarFolder = "MENUDATA/CIRCUIT1";
-constexpr std::string_view kPaceCarModel = "CR_CAR";
 constexpr sim::EntityId kPaceCarId{1};
-
-render::Camera CameraFor(const Bounds& bounds) {
-    const Vector3 size{.x = bounds.max.x - bounds.min.x,
-                       .y = bounds.max.y - bounds.min.y,
-                       .z = bounds.max.z - bounds.min.z};
-    const float radius =
-        std::sqrt((size.x * size.x) + (size.y * size.y) + (size.z * size.z)) / 2.0F;
-    render::Camera camera;
-    camera.nearPlane = radius * kNearPlaneRadii;
-    camera.farPlane = radius * kFarPlaneRadii;
-    return camera;
-}
 
 std::vector<render::DebugLine> CollisionLines(const assets::Vfs& vfs, std::string_view track) {
     const Result<sim::TrackCollision> collision = sim::LoadTrackCollision(vfs, track);
@@ -45,13 +29,6 @@ std::vector<render::DebugLine> CollisionLines(const assets::Vfs& vfs, std::strin
         return {};
     }
     return BuildCollisionWireframe(*collision);
-}
-
-Result<std::vector<render::MeshDraw>> UploadPaceCar(render::Renderer& renderer,
-                                                    assets::TrackLoader& loader) {
-    return loader.Load(kPaceCarFolder).and_then([&](const assets::TrackAssets& assets) {
-        return UploadModel(renderer, assets, kPaceCarModel);
-    });
 }
 
 }
@@ -65,7 +42,7 @@ Result<std::unique_ptr<TrackViewerScene>> TrackViewerScene::Create(render::Rende
     Result<TrackModel> model = loader.Load(folder).and_then(
         [&](const assets::TrackAssets& assets) { return UploadTrack(renderer, assets); });
     Result<std::vector<render::MeshDraw>> car =
-        model.and_then([&](const TrackModel&) { return UploadPaceCar(renderer, loader); });
+        model.and_then([&](const TrackModel&) { return UploadStandInCar(renderer, loader); });
     Result<assets::RaceRoute> route = car.and_then(
         [&](const std::vector<render::MeshDraw>&) { return LoadPaceRoute(vfs, folder); });
     if (!route) {
@@ -89,7 +66,7 @@ Result<std::unique_ptr<TrackViewerScene>> TrackViewerScene::Create(render::Rende
                               .draws = std::move(model->draws),
                               .firstCarDraw = firstCarDraw,
                               .paceCar = PaceCar(std::move(*route)),
-                              .camera = CameraFor(model->bounds),
+                              .camera = TrackCamera(model->bounds),
                               .collisionLines = CollisionLines(vfs, track),
                               .started = started,
                               .checkpoints = std::move(checkpoints)}));

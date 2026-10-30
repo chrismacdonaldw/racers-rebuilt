@@ -6,6 +6,7 @@
 #include "app/track_space.hpp"
 #include "assets/track_loader.hpp"
 #include "core/result.hpp"
+#include "render/camera.hpp"
 #include "render/renderer.hpp"
 
 namespace rr::app {
@@ -23,5 +24,12 @@ struct TrackModel {
 [[nodiscard]] Result<std::vector<render::MeshDraw>> UploadModel(render::Renderer& renderer,
                                                                 const assets::TrackAssets& assets,
                                                                 std::string_view name);
+
+/// A menu car that stands in for racer models, facing game +Y.
+[[nodiscard]] Result<std::vector<render::MeshDraw>> UploadStandInCar(render::Renderer& renderer,
+                                                                     assets::TrackLoader& loader);
+
+/// Clip planes that fit a track of this size.
+[[nodiscard]] render::Camera TrackCamera(const Bounds& bounds);
 
 }

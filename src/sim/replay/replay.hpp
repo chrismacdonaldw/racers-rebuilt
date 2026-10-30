@@ -13,7 +13,7 @@ namespace rr::sim {
 
 inline constexpr std::uint16_t kReplayFormatVersion = 2;
 
-/// `scene` names what was running: a track folder, or empty for the test scene.
+/// `scene` is the name of the scene that ran, or empty for the test scene.
 struct Replay {
     std::string buildVersion;
     std::string scene;

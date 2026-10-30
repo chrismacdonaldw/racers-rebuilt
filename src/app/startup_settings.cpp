@@ -7,6 +7,7 @@
 #include "app/collision_wireframe.hpp"
 #include "app/game_settings.hpp"
 #include "app/input_bindings.hpp"
+#include "app/race_settings.hpp"
 #include "app/video_settings.hpp"
 #include "core/assert.hpp"
 #include "core/log.hpp"
@@ -22,6 +23,7 @@ settings::Registry DeclaredRegistry(const Extensions& extensions) {
     DeclareVideoSettings(registry);
     DeclareInputSettings(registry);
     registry.Declare(kShowCheckpoints);
+    DeclareRaceSettings(registry);
     DeclareDeveloperSettings(registry);
     DeclareExtensionSettings(extensions, registry);
     return registry;

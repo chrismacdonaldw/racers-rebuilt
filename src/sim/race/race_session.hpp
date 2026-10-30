@@ -45,6 +45,9 @@ public:
     [[nodiscard]] const RaceProgress& Progress() const { return progress_; }
     [[nodiscard]] Random& Rng() { return random_; }
 
+    /// Whether the last `Tick` respawned `racer`.
+    [[nodiscard]] bool WasRespawned(std::size_t racer) const { return wasRespawned_.at(racer); }
+
 private:
     RaceSession(const RaceSetup& setup, const RaceCourse& course);
 
@@ -57,6 +60,7 @@ private:
     std::vector<bool> isPlayer_;
     std::vector<Racer> racers_;
     std::vector<RespawnWatch> respawns_;
+    std::vector<bool> wasRespawned_;
     std::vector<Vector3> positions_;
     RaceProgress progress_;
     RaceClock clock_;
