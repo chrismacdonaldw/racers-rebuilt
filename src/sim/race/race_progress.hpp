@@ -19,7 +19,6 @@ struct RacerMove {
     Vector3 facing;
 };
 
-/// `lapGap` is how far the racer trailed the leader when it last started a lap.
 struct RacerProgress {
     LapTracker laps;
     std::vector<Milliseconds> lapTimes;

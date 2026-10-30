@@ -21,8 +21,7 @@ namespace rr::app {
 /// One racer's HUD in the chosen language, ready to draw.
 class RaceHudLayer {
 public:
-    /// `nameIndexes` holds each racer's line in `DRIVERS.SRF`. `renderer` and `vfs` must outlive
-    /// the layer.
+    /// `nameIndexes` are lines in `DRIVERS.SRF`. `renderer` and `vfs` must outlive the layer.
     RaceHudLayer(render::Renderer& renderer, const assets::Vfs& vfs, std::size_t racer,
                  std::vector<std::int32_t> nameIndexes);
 
