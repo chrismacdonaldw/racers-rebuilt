@@ -1,0 +1,43 @@
+#include "app/hud/hud_strings.hpp"
+
+#include <doctest/doctest.h>
+
+#include <cstddef>
+#include <string>
+#include <vector>
+
+namespace rr::app {
+namespace {
+
+std::vector<std::u16string> NumberedStrings(std::size_t count) {
+    std::vector<std::u16string> strings;
+    strings.reserve(count);
+    for (std::size_t i = 0; i < count; ++i) {
+        strings.emplace_back(1, static_cast<char16_t>(u'A' + i));
+    }
+    return strings;
+}
+
+TEST_CASE("HUD labels come from their game string slots") {
+    const std::vector<std::u16string> game = NumberedStrings(0x2E);
+
+    const Result<HudStrings> strings = ReadHudStrings(game);
+
+    REQUIRE(strings.has_value());
+    CHECK(strings->placeSuffixes.front() == game[0x19]);
+    CHECK(strings->placeSuffixes.back() == game[0x20]);
+    CHECK(strings->wrongWay == game[0x24]);
+    CHECK(strings->best == game[0x25]);
+    CHECK(strings->lap == game[0x27]);
+    CHECK(strings->finish == game[0x28]);
+    CHECK(strings->go == game[0x29]);
+    CHECK(strings->finished == game[0x2A]);
+    CHECK(strings->stillRacing == game[0x2B]);
+}
+
+TEST_CASE("a game string table without every HUD label fails") {
+    CHECK_FALSE(ReadHudStrings(NumberedStrings(0x2B)).has_value());
+}
+
+}
+}
