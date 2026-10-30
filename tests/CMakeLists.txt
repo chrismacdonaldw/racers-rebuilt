@@ -3,6 +3,13 @@ add_executable(racers-rebuilt-tests
     app/checkpoint_gates_test.cpp
     app/collision_wireframe_test.cpp
     app/frame_loop_test.cpp
+    app/hud/hud_strings_test.cpp
+    app/hud/place_pulse_test.cpp
+    app/hud/race_hud_session_test.cpp
+    app/hud/race_hud_test.cpp
+    app/hud/race_hud_values_test.cpp
+    app/hud/race_results_test.cpp
+    app/hud/race_time_text_test.cpp
     app/free_camera_test.cpp
     app/input_bindings_test.cpp
     app/install_discovery_test.cpp

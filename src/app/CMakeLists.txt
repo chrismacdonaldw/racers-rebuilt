@@ -10,6 +10,12 @@ rr_add_module(app
         frame_loop.cpp
         free_camera.cpp
         game_boot.cpp
+        hud/hud_strings.cpp
+        hud/place_pulse.cpp
+        hud/race_hud.cpp
+        hud/race_hud_values.cpp
+        hud/race_results.cpp
+        hud/race_time_text.cpp
         image_dump.cpp
         input_bindings.cpp
         install_discovery.cpp
