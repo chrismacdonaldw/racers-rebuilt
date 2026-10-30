@@ -6,6 +6,7 @@
 #include <string_view>
 #include <utility>
 
+#include "assets/color_key_field.hpp"
 #include "assets/token_schema.hpp"
 
 namespace rr::assets {
@@ -15,31 +16,28 @@ constexpr FieldId kTextureField = 0x27;
 constexpr std::size_t kBytesPerPixel = 4;
 constexpr std::size_t kAlphaOffset = 3;
 
-Result<void> ReadColorKey(TokenReader& reader, TextureDefinition& texture) {
-    ColorKey& key = texture.colorKey.emplace();
-    for (std::uint8_t* channel : {&key.red, &key.green, &key.blue}) {
-        Result<void> read = ReadValue(reader, *channel);
-        if (!read) {
-            return read;
-        }
-    }
-    return {};
-}
-
 constexpr std::array kTextureFields{
     Field<&TextureDefinition::flipsVertically>(0x28),
     Field<&TextureDefinition::mipmapCount>(0x29),
     FlagField<&TextureDefinition::fileKind, TextureFileKind::Bmp>(0x2A),
     FlagField<&TextureDefinition::fileKind, TextureFileKind::Tga>(0x2B),
-    FieldRule<TextureDefinition>{.id = 0x2C, .read = ReadColorKey},
+    Field<&TextureDefinition::colorKey>(0x2C),
     Field<&TextureDefinition::hasFlag2D>(0x2D),
     Field<&TextureDefinition::hasFlag2E>(0x2E),
 };
 
 }
 
+Result<void> ReadValue(TokenReader& reader, ColorKey& key) {
+    return ReadMembers<&ColorKey::red, &ColorKey::green, &ColorKey::blue>(reader, key);
+}
+
+std::string ImageFileName(std::string_view name, TextureFileKind kind) {
+    return std::format("{}.{}", name, kind == TextureFileKind::Bmp ? "BMP" : "TGA");
+}
+
 std::string TextureDefinition::FileName() const {
-    return std::format("{}.{}", name, fileKind == TextureFileKind::Bmp ? "BMP" : "TGA");
+    return ImageFileName(name, fileKind);
 }
 
 Result<std::vector<TextureDefinition>> ParseTextureDatabase(std::span<const std::byte> bytes) {

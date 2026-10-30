@@ -30,8 +30,10 @@ add_executable(racers-rebuilt-tests
     assets/checkpoints_test.cpp
     assets/collision_mesh_test.cpp
     assets/driver_database_test.cpp
+    assets/font_list_test.cpp
     assets/game_path_test.cpp
     assets/geometry_database_test.cpp
+    assets/image_list_test.cpp
     assets/image_survey_test.cpp
     assets/install_test.cpp
     assets/jam_archive_test.cpp
@@ -39,11 +41,13 @@ add_executable(racers-rebuilt-tests
     assets/loader_pool_test.cpp
     assets/lzss_test.cpp
     assets/material_library_test.cpp
+    assets/menu_layout_test.cpp
     assets/model_survey_test.cpp
     assets/race_route_test.cpp
     assets/racer_catalog_test.cpp
     assets/skeleton_database_test.cpp
     assets/start_grid_test.cpp
+    assets/string_table_test.cpp
     assets/surface_table_test.cpp
     assets/texture_database_test.cpp
     assets/tga_image_test.cpp

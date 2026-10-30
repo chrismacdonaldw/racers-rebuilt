@@ -9,20 +9,24 @@ rr_add_module(assets
         collision_mesh.cpp
         driver_database.cpp
         folder_layer.cpp
+        font_list.cpp
         game_path.cpp
         geometry_database.cpp
+        image_list.cpp
         install.cpp
         jam.cpp
         jam_archive.cpp
         loader_pool.cpp
         lzss.cpp
         material_library.cpp
+        menu_layout.cpp
         path_index.cpp
         race_route.cpp
         racer_catalog.cpp
         skeleton_database.cpp
         stored_rotation.cpp
         start_grid.cpp
+        string_table.cpp
         surface_table.cpp
         texture_database.cpp
         tga_image.cpp

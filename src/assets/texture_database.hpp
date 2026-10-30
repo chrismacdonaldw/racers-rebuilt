@@ -5,6 +5,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "assets/image_asset.hpp"
@@ -24,6 +25,8 @@ struct ColorKey {
 
     friend constexpr bool operator==(const ColorKey&, const ColorKey&) = default;
 };
+
+[[nodiscard]] std::string ImageFileName(std::string_view name, TextureFileKind kind);
 
 struct TextureDefinition {
     std::string name;
