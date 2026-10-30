@@ -5,6 +5,7 @@
 
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
+#include "sim/ai/route_choice.hpp"
 #include "sim/collision/track_collision.hpp"
 #include "sim/physics/racer.hpp"
 #include "sim/race/checkpoint_graph.hpp"
@@ -15,6 +16,7 @@ struct RaceTrack {
     TrackCollision collision;
     CheckpointGraph checkpoints;
     std::vector<RacerStart> grid;
+    GridRoutes routes;
     float lowestTrackZ = 0.0F;
 };
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <span>
 #include <string>
 #include <string_view>
@@ -15,8 +16,14 @@ namespace rr::sim {
 [[nodiscard]] std::vector<std::string> SlotRoutes(std::span<const assets::VfsEntry> folder,
                                                   int slot);
 
+/// Every route each grid slot may drive, indexed by slot.
+using GridRoutes = std::vector<std::vector<assets::RaceRoute>>;
+
 /// `track` is a race track folder under `GAMEDATA`, such as `RACEC0R0`.
 [[nodiscard]] Result<assets::RaceRoute> LoadRoute(const assets::Vfs& vfs, std::string_view track,
                                                   std::string_view name, bool isMirrored);
+
+[[nodiscard]] Result<GridRoutes> LoadGridRoutes(const assets::Vfs& vfs, std::string_view track,
+                                                std::size_t slotCount, bool isMirrored);
 
 }

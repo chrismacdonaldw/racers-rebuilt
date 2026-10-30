@@ -7,6 +7,8 @@
 #include "core/duration.hpp"
 #include "core/result.hpp"
 #include "core/vector3.hpp"
+#include "sim/ai/route_choice.hpp"
+#include "sim/ai/rubber_band.hpp"
 #include "sim/physics/collision_query.hpp"
 #include "sim/physics/racer.hpp"
 #include "sim/physics/racer_controls.hpp"
@@ -25,6 +27,8 @@ struct RaceCourse {
     std::span<const RacerStart> grid;
     const CollisionQuery* world = nullptr;
     float lowestTrackZ = 0.0F;
+    const GridRoutes* routes = nullptr;
+    bool isMirrored = false;
 };
 
 class RaceSession {
@@ -45,6 +49,7 @@ private:
     RaceSession(const RaceSetup& setup, const RaceCourse& course);
 
     void TickRacer(std::size_t racer, Milliseconds elapsed, const RacerControls& controls);
+    void PaceRoutes(Milliseconds elapsed);
     [[nodiscard]] bool HasPlayerFinished() const;
 
     RaceCourse course_;
@@ -56,6 +61,9 @@ private:
     RaceProgress progress_;
     RaceClock clock_;
     Random random_;
+    RubberBand rubberBand_;
+    std::vector<PacedRacer> paced_;
+    std::vector<float> routeSpeeds_;
 };
 
 }

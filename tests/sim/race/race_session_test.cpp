@@ -4,9 +4,11 @@
 
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <optional>
 #include <vector>
 
+#include "../ai/straight_route.hpp"
 #include "../physics/plane_world.hpp"
 #include "checkpoint_ring.hpp"
 
@@ -17,16 +19,23 @@ constexpr Milliseconds kTick{12};
 constexpr ChassisSpec kChassis{.handling = 50, .topSpeed = 50, .acceleration = 50};
 constexpr RacerControls kThrottle{.isThrottleHeld = true};
 constexpr float kHighUp = 300.0F;
+constexpr Vector3 kRouteStart{.x = -21.0F, .y = -10.0F, .z = 0.2F};
+constexpr int kTicksTo15Seconds = 1250;
 
 struct Fixture {
     CheckpointGraph graph = test::Ring();
     test::PlaneWorld world = test::FlatGround();
     std::array<RacerStart, 2> grid{RacerStart{.position = {.x = -20.0F, .z = 0.2F}},
                                    RacerStart{.position = {.x = -20.0F, .y = -10.0F, .z = 0.2F}}};
+    GridRoutes routes{{test::StraightRoute({.x = -21.0F, .z = 0.2F})},
+                      {test::StraightRoute(kRouteStart)}};
 
     [[nodiscard]] RaceSession Start(const RaceSetup& setup) const {
-        Result<RaceSession> session = RaceSession::Create(
-            setup, {.checkpoints = &graph, .grid = grid, .world = &world, .lowestTrackZ = -100.0F});
+        Result<RaceSession> session = RaceSession::Create(setup, {.checkpoints = &graph,
+                                                                  .grid = grid,
+                                                                  .world = &world,
+                                                                  .lowestTrackZ = -100.0F,
+                                                                  .routes = &routes});
         REQUIRE(session.has_value());
         return std::move(*session);
     }
@@ -107,6 +116,62 @@ TEST_CASE("a race needs a grid slot for every racer") {
     CHECK_FALSE(RaceSession::Create(
                     setup, {.checkpoints = &graph, .grid = fixture.grid, .world = &fixture.world})
                     .has_value());
+}
+
+TEST_CASE("a computer racer drives a route from its slot once racing starts") {
+    const Fixture fixture;
+    RaceSession session = fixture.Start(TwoRacers());
+
+    RunUntilRacing(session);
+    CHECK(session.Racers()[1].Body().motion.position == kRouteStart);
+    CHECK_FALSE(session.Racers()[0].Route().has_value());
+
+    Run(session, 300);
+
+    CHECK(session.Racers()[1].Body().motion.position.x == doctest::Approx(15.0F));
+    CHECK(session.Progress().OfRacer(1).laps.LastCheckpoint() == 1);
+}
+
+TEST_CASE("the session's seeded random picks each computer racer's route") {
+    constexpr std::uint64_t kSeed = 7;
+    Fixture fixture;
+    fixture.routes[1] = {test::StraightRoute({.y = 1.0F}), test::StraightRoute({.y = 2.0F}),
+                         test::StraightRoute({.y = 3.0F})};
+    RaceSetup setup = TwoRacers();
+    setup.seed = kSeed;
+
+    const RaceSession session = fixture.Start(setup);
+
+    Random random(kSeed);
+    const auto expected = static_cast<float>(random.Below(3) + 1);
+    CHECK(session.Racers()[1].Body().motion.position.y == expected);
+}
+
+TEST_CASE("after 15 s the rubber band slows a computer racer leading the player") {
+    const Fixture fixture;
+    RaceSession session = fixture.Start(TwoRacers());
+    const auto speed = [&] {
+        return session.Racers()[1]
+            .Route()
+            .transform([](const AiRacer& route) { return route.PlaybackSpeed(); })
+            .value_or(0.0F);
+    };
+
+    Run(session, kTicksTo15Seconds, {});
+    CHECK(speed() == 1.0F);
+
+    Run(session, 10, {});
+    CHECK(speed() == doctest::Approx(0.95F));
+}
+
+TEST_CASE("a computer racer on a route never respawns") {
+    Fixture fixture;
+    fixture.routes[1] = {test::StraightRoute({.y = -10.0F, .z = -kHighUp})};
+    RaceSession session = fixture.Start(TwoRacers({.timeout = Milliseconds{1000}}));
+
+    Run(session, 92);
+
+    CHECK(session.Racers()[1].Body().motion.position.z == -kHighUp);
 }
 
 }
