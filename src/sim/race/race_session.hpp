@@ -16,6 +16,7 @@
 #include "sim/race/race_clock.hpp"
 #include "sim/race/race_progress.hpp"
 #include "sim/race/race_setup.hpp"
+#include "sim/race/race_sounds.hpp"
 #include "sim/race/random.hpp"
 #include "sim/race/respawn.hpp"
 
@@ -45,6 +46,9 @@ public:
     [[nodiscard]] const RaceProgress& Progress() const { return progress_; }
     [[nodiscard]] Random& Rng() { return random_; }
 
+    /// The sounds the last `Tick` set off.
+    [[nodiscard]] std::span<const SoundEvent> Sounds() const { return sounds_.Events(); }
+
     /// Whether the last `Tick` respawned `racer`.
     [[nodiscard]] bool WasRespawned(std::size_t racer) const { return wasRespawned_.at(racer); }
 
@@ -64,6 +68,7 @@ private:
     std::vector<Vector3> positions_;
     RaceProgress progress_;
     RaceClock clock_;
+    RaceSounds sounds_;
     Random random_;
     RubberBand rubberBand_;
     std::vector<PacedRacer> paced_;

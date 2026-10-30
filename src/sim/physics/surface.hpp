@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <optional>
+
 #include "core/vector3.hpp"
 
 namespace rr::sim {
@@ -11,6 +14,7 @@ struct Surface {
     float friction = 0.25F;
     float lateralGrip = 3.0F;
     Vector3 force;
+    std::optional<std::int32_t> soundId;
 
     friend constexpr bool operator==(const Surface&, const Surface&) = default;
 };

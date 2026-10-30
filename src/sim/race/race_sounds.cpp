@@ -1,0 +1,79 @@
+#include "sim/race/race_sounds.hpp"
+
+#include <algorithm>
+#include <array>
+
+#include "core/assert.hpp"
+
+namespace rr::sim {
+namespace {
+
+constexpr std::size_t kMostSoundsPerRacer = 6;
+constexpr std::size_t kMostRaceWideSounds = 2;
+constexpr std::array kLaterBeeps{Milliseconds{1000}, Milliseconds{2000}};
+constexpr Milliseconds kWallCooldown{250};
+
+bool HasCrossed(Milliseconds mark, const RaceClock& before, const RaceClock& after) {
+    return before.PhaseTime() < mark && after.PhaseTime() >= mark;
+}
+
+}
+
+RaceSounds::RaceSounds(std::size_t racerCount) : wallCooldowns_(racerCount) {
+    events_.reserve((racerCount * kMostSoundsPerRacer) + kMostRaceWideSounds);
+}
+
+void RaceSounds::BeginTick() {
+    events_.clear();
+}
+
+void RaceSounds::HearClock(const RaceClock& before, const RaceClock& after,
+                           const std::vector<bool>& isPlayer) {
+    if (before.Phase() == RacePhase::Intro && after.Phase() == RacePhase::Countdown) {
+        Add(RaceSound::CountdownBeep, 0);
+        for (std::size_t racer = 0; racer < isPlayer.size(); ++racer) {
+            if (isPlayer[racer]) {
+                Add(RaceSound::EngineStart, racer);
+            }
+        }
+    }
+    if (before.Phase() == RacePhase::Countdown && after.Phase() == RacePhase::Countdown &&
+        std::ranges::any_of(kLaterBeeps,
+                            [&](Milliseconds mark) { return HasCrossed(mark, before, after); })) {
+        Add(RaceSound::CountdownBeep, 0);
+    }
+    if (before.Phase() == RacePhase::Countdown && after.Phase() == RacePhase::Racing) {
+        Add(RaceSound::Go, 0);
+    }
+}
+
+void RaceSounds::HearRacer(std::size_t racer, const Racer& car, bool isPlayer, bool isRacing,
+                           Milliseconds elapsed) {
+    const RacerEvents& events = car.Events();
+    if (events.turboStarted) {
+        Add(RaceSound::TurboStart, racer, *events.turboStarted);
+    }
+    if (events.turboFaded) {
+        Add(RaceSound::TurboFade, racer, *events.turboFaded);
+    }
+    if (isPlayer && events.hasDriftStarted) {
+        Add(RaceSound::DriftStart, racer);
+    }
+    Milliseconds& cooldown = wallCooldowns_.at(racer);
+    cooldown = std::max(cooldown - elapsed, Milliseconds{0});
+    if (isRacing && car.Body().hasWallContact && cooldown == Milliseconds{0}) {
+        Add(RaceSound::WallHit, racer);
+        cooldown = kWallCooldown;
+    }
+}
+
+void RaceSounds::HearFinish(std::size_t racer) {
+    Add(RaceSound::Finish, racer);
+}
+
+void RaceSounds::Add(RaceSound sound, std::size_t racer, TurboLevel level) {
+    RR_ASSERT(events_.size() < events_.capacity());
+    events_.push_back({.sound = sound, .racer = static_cast<std::uint8_t>(racer), .level = level});
+}
+
+}

@@ -44,6 +44,7 @@ void Racer::Place(const RacerStart& start) {
 
 void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const CollisionQuery& world) {
     RR_ASSERT(elapsed > Milliseconds{0} && elapsed <= kMaxStep);
+    events_ = {};
     if (route_) {
         if (!startBoost_.State().isHeldAtStart) {
             route_->Tick(elapsed);
@@ -55,6 +56,7 @@ void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const Coll
     if (const std::optional<TurboLevel> boost = startBoost_.Update(controls, dtMs)) {
         StartTurbo(*boost);
     }
+    const bool wasDrifting = driver_.State().isDrifting;
     const RacerControls driven =
         startBoost_.State().isHeldAtStart ? SteeringOnly(controls) : controls;
     DriveCommand command = driver_.Update(driven, CanStartDrift(body_), dtMs);
@@ -63,6 +65,7 @@ void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const Coll
         command.isDrifting = false;
         command.isHardDrift = false;
     }
+    events_.hasDriftStarted = command.isDrifting && !wasDrifting;
     if (turbo_ && body_.hasWallContact) {
         turbo_->hasTouchedWall = true;
     }
@@ -94,12 +97,19 @@ void Racer::SetRouteSpeed(float speed) {
 
 void Racer::StartTurbo(TurboLevel level) {
     turbo_ = sim::StartTurbo(body_, constants_, stats_, level);
+    events_.turboStarted = level;
 }
 
 void Racer::UpdateTurbo(int dtMs) {
-    if (turbo_ && !AdvanceTurbo(*turbo_, dtMs)) {
+    if (!turbo_) {
+        return;
+    }
+    const TurboPhase phase = turbo_->phase;
+    if (!AdvanceTurbo(*turbo_, dtMs)) {
         turbo_.reset();
         EndTurbo(body_, constants_, stats_);
+    } else if (phase != TurboPhase::Fade && turbo_->phase == TurboPhase::Fade) {
+        events_.turboFaded = turbo_->level;
     }
 }
 

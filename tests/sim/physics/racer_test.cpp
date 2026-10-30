@@ -56,6 +56,24 @@ TEST_CASE("braking from speed stops the car and then reverses it") {
     CHECK(racer.Body().derived.forwardSpeed < 0.0F);
 }
 
+TEST_CASE("a drift and a turbo each report their start once") {
+    const test::PlaneWorld world = test::FlatGround();
+    Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+    Drive(racer, {.isThrottleHeld = true}, 1500, world);
+    int driftStarts = 0;
+
+    for (int tick = 0; tick < 80; ++tick) {
+        racer.Tick(kTick, {.isLeftHeld = true, .isThrottleHeld = true, .isDriftHeld = true}, world);
+        driftStarts += racer.Events().hasDriftStarted ? 1 : 0;
+    }
+    racer.StartTurbo(TurboLevel::Weak);
+
+    CHECK(driftStarts == 1);
+    CHECK(racer.Events().turboStarted == TurboLevel::Weak);
+    racer.Tick(kTick, {.isThrottleHeld = true}, world);
+    CHECK_FALSE(racer.Events().turboStarted.has_value());
+}
+
 TEST_CASE("the racer starts facing its heading") {
     const Racer racer(kNeutralChassis, {}, {.headingRadians = 1.0F});
 
