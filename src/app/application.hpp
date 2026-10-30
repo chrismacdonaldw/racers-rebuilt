@@ -11,6 +11,7 @@
 #include "app/extensions.hpp"
 #include "app/frame_loop.hpp"
 #include "app/game_boot.hpp"
+#include "app/sound_banks.hpp"
 #include "assets/vfs.hpp"
 #include "audio/mixer.hpp"
 #include "audio/music_player.hpp"
@@ -72,6 +73,7 @@ private:
     Extensions extensions_;
     assets::Vfs vfs_;
     audio::Mixer mixer_;
+    SoundBanks soundBanks_;
     platform::Window window_;
     render::Renderer renderer_;
     platform::EventPump events_;

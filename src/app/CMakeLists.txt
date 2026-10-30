@@ -3,6 +3,7 @@ rr_add_module(app
         application.cpp
         audio_settings.cpp
         audio_startup.cpp
+        car_sounds.cpp
         chase_camera.cpp
         checkpoint_gates.cpp
         collision_wireframe.cpp
@@ -30,6 +31,9 @@ rr_add_module(app
         music_folder_source.cpp
         orbiting_cube.cpp
         pace_car.cpp
+        positional_sound.cpp
+        race_audio.cpp
+        race_music.cpp
         race_scene.cpp
         race_status.cpp
         race_step.cpp

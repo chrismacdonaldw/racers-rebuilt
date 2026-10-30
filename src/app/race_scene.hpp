@@ -8,10 +8,13 @@
 #include <vector>
 
 #include "app/chase_camera.hpp"
+#include "app/race_audio.hpp"
 #include "app/racer/racer_grid.hpp"
 #include "app/scene.hpp"
+#include "app/sound_banks.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
+#include "audio/mixer.hpp"
 #include "core/duration.hpp"
 #include "core/result.hpp"
 #include "render/camera.hpp"
@@ -34,6 +37,13 @@ struct RaceSceneSetup {
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
 };
 
+/// Where a race draws and plays. Each must outlive the scene.
+struct RaceOutputs {
+    render::Renderer* renderer = nullptr;
+    audio::Mixer* mixer = nullptr;
+    SoundBanks* banks = nullptr;
+};
+
 /// The name replays record, such as `race:RACEC0R0:respawn=3000:racer=2`, with `respawn=off`
 /// when respawning is off. `racer` may be left out.
 [[nodiscard]] std::string RaceSceneName(const RaceSceneSetup& setup);
@@ -44,9 +54,8 @@ struct RaceSceneSetup {
 /// A race on a full grid with the player in slot 0. Other racers idle until AI drivers arrive.
 class RaceScene final : public Scene {
 public:
-    /// `renderer` must outlive the scene.
     [[nodiscard]] static Result<std::unique_ptr<RaceScene>> Create(
-        render::Renderer& renderer, const assets::Vfs& vfs, assets::TrackLoader& loader,
+        const RaceOutputs& outputs, const assets::Vfs& vfs, assets::TrackLoader& loader,
         const RaceSceneSetup& setup, std::uint64_t seed, Nanoseconds started);
 
     void ApplySettings(const settings::Registry& settings) override;
@@ -54,6 +63,7 @@ public:
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
     [[nodiscard]] std::string_view DeveloperStatus() const override { return status_; }
+    [[nodiscard]] SceneMusic Music() const override;
 
 private:
     struct Parts {
@@ -65,6 +75,7 @@ private:
         std::unique_ptr<sim::RaceTrack> raceTrack;
         std::unique_ptr<sim::WorldList> world;
         sim::RaceSession session;
+        std::unique_ptr<RaceAudio> audio;
         Nanoseconds started{};
     };
 

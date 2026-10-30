@@ -105,12 +105,16 @@ audio::MusicPlayer CreateMusicPlayer(audio::Mixer& mixer, const assets::Vfs& vfs
     return {mixer, std::move(sources)};
 }
 
-void PlaySceneMusic(audio::MusicPlayer& music, const Scene& scene) {
-    if (scene.MusicTrack().empty()) {
+void FollowSceneMusic(audio::MusicPlayer& music, const SceneMusic& wanted, std::string& asked) {
+    if (wanted.track == asked) {
+        return;
+    }
+    asked = wanted.track;
+    if (asked.empty()) {
         music.Stop();
         return;
     }
-    Result<void> played = music.Play(scene.MusicTrack());
+    Result<void> played = music.Play(asked, wanted.repeat);
     if (!played) {
         log::Warn("{}", played.error().message);
     }
@@ -237,6 +241,7 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
     const std::vector<overlay::SceneChoice> scenes = SceneChoices();
     Nanoseconds lastFrame = platform::Now();
     FrameStats frame;
+    std::string askedMusic;
     while (!events_.IsQuitRequested() && !isQuitting_) {
         events_.Poll();
         if (events_.WasKeyPressed(kToggleOverlayKey)) {
@@ -256,8 +261,8 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
         lastFrame = now;
         frame = frameLoop_.RunFrame(now);
         OpenNextScene();
-        if (frame.isNewScene && frameLoop_.Scenes().Top() != nullptr) {
-            PlaySceneMusic(music, *frameLoop_.Scenes().Top());
+        if (const Scene* top = frameLoop_.Scenes().Top(); top != nullptr) {
+            FollowSceneMusic(music, top->Music(), askedMusic);
         }
         pacer_.WaitForNextFrame();
     }
@@ -292,7 +297,9 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std:
     if (IsRaceScene(*scene)) {
         return ParseRaceScene(*scene)
             .and_then([&](const RaceSceneSetup& setup) {
-                return RaceScene::Create(renderer_, vfs_, loader, setup, seed_, started);
+                return RaceScene::Create(
+                    {.renderer = &renderer_, .mixer = &mixer_, .banks = &soundBanks_}, vfs_, loader,
+                    setup, seed_, started);
             })
             .transform(ToScene<RaceScene>);
     }

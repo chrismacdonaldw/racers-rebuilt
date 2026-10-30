@@ -4,11 +4,18 @@
 #include <string>
 #include <string_view>
 
+#include "audio/music_player.hpp"
 #include "settings/registry.hpp"
 #include "sim/input_frame.hpp"
 #include "sim/render_snapshot.hpp"
 
 namespace rr::app {
+
+/// `track` is a `MusicCatalog` id. Empty means silence.
+struct SceneMusic {
+    std::string_view track;
+    audio::Repeat repeat = audio::Repeat::Loop;
+};
 
 class Scene {
 public:
@@ -20,8 +27,8 @@ public:
     /// Runs when the scene opens and after each setting change, so `Tick` never reads settings.
     virtual void ApplySettings([[maybe_unused]] const settings::Registry& settings) {}
 
-    /// A `MusicCatalog` id. Empty means silence.
-    [[nodiscard]] virtual std::string_view MusicTrack() const { return {}; }
+    /// Read every frame, so it can change as the scene runs.
+    [[nodiscard]] virtual SceneMusic Music() const { return {}; }
 
     /// A line for the developer overlay.
     [[nodiscard]] virtual std::string_view DeveloperStatus() const { return {}; }
