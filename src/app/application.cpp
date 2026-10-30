@@ -17,6 +17,8 @@
 #include "app/extensions.hpp"
 #include "app/input_bindings.hpp"
 #include "app/menu/main_menu_scene.hpp"
+#include "app/menu/menu_scenes.hpp"
+#include "app/menu/single_race_scene.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/race_scene.hpp"
 #include "app/race_settings.hpp"
@@ -235,7 +237,7 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
     const std::vector<overlay::SceneChoice> scenes = SceneChoices();
     Nanoseconds lastFrame = platform::Now();
     FrameStats frame;
-    while (!events_.IsQuitRequested()) {
+    while (!events_.IsQuitRequested() && !isQuitting_) {
         events_.Poll();
         if (events_.WasKeyPressed(kToggleOverlayKey)) {
             menu.Toggle();
@@ -253,6 +255,7 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
                            scenes));
         lastFrame = now;
         frame = frameLoop_.RunFrame(now);
+        OpenNextScene();
         if (frame.isNewScene && frameLoop_.Scenes().Top() != nullptr) {
             PlaySceneMusic(music, *frameLoop_.Scenes().Top());
         }
@@ -277,8 +280,11 @@ Application::Application(Parts parts)
       startupSummary_(std::move(parts.startupSummary)) {}
 
 Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std::string>& scene) {
-    if (!scene) {
-        return TestScene::Create(renderer_).transform(ToScene<TestScene>);
+    if (!scene || *scene == kMainMenuScene) {
+        return MainMenuScene::Create(renderer_, vfs_).transform(ToScene<MainMenuScene>);
+    }
+    if (*scene == kSingleRaceScene) {
+        return SingleRaceScene::Create(renderer_, vfs_).transform(ToScene<SingleRaceScene>);
     }
     const Nanoseconds started = platform::Now();
     assets::LoaderPool pool(assets::LoaderPool::DefaultWorkerCount());
@@ -327,14 +333,13 @@ std::vector<overlay::SceneChoice> Application::SceneChoices() {
                                     }};
     };
     std::vector<overlay::SceneChoice> choices{
-        choice("Test scene", [this] { return CreateScene(std::nullopt); }),
+        choice("Test scene",
+               [this] { return TestScene::Create(renderer_).transform(ToScene<TestScene>); }),
         choice("Sprite test",
                [this] {
                    return SpriteTestScene::Create(renderer_).transform(ToScene<SpriteTestScene>);
                }),
-        choice("Main menu", [this] {
-            return MainMenuScene::Create(renderer_, vfs_).transform(ToScene<MainMenuScene>);
-        })};
+        choice("Main menu", [this] { return CreateScene(std::string(kMainMenuScene)); })};
     for (const std::string& track : assets::ListRaceTracks(vfs_)) {
         choices.push_back(
             choice(track, std::bind_front(&Application::CreateScene, this, std::optional(track))));
@@ -342,6 +347,22 @@ std::vector<overlay::SceneChoice> Application::SceneChoices() {
                                  std::bind_front(&Application::CreateRace, this, track)));
     }
     return choices;
+}
+
+void Application::OpenNextScene() {
+    Scene* scene = frameLoop_.Scenes().Top();
+    std::optional<std::string> next = scene != nullptr ? scene->TakeNextScene() : std::nullopt;
+    if (!next) {
+        return;
+    }
+    if (*next == kQuitScene) {
+        isQuitting_ = true;
+        return;
+    }
+    const Result<void> opened = OpenScene(next);
+    if (!opened) {
+        log::Error("{}", opened.error().message);
+    }
 }
 
 void Application::CyclePacing() {

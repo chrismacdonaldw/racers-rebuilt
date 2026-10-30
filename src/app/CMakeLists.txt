@@ -23,6 +23,10 @@ rr_add_module(app
         menu/main_menu_scene.cpp
         menu/menu_files.cpp
         menu/menu_focus.cpp
+        menu/menu_page.cpp
+        menu/menu_text.cpp
+        menu/single_race_menu.cpp
+        menu/single_race_scene.cpp
         music_folder_source.cpp
         orbiting_cube.cpp
         pace_car.cpp

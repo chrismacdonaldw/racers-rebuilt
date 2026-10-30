@@ -61,6 +61,7 @@ private:
     [[nodiscard]] Result<void> SwitchScene(const SceneFactory& create);
     [[nodiscard]] std::vector<overlay::SceneChoice> SceneChoices();
     void RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music);
+    void OpenNextScene();
     void CyclePacing();
     void ApplyVideo();
     void Persist(const std::vector<std::string>& keys);
@@ -78,6 +79,7 @@ private:
     platform::PacingConfig pacing_;
     std::optional<std::string> scene_;
     std::uint64_t seed_ = 0;
+    bool isQuitting_ = false;
     std::optional<std::filesystem::path> recordFile_;
     std::optional<std::filesystem::path> replayFile_;
     std::string startupSummary_;

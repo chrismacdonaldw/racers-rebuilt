@@ -25,15 +25,17 @@
 
 namespace rr::app {
 
-/// What a race fixes when it starts. `track` is a folder under `GAMEDATA`, such as `RACEC0R0`.
+/// The player drives grid slot `racer`'s prebuilt racer, which swaps places with slot 0.
 struct RaceSceneSetup {
     std::string track;
     sim::RespawnRule respawn;
+    std::size_t racer = 0;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
 };
 
-/// The name replays record, such as `race:RACEC0R0:respawn=3000` or `...:respawn=off`.
+/// The name replays record, such as `race:RACEC0R0:respawn=3000:racer=2`, with `respawn=off`
+/// when respawning is off. `racer` may be left out.
 [[nodiscard]] std::string RaceSceneName(const RaceSceneSetup& setup);
 
 [[nodiscard]] bool IsRaceScene(std::string_view scene);

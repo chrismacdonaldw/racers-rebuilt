@@ -16,6 +16,7 @@ add_executable(racers-rebuilt-tests
     app/loop_sidecar_test.cpp
     app/menu/menu_files_test.cpp
     app/menu/menu_focus_test.cpp
+    app/menu/single_race_menu_test.cpp
     app/music_folder_source_test.cpp
     app/pace_car_test.cpp
     app/race_determinism_test.cpp

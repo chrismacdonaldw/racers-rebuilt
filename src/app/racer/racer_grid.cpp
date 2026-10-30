@@ -26,7 +26,7 @@ Result<std::unique_ptr<RacerAssets>> LoadSlot(const assets::Vfs& vfs, assets::Tr
 
 Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs& vfs,
                                   assets::TrackLoader& loader, std::string_view track,
-                                  std::size_t slots) {
+                                  std::size_t slots, std::size_t playerRacer) {
     Result<assets::RacerCatalog> catalog = assets::RacerCatalog::Load(vfs);
     Result<std::vector<std::string>> codes =
         catalog.and_then([&](const assets::RacerCatalog&) { return assets::LoadGrid(vfs, track); });
@@ -37,6 +37,11 @@ Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs&
         return Fail(ErrorCode::InvalidData, std::format("{} has {} grid drivers for {} slots",
                                                         track, codes->size(), slots));
     }
+    if (playerRacer >= slots) {
+        return Fail(ErrorCode::InvalidData,
+                    std::format("{} has no grid slot {} for the player", track, playerRacer));
+    }
+    std::swap(codes->front(), codes->at(playerRacer));
     std::vector<Slot> loaded;
     for (const std::string& code : std::span(*codes).first(slots)) {
         Result<std::unique_ptr<RacerAssets>> assets = LoadSlot(vfs, loader, *catalog, code);
