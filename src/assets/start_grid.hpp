@@ -15,7 +15,6 @@ struct StartSlot {
     Vector3 up;
 };
 
-/// Slots in slot order. Racer `i` starts in slot `i`.
 struct StartGridAsset {
     std::vector<StartSlot> slots;
 };

@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <format>
 #include <optional>
 #include <utility>
 
@@ -47,14 +46,6 @@ void AddGate(const assets::Checkpoint& gate, render::Color color,
     }
 }
 
-}
-
-Result<sim::CheckpointGraph> LoadCheckpoints(const assets::Vfs& vfs, std::string_view folder) {
-    return vfs.Read(std::format("{}/RACE.CPB", folder))
-        .and_then([](const assets::FileData& file) { return assets::ParseCpb(file.Bytes()); })
-        .and_then([](assets::CheckpointsAsset asset) {
-            return sim::CheckpointGraph::Create(std::move(asset));
-        });
 }
 
 void DrawGates(const sim::CheckpointGraph& graph, const sim::LapTracker& laps,

@@ -29,10 +29,15 @@ Basis HeadingBasis(float headingRadians) {
 }
 
 Racer::Racer(const ChassisSpec& chassis, const CarBuild& build, const RacerStart& start)
-    : constants_(MakeBodyConstants(chassis, build)),
-      stats_(MakeStatMultipliers(chassis, build)),
-      body_(MakeBody(constants_, start.position, HeadingBasis(start.headingRadians))) {
+    : constants_(MakeBodyConstants(chassis, build)), stats_(MakeStatMultipliers(chassis, build)) {
+    Place(start);
+}
+
+void Racer::Place(const RacerStart& start) {
+    body_ = MakeBody(constants_, start.position, HeadingBasis(start.headingRadians));
     SetDrive(body_, constants_, 0.0F, kBaseMaxSpeed * stats_.topSpeed);
+    driver_ = {};
+    turbo_.reset();
 }
 
 void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const CollisionQuery& world) {

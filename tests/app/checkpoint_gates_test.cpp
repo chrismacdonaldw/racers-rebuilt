@@ -21,6 +21,7 @@
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
 #include "sim/race/checkpoint_ring.hpp"
+#include "sim/race/race_track.hpp"
 #include "sim/route_playback.hpp"
 
 namespace rr::app {
@@ -106,7 +107,7 @@ TEST_CASE("each gate draws as a frame, with the last and next gates highlighted"
 
 std::vector<std::string> PaceCarProblems(const assets::Vfs& vfs, const std::string& track) {
     const std::string folder = "GAMEDATA/" + track;
-    Result<sim::CheckpointGraph> graph = LoadCheckpoints(vfs, folder);
+    Result<sim::CheckpointGraph> graph = sim::LoadCheckpoints(vfs, track);
     Result<assets::RaceRoute> route = LoadPaceRoute(vfs, folder);
     if (!graph || !route) {
         return {std::format("{}: {}", track, (graph ? route.error() : graph.error()).message)};
