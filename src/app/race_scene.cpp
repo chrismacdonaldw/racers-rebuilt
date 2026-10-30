@@ -1,7 +1,9 @@
 #include "app/race_scene.hpp"
 
+#include <algorithm>
 #include <charconv>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <optional>
@@ -27,11 +29,22 @@ constexpr std::string_view kRespawnOff = "off";
 constexpr std::size_t kPlayer = 0;
 constexpr std::uint64_t kHashPrime = 1099511628211ULL;
 
-sim::RaceSetup FullGrid(const RaceSceneSetup& scene, std::uint64_t seed, std::size_t slots) {
+sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, std::uint64_t seed,
+                        std::size_t slots) {
     sim::RaceSetup setup{.track = scene.track, .seed = seed, .respawn = scene.respawn};
     setup.racers.resize(slots);
+    for (std::size_t i = 0; i < slots; ++i) {
+        setup.racers[i].chassis = racers.Chassis(i);
+    }
     setup.racers[kPlayer].isPlayer = true;
     return setup;
+}
+
+float MsSince(std::optional<Nanoseconds>& last) {
+    const Nanoseconds now = platform::Now();
+    const Nanoseconds elapsed = last ? now - *last : Nanoseconds{};
+    last = now;
+    return std::chrono::duration<float, std::milli>(elapsed).count();
 }
 
 sim::EntityId RacerId(std::size_t racer) {
@@ -92,27 +105,30 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(render::Renderer& renderer,
                                    .and_then([&](const assets::TrackAssets& assets) {
                                        return UploadTrack(renderer, assets);
                                    });
-    Result<std::vector<render::MeshDraw>> car =
-        model.and_then([&](const TrackModel&) { return UploadStandInCar(renderer, loader); });
-    Result<sim::RaceTrack> loaded = car.and_then(
-        [&](const std::vector<render::MeshDraw>&) { return sim::LoadRaceTrack(vfs, track); });
-    if (!loaded) {
-        return std::unexpected(std::move(loaded.error()));
+    Result<sim::RaceTrack> loaded =
+        model.and_then([&](const TrackModel&) { return sim::LoadRaceTrack(vfs, track); });
+    Result<RacerGrid> racers = loaded.and_then([&](const sim::RaceTrack& race) {
+        return RacerGrid::Load(renderer, vfs, loader, track, race.grid.size());
+    });
+    if (!racers) {
+        return std::unexpected(std::move(racers.error()));
     }
     auto raceTrack = std::make_unique<sim::RaceTrack>(std::move(*loaded));
     auto world = std::make_unique<sim::WorldList>(raceTrack->collision.Track());
-    Result<sim::RaceSession> session = sim::RaceSession::Create(
-        FullGrid(setup, seed, raceTrack->grid.size()), {.checkpoints = &raceTrack->checkpoints,
-                                                        .grid = raceTrack->grid,
-                                                        .world = world.get(),
-                                                        .lowestTrackZ = raceTrack->lowestTrackZ});
+    Result<sim::RaceSession> session =
+        sim::RaceSession::Create(FullGrid(setup, *racers, seed, raceTrack->grid.size()),
+                                 {.checkpoints = &raceTrack->checkpoints,
+                                  .grid = raceTrack->grid,
+                                  .world = world.get(),
+                                  .lowestTrackZ = raceTrack->lowestTrackZ,
+                                  .routes = &raceTrack->routes});
     if (!session) {
         return std::unexpected(std::move(session.error()));
     }
     return std::unique_ptr<RaceScene>(new RaceScene({.renderer = &renderer,
                                                      .track = std::string(track),
                                                      .trackDraws = std::move(model->draws),
-                                                     .carDraws = std::move(*car),
+                                                     .racers = std::move(*racers),
                                                      .camera = TrackCamera(model->bounds),
                                                      .raceTrack = std::move(raceTrack),
                                                      .world = std::move(world),
@@ -126,9 +142,7 @@ RaceScene::RaceScene(Parts parts)
       controls_(parts_.session.Racers().size()),
       collisionLines_(BuildCollisionWireframe(parts_.raceTrack->collision)) {
     draws_ = parts_.trackDraws;
-    for (std::size_t i = 0; i < parts_.session.Racers().size(); ++i) {
-        draws_.insert(draws_.end(), parts_.carDraws.begin(), parts_.carDraws.end());
-    }
+    draws_.insert(draws_.end(), parts_.racers.Draws().begin(), parts_.racers.Draws().end());
 }
 
 void RaceScene::ApplySettings(const settings::Registry& settings) {
@@ -149,12 +163,16 @@ void RaceScene::Tick(const sim::InputFrame& input) {
 void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
     const sim::RaceSession& session = parts_.session;
     out.entities.clear();
+    out.racers.clear();
     std::uint64_t hash = 0;
     for (std::size_t i = 0; i < session.Racers().size(); ++i) {
         const sim::Racer& racer = session.Racers()[i];
         out.entities.push_back({.id = RacerId(i),
-                                .transform = CarToEngine(racer.Pose()),
+                                .transform = TransformToEngine(racer.Pose()),
                                 .flags = FlagsFor(session, i)});
+        out.racers.push_back({.id = RacerId(i),
+                              .forwardSpeed = racer.Body().derived.forwardSpeed,
+                              .turnRadius = racer.Body().turnRadius});
         hash = (hash * kHashPrime) ^ sim::HashRacerState(racer);
     }
     out.camera = {.transform = chase_.Pose(PlayerCar()), .flags = FlagsFor(session, kPlayer)};
@@ -162,13 +180,9 @@ void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
 }
 
 void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
-    const std::size_t carDraws = parts_.carDraws.size();
-    for (std::size_t racer = 0; racer < interpolated.entities.size(); ++racer) {
-        const std::size_t first = parts_.trackDraws.size() + (racer * carDraws);
-        for (std::size_t i = first; i < first + carDraws; ++i) {
-            draws_[i].transform = interpolated.entities[racer].transform;
-        }
-    }
+    parts_.racers.Update(interpolated.entities, interpolated.racers, MsSince(lastRender_));
+    std::ranges::copy(parts_.racers.Draws(),
+                      draws_.begin() + static_cast<std::ptrdiff_t>(parts_.trackDraws.size()));
     render::Camera camera = parts_.camera;
     camera.transform = interpolated.camera.transform;
     DrawDebugLines();

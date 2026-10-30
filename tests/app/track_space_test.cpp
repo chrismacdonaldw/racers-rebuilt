@@ -42,6 +42,21 @@ TEST_CASE("a placement turns the model's axes to its forward and up") {
     CheckNear(Apply(placed, ToEngine({.y = 1.0F})), ToEngine({.x = -1.0F}));
 }
 
+TEST_CASE("a game transform keeps its meaning in engine space and back") {
+    const Transform game{
+        .position = {.x = 1.0F, .y = 2.0F, .z = 3.0F},
+        .rotation = FromAxisAngle({.z = 1.0F}, 0.7F) * FromAxisAngle({.x = 1.0F}, 0.4F)};
+    const Vector3 point{.x = -2.0F, .y = 0.5F, .z = 4.0F};
+
+    const Transform engine = TransformToEngine(game);
+    const Transform back = TransformToGame(engine);
+
+    CheckNear(Apply(engine, ToEngine(point)), ToEngine(Apply(game, point)));
+    CheckNear(back.position, game.position);
+    CheckNear(Apply(back, point), Apply(game, point));
+    CheckNear(ToGame(ToEngine(point)), point);
+}
+
 TEST_CASE("a degenerate placement keeps only its position") {
     const Transform placed = PlacementToEngine({.x = 5.0F}, {}, {.z = 1.0F});
 

@@ -5,8 +5,8 @@
 namespace rr::app {
 namespace {
 
-constexpr float kChaseDistance = 7.0F;
-constexpr float kChaseHeight = 3.0F;
+constexpr float kChaseDistance = 22.0F;
+constexpr float kChaseHeight = 9.0F;
 constexpr float kLookHeight = 1.0F;
 constexpr float kChaseBlend = 0.1F;
 

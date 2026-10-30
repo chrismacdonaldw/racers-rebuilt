@@ -13,6 +13,9 @@ namespace rr::app {
 namespace {
 
 constexpr float kMinLength = 1e-6F;
+constexpr float kHalfRoot = 0.70710678F;
+constexpr Quaternion kGameToEngine{.w = kHalfRoot, .x = -kHalfRoot, .y = 0.0F, .z = 0.0F};
+constexpr Quaternion kEngineToGame{.w = kHalfRoot, .x = kHalfRoot, .y = 0.0F, .z = 0.0F};
 
 glm::vec3 ToGlm(const Vector3& v) {
     return {v.x, v.y, v.z};
@@ -22,6 +25,10 @@ glm::vec3 ToGlm(const Vector3& v) {
 
 Vector3 ToEngine(const Vector3& game) {
     return {.x = game.x, .y = game.z, .z = -game.y};
+}
+
+Vector3 ToGame(const Vector3& engine) {
+    return {.x = engine.x, .y = -engine.z, .z = engine.y};
 }
 
 Transform PlacementToEngine(const Vector3& position, const Vector3& forward, const Vector3& up) {
@@ -46,6 +53,16 @@ Transform CarToEngine(const Transform& game) {
     const Vector3 right = Apply({.rotation = game.rotation}, {.y = -1.0F});
     const Vector3 up = Apply({.rotation = game.rotation}, {.z = 1.0F});
     return PlacementToEngine(game.position, right, up);
+}
+
+Transform TransformToEngine(const Transform& game) {
+    return {.position = ToEngine(game.position),
+            .rotation = kGameToEngine * game.rotation * kEngineToGame};
+}
+
+Transform TransformToGame(const Transform& engine) {
+    return {.position = ToGame(engine.position),
+            .rotation = kEngineToGame * engine.rotation * kGameToEngine};
 }
 
 Transform LookAt(const Vector3& eye, const Vector3& target) {

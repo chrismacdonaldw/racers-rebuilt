@@ -4,6 +4,7 @@ rr_add_module(assets
         bmp_image.cpp
         byte_reader.cpp
         champion_database.cpp
+        circuit_database.cpp
         chassis_database.cpp
         checkpoints.cpp
         collision_mesh.cpp

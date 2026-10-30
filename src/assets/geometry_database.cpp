@@ -151,6 +151,7 @@ public:
                                .z = vertex.position.z * scale};
         }
         geometry_.vertices = std::move(vertices_);
+        geometry_.scale = scale;
         return std::move(geometry_);
     }
 
@@ -185,39 +186,47 @@ private:
         if (geometry_.materials.empty()) {
             return Fail(ErrorCode::InvalidData, "a model draws without any materials");
         }
-        OpenRange();
         const std::span<const Triangle> batch =
             std::span(triangles_)
                 .subspan(static_cast<std::size_t>(first), static_cast<std::size_t>(count));
         for (const Triangle& triangle : batch) {
-            for (const std::int32_t corner : triangle) {
-                Result<void> drawn = DrawCorner(corner);
-                if (!drawn) {
-                    return drawn;
-                }
+            Result<void> drawn = DrawTriangle(triangle);
+            if (!drawn) {
+                return drawn;
             }
         }
         return {};
     }
 
-    Result<void> DrawCorner(std::int32_t corner) {
-        const std::optional<std::uint32_t> vertex =
-            IsSpan(corner, 1, kCacheSlots) ? cache_.at(static_cast<std::size_t>(corner))
-                                           : std::nullopt;
-        if (!vertex) {
-            return Fail(ErrorCode::InvalidData,
-                        std::format("a triangle corner uses empty cache slot {}", corner));
+    Result<void> DrawTriangle(const Triangle& triangle) {
+        std::array<std::uint32_t, 3> corners{};
+        for (std::size_t i = 0; i < corners.size(); ++i) {
+            const std::optional<std::uint32_t> vertex =
+                IsSpan(triangle.at(i), 1, kCacheSlots)
+                    ? cache_.at(static_cast<std::size_t>(triangle.at(i)))
+                    : std::nullopt;
+            if (!vertex) {
+                return Fail(
+                    ErrorCode::InvalidData,
+                    std::format("a triangle corner uses empty cache slot {}", triangle.at(i)));
+            }
+            corners.at(i) = *vertex;
         }
-        geometry_.indices.push_back(*vertex);
-        geometry_.ranges.back().indexCount += 1;
+        OpenRange(vertices_[corners[0]].joint);
+        geometry_.indices.insert(geometry_.indices.end(), corners.begin(), corners.end());
+        geometry_.ranges.back().indexCount += static_cast<std::uint32_t>(corners.size());
         return {};
     }
 
-    void OpenRange() {
-        if (geometry_.ranges.empty() || geometry_.ranges.back().material != material_) {
+    void OpenRange(std::uint16_t joint) {
+        const bool isOpen = !geometry_.ranges.empty() &&
+                            geometry_.ranges.back().material == material_ &&
+                            geometry_.ranges.back().joint == joint;
+        if (!isOpen) {
             geometry_.ranges.push_back(
                 {.firstIndex = static_cast<std::uint32_t>(geometry_.indices.size()),
-                 .material = material_});
+                 .material = material_,
+                 .joint = joint});
         }
     }
 

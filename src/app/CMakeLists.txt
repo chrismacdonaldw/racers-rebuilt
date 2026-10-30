@@ -21,6 +21,10 @@ rr_add_module(app
         race_status.cpp
         racer/animation_player.cpp
         racer/body_lean.cpp
+        racer/racer_assets.cpp
+        racer/racer_draws.cpp
+        racer/racer_grid.cpp
+        racer/racer_visuals.cpp
         racer/skeleton_pose.cpp
         replay_session.cpp
         scene_stack.cpp

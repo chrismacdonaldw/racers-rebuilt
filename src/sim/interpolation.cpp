@@ -37,6 +37,7 @@ void Interpolate(const RenderSnapshot& previous, const RenderSnapshot& current, 
                 Blend(before->transform, entity.transform, entity.flags, alpha);
         }
     }
+    out.racers.assign(current.racers.begin(), current.racers.end());
     out.camera = current.camera;
     out.simStateHash = current.simStateHash;
     out.camera.transform =
