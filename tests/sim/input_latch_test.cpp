@@ -71,5 +71,18 @@ TEST_CASE("releasing an action that isn't held is ignored") {
     CHECK(latch.TakeFrame() == InputFrame{});
 }
 
+TEST_CASE("menu presses last one frame and each repeat counts") {
+    InputLatch latch;
+
+    latch.Press(MenuAction::Down);
+    const InputFrame first = latch.TakeFrame();
+    latch.Press(MenuAction::Down);
+    const InputFrame repeat = latch.TakeFrame();
+
+    CHECK(first.WasPressed(MenuAction::Down));
+    CHECK(repeat.WasPressed(MenuAction::Down));
+    CHECK_FALSE(latch.TakeFrame().WasPressed(MenuAction::Down));
+}
+
 }
 }

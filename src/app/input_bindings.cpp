@@ -52,61 +52,87 @@ void Latch(sim::InputLatch& latch, sim::Action action, bool isDown) {
     }
 }
 
-}
-
-void DeclareInputSettings(settings::Registry& registry) {
-    for (const ActionBinding& binding : kActionBindings) {
-        registry.Declare(binding.keys);
-        registry.Declare(binding.buttons);
+void Latch(sim::InputLatch& latch, sim::MenuAction action, bool isDown) {
+    if (isDown) {
+        latch.Press(action);
     }
 }
 
-InputBindings::InputBindings(const settings::Registry& registry) {
-    for (const ActionBinding& binding : kActionBindings) {
+template <typename Input, typename Bound>
+void LatchMatches(const std::vector<Bound>& bound, Input input, bool isDown,
+                  sim::InputLatch& latch) {
+    for (const Bound& binding : bound) {
+        if (binding.input == input) {
+            Latch(latch, binding.action, isDown);
+        }
+    }
+}
+
+}
+
+void DeclareInputSettings(settings::Registry& registry) {
+    const auto declare = [&registry](const auto& bindings) {
+        for (const auto& binding : bindings) {
+            registry.Declare(binding.keys);
+            registry.Declare(binding.buttons);
+        }
+    };
+    declare(kActionBindings);
+    declare(kMenuBindings);
+}
+
+template <typename Action>
+InputBindings::BoundInputs<Action> InputBindings::Bind(const settings::Registry& registry,
+                                                       std::span<const Binding<Action>> bindings) {
+    BoundInputs<Action> bound;
+    for (const Binding<Action>& binding : bindings) {
         for (const std::string& name : SplitNames(registry.Get(binding.keys))) {
             const SDL_Keycode key = SDL_GetKeyFromName(name.c_str());
             if (key == SDLK_UNKNOWN) {
                 log::Warn("`{}` in {} is not a key, ignoring it", name, binding.keys.key);
                 continue;
             }
-            keys_.push_back({.input = key, .action = binding.action});
+            bound.keys.push_back({.input = key, .action = binding.action});
         }
         for (const std::string& name : SplitNames(registry.Get(binding.buttons))) {
             const SDL_GamepadButton button = SDL_GetGamepadButtonFromString(name.c_str());
             const SDL_GamepadAxis axis = SDL_GetGamepadAxisFromString(name.c_str());
             if (button != SDL_GAMEPAD_BUTTON_INVALID) {
-                buttons_.push_back({.input = button, .action = binding.action});
+                bound.buttons.push_back({.input = button, .action = binding.action});
             } else if (IsTrigger(axis)) {
-                triggers_.push_back({.input = axis, .action = binding.action});
+                bound.triggers.push_back({.input = axis, .action = binding.action});
             } else {
                 log::Warn("`{}` in {} is not a gamepad button, ignoring it", name,
                           binding.buttons.key);
             }
         }
     }
+    return bound;
 }
+
+InputBindings::InputBindings(const settings::Registry& registry)
+    : race_(Bind<sim::Action>(registry, kActionBindings)),
+      menu_(Bind<sim::MenuAction>(registry, kMenuBindings)) {}
 
 void InputBindings::Handle(const SDL_Event& event, sim::InputLatch& latch) {
     switch (event.type) {
         case SDL_EVENT_KEY_DOWN:
-        case SDL_EVENT_KEY_UP:
-            if (event.key.repeat) {
-                return;
+        case SDL_EVENT_KEY_UP: {
+            const bool isDown = event.type == SDL_EVENT_KEY_DOWN;
+            if (!event.key.repeat) {
+                LatchMatches(race_.keys, event.key.key, isDown, latch);
             }
-            for (const Bound<SDL_Keycode>& bound : keys_) {
-                if (bound.input == event.key.key) {
-                    Latch(latch, bound.action, event.type == SDL_EVENT_KEY_DOWN);
-                }
-            }
+            LatchMatches(menu_.keys, event.key.key, isDown, latch);
             return;
+        }
         case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
-        case SDL_EVENT_GAMEPAD_BUTTON_UP:
-            for (const Bound<SDL_GamepadButton>& bound : buttons_) {
-                if (bound.input == event.gbutton.button) {
-                    Latch(latch, bound.action, event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
-                }
-            }
+        case SDL_EVENT_GAMEPAD_BUTTON_UP: {
+            const bool isDown = event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN;
+            const auto button = static_cast<SDL_GamepadButton>(event.gbutton.button);
+            LatchMatches(race_.buttons, button, isDown, latch);
+            LatchMatches(menu_.buttons, button, isDown, latch);
             return;
+        }
         case SDL_EVENT_GAMEPAD_AXIS_MOTION:
             HandleAxis(event.gaxis, latch);
             return;
@@ -133,11 +159,8 @@ void InputBindings::HandleAxis(const SDL_GamepadAxisEvent& event, sim::InputLatc
         return;
     }
     wasHeld = isHeld;
-    for (const Bound<SDL_GamepadAxis>& bound : triggers_) {
-        if (bound.input == axis) {
-            Latch(latch, bound.action, isHeld);
-        }
-    }
+    LatchMatches(race_.triggers, axis, isHeld, latch);
+    LatchMatches(menu_.triggers, axis, isHeld, latch);
 }
 
 }

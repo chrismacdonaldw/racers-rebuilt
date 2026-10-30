@@ -108,5 +108,23 @@ TEST_CASE("disconnecting a gamepad centres the stick") {
     CHECK(latch.TakeFrame().steerLeftAxis == 0);
 }
 
+TEST_CASE("menu keys press on every repeat and gamepad buttons press menu actions") {
+    InputBindings bindings(DefaultRegistry());
+    sim::InputLatch latch;
+
+    bindings.Handle(Key(SDL_EVENT_KEY_DOWN, SDLK_DOWN), latch);
+    CHECK(latch.TakeFrame().WasPressed(sim::MenuAction::Down));
+    bindings.Handle(Key(SDL_EVENT_KEY_DOWN, SDLK_DOWN, true), latch);
+    const sim::InputFrame repeat = latch.TakeFrame();
+    CHECK(repeat.WasPressed(sim::MenuAction::Down));
+    CHECK_FALSE(repeat.WasPressed(sim::Action::Brake));
+
+    bindings.Handle(Button(SDL_EVENT_GAMEPAD_BUTTON_DOWN, SDL_GAMEPAD_BUTTON_SOUTH), latch);
+    bindings.Handle(Key(SDL_EVENT_KEY_UP, SDLK_RETURN), latch);
+    const sim::InputFrame frame = latch.TakeFrame();
+    CHECK(frame.WasPressed(sim::MenuAction::Confirm));
+    CHECK(frame.menuPressed.count() == 1);
+}
+
 }
 }

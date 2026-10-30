@@ -21,6 +21,7 @@ rr_add_module(assets
         lzss.cpp
         material_library.cpp
         menu_layout.cpp
+        menu_styles.cpp
         path_index.cpp
         race_route.cpp
         racer_catalog.cpp

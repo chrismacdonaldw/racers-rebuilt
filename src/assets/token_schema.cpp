@@ -56,4 +56,27 @@ Result<void> ExpectField(TokenReader& reader, FieldId id) {
     });
 }
 
+Result<void> SkipBlock(TokenReader& reader) {
+    Result<Token> open = reader.Expect(TokenKind::OpenBrace);
+    if (!open) {
+        return std::unexpected(std::move(open.error()));
+    }
+    for (std::size_t depth = 1; depth > 0;) {
+        Result<Token> token = reader.Next();
+        if (!token) {
+            return std::unexpected(std::move(token.error()));
+        }
+        if (token->kind == TokenKind::End) {
+            return Fail(ErrorCode::InvalidData,
+                        std::format("block from offset {} has no closing brace", open->offset));
+        }
+        if (token->kind == TokenKind::OpenBrace) {
+            ++depth;
+        } else if (token->kind == TokenKind::CloseBrace) {
+            --depth;
+        }
+    }
+    return {};
+}
+
 }

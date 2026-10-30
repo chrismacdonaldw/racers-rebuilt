@@ -6,7 +6,9 @@
 #include <string_view>
 #include <utility>
 
+#include "assets/bmp_image.hpp"
 #include "assets/color_key_field.hpp"
+#include "assets/tga_image.hpp"
 #include "assets/token_schema.hpp"
 
 namespace rr::assets {
@@ -42,6 +44,10 @@ std::string TextureDefinition::FileName() const {
 
 Result<std::vector<TextureDefinition>> ParseTextureDatabase(std::span<const std::byte> bytes) {
     return ParseNamedLibrary<TextureDefinition>(bytes, kTextureField, kTextureFields);
+}
+
+Result<ImageAsset> DecodeImage(std::span<const std::byte> bytes, TextureFileKind kind) {
+    return kind == TextureFileKind::Bmp ? DecodeBmp(bytes) : DecodeTga(bytes);
 }
 
 void ApplyColorKey(ImageAsset& image, ColorKey key) {

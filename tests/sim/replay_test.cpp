@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "sim/replay/replay_bytes.hpp"
+#include "sim/replay/replay_recorder.hpp"
 
 namespace rr::sim {
 namespace {
@@ -125,6 +126,16 @@ TEST_CASE("a damaged replay is rejected") {
         bytes.insert(bytes.end() - kChecksumBytes, std::byte{0});
         CHECK_FALSE(DecodeReplay(Resealed(bytes)).has_value());
     }
+}
+
+TEST_CASE("recording leaves menu presses out") {
+    ReplayRecorder recorder("0.1.0", "RACEC0R0", 0);
+    InputFrame frame = Held({Action::Accelerate});
+    frame.menuPressed.set(InputFrame::Index(MenuAction::Confirm));
+
+    recorder.Record(frame, RenderSnapshot{});
+
+    CHECK(recorder.Recorded().racers.front().front() == Held({Action::Accelerate}));
 }
 
 }
