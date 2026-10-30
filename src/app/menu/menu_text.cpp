@@ -4,7 +4,6 @@
 
 #include "app/game_settings.hpp"
 #include "app/menu/menu_files.hpp"
-#include "assets/install.hpp"
 #include "core/log.hpp"
 #include "core/result.hpp"
 
@@ -17,10 +16,7 @@ constexpr std::string_view kFontList = "GFONTS.FDB";
 
 bool MenuText::Apply(render::Renderer& renderer, const assets::Vfs& vfs,
                      const settings::Registry& settings) {
-    std::string language(settings.Get(kGameLanguage));
-    if (language.empty()) {
-        language = assets::kDefaultLanguage;
-    }
+    std::string language = SelectedLanguage(settings);
     if (language == language_) {
         return false;
     }

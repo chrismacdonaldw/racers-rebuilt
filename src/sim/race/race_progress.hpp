@@ -23,6 +23,7 @@ struct RacerProgress {
     LapTracker laps;
     std::vector<Milliseconds> lapTimes;
     std::optional<int> finishPlace;
+    Milliseconds lapGap{0};
 };
 
 class RaceProgress {
@@ -49,6 +50,7 @@ public:
 
 private:
     void TakeNextPlace(RacerProgress& racer);
+    [[nodiscard]] Milliseconds GapToLeader(std::size_t racer) const;
 
     std::vector<RacerProgress> racers_;
     std::vector<RacerStanding> standings_;

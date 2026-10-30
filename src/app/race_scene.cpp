@@ -15,7 +15,7 @@
 #include "app/checkpoint_gates.hpp"
 #include "app/collision_wireframe.hpp"
 #include "app/frame_loop.hpp"
-#include "app/race_status.hpp"
+#include "app/game_settings.hpp"
 #include "app/race_step.hpp"
 #include "app/track_model.hpp"
 #include "app/track_space.hpp"
@@ -40,6 +40,14 @@ sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, st
     }
     setup.racers[kPlayerSlot].isPlayer = true;
     return setup;
+}
+
+std::vector<std::int32_t> NameIndexes(const RacerGrid& racers, std::size_t slots) {
+    std::vector<std::int32_t> indexes(slots);
+    for (std::size_t i = 0; i < slots; ++i) {
+        indexes[i] = racers.NameIndex(i);
+    }
+    return indexes;
 }
 
 float MsSince(std::optional<Nanoseconds>& last) {
@@ -157,6 +165,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
         log::Warn("{}, racing in silence", audio.error().message);
     }
     return std::unique_ptr<RaceScene>(new RaceScene({.renderer = &renderer,
+                                                     .vfs = &vfs,
                                                      .track = std::string(track),
                                                      .trackDraws = std::move(model->draws),
                                                      .racers = std::move(*racers),
@@ -171,6 +180,8 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
 RaceScene::RaceScene(Parts parts)
     : parts_(std::move(parts)),
       chase_(PlayerCar()),
+      hud_(*parts_.renderer, *parts_.vfs, kPlayerSlot,
+           NameIndexes(parts_.racers, parts_.session.Racers().size())),
       controls_(parts_.session.Racers().size()),
       collisionLines_(BuildCollisionWireframe(parts_.raceTrack->collision)) {
     draws_ = parts_.trackDraws;
@@ -180,10 +191,12 @@ RaceScene::RaceScene(Parts parts)
 void RaceScene::ApplySettings(const settings::Registry& settings) {
     showsCheckpoints_ = settings.Get(kShowCheckpoints);
     showsCollision_ = settings.Get(kCollisionWireframe);
+    hud_.SetLanguage(SelectedLanguage(settings));
 }
 
 void RaceScene::Tick(const sim::InputFrame& input) {
     StepRace(parts_.session, input, controls_);
+    hud_.Tick(parts_.session, kSimTick);
     if (parts_.session.WasRespawned(kPlayerSlot)) {
         chase_.JumpTo(PlayerCar());
     } else {
@@ -210,9 +223,10 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     render::Camera camera = parts_.camera;
     camera.transform = interpolated.camera.transform;
     DrawDebugLines();
-    FormatRaceStatus(parts_.session, kPlayerSlot, status_);
-    Result<void> drawn =
-        parts_.renderer->Draw({.camera = camera, .meshes = draws_, .lines = debugLines_});
+    Result<void> drawn = parts_.renderer->Draw({.camera = camera,
+                                                .meshes = draws_,
+                                                .lines = debugLines_,
+                                                .sprites = hud_.Draw(parts_.session)});
     if (!drawn) {
         log::Error("{}", drawn.error().message);
         return;

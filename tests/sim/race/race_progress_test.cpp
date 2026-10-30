@@ -110,5 +110,36 @@ TEST_CASE("before any gate, the racer nearer checkpoint 0 ranks ahead") {
     CHECK(progress.Standings().front() == 1);
 }
 
+TEST_CASE("starting a lap behind the leader records the gap to it") {
+    const CheckpointGraph graph = test::Ring();
+    RaceProgress progress(2, 3);
+    DriveLap(progress, graph, 1);
+    DriveLap(progress, graph, 1);
+    const std::array<Vector3, 2> positions{Vector3{.x = -5.0F}, Vector3{.x = 5.0F}};
+    progress.Rank(graph, positions);
+
+    DriveLap(progress, graph, 0);
+    progress.Move(graph, 0, {.from = {.x = -5.0F}, .to = {.x = -5.0F}, .facing = kAlongTravel},
+                  Milliseconds{1000}, true);
+    DriveLap(progress, graph, 0);
+
+    CHECK(progress.OfRacer(1).lapGap == Milliseconds{0});
+    CHECK(progress.OfRacer(0).lapGap == Milliseconds{1000});
+}
+
+TEST_CASE("the leader has no gap") {
+    const CheckpointGraph graph = test::Ring();
+    RaceProgress progress(2, 3);
+    const std::array<Vector3, 2> positions{Vector3{.x = -5.0F}, Vector3{.x = -9.0F}};
+    progress.Rank(graph, positions);
+    DriveLap(progress, graph, 1);
+    DriveLap(progress, graph, 1);
+
+    DriveLap(progress, graph, 0);
+    DriveLap(progress, graph, 0);
+
+    CHECK(progress.OfRacer(0).lapGap == Milliseconds{0});
+}
+
 }
 }

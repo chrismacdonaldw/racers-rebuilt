@@ -30,9 +30,6 @@ public:
     /// Read every frame, so it can change as the scene runs.
     [[nodiscard]] virtual SceneMusic Music() const { return {}; }
 
-    /// A line for the developer overlay.
-    [[nodiscard]] virtual std::string_view DeveloperStatus() const { return {}; }
-
     /// A scene name for the application to open after this frame. Each request is taken once.
     [[nodiscard]] virtual std::optional<std::string> TakeNextScene() { return std::nullopt; }
 

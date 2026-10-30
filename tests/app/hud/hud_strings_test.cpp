@@ -26,6 +26,7 @@ TEST_CASE("HUD labels come from their game string slots") {
     REQUIRE(strings.has_value());
     CHECK(strings->placeSuffixes.front() == game[0x19]);
     CHECK(strings->placeSuffixes.back() == game[0x20]);
+    CHECK(strings->gap == game[0x21]);
     CHECK(strings->wrongWay == game[0x24]);
     CHECK(strings->best == game[0x25]);
     CHECK(strings->lap == game[0x27]);

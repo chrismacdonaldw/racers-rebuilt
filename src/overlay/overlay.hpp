@@ -23,7 +23,6 @@ struct DeveloperStats {
     FloatSeconds frameTime{0.0};
     int ticksPerFrame = 0;
     std::string_view startupSummary;
-    std::string_view sceneStatus;
 };
 
 struct SceneChoice {

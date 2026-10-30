@@ -11,12 +11,16 @@ rr_add_module(app
         frame_loop.cpp
         free_camera.cpp
         game_boot.cpp
+        hud/hud_assets.cpp
         hud/hud_strings.cpp
+        hud/hud_text.cpp
         hud/place_pulse.cpp
         hud/race_hud.cpp
+        hud/race_hud_layer.cpp
         hud/race_hud_values.cpp
         hud/race_results.cpp
         hud/race_time_text.cpp
+        hud/text_pool.cpp
         image_dump.cpp
         input_bindings.cpp
         install_discovery.cpp
@@ -35,7 +39,6 @@ rr_add_module(app
         race_audio.cpp
         race_music.cpp
         race_scene.cpp
-        race_status.cpp
         race_step.cpp
         racer/animation_player.cpp
         racer/body_lean.cpp

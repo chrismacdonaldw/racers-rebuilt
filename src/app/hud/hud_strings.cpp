@@ -7,6 +7,7 @@ namespace rr::app {
 namespace {
 
 constexpr std::size_t kFirstPlaceSuffix = 0x19;
+constexpr std::size_t kGap = 0x21;
 constexpr std::size_t kWrongWay = 0x24;
 constexpr std::size_t kBest = 0x25;
 constexpr std::size_t kLap = 0x27;
@@ -23,7 +24,8 @@ Result<HudStrings> ReadHudStrings(std::span<const std::u16string> gameStrings) {
                     std::format("game strings hold {} entries, the HUD needs {}",
                                 gameStrings.size(), kStillRacing + 1));
     }
-    HudStrings strings{.wrongWay = gameStrings[kWrongWay],
+    HudStrings strings{.gap = gameStrings[kGap],
+                       .wrongWay = gameStrings[kWrongWay],
                        .best = gameStrings[kBest],
                        .lap = gameStrings[kLap],
                        .finish = gameStrings[kFinish],

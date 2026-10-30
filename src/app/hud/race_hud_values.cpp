@@ -11,6 +11,7 @@ constexpr Milliseconds kGoTime{2000};
 constexpr float kBannerScale = 1.8F;
 constexpr Milliseconds kLapFlashTime{3000};
 constexpr Milliseconds kLapFlashPeriod{250};
+constexpr Milliseconds kGapTime{2000};
 
 float ShrinkingScale(Milliseconds left) {
     return kBannerScale * static_cast<float>(left.count()) /
@@ -79,6 +80,14 @@ std::optional<Milliseconds> ReadBestLap(const sim::RacerProgress& progress, int 
     return std::ranges::min(completed);
 }
 
+std::optional<Milliseconds> ReadLapGap(const sim::RacerProgress& progress, int lap, int lapCount) {
+    if (lap == 0 || lap >= lapCount || progress.lapGap <= Milliseconds{0} ||
+        progress.lapTimes[static_cast<std::size_t>(lap)] >= kGapTime) {
+        return std::nullopt;
+    }
+    return progress.lapGap;
+}
+
 int ReadPlace(const sim::RaceProgress& progress, std::size_t racer) {
     if (const std::optional<int> place = progress.OfRacer(racer).finishPlace) {
         return *place;
@@ -98,6 +107,7 @@ HudValues ReadHudValues(const sim::RaceClock& clock, const sim::RaceProgress& pr
             .lap = std::min(lap + 1, lapCount),
             .lapTime = ReadLapTime(clock, own, lap, lapCount),
             .bestLap = ReadBestLap(own, lap),
+            .lapGap = ReadLapGap(own, lap, lapCount),
             .place = ReadPlace(progress, racer),
             .isWrongWay = own.laps.IsWrongWay()};
 }

@@ -4,13 +4,16 @@ add_executable(racers-rebuilt-tests
     app/checkpoint_gates_test.cpp
     app/collision_wireframe_test.cpp
     app/frame_loop_test.cpp
+    app/hud/hud_assets_test.cpp
     app/hud/hud_strings_test.cpp
+    app/hud/hud_text_test.cpp
     app/hud/place_pulse_test.cpp
     app/hud/race_hud_session_test.cpp
     app/hud/race_hud_test.cpp
     app/hud/race_hud_values_test.cpp
     app/hud/race_results_test.cpp
     app/hud/race_time_text_test.cpp
+    app/hud/text_pool_test.cpp
     app/free_camera_test.cpp
     app/input_bindings_test.cpp
     app/install_discovery_test.cpp
@@ -24,7 +27,7 @@ add_executable(racers-rebuilt-tests
     app/race_audio_test.cpp
     app/race_determinism_test.cpp
     app/race_music_test.cpp
-    app/race_status_test.cpp
+    app/race_scene_name_test.cpp
     app/racer/animation_player_test.cpp
     app/racer/body_lean_test.cpp
     app/racer/racer_assets_test.cpp
