@@ -10,13 +10,13 @@
 #include <utility>
 #include <vector>
 
-#include "app/checkpoint_gates.hpp"
 #include "assets/archive_survey.hpp"
 #include "assets/track_loader.hpp"
 #include "sim/ai/ai_racer.hpp"
 #include "sim/ai/route_choice.hpp"
 #include "sim/race/checkpoint_graph.hpp"
 #include "sim/race/lap_tracker.hpp"
+#include "sim/race/race_track.hpp"
 
 namespace rr::sim {
 namespace {
@@ -69,7 +69,7 @@ void CheckEveryTrack(TrackCheck check) {
         return;
     }
     for (const std::string& name : assets::ListRaceTracks(*vfs)) {
-        Result<CheckpointGraph> graph = app::LoadCheckpoints(*vfs, "GAMEDATA/" + name);
+        Result<CheckpointGraph> graph = LoadCheckpoints(*vfs, name);
         Result<std::vector<assets::VfsEntry>> folder = vfs->List("GAMEDATA/" + name);
         std::vector<std::string> problems;
         if (graph && folder) {
