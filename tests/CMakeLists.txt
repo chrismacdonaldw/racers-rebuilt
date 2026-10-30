@@ -105,6 +105,9 @@ add_executable(racers-rebuilt-tests
     sim/physics/turbo_test.cpp
     sim/race/checkpoint_graph_test.cpp
     sim/race/lap_tracker_test.cpp
+    sim/race/race_clock_test.cpp
+    sim/race/race_progress_test.cpp
+    sim/race/random_test.cpp
     sim/race/standings_test.cpp
     sim/replay_test.cpp
     sim/route_playback_test.cpp
