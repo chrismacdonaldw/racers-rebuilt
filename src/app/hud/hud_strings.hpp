@@ -20,9 +20,13 @@ struct HudStrings {
     std::u16string go;
     std::u16string finished;
     std::u16string stillRacing;
+    std::u16string paused;
+    std::u16string resume;
+    std::u16string restart;
+    std::u16string quit;
 };
 
-/// Picks the HUD labels out of a language's `GAME.SRF` strings.
+/// Picks the HUD and pause labels out of a language's `GAME.SRF` strings.
 [[nodiscard]] Result<HudStrings> ReadHudStrings(std::span<const std::u16string> gameStrings);
 
 }

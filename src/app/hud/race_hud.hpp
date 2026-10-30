@@ -31,6 +31,9 @@ public:
     void Layout(const sim::RaceClock& clock, const sim::RaceProgress& progress, std::size_t racer,
                 std::span<const std::u16string> names, std::vector<HudText>& out);
 
+    /// Appends the pause menu's title and rows, highlighting row `focus`.
+    void LayoutPause(std::size_t focus, std::vector<HudText>& out) const;
+
     [[nodiscard]] const HudFonts& Fonts() const { return fonts_; }
 
 private:
@@ -40,6 +43,7 @@ private:
     void AddPlace(int place, std::vector<HudText>& out);
     void AddBanner(const BannerView& banner, std::vector<HudText>& out) const;
     [[nodiscard]] std::u16string_view BannerText(HudBanner banner) const;
+    [[nodiscard]] HudText Centered(std::u16string_view text, float y, render::Color tint) const;
 
     HudStrings strings_;
     HudFonts fonts_;

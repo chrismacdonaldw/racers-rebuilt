@@ -9,6 +9,7 @@
 
 #include "app/chase_camera.hpp"
 #include "app/hud/race_hud_layer.hpp"
+#include "app/menu/pause_menu.hpp"
 #include "app/race_audio.hpp"
 #include "app/racer/racer_grid.hpp"
 #include "app/scene.hpp"
@@ -60,6 +61,7 @@ public:
         const RaceSceneSetup& setup, std::uint64_t seed, Nanoseconds started);
 
     void ApplySettings(const settings::Registry& settings) override;
+    [[nodiscard]] std::optional<std::string> TakeNextScene() override;
     void Tick(const sim::InputFrame& input) override;
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
@@ -69,7 +71,7 @@ private:
     struct Parts {
         render::Renderer* renderer = nullptr;
         const assets::Vfs* vfs = nullptr;
-        std::string track;
+        RaceSceneSetup setup;
         std::vector<render::MeshDraw> trackDraws;
         RacerGrid racers;
         render::Camera camera;
@@ -83,11 +85,15 @@ private:
     explicit RaceScene(Parts parts);
 
     [[nodiscard]] Transform PlayerCar() const;
+    void TickPause(const sim::InputFrame& input);
+    [[nodiscard]] std::optional<std::size_t> PauseFocus() const;
     void DrawDebugLines();
 
     Parts parts_;
     ChaseCamera chase_;
     RaceHudLayer hud_;
+    PauseMenu pause_;
+    std::optional<std::string> next_;
     std::vector<sim::RacerControls> controls_;
     std::vector<render::MeshDraw> draws_;
     std::vector<render::DebugLine> collisionLines_;

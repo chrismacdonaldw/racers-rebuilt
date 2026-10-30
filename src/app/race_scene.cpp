@@ -16,6 +16,8 @@
 #include "app/collision_wireframe.hpp"
 #include "app/frame_loop.hpp"
 #include "app/game_settings.hpp"
+#include "app/hud/race_hud_values.hpp"
+#include "app/menu/menu_scenes.hpp"
 #include "app/race_step.hpp"
 #include "app/track_model.hpp"
 #include "app/track_space.hpp"
@@ -30,6 +32,7 @@ constexpr std::string_view kRacePrefix = "race:";
 constexpr std::string_view kRespawnKey = "respawn";
 constexpr std::string_view kRacerKey = "racer";
 constexpr std::string_view kRespawnOff = "off";
+constexpr std::uint64_t kHashPrime = 1099511628211ULL;
 
 sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, std::uint64_t seed,
                         std::size_t slots) {
@@ -166,7 +169,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     }
     return std::unique_ptr<RaceScene>(new RaceScene({.renderer = &renderer,
                                                      .vfs = &vfs,
-                                                     .track = std::string(track),
+                                                     .setup = setup,
                                                      .trackDraws = std::move(model->draws),
                                                      .racers = std::move(*racers),
                                                      .camera = TrackCamera(model->bounds),
@@ -194,7 +197,18 @@ void RaceScene::ApplySettings(const settings::Registry& settings) {
     hud_.SetLanguage(SelectedLanguage(settings));
 }
 
+std::optional<std::string> RaceScene::TakeNextScene() {
+    return std::exchange(next_, std::nullopt);
+}
+
 void RaceScene::Tick(const sim::InputFrame& input) {
+    if (pause_.IsOpen() || input.WasPressed(sim::Action::Pause)) {
+        TickPause(input);
+        return;
+    }
+    if (ShowsResults(parts_.session.Clock()) && input.WasPressed(sim::MenuAction::Confirm)) {
+        next_ = std::string(kMainMenuScene);
+    }
     StepRace(parts_.session, input, controls_);
     hud_.Tick(parts_.session, kSimTick);
     if (parts_.session.WasRespawned(kPlayerSlot)) {
@@ -214,6 +228,9 @@ SceneMusic RaceScene::Music() const {
 void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
     SnapshotRace(parts_.session, out);
     out.camera = {.transform = chase_.Pose(PlayerCar()), .flags = out.entities[kPlayerSlot].flags};
+    if (pause_.IsOpen()) {
+        out.simStateHash = (out.simStateHash * kHashPrime) ^ pause_.StateHash();
+    }
 }
 
 void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
@@ -223,10 +240,11 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     render::Camera camera = parts_.camera;
     camera.transform = interpolated.camera.transform;
     DrawDebugLines();
-    Result<void> drawn = parts_.renderer->Draw({.camera = camera,
-                                                .meshes = draws_,
-                                                .lines = debugLines_,
-                                                .sprites = hud_.Draw(parts_.session)});
+    Result<void> drawn =
+        parts_.renderer->Draw({.camera = camera,
+                               .meshes = draws_,
+                               .lines = debugLines_,
+                               .sprites = hud_.Draw(parts_.session, PauseFocus())});
     if (!drawn) {
         log::Error("{}", drawn.error().message);
         return;
@@ -234,7 +252,7 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     if (!hasDrawn_) {
         hasDrawn_ = true;
         log::Info(
-            "{}: race of {} ready, first frame {} ms after loading began", parts_.track,
+            "{}: race of {} ready, first frame {} ms after loading began", parts_.setup.track,
             parts_.session.Racers().size(),
             std::chrono::duration_cast<Milliseconds>(platform::Now() - parts_.started).count());
     }
@@ -242,6 +260,22 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
 
 Transform RaceScene::PlayerCar() const {
     return CarToEngine(parts_.session.Racers()[kPlayerSlot].Pose());
+}
+
+void RaceScene::TickPause(const sim::InputFrame& input) {
+    const std::optional<PauseRow> chosen = pause_.Tick(input);
+    if (parts_.audio) {
+        parts_.audio->StopLoops();
+    }
+    if (chosen == PauseRow::Restart) {
+        next_ = RaceSceneName(parts_.setup);
+    } else if (chosen == PauseRow::Quit) {
+        next_ = std::string(kMainMenuScene);
+    }
+}
+
+std::optional<std::size_t> RaceScene::PauseFocus() const {
+    return pause_.IsOpen() ? std::optional(static_cast<std::size_t>(pause_.Focus())) : std::nullopt;
 }
 
 void RaceScene::DrawDebugLines() {

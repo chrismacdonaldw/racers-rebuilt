@@ -79,6 +79,10 @@ RaceAudio::RaceAudio(audio::Mixer& mixer, RaceSoundSet sounds, const RaceAudioSe
 }
 
 RaceAudio::~RaceAudio() {
+    StopLoops();
+}
+
+void RaceAudio::StopLoops() {
     for (LoopVoice& loop : engineLoops_) {
         loop.Stop(*mixer_);
     }

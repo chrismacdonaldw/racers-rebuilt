@@ -14,8 +14,7 @@ ReplayRecorder::ReplayRecorder(std::string buildVersion, std::string scene, std:
               .racers = {{}}} {}
 
 void ReplayRecorder::Record(const InputFrame& input, const RenderSnapshot& after) {
-    InputFrame& recorded = replay_.racers.front().emplace_back(input);
-    recorded.menuPressed.reset();
+    replay_.racers.front().push_back(input);
     hashes_.push_back(HashSnapshot(after));
 }
 

@@ -14,6 +14,7 @@ constexpr std::string_view kMagic = "RRRP";
 constexpr std::string_view kWhat = "replay";
 constexpr std::size_t kMaxTicks = 8'000'000;
 constexpr unsigned long kActionMask = (1UL << kActionCount) - 1;
+constexpr unsigned long kMenuActionMask = (1UL << kMenuActionCount) - 1;
 
 struct Run {
     std::uint32_t length = 0;
@@ -42,6 +43,7 @@ void AppendStream(std::vector<std::byte>& out, const std::vector<InputFrame>& fr
         AppendU8(out, static_cast<std::uint8_t>(run.frame.pressed.to_ulong()));
         AppendU8(out, static_cast<std::uint8_t>(run.frame.released.to_ulong()));
         AppendU8(out, std::bit_cast<std::uint8_t>(run.frame.steerLeftAxis));
+        AppendU8(out, static_cast<std::uint8_t>(run.frame.menuPressed.to_ulong()));
     }
 }
 
@@ -74,6 +76,14 @@ Result<Run> ReadRun(assets::ByteReader& reader) {
         return std::unexpected(std::move(axis.error()));
     }
     run.frame.steerLeftAxis = std::bit_cast<std::int8_t>(*axis);
+    Result<std::uint8_t> menu = reader.ReadU8();
+    if (!menu) {
+        return std::unexpected(std::move(menu.error()));
+    }
+    if ((*menu & ~kMenuActionMask) != 0) {
+        return Fail(ErrorCode::InvalidData, "replay names an unknown menu action");
+    }
+    run.frame.menuPressed = std::bitset<kMenuActionCount>(*menu);
     return run;
 }
 

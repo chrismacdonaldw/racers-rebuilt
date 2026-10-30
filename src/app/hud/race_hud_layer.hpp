@@ -30,8 +30,9 @@ public:
 
     void Tick(const sim::RaceSession& session, Milliseconds elapsed);
 
-    /// Reads the session as the last tick left it. Valid until the next call.
-    [[nodiscard]] std::span<const render::SpriteDraw> Draw(const sim::RaceSession& session);
+    /// Valid until the next call. `pauseFocus` adds the pause menu with that row highlighted.
+    [[nodiscard]] std::span<const render::SpriteDraw> Draw(const sim::RaceSession& session,
+                                                           std::optional<std::size_t> pauseFocus);
 
 private:
     render::Renderer* renderer_;

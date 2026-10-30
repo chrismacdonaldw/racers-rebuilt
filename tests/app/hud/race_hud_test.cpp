@@ -44,7 +44,11 @@ HudStrings EnglishStrings() {
             .finish = u"FINISH",
             .go = u"GO",
             .finished = u"FINISHED",
-            .stillRacing = u"STILL RACING"};
+            .stillRacing = u"STILL RACING",
+            .paused = u"GAME PAUSED",
+            .resume = u"CONTINUE",
+            .restart = u"RESTART RACE",
+            .quit = u"EXIT"};
 }
 
 std::vector<std::u16string> Names() {
@@ -65,10 +69,32 @@ float YOf(const std::vector<HudText>& texts, std::u16string_view text) {
     return Find(texts, text).transform([](const HudText& item) { return item.y; }).value_or(-1.0F);
 }
 
+float BlueOf(const std::vector<HudText>& texts, std::u16string_view text) {
+    return Find(texts, text)
+        .transform([](const HudText& item) { return item.tint.b; })
+        .value_or(-1.0F);
+}
+
 HudText LastNumbers(const std::vector<HudText>& texts) {
     const auto found = std::ranges::find_last_if(
         texts, [](const HudText& item) { return item.font == HudFont::Numbers; });
     return found.empty() ? HudText{} : found.front();
+}
+
+TEST_CASE("the pause menu is centred under its title, with the focused row tinted") {
+    const Fonts fonts;
+    const RaceHud hud(EnglishStrings(), fonts.Hud());
+    std::vector<HudText> texts;
+
+    hud.LayoutPause(1, texts);
+
+    REQUIRE(texts.size() == 4);
+    CHECK(XOf(texts, u"GAME PAUSED") == doctest::Approx(320.0F - 55.0F));
+    CHECK(XOf(texts, u"EXIT") == doctest::Approx(320.0F - 20.0F));
+    CHECK(YOf(texts, u"CONTINUE") < YOf(texts, u"RESTART RACE"));
+    CHECK(YOf(texts, u"RESTART RACE") < YOf(texts, u"EXIT"));
+    CHECK(BlueOf(texts, u"RESTART RACE") == 0.0F);
+    CHECK(BlueOf(texts, u"EXIT") == 1.0F);
 }
 
 TEST_CASE("the lap counter and lap time sit top right, right of their labels") {

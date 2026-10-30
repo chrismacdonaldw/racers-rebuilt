@@ -30,6 +30,7 @@ rr_add_module(app
         menu/menu_focus.cpp
         menu/menu_page.cpp
         menu/menu_text.cpp
+        menu/pause_menu.cpp
         menu/single_race_menu.cpp
         menu/single_race_scene.cpp
         music_folder_source.cpp
