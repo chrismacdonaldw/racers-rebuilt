@@ -104,6 +104,33 @@ template <auto Member, auto... More>
     };
 }
 
+template <auto Outer, auto Inner>
+[[nodiscard]] constexpr auto NestedField(FieldId id) {
+    using Target = MemberPointer<decltype(Outer)>::Target;
+    return FieldRule<Target>{
+        .id = id,
+        .read = [](TokenReader& reader,
+                   Target& target) { return ReadValue(reader, (target.*Outer).*Inner); },
+    };
+}
+
+/// Reads one value of each type and drops them.
+template <typename Target, typename... Values>
+[[nodiscard]] constexpr FieldRule<Target> IgnoredField(FieldId id) {
+    return {
+        .id = id,
+        .read = [](TokenReader& reader, Target&) -> Result<void> {
+            Result<void> read;
+            ((read = read.and_then([&] {
+                 Values value{};
+                 return ReadValue(reader, value);
+             })),
+             ...);
+            return read;
+        },
+    };
+}
+
 /// Reads no value.
 template <auto Member, auto Value>
 [[nodiscard]] constexpr auto FlagField(FieldId id) {

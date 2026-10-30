@@ -1,12 +1,12 @@
 #include "assets/race_route.hpp"
 
 #include <array>
-#include <cmath>
 #include <cstdint>
 #include <format>
 #include <limits>
 #include <utility>
 
+#include "assets/stored_rotation.hpp"
 #include "assets/token_schema.hpp"
 
 namespace rr::assets {
@@ -21,13 +21,12 @@ constexpr std::int32_t kDurationMask = 0x3F;
 constexpr int kDurationShift = 5;
 
 using PackedPoint = std::array<std::int32_t, 10>;
-using StoredRotation = std::array<float, 4>;
 
 struct StoredRoute {
     Vector3 startPosition;
-    StoredRotation startRotation{0.0F, 0.0F, 0.0F, 1.0F};
+    StoredRotation startRotation = kStoredIdentity;
     Vector3 loopPosition;
-    StoredRotation loopRotation{0.0F, 0.0F, 0.0F, 1.0F};
+    StoredRotation loopRotation = kStoredIdentity;
     std::int32_t loopTimeMs = 0;
     std::int32_t loopPoint = 0;
     std::vector<PackedPoint> points;
@@ -39,18 +38,6 @@ constexpr std::array kRouteFields{
     Field<&StoredRoute::loopRotation>(0x2B),  Field<&StoredRoute::loopTimeMs>(0x2C),
     Field<&StoredRoute::loopPoint>(0x2D),
 };
-
-Result<Quaternion> InverseRotation(float x, float y, float z, float w) {
-    const float length = std::sqrt((x * x) + (y * y) + (z * z) + (w * w));
-    if (!(length > 0.0F)) {
-        return Fail(ErrorCode::InvalidData, "route rotation has zero length");
-    }
-    return Quaternion{.w = w / length, .x = -x / length, .y = -y / length, .z = -z / length};
-}
-
-Result<Quaternion> InverseRotation(const StoredRotation& stored) {
-    return InverseRotation(stored[0], stored[1], stored[2], stored[3]);
-}
 
 constexpr std::size_t kFirstByte = 2;
 
@@ -78,8 +65,9 @@ float SignedByte(std::int32_t stored, float scale) {
 Result<RoutePoint> DecodePoint(const PackedPoint& packed) {
     const auto rotation = [&](std::size_t i) { return SignedByte(packed.at(i), kRotationScale); };
     return CheckRanges(packed)
-        .and_then(
-            [&] { return InverseRotation(rotation(3), rotation(4), rotation(5), rotation(6)); })
+        .and_then([&] {
+            return FromStoredRotation({rotation(3), rotation(4), rotation(5), rotation(6)});
+        })
         .transform([&](const Quaternion& turned) {
             return RoutePoint{
                 .offset = {.x = static_cast<float>(packed[0]) * kOffsetXYScale,
@@ -114,10 +102,10 @@ Result<RaceRoute> Decode(const StoredRoute& stored) {
         }
         route.points.push_back(*point);
     }
-    return InverseRotation(stored.startRotation)
+    return FromStoredRotation(stored.startRotation)
         .and_then([&](const Quaternion& start) {
             route.startRotation = start;
-            return InverseRotation(stored.loopRotation);
+            return FromStoredRotation(stored.loopRotation);
         })
         .transform([&](const Quaternion& loop) {
             route.loopRotation = loop;

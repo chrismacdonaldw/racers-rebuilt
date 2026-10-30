@@ -50,4 +50,19 @@ namespace rr::test {
     return bytes;
 }
 
+[[nodiscard]] inline std::vector<std::byte> Block(const std::vector<std::byte>& body) {
+    return Join({Bytes({0x05}), body, Bytes({0x06})});
+}
+
+[[nodiscard]] inline std::vector<std::byte> NamedEntry(std::uint8_t field, std::string_view name,
+                                                       const std::vector<std::byte>& fields) {
+    return Join({Bytes({field}), Text(name), Block(fields)});
+}
+
+[[nodiscard]] inline std::vector<std::byte> NamedLibrary(
+    std::uint8_t field, std::initializer_list<std::vector<std::byte>> entries) {
+    return Join({Bytes({field}), ListHeader(static_cast<std::uint8_t>(entries.size())),
+                 Join(entries), Bytes({0x06})});
+}
+
 }
