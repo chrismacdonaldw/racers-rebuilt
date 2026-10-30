@@ -18,10 +18,6 @@ glm::vec3 ToGlm(const Vector3& v) {
     return {v.x, v.y, v.z};
 }
 
-Vector3 FromGlm(const glm::vec3& v) {
-    return {.x = v.x, .y = v.y, .z = v.z};
-}
-
 }
 
 Vector3 ToEngine(const Vector3& game) {
@@ -44,11 +40,6 @@ Transform PlacementToEngine(const Vector3& position, const Vector3& forward, con
     const glm::quat rotation = glm::quat_cast(glm::mat3(x, y, glm::cross(x, y)));
     return {.position = placed.position,
             .rotation = {.w = rotation.w, .x = rotation.x, .y = rotation.y, .z = rotation.z}};
-}
-
-Vector3 Apply(const Transform& transform, const Vector3& point) {
-    const Quaternion& r = transform.rotation;
-    return FromGlm(ToGlm(transform.position) + (glm::quat(r.w, r.x, r.y, r.z) * ToGlm(point)));
 }
 
 Transform LookAt(const Vector3& eye, const Vector3& target) {

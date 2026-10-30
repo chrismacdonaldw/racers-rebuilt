@@ -12,6 +12,16 @@ struct Transform {
     friend constexpr bool operator==(const Transform&, const Transform&) = default;
 };
 
+[[nodiscard]] constexpr Vector3 Apply(const Transform& transform, const Vector3& point) {
+    return transform.position + Rotate(transform.rotation, point);
+}
+
+/// Applies `child` first, then `parent`.
+[[nodiscard]] constexpr Transform Compose(const Transform& parent, const Transform& child) {
+    return {.position = Apply(parent, child.position),
+            .rotation = parent.rotation * child.rotation};
+}
+
 [[nodiscard]] inline Transform Interpolate(const Transform& from, const Transform& to,
                                            float alpha) {
     return {.position = Lerp(from.position, to.position, alpha),

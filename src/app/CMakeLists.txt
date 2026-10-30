@@ -16,6 +16,9 @@ rr_add_module(app
         music_folder_source.cpp
         orbiting_cube.cpp
         pace_car.cpp
+        racer/animation_player.cpp
+        racer/body_lean.cpp
+        racer/skeleton_pose.cpp
         replay_session.cpp
         scene_stack.cpp
         sprite_test_scene.cpp

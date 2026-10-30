@@ -12,8 +12,6 @@ namespace rr::app {
 [[nodiscard]] Transform PlacementToEngine(const Vector3& position, const Vector3& forward,
                                           const Vector3& up);
 
-[[nodiscard]] Vector3 Apply(const Transform& transform, const Vector3& point);
-
 [[nodiscard]] Transform LookAt(const Vector3& eye, const Vector3& target);
 
 struct Bounds {
