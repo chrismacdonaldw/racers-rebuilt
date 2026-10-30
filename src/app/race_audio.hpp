@@ -59,6 +59,9 @@ public:
     /// Call after each session tick. `camera` is the player's, in engine space.
     void Hear(const sim::RaceSession& session, const Transform& camera, Milliseconds elapsed);
 
+    /// Silences the engine, brake, surface and opponent loops until the next `Hear`.
+    void StopLoops();
+
     [[nodiscard]] SceneMusic Music() const { return music_.Current(); }
 
 private:

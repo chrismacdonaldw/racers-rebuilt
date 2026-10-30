@@ -6,6 +6,10 @@
 namespace rr::app {
 namespace {
 
+constexpr std::size_t kResume = 0x0E;
+constexpr std::size_t kRestart = 0x0F;
+constexpr std::size_t kQuit = 0x11;
+constexpr std::size_t kPaused = 0x14;
 constexpr std::size_t kFirstPlaceSuffix = 0x19;
 constexpr std::size_t kGap = 0x21;
 constexpr std::size_t kWrongWay = 0x24;
@@ -31,7 +35,11 @@ Result<HudStrings> ReadHudStrings(std::span<const std::u16string> gameStrings) {
                        .finish = gameStrings[kFinish],
                        .go = gameStrings[kGo],
                        .finished = gameStrings[kFinished],
-                       .stillRacing = gameStrings[kStillRacing]};
+                       .stillRacing = gameStrings[kStillRacing],
+                       .paused = gameStrings[kPaused],
+                       .resume = gameStrings[kResume],
+                       .restart = gameStrings[kRestart],
+                       .quit = gameStrings[kQuit]};
     for (std::size_t i = 0; i < kShownPlaces; ++i) {
         strings.placeSuffixes[i] = gameStrings[kFirstPlaceSuffix + i];
     }

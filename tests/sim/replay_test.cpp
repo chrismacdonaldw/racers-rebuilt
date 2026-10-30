@@ -35,6 +35,9 @@ Replay SampleReplay() {
     InputFrame stick = Held({Action::Accelerate});
     stick.steerLeftAxis = -90;
     frames.insert(frames.end(), 10, stick);
+    InputFrame menu;
+    menu.menuPressed.set(InputFrame::Index(MenuAction::Confirm));
+    frames.push_back(menu);
     return {.buildVersion = "0.1.0",
             .scene = "RACEC0R0",
             .seed = 0x1234'5678'9ABC'DEF0ULL,
@@ -128,14 +131,14 @@ TEST_CASE("a damaged replay is rejected") {
     }
 }
 
-TEST_CASE("recording leaves menu presses out") {
+TEST_CASE("recording keeps menu presses") {
     ReplayRecorder recorder("0.1.0", "RACEC0R0", 0);
     InputFrame frame = Held({Action::Accelerate});
     frame.menuPressed.set(InputFrame::Index(MenuAction::Confirm));
 
     recorder.Record(frame, RenderSnapshot{});
 
-    CHECK(recorder.Recorded().racers.front().front() == Held({Action::Accelerate}));
+    CHECK(recorder.Recorded().racers.front().front() == frame);
 }
 
 }

@@ -36,6 +36,18 @@ TEST_CASE("HUD labels come from their game string slots") {
     CHECK(strings->stillRacing == game[0x2B]);
 }
 
+TEST_CASE("pause labels come from their game string slots") {
+    const std::vector<std::u16string> game = NumberedStrings(0x2E);
+
+    const Result<HudStrings> strings = ReadHudStrings(game);
+
+    REQUIRE(strings.has_value());
+    CHECK(strings->paused == game[0x14]);
+    CHECK(strings->resume == game[0x0E]);
+    CHECK(strings->restart == game[0x0F]);
+    CHECK(strings->quit == game[0x11]);
+}
+
 TEST_CASE("a game string table without every HUD label fails") {
     CHECK_FALSE(ReadHudStrings(NumberedStrings(0x2B)).has_value());
 }

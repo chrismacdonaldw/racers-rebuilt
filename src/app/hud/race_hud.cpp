@@ -21,7 +21,11 @@ constexpr float kBestLabelGap = 14.0F;
 constexpr float kGapLabelGap = 4.0F;
 constexpr float kBestRow = 7.0F / 8.0F;
 constexpr float kGapRow = 21.0F / 8.0F;
+constexpr float kPauseTitleY = 160.0F;
+constexpr float kPauseFirstRowY = 216.0F;
+constexpr float kPauseRowHeight = 32.0F;
 constexpr render::Color kCountdownTint{.r = 1.0F, .g = 1.0F, .b = 0.0F};
+constexpr render::Color kFocusTint = kCountdownTint;
 
 float TimeWidth(const HudFonts& fonts) {
     std::array<char16_t, kRaceTimeLength> zero{};
@@ -51,9 +55,7 @@ void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progr
     AddLap(values, out);
     AddPlace(values.place, out);
     if (values.isWrongWay) {
-        out.push_back({.text = strings_.wrongWay,
-                       .x = kCenterX - (fonts_.Width(HudFont::Text, strings_.wrongWay) / 2.0F),
-                       .y = kWrongWayY});
+        out.push_back(Centered(strings_.wrongWay, kWrongWayY, {}));
     }
     if (values.banner) {
         AddBanner(*values.banner, out);
@@ -63,6 +65,16 @@ void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progr
         LayoutResults(results_, names,
                       {.finished = strings_.finished, .stillRacing = strings_.stillRacing}, pool_,
                       out);
+    }
+}
+
+void RaceHud::LayoutPause(std::size_t focus, std::vector<HudText>& out) const {
+    out.push_back(Centered(strings_.paused, kPauseTitleY, {}));
+    const std::array<std::u16string_view, 3> rows{strings_.resume, strings_.restart, strings_.quit};
+    for (std::size_t row = 0; row < rows.size(); ++row) {
+        out.push_back(Centered(rows[row],
+                               kPauseFirstRowY + (static_cast<float>(row) * kPauseRowHeight),
+                               row == focus ? kFocusTint : render::Color{}));
     }
 }
 
@@ -116,6 +128,13 @@ void RaceHud::AddBanner(const BannerView& banner, std::vector<HudText>& out) con
                    .y = gapY_ - (height / 4.0F),
                    .scale = banner.scale,
                    .tint = banner.text == HudBanner::Finish ? render::Color{} : kCountdownTint});
+}
+
+HudText RaceHud::Centered(std::u16string_view text, float y, render::Color tint) const {
+    return {.text = text,
+            .x = kCenterX - (fonts_.Width(HudFont::Text, text) / 2.0F),
+            .y = y,
+            .tint = tint};
 }
 
 std::u16string_view RaceHud::BannerText(HudBanner banner) const {

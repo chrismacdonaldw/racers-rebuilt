@@ -32,7 +32,7 @@ enum class MenuAction : std::uint8_t {
 inline constexpr std::size_t kMenuActionCount = static_cast<std::size_t>(MenuAction::Count);
 
 /// Input for exactly one tick. `pressed` and `released` cover everything since the previous tick.
-/// `menuPressed` counts key repeats too, and replays leave it out.
+/// `menuPressed` counts key repeats too.
 struct InputFrame {
     std::bitset<kActionCount> held;
     std::bitset<kActionCount> pressed;

@@ -62,6 +62,11 @@ public:
             RaceAudioSetup{.racerCount = kGridSize, .seed = 3});
     }
 
+    void StopLoopsAndRender() {
+        audio_->StopLoops();
+        mixer_.Render(output_);
+    }
+
     std::uint64_t TickAndRender() {
         session_.Tick(kTick, controls_);
         const Vector3& player = session_.Racers()[0].Body().motion.position;
@@ -115,6 +120,20 @@ TEST_CASE("a full grid's race sounds mix without allocating on the audio thread"
     CHECK(renderAllocations == 0);
     CHECK_FALSE(race.LastRenderIsSilent());
     CHECK(race.Audio().Music().track == "royal");
+}
+
+TEST_CASE("stopping the loops silences a racing grid") {
+    FullGrid race;
+    while (race.Session().Clock().Phase() != sim::RacePhase::Racing) {
+        static_cast<void>(race.TickAndRender());
+    }
+    for (int tick = 0; tick < kTicksPastGo; ++tick) {
+        static_cast<void>(race.TickAndRender());
+    }
+
+    race.StopLoopsAndRender();
+
+    CHECK(race.LastRenderIsSilent());
 }
 
 }
