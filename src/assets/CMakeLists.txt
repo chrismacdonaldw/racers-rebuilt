@@ -26,6 +26,7 @@ rr_add_module(assets
         race_route.cpp
         racer_catalog.cpp
         skeleton_database.cpp
+        sound_list.cpp
         stored_rotation.cpp
         start_grid.cpp
         string_table.cpp
