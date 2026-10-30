@@ -85,6 +85,31 @@ TEST_CASE("a one-shot part holds its last frame and wraps over its frame count")
     CHECK(posed[0].rotation.z == doctest::Approx(std::sin(kQuarterTurn / 2.0F)));
 }
 
+TEST_CASE("keys that share a frame jump to the later key") {
+    const assets::AnimationAsset animations{
+        .positionKeys = {{.x = 0.0F}, {.x = 10.0F}, {.x = 30.0F}, {.x = 40.0F}},
+        .rotationKeys = {},
+        .keyFrames = {0, 10, 10, 20},
+        .tracks = {{.rotations = {}, .positions = {.firstValue = 0, .firstFrame = 0, .count = 4}},
+                   {}},
+        .parts = {{.name = "jump",
+                   .firstTrack = 0,
+                   .frameCount = 22,
+                   .loopFrames = 20,
+                   .framesPerSecond = 30}},
+    };
+    AnimationPlayer player = MakePlayer(animations);
+    player.Play(0, true);
+
+    player.AdvanceFrames(10.0F);
+    const std::array<Transform, 2> jumped = Posed(player);
+    player.AdvanceFrames(10.5F);
+    const std::array<Transform, 2> wrapping = Posed(player);
+
+    CHECK(jumped[0].position.x == doctest::Approx(30.0F));
+    CHECK(wrapping[0].position.x == doctest::Approx(40.0F));
+}
+
 TEST_CASE("a node without keys keeps its placement") {
     const assets::AnimationAsset animations = Slide();
     AnimationPlayer player = MakePlayer(animations);
