@@ -36,4 +36,7 @@ struct RaceRoute {
 
 [[nodiscard]] Result<RaceRoute> ParseRaceRoute(std::span<const std::byte> bytes);
 
+/// The route for a mirrored track, reflected across the game's XZ plane.
+[[nodiscard]] RaceRoute Mirrored(RaceRoute route);
+
 }
