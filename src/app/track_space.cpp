@@ -42,6 +42,12 @@ Transform PlacementToEngine(const Vector3& position, const Vector3& forward, con
             .rotation = {.w = rotation.w, .x = rotation.x, .y = rotation.y, .z = rotation.z}};
 }
 
+Transform CarToEngine(const Transform& game) {
+    const Vector3 right = Apply({.rotation = game.rotation}, {.y = -1.0F});
+    const Vector3 up = Apply({.rotation = game.rotation}, {.z = 1.0F});
+    return PlacementToEngine(game.position, right, up);
+}
+
 Transform LookAt(const Vector3& eye, const Vector3& target) {
     const glm::vec3 direction = ToGlm(target) - ToGlm(eye);
     const glm::vec3 up{0.0F, 1.0F, 0.0F};

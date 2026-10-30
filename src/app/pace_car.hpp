@@ -2,11 +2,11 @@
 
 #include <string_view>
 
+#include "app/chase_camera.hpp"
 #include "assets/race_route.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 #include "core/transform.hpp"
-#include "core/vector3.hpp"
 #include "sim/route_playback.hpp"
 
 namespace rr::app {
@@ -28,7 +28,7 @@ public:
 
 private:
     sim::RoutePlayback playback_;
-    Vector3 cameraPosition_;
+    ChaseCamera camera_;
 };
 
 }

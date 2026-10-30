@@ -3,6 +3,7 @@ rr_add_module(app
         application.cpp
         audio_settings.cpp
         audio_startup.cpp
+        chase_camera.cpp
         checkpoint_gates.cpp
         collision_wireframe.cpp
         extensions.cpp
