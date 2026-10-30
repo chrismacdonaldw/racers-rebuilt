@@ -16,7 +16,6 @@ namespace rr::assets {
 
 inline constexpr std::size_t kChassisWheelCount = 4;
 
-/// File names without their extensions.
 struct JointedModelFiles {
     ModelFiles model;
     std::string skeleton;

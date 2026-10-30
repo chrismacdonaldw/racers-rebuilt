@@ -12,8 +12,7 @@ using StoredRotation = std::array<float, 4>;
 
 inline constexpr StoredRotation kStoredIdentity{0.0F, 0.0F, 0.0F, 1.0F};
 
-/// Files store the rotation that maps row vectors, which is the inverse of the one that maps column
-/// vectors. Fails on a zero quaternion.
+/// Inverts the stored row-vector rotation. Fails on a zero quaternion.
 [[nodiscard]] Result<Quaternion> FromStoredRotation(const StoredRotation& stored);
 
 }

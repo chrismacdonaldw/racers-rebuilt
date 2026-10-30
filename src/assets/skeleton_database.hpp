@@ -12,8 +12,7 @@
 
 namespace rr::assets {
 
-/// `position` and `rotation` place the node in its parent's space, in the paired model's unscaled
-/// units.
+/// In the parent's space, in the paired model's unscaled units.
 struct SkeletonNode {
     std::string name;
     Vector3 position;

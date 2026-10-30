@@ -12,8 +12,7 @@
 
 namespace rr::assets {
 
-/// `count` values from `firstValue` in a key pool, at the frames from `firstFrame` in
-/// `AnimationAsset::keyFrames`. A single key has no frame.
+/// Frames index `AnimationAsset::keyFrames`. A single key has no frame.
 struct KeyRun {
     std::uint32_t firstValue = 0;
     std::uint32_t firstFrame = 0;
