@@ -8,8 +8,7 @@
 
 namespace rr::app {
 
-/// Node placements in their parents' unscaled units, starting at the rest pose. `Solve` gives each
-/// node's transform in model space, with positions multiplied by the model scale.
+/// `Solve` gives model-space node transforms, with positions multiplied by the model scale.
 class SkeletonPose {
 public:
     SkeletonPose(const assets::SkeletonAsset& skeleton, float scale);

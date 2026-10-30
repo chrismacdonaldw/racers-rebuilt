@@ -5,6 +5,8 @@
 #include <format>
 #include <utility>
 
+#include "core/assert.hpp"
+
 namespace rr::app {
 namespace {
 
@@ -117,6 +119,7 @@ void AnimationPlayer::AdvanceFrames(float frames) {
 }
 
 void AnimationPlayer::PoseNodes(std::span<Transform> locals) {
+    RR_ASSERT(locals.size() == blended_.size());
     Sample(current_, locals);
     if (!next_) {
         return;

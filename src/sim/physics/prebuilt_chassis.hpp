@@ -6,8 +6,7 @@
 
 namespace rr::sim {
 
-/// A prebuilt racer takes its mass and centre of mass from the champion and the rest from the
-/// chassis. Pair it with an empty `CarBuild`.
+/// Takes mass and centre of mass from the champion. Pair it with an empty `CarBuild`.
 [[nodiscard]] ChassisSpec PrebuiltChassis(const assets::ChampionEntry& champion,
                                           const assets::ChassisEntry& chassis);
 
