@@ -101,6 +101,16 @@ void SetYawImpulse(BodyState& body, const BodyConstants& constants, float ratePe
     body.motion.angularMomentum += body.motion.basis.up * (constants.inertia.z * ratePerMs);
 }
 
+void SetPitchImpulse(BodyState& body, const BodyConstants& constants, float ratePerMs,
+                     int durationMs) {
+    if (body.impulses.rollMs > 0) {
+        return;
+    }
+    body.impulses.pitchMs = durationMs;
+    CancelAngularMomentum(body.motion, body.motion.basis.side);
+    body.motion.angularMomentum += body.motion.basis.side * (constants.inertia.y * ratePerMs);
+}
+
 void Integrate(BodyState& body, const BodyConstants& constants, int dtMs) {
     BodyMotion& motion = body.motion;
     const auto dt = static_cast<float>(dtMs);

@@ -81,6 +81,8 @@ add_executable(racers-rebuilt-tests
     sim/physics/drive_controller_test.cpp
     sim/physics/driver_input_test.cpp
     sim/physics/racer_test.cpp
+    sim/physics/start_boost_test.cpp
+    sim/physics/turbo_test.cpp
     sim/race/checkpoint_graph_test.cpp
     sim/race/lap_tracker_test.cpp
     sim/race/standings_test.cpp

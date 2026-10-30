@@ -2,8 +2,10 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <format>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -80,6 +82,24 @@ TEST_CASE("every retail track's collision loads and its race routes run on solid
     for (const std::string& folder : assets::ListRaceTracks(*vfs)) {
         CheckTrack(*vfs, folder);
     }
+}
+
+TEST_CASE("retail grass binds to its surface table entry") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const Result<TrackCollision> collision = LoadTrackCollision(*vfs, "RACEC0R0");
+    REQUIRE(collision.has_value());
+    const CollisionWorld& track = collision->Track();
+    const std::vector<std::string>& names = track.Mesh().Asset().materials;
+
+    const auto grass = std::ranges::find(names, "grass");
+
+    REQUIRE(grass != names.end());
+    const MaterialBinding& binding = track.Materials()[std::distance(names.begin(), grass)];
+    CHECK(binding.surface.rollingResistance == 20.0F);
+    CHECK(binding.isSolid);
 }
 
 }

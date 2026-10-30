@@ -16,6 +16,8 @@ rr_add_module(sim
         physics/racer.cpp
         physics/racer_controls.cpp
         physics/rigid_body.cpp
+        physics/start_boost.cpp
+        physics/turbo.cpp
         physics/wall_sweep.cpp
         race/checkpoint_graph.cpp
         race/lap_tracker.cpp
