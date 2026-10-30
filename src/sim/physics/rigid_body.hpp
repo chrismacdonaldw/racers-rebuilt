@@ -7,6 +7,8 @@
 
 namespace rr::sim {
 
+[[nodiscard]] Vector3 ToBody(const Basis& basis, const Vector3& world);
+
 [[nodiscard]] Vector3 ToWorld(const Basis& basis, const Vector3& local);
 
 [[nodiscard]] Basis OrthonormalBasis(const Vector3& forward, const Vector3& up);

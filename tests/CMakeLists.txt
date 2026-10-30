@@ -80,12 +80,15 @@ add_executable(racers-rebuilt-tests
     sim/collision/collision_mesh_test.cpp
     sim/collision/collision_world_test.cpp
     sim/collision/track_collision_test.cpp
+    sim/collision/wall_tunnel_test.cpp
     sim/input_latch_test.cpp
     sim/interpolation_test.cpp
+    sim/physics/box_contact_test.cpp
     sim/physics/car_body_test.cpp
     sim/physics/chassis_test.cpp
     sim/physics/drive_controller_test.cpp
     sim/physics/driver_input_test.cpp
+    sim/physics/racer_contacts_test.cpp
     sim/physics/racer_test.cpp
     sim/physics/start_boost_test.cpp
     sim/physics/turbo_test.cpp

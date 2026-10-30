@@ -7,6 +7,7 @@ rr_add_module(sim
         input_latch.cpp
         interpolation.cpp
         physics/body_forces.cpp
+        physics/box_contact.cpp
         physics/car_body.cpp
         physics/chassis.cpp
         physics/drive_controller.cpp
@@ -14,6 +15,7 @@ rr_add_module(sim
         physics/facing.cpp
         physics/ground_contact.cpp
         physics/racer.cpp
+        physics/racer_contacts.cpp
         physics/racer_controls.cpp
         physics/rigid_body.cpp
         physics/start_boost.cpp

@@ -10,10 +10,6 @@ constexpr float kRestVelocity = 0.0001F;
 constexpr float kRestRotationSquared = 0.0006F;
 constexpr float kMinUpZ = std::numbers::sqrt2_v<float> / 2.0F;
 
-Vector3 ToBody(const Basis& basis, const Vector3& world) {
-    return {.x = Dot(basis.forward, world), .y = Dot(basis.side, world), .z = Dot(basis.up, world)};
-}
-
 Vector3 AngularVelocity(const BodyMotion& motion, const BodyConstants& constants) {
     const Vector3 local = ToBody(motion.basis, motion.angularMomentum);
     return ToWorld(motion.basis, {.x = local.x / constants.inertia.x,
@@ -35,6 +31,10 @@ void Rotate(Basis& basis, const Vector3& rotation) {
     basis = OrthonormalBasis(forward, up);
 }
 
+}
+
+Vector3 ToBody(const Basis& basis, const Vector3& world) {
+    return {.x = Dot(basis.forward, world), .y = Dot(basis.side, world), .z = Dot(basis.up, world)};
 }
 
 Vector3 ToWorld(const Basis& basis, const Vector3& local) {
