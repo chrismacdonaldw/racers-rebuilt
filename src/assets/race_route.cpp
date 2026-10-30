@@ -82,6 +82,14 @@ Result<RoutePoint> DecodePoint(const PackedPoint& packed) {
         });
 }
 
+Vector3 Mirrored(const Vector3& position) {
+    return {.x = position.x, .y = -position.y, .z = position.z};
+}
+
+Quaternion Mirrored(const Quaternion& rotation) {
+    return {.w = -rotation.w, .x = rotation.x, .y = -rotation.y, .z = rotation.z};
+}
+
 Result<RaceRoute> Decode(const StoredRoute& stored) {
     if (stored.loopPoint < 0 ||
         std::cmp_greater_equal(stored.loopPoint + 1, stored.points.size())) {
@@ -121,6 +129,19 @@ Result<RaceRoute> ParseRaceRoute(std::span<const std::byte> bytes) {
     return ReadFields<StoredRoute>(reader, kRouteFields, stored)
         .and_then([&] { return reader.Expect(TokenKind::End); })
         .and_then([&](const Token&) { return Decode(stored); });
+}
+
+RaceRoute Mirrored(RaceRoute route) {
+    route.startPosition = Mirrored(route.startPosition);
+    route.startRotation = Mirrored(route.startRotation);
+    route.loopPosition = Mirrored(route.loopPosition);
+    route.loopRotation = Mirrored(route.loopRotation);
+    for (RoutePoint& point : route.points) {
+        point.offset = Mirrored(point.offset);
+        point.rotation = Mirrored(point.rotation);
+        std::swap(point.widthLeft, point.widthRight);
+    }
+    return route;
 }
 
 }

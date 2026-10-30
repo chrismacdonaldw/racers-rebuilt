@@ -28,6 +28,13 @@ struct Quaternion {
     return (a.w * b.w) + (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
 }
 
+/// `rotation` must be unit length.
+[[nodiscard]] constexpr Vector3 Rotate(const Quaternion& rotation, const Vector3& v) {
+    const Vector3 axis{.x = rotation.x, .y = rotation.y, .z = rotation.z};
+    const Vector3 twice = 2.0F * Cross(axis, v);
+    return v + (rotation.w * twice) + Cross(axis, twice);
+}
+
 /// Takes the shorter arc. Both inputs must be unit length.
 [[nodiscard]] inline Quaternion Nlerp(const Quaternion& from, const Quaternion& to, float alpha) {
     const float sign = Dot(from, to) < 0.0F ? -1.0F : 1.0F;

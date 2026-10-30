@@ -102,6 +102,23 @@ TEST_CASE("a race route rejects bad points") {
     CHECK_FALSE(ParseRaceRoute(Route(0, noRotation)).has_value());
 }
 
+TEST_CASE("a mirrored race route reflects across the XZ plane and swaps its widths") {
+    const Result<RaceRoute> route = ParseRaceRoute(Route(0, PlainPoint()));
+    REQUIRE(route.has_value());
+
+    const RaceRoute mirrored = Mirrored(*route);
+
+    CHECK(mirrored.startPosition == Vector3{1, -2, 3});
+    CHECK(mirrored.loopPosition == Vector3{4, -5, 6});
+    const RoutePoint& point = mirrored.points.front();
+    CHECK(point.offset == Vector3{2, 1, -1});
+    CHECK(point.rotation == Quaternion{.w = -route->points.front().rotation.w,
+                                       .z = route->points.front().rotation.z});
+    CHECK(point.widthLeft == 1.0F);
+    CHECK(point.widthRight == 2.0F);
+    CHECK(Mirrored(mirrored).points.front().rotation == route->points.front().rotation);
+}
+
 TEST_CASE("every race route in the retail game parses and loops on time") {
     const std::optional<JamArchive> archive = test::OpenRetailJam();
     if (!archive) {
