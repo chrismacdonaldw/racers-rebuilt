@@ -18,6 +18,7 @@ add_executable(racers-rebuilt-tests
     app/menu/menu_focus_test.cpp
     app/music_folder_source_test.cpp
     app/pace_car_test.cpp
+    app/race_determinism_test.cpp
     app/race_status_test.cpp
     app/racer/animation_player_test.cpp
     app/racer/body_lean_test.cpp
@@ -157,3 +158,4 @@ target_link_libraries(racers-rebuilt-tests PRIVATE
 add_test(NAME racers-rebuilt-tests COMMAND racers-rebuilt-tests)
 
 target_include_directories(racers-rebuilt-tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_compile_definitions(racers-rebuilt-tests PRIVATE RR_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")

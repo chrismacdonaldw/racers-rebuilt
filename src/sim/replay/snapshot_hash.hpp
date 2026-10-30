@@ -7,6 +7,7 @@
 
 #include "core/result.hpp"
 #include "sim/physics/racer.hpp"
+#include "sim/race/race_session.hpp"
 #include "sim/render_snapshot.hpp"
 
 namespace rr::sim {
@@ -16,6 +17,9 @@ namespace rr::sim {
 
 /// Covers what the pose leaves out, for `RenderSnapshot::simStateHash`.
 [[nodiscard]] std::uint64_t HashRacerState(const Racer& racer);
+
+/// Adds the clock, standings, laps and respawns to every racer's state.
+[[nodiscard]] std::uint64_t HashRaceSession(const RaceSession& session);
 
 [[nodiscard]] std::vector<std::byte> EncodeSnapshotHashes(std::span<const std::uint64_t> hashes);
 [[nodiscard]] Result<std::vector<std::uint64_t>> DecodeSnapshotHashes(

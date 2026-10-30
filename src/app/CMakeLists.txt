@@ -28,6 +28,7 @@ rr_add_module(app
         pace_car.cpp
         race_scene.cpp
         race_status.cpp
+        race_step.cpp
         racer/animation_player.cpp
         racer/body_lean.cpp
         racer/racer_assets.cpp
