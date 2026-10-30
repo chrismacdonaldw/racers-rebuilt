@@ -76,12 +76,14 @@ TEST_CASE("the race status shows the lap, place and race time while racing") {
     CHECK(race.Status() == "Lap 1/3  Place 1 of 2  0:00.120");
 }
 
-TEST_CASE("a race scene name carries its track and respawn rule") {
-    const RaceSceneSetup timed{.track = "RACEC0R0", .respawn = {.timeout = Milliseconds{5000}}};
+TEST_CASE("a race scene name carries its track, respawn rule and racer") {
+    const RaceSceneSetup timed{
+        .track = "RACEC0R0", .respawn = {.timeout = Milliseconds{5000}}, .racer = 2};
     const RaceSceneSetup off{.track = "RACEC1R2", .respawn = {.isEnabled = false}};
 
-    CHECK(RaceSceneName(timed) == "race:RACEC0R0:respawn=5000");
-    CHECK(RaceSceneName(off) == "race:RACEC1R2:respawn=off");
+    CHECK(RaceSceneName(timed) == "race:RACEC0R0:respawn=5000:racer=2");
+    CHECK(RaceSceneName(off) == "race:RACEC1R2:respawn=off:racer=0");
+    CHECK(ParseRaceScene("race:RACEC1R2:respawn=off") == off);
     CHECK(ParseRaceScene(RaceSceneName(timed)) == timed);
     CHECK(ParseRaceScene(RaceSceneName(off)) == off);
     CHECK_FALSE(IsRaceScene("RACEC0R0"));
@@ -90,7 +92,9 @@ TEST_CASE("a race scene name carries its track and respawn rule") {
 TEST_CASE("a malformed race scene name is rejected") {
     for (const std::string_view scene :
          {"RACEC0R0", "race:RACEC0R0", "race::respawn=3000", "race:RACEC0R0:respawn=0",
-          "race:RACEC0R0:respawn=3s", "race:RACEC0R0:respawn="}) {
+          "race:RACEC0R0:respawn=3s", "race:RACEC0R0:respawn=",
+          "race:RACEC0R0:respawn=3000:racer=6", "race:RACEC0R0:respawn=3000:racer=-1",
+          "race:RACEC0R0:respawn=3000:difficulty=1", "race:RACEC0R0:respawn=3000:colour=1"}) {
         CAPTURE(scene);
         CHECK_FALSE(ParseRaceScene(scene).has_value());
     }

@@ -19,7 +19,6 @@ struct RacerEntry {
 struct RaceSetup {
     std::string track;
     std::vector<RacerEntry> racers;
-    int difficulty = 0;
     std::uint64_t seed = 0;
     int lapCount = 3;
     RespawnRule respawn;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+#include <string>
 #include <string_view>
 
 #include "settings/registry.hpp"
@@ -23,6 +25,9 @@ public:
 
     /// A line for the developer overlay.
     [[nodiscard]] virtual std::string_view DeveloperStatus() const { return {}; }
+
+    /// A scene name for the application to open after this frame. Each request is taken once.
+    [[nodiscard]] virtual std::optional<std::string> TakeNextScene() { return std::nullopt; }
 
     /// Advances exactly one `kSimTick`. Must not read clocks, settings or files.
     virtual void Tick(const sim::InputFrame& input) = 0;

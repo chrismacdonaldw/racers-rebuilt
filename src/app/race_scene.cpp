@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <ranges>
+#include <string>
 #include <system_error>
 #include <utility>
 
@@ -16,6 +18,7 @@
 #include "app/race_step.hpp"
 #include "app/track_model.hpp"
 #include "app/track_space.hpp"
+#include "assets/circuit_database.hpp"
 #include "core/log.hpp"
 #include "platform/clock.hpp"
 
@@ -23,7 +26,8 @@ namespace rr::app {
 namespace {
 
 constexpr std::string_view kRacePrefix = "race:";
-constexpr std::string_view kRespawnField = ":respawn=";
+constexpr std::string_view kRespawnKey = "respawn";
+constexpr std::string_view kRacerKey = "racer";
 constexpr std::string_view kRespawnOff = "off";
 
 sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, std::uint64_t seed,
@@ -44,26 +48,52 @@ float MsSince(std::optional<Nanoseconds>& last) {
     return std::chrono::duration<float, std::milli>(elapsed).count();
 }
 
+template <typename T>
+std::optional<T> ParseNumber(std::string_view text) {
+    T value{};
+    const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), value);
+    if (error != std::errc() || end != text.data() + text.size()) {
+        return std::nullopt;
+    }
+    return value;
+}
+
 std::optional<sim::RespawnRule> ParseRespawn(std::string_view text) {
     if (text == kRespawnOff) {
         return sim::RespawnRule{.isEnabled = false};
     }
-    Milliseconds::rep timeout = 0;
-    const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), timeout);
-    if (error != std::errc() || end != text.data() + text.size() || timeout <= 0) {
+    const std::optional<Milliseconds::rep> timeout = ParseNumber<Milliseconds::rep>(text);
+    if (!timeout || *timeout <= 0) {
         return std::nullopt;
     }
-    return sim::RespawnRule{.timeout = Milliseconds{timeout}};
+    return sim::RespawnRule{.timeout = Milliseconds{*timeout}};
+}
+
+bool ReadField(std::string_view field, RaceSceneSetup& setup,
+               std::optional<sim::RespawnRule>& respawn) {
+    const std::size_t equals = field.find('=');
+    const std::string_view key = field.substr(0, equals);
+    const std::string_view value =
+        equals == std::string_view::npos ? std::string_view{} : field.substr(equals + 1);
+    if (key == kRespawnKey) {
+        respawn = ParseRespawn(value);
+        return respawn.has_value();
+    }
+    if (key == kRacerKey) {
+        setup.racer = ParseNumber<std::size_t>(value).value_or(assets::kGridSlots);
+        return setup.racer < assets::kGridSlots;
+    }
+    return false;
 }
 
 }
 
 std::string RaceSceneName(const RaceSceneSetup& setup) {
-    if (!setup.respawn.isEnabled) {
-        return std::format("{}{}{}{}", kRacePrefix, setup.track, kRespawnField, kRespawnOff);
-    }
-    return std::format("{}{}{}{}", kRacePrefix, setup.track, kRespawnField,
-                       setup.respawn.timeout.count());
+    const std::string respawn = setup.respawn.isEnabled
+                                    ? std::to_string(setup.respawn.timeout.count())
+                                    : std::string(kRespawnOff);
+    return std::format("{}{}:{}={}:{}={}", kRacePrefix, setup.track, kRespawnKey, respawn,
+                       kRacerKey, setup.racer);
 }
 
 bool IsRaceScene(std::string_view scene) {
@@ -71,17 +101,21 @@ bool IsRaceScene(std::string_view scene) {
 }
 
 Result<RaceSceneSetup> ParseRaceScene(std::string_view scene) {
-    const std::size_t field = scene.find(kRespawnField);
-    const bool hasTrack = field != std::string_view::npos && field > kRacePrefix.size();
-    const std::optional<sim::RespawnRule> respawn =
-        IsRaceScene(scene) && hasTrack ? ParseRespawn(scene.substr(field + kRespawnField.size()))
-                                       : std::nullopt;
-    if (!respawn) {
+    RaceSceneSetup setup;
+    std::optional<sim::RespawnRule> respawn;
+    bool isValid = IsRaceScene(scene);
+    std::string_view rest = isValid ? scene.substr(kRacePrefix.size()) : std::string_view{};
+    const std::size_t trackEnd = rest.find(':');
+    setup.track = rest.substr(0, trackEnd);
+    rest = trackEnd == std::string_view::npos ? std::string_view{} : rest.substr(trackEnd + 1);
+    for (const auto field : std::views::split(rest, ':')) {
+        isValid = isValid && ReadField(std::string_view(field), setup, respawn);
+    }
+    if (!isValid || setup.track.empty() || !respawn) {
         return Fail(ErrorCode::InvalidData, std::format("'{}' isn't a race scene", scene));
     }
-    return RaceSceneSetup{
-        .track = std::string(scene.substr(kRacePrefix.size(), field - kRacePrefix.size())),
-        .respawn = *respawn};
+    setup.respawn = *respawn;
+    return setup;
 }
 
 Result<std::unique_ptr<RaceScene>> RaceScene::Create(render::Renderer& renderer,
@@ -97,7 +131,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(render::Renderer& renderer,
     Result<sim::RaceTrack> loaded =
         model.and_then([&](const TrackModel&) { return sim::LoadRaceTrack(vfs, track); });
     Result<RacerGrid> racers = loaded.and_then([&](const sim::RaceTrack& race) {
-        return RacerGrid::Load(renderer, vfs, loader, track, race.grid.size());
+        return RacerGrid::Load(renderer, vfs, loader, track, race.grid.size(), setup.racer);
     });
     if (!racers) {
         return std::unexpected(std::move(racers.error()));

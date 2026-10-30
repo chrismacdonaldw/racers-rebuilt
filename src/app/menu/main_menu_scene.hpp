@@ -2,12 +2,13 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "app/menu/menu_parts.hpp"
+#include "app/menu/menu_page.hpp"
+#include "app/menu/menu_text.hpp"
 #include "app/scene.hpp"
-#include "app/ui_text/ui_font.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 #include "render/render_view.hpp"
@@ -15,8 +16,7 @@
 
 namespace rr::app {
 
-/// The main menu's backdrop and buttons, moved through with the menu actions. Choosing a button
-/// only logs it for now.
+/// Only SINGLE RACE and QUIT lead anywhere yet; the other buttons log.
 class MainMenuScene final : public Scene {
 public:
     /// `renderer` and `vfs` must outlive the scene.
@@ -24,25 +24,24 @@ public:
                                                                        const assets::Vfs& vfs);
 
     void ApplySettings(const settings::Registry& settings) override;
+    [[nodiscard]] std::optional<std::string> TakeNextScene() override;
     void Tick(const sim::InputFrame& input) override;
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
 
 private:
-    MainMenuScene(render::Renderer& renderer, const assets::Vfs& vfs,
-                  std::vector<MenuPicture> pictures, std::vector<MenuButton> buttons);
+    MainMenuScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuPage page);
 
+    void Choose(const MenuButton& button);
     void DrawButton(const MenuButton& button, std::size_t state);
 
     render::Renderer* renderer_;
     const assets::Vfs* vfs_;
-    std::vector<MenuPicture> pictures_;
-    std::vector<MenuButton> buttons_;
+    MenuPage page_;
     std::vector<render::Rect> buttonBounds_;
-    std::string language_;
-    UiFonts fonts_;
-    std::vector<std::u16string> text_;
+    MenuText text_;
     std::size_t focus_ = 0;
+    std::optional<std::string> next_;
     std::vector<render::SpriteDraw> sprites_;
 };
 

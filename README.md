@@ -138,6 +138,12 @@ Each `<action>` has a key and a button default. The left stick always steers.
 | `drift` | `Left Shift,Right Shift` | `rightshoulder,leftshoulder` |
 | `use_powerup` | `Space` | `x` |
 | `pause` | `Escape` | `start` |
+| `menu_up` | `Up` | `dpup` |
+| `menu_down` | `Down` | `dpdown` |
+| `menu_left` | `Left` | `dpleft` |
+| `menu_right` | `Right` | `dpright` |
+| `menu_confirm` | `Return,Space` | `a` |
+| `menu_back` | `Escape,Backspace` | `b` |
 
 ```toml
 [video]
@@ -158,8 +164,8 @@ Out-of-range values are clamped. Unknown keys are kept when the file is saved.
 |---|---|
 | `--game-path <folder>` | Use this LEGO Racers folder and skip detection |
 | `--set <key>=<value>` | Override a setting for this run only. Repeatable. |
-| `--track <folder>` | Open a race track instead of the test scene, by its `GAMEDATA` folder, e.g. `RACEC0R0` |
-| `--race <folder>` | Start a race on a track instead of the test scene, by its `GAMEDATA` folder. Can't be combined with `--track`. |
+| `--track <folder>` | Open a race track instead of the main menu, by its `GAMEDATA` folder, e.g. `RACEC0R0` |
+| `--race <folder>` | Start a race on a track instead of the main menu, by its `GAMEDATA` folder. Can't be combined with `--track`. |
 
 ```powershell
 .\racers-rebuilt.exe --set video.vsync=false --set video.fps_cap=60
