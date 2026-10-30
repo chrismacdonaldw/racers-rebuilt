@@ -1,5 +1,6 @@
 add_executable(racers-rebuilt-tests
     main.cpp
+    app/car_sounds_test.cpp
     app/checkpoint_gates_test.cpp
     app/collision_wireframe_test.cpp
     app/frame_loop_test.cpp
@@ -19,7 +20,10 @@ add_executable(racers-rebuilt-tests
     app/menu/single_race_menu_test.cpp
     app/music_folder_source_test.cpp
     app/pace_car_test.cpp
+    app/positional_sound_test.cpp
+    app/race_audio_test.cpp
     app/race_determinism_test.cpp
+    app/race_music_test.cpp
     app/race_status_test.cpp
     app/racer/animation_player_test.cpp
     app/racer/body_lean_test.cpp

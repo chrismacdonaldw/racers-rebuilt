@@ -14,6 +14,7 @@
 
 #include "app/checkpoint_gates.hpp"
 #include "app/collision_wireframe.hpp"
+#include "app/frame_loop.hpp"
 #include "app/race_status.hpp"
 #include "app/race_step.hpp"
 #include "app/track_model.hpp"
@@ -118,11 +119,12 @@ Result<RaceSceneSetup> ParseRaceScene(std::string_view scene) {
     return setup;
 }
 
-Result<std::unique_ptr<RaceScene>> RaceScene::Create(render::Renderer& renderer,
+Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                                                      const assets::Vfs& vfs,
                                                      assets::TrackLoader& loader,
                                                      const RaceSceneSetup& setup,
                                                      std::uint64_t seed, Nanoseconds started) {
+    render::Renderer& renderer = *outputs.renderer;
     const std::string& track = setup.track;
     Result<TrackModel> model = loader.Load(std::format("GAMEDATA/{}", track))
                                    .and_then([&](const assets::TrackAssets& assets) {
@@ -148,6 +150,12 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(render::Renderer& renderer,
     if (!session) {
         return std::unexpected(std::move(session.error()));
     }
+    Result<std::unique_ptr<RaceAudio>> audio = RaceAudio::Load(
+        *outputs.mixer, *outputs.banks, vfs, track,
+        {.racerCount = session->Racers().size(), .player = kPlayerSlot, .seed = seed});
+    if (!audio) {
+        log::Warn("{}, racing in silence", audio.error().message);
+    }
     return std::unique_ptr<RaceScene>(new RaceScene({.renderer = &renderer,
                                                      .track = std::string(track),
                                                      .trackDraws = std::move(model->draws),
@@ -156,6 +164,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(render::Renderer& renderer,
                                                      .raceTrack = std::move(raceTrack),
                                                      .world = std::move(world),
                                                      .session = std::move(*session),
+                                                     .audio = std::move(audio).value_or(nullptr),
                                                      .started = started}));
 }
 
@@ -180,6 +189,13 @@ void RaceScene::Tick(const sim::InputFrame& input) {
     } else {
         chase_.Follow(PlayerCar());
     }
+    if (parts_.audio) {
+        parts_.audio->Hear(parts_.session, chase_.Pose(PlayerCar()), kSimTick);
+    }
+}
+
+SceneMusic RaceScene::Music() const {
+    return parts_.audio ? parts_.audio->Music() : SceneMusic{};
 }
 
 void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
