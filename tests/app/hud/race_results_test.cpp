@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <string>
 #include <vector>
 
 #include "ring_race.hpp"
@@ -51,6 +52,41 @@ TEST_CASE("racers given places without finishing still show as racing") {
     REQUIRE(rows.size() == 2);
     CHECK(rows[0].racer == 1);
     CHECK(rows[1].status == ResultStatus::Racing);
+}
+
+struct Table {
+    std::vector<std::u16string> names{u"A", u"B", u"C", u"D", u"E", u"F", u"G"};
+    TextPool pool;
+    std::vector<HudText> texts;
+
+    explicit Table(std::span<const ResultRow> rows) {
+        LayoutResults(rows, names, {.finished = u"FINISHED", .stillRacing = u"STILL RACING"}, pool,
+                      texts);
+    }
+};
+
+TEST_CASE("the results table puts rank, name and status on rows 32 apart from y 132") {
+    const std::array<ResultRow, 2> rows{
+        ResultRow{.racer = 2, .status = ResultStatus::Winner},
+        ResultRow{.racer = 0, .status = ResultStatus::Behind, .behind = Milliseconds{1250}}};
+
+    const Table table(rows);
+    const std::vector<HudText>& texts = table.texts;
+
+    REQUIRE(texts.size() == 7);
+    CHECK(texts[1].text == u"C");
+    CHECK(texts[1].x == 50.0F);
+    CHECK(texts[2].text == u"FINISHED");
+    CHECK(texts[3].y == 164.0F);
+    CHECK(texts[5].text == u"+");
+    CHECK(texts[6].text == u"0:01:25");
+    CHECK(texts[6].x == 520.0F);
+}
+
+TEST_CASE("the results table shows six rows at most") {
+    const std::vector<ResultRow> rows(7);
+
+    CHECK(Table(rows).texts.size() == 18);
 }
 
 }

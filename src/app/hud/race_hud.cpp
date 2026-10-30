@@ -1,6 +1,5 @@
 #include "app/hud/race_hud.hpp"
 
-#include <algorithm>
 #include <array>
 #include <utility>
 
@@ -22,13 +21,6 @@ constexpr float kBestLabelGap = 14.0F;
 constexpr float kGapLabelGap = 4.0F;
 constexpr float kBestRow = 7.0F / 8.0F;
 constexpr float kGapRow = 21.0F / 8.0F;
-constexpr float kResultsTop = 132.0F;
-constexpr float kResultsRowHeight = 32.0F;
-constexpr std::size_t kResultRows = 6;
-constexpr float kRankX = 20.0F;
-constexpr float kNameX = 50.0F;
-constexpr float kStatusX = 500.0F;
-constexpr float kBehindX = 520.0F;
 constexpr render::Color kCountdownTint{.r = 1.0F, .g = 1.0F, .b = 0.0F};
 
 float TimeWidth(const HudMetrics& metrics) {
@@ -68,7 +60,9 @@ void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progr
     }
     if (ShowsResults(clock)) {
         ReadResults(progress, results_);
-        AddResults(names, out);
+        LayoutResults(results_, names,
+                      {.finished = strings_.finished, .stillRacing = strings_.stillRacing}, pool_,
+                      out);
     }
 }
 
@@ -123,30 +117,6 @@ void RaceHud::AddBanner(const BannerView& banner, std::vector<HudText>& out) con
                    .y = gapY_ - (height / 4.0F),
                    .scale = banner.scale,
                    .tint = banner.text == HudBanner::Finish ? render::Color{} : kCountdownTint});
-}
-
-void RaceHud::AddResults(std::span<const std::u16string> names, std::vector<HudText>& out) {
-    const std::size_t rows = std::min(results_.size(), kResultRows);
-    for (std::size_t rank = 0; rank < rows; ++rank) {
-        const ResultRow& row = results_[rank];
-        const float y = kResultsTop + (static_cast<float>(rank) * kResultsRowHeight);
-        out.push_back({.text = pool_.Number(rank + 1), .x = kRankX, .y = y});
-        if (row.racer < names.size()) {
-            out.push_back({.text = names[row.racer], .x = kNameX, .y = y});
-        }
-        switch (row.status) {
-            case ResultStatus::Winner:
-                out.push_back({.text = strings_.finished, .x = kStatusX, .y = y});
-                break;
-            case ResultStatus::Behind:
-                out.push_back({.text = u"+", .x = kStatusX, .y = y});
-                out.push_back({.text = pool_.Time(row.behind), .x = kBehindX, .y = y});
-                break;
-            case ResultStatus::Racing:
-                out.push_back({.text = strings_.stillRacing, .x = kStatusX, .y = y});
-                break;
-        }
-    }
 }
 
 std::u16string_view RaceHud::BannerText(HudBanner banner) const {
