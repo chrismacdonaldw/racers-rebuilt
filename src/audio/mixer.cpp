@@ -5,6 +5,8 @@
 #include <atomic>
 #include <cstddef>
 #include <format>
+#include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -79,6 +81,7 @@ struct Mixer::State {
     std::array<ma_sound_group, kBusCount> buses{};
     std::size_t busCount = 0;
     std::array<Voice, kEffectVoiceCount> effects;
+    std::array<std::uint32_t, kEffectVoiceCount> generations{};
     std::array<Voice, 2> music;
     std::size_t currentMusic = 0;
     std::vector<LoadedSound> sounds;
@@ -146,19 +149,50 @@ void Mixer::SetVolume(Bus bus, float volume) {
 
 void Mixer::Play(std::span<const SoundCue> cues) {
     for (const SoundCue& cue : cues) {
-        RR_ASSERT(cue.sound.index < state_->sounds.size());
-        const auto voice = std::ranges::find_if_not(state_->effects, &Voice::IsPlaying);
-        if (voice == state_->effects.end()) {
-            return;
-        }
-        Result<void> started =
-            voice->Start(state_->engine, state_->buses[IndexOf(cue.bus)],
-                         std::make_unique<AlpDecoder>(state_->sounds[cue.sound.index].sound),
-                         {.volume = cue.volume});
-        if (!started) {
-            log::Warn("{}", started.error().message);
-        }
+        static_cast<void>(StartEffect(cue, false));
     }
+}
+
+std::optional<VoiceId> Mixer::Loop(const SoundCue& cue) {
+    return StartEffect(cue, true);
+}
+
+void Mixer::Mix(VoiceId voice, const VoiceMix& mix) {
+    if (IsCurrent(voice)) {
+        state_->effects.at(voice.slot).Mix(mix);
+    }
+}
+
+void Mixer::Stop(VoiceId voice) {
+    if (IsCurrent(voice)) {
+        state_->effects.at(voice.slot).Stop();
+    }
+}
+
+std::optional<VoiceId> Mixer::StartEffect(const SoundCue& cue, bool isLooping) {
+    RR_ASSERT(cue.sound.index < state_->sounds.size());
+    const auto voice = std::ranges::find_if_not(state_->effects, &Voice::IsPlaying);
+    if (voice == state_->effects.end()) {
+        return std::nullopt;
+    }
+    std::unique_ptr<PcmStream> stream =
+        std::make_unique<AlpDecoder>(state_->sounds[cue.sound.index].sound);
+    if (isLooping) {
+        stream = std::make_unique<LoopingStream>(std::move(stream), LoopPoints{});
+    }
+    const auto slot = static_cast<std::uint32_t>(voice - state_->effects.begin());
+    const std::uint32_t generation = ++state_->generations.at(slot);
+    Result<void> started = voice->Start(state_->engine, state_->buses[IndexOf(cue.bus)],
+                                        std::move(stream), {.mix = cue.mix});
+    if (!started) {
+        log::Warn("{}", started.error().message);
+        return std::nullopt;
+    }
+    return VoiceId{.slot = slot, .generation = generation};
+}
+
+bool Mixer::IsCurrent(VoiceId voice) const {
+    return voice.slot < kEffectVoiceCount && state_->generations.at(voice.slot) == voice.generation;
 }
 
 Result<void> Mixer::PlayMusic(std::unique_ptr<PcmStream> track, Milliseconds crossfade) {

@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <format>
 #include <initializer_list>
 #include <memory>
@@ -107,6 +108,23 @@ TEST_CASE_FIXTURE(PlayerFixture, "a track id that isn't a file name is rejected"
 
     CHECK(player.Play("../circuit1").error().code == ErrorCode::InvalidData);
     CHECK(opened_.empty());
+}
+
+TEST_CASE_FIXTURE(PlayerFixture, "a track played once goes silent at its end") {
+    std::vector<float> output(2048);
+    const auto isSilent = [&] {
+        mixer_.Render(output);
+        return std::ranges::all_of(output, [](float sample) { return sample == 0.0F; });
+    };
+    MusicPlayer player = Player({{"original", std::nullopt}});
+    REQUIRE(player.Play("circuit1", Repeat::Once).has_value());
+
+    static_cast<void>(isSilent());
+    CHECK(isSilent());
+
+    REQUIRE(player.Play("circuit2").has_value());
+    static_cast<void>(isSilent());
+    CHECK_FALSE(isSilent());
 }
 
 TEST_CASE_FIXTURE(PlayerFixture, "stopping clears the current track") {

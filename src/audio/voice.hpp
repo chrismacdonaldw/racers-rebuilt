@@ -4,6 +4,7 @@
 
 #include "audio/pcm_stream.hpp"
 #include "audio/stream_data_source.hpp"
+#include "audio/voice_mix.hpp"
 #include "core/duration.hpp"
 #include "core/result.hpp"
 
@@ -12,7 +13,7 @@
 namespace rr::audio {
 
 struct VoiceStart {
-    float volume = 1.0F;
+    VoiceMix mix;
     Milliseconds fadeIn{0};
 };
 
@@ -27,6 +28,7 @@ public:
 
     [[nodiscard]] Result<void> Start(ma_engine& engine, ma_sound_group& bus,
                                      std::unique_ptr<PcmStream> stream, VoiceStart start);
+    void Mix(const VoiceMix& mix);
     void Stop();
     void FadeOut(Milliseconds fade);
 
