@@ -45,6 +45,10 @@ public:
     void Add(float value) { value_ = Mix(value_, std::bit_cast<std::uint32_t>(value)); }
     void Add(int value) { value_ = Mix(value_, static_cast<std::uint32_t>(value)); }
     void Add(bool value) { value_ = Mix(value_, static_cast<std::uint8_t>(value ? 1U : 0U)); }
+    void Add(std::uint64_t value) { value_ = Mix(value_, value); }
+    void Add(Milliseconds value) {
+        value_ = Mix(value_, static_cast<std::uint64_t>(value.count()));
+    }
     void Add(const Vector3& v) { Add(v.x, v.y, v.z); }
     void Add(const Basis& basis) { Add(basis.forward, basis.side, basis.up); }
 
@@ -101,6 +105,30 @@ public:
         }
     }
 
+    void Add(const std::optional<AiRacer>& route) {
+        Add(route.has_value());
+        if (route) {
+            Add(route->PlaybackSpeed(), route->Velocity(), route->ContactCount());
+        }
+    }
+
+    void Add(const LapTracker& laps) {
+        Add(laps.CompletedLaps(), laps.IsWrongWay(), laps.LastCheckpoint().has_value());
+        Add(static_cast<std::uint64_t>(laps.LastCheckpoint().value_or(0)));
+    }
+
+    void Add(const RacerProgress& progress) {
+        Add(progress.laps, static_cast<std::uint64_t>(progress.lapTimes.size()),
+            progress.finishPlace.value_or(0));
+        for (const Milliseconds lap : progress.lapTimes) {
+            Add(lap);
+        }
+    }
+
+    void Add(const RaceClock& clock) {
+        Add(static_cast<int>(clock.Phase()), clock.PhaseTime(), clock.RaceTime());
+    }
+
     template <typename... Fields>
         requires(sizeof...(Fields) > 1)
     void Add(const Fields&... fields) {
@@ -128,6 +156,20 @@ std::uint64_t HashSnapshot(const RenderSnapshot& snapshot) {
 std::uint64_t HashRacerState(const Racer& racer) {
     StateHash hash;
     hash.Add(racer.Body(), racer.Driver(), racer.Boost(), racer.ActiveTurbo());
+    return hash.Value();
+}
+
+std::uint64_t HashRaceSession(const RaceSession& session) {
+    StateHash hash;
+    hash.Add(session.Clock());
+    for (std::size_t i = 0; i < session.Racers().size(); ++i) {
+        const Racer& racer = session.Racers()[i];
+        hash.Add(HashRacerState(racer), racer.Route(), session.Progress().OfRacer(i),
+                 session.WasRespawned(i));
+    }
+    for (const std::size_t racer : session.Progress().Standings()) {
+        hash.Add(static_cast<std::uint64_t>(racer));
+    }
     return hash.Value();
 }
 

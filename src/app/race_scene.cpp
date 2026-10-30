@@ -12,13 +12,12 @@
 
 #include "app/checkpoint_gates.hpp"
 #include "app/collision_wireframe.hpp"
-#include "app/frame_loop.hpp"
 #include "app/race_status.hpp"
+#include "app/race_step.hpp"
 #include "app/track_model.hpp"
 #include "app/track_space.hpp"
 #include "core/log.hpp"
 #include "platform/clock.hpp"
-#include "sim/replay/snapshot_hash.hpp"
 
 namespace rr::app {
 namespace {
@@ -26,8 +25,6 @@ namespace {
 constexpr std::string_view kRacePrefix = "race:";
 constexpr std::string_view kRespawnField = ":respawn=";
 constexpr std::string_view kRespawnOff = "off";
-constexpr std::size_t kPlayer = 0;
-constexpr std::uint64_t kHashPrime = 1099511628211ULL;
 
 sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, std::uint64_t seed,
                         std::size_t slots) {
@@ -36,7 +33,7 @@ sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, st
     for (std::size_t i = 0; i < slots; ++i) {
         setup.racers[i].chassis = racers.Chassis(i);
     }
-    setup.racers[kPlayer].isPlayer = true;
+    setup.racers[kPlayerSlot].isPlayer = true;
     return setup;
 }
 
@@ -45,14 +42,6 @@ float MsSince(std::optional<Nanoseconds>& last) {
     const Nanoseconds elapsed = last ? now - *last : Nanoseconds{};
     last = now;
     return std::chrono::duration<float, std::milli>(elapsed).count();
-}
-
-sim::EntityId RacerId(std::size_t racer) {
-    return sim::EntityId{static_cast<std::uint32_t>(racer + 1)};
-}
-
-sim::SnapshotFlags FlagsFor(const sim::RaceSession& session, std::size_t racer) {
-    return session.WasRespawned(racer) ? sim::SnapshotFlags::Teleported : sim::SnapshotFlags::None;
 }
 
 std::optional<sim::RespawnRule> ParseRespawn(std::string_view text) {
@@ -151,9 +140,8 @@ void RaceScene::ApplySettings(const settings::Registry& settings) {
 }
 
 void RaceScene::Tick(const sim::InputFrame& input) {
-    controls_[kPlayer] = sim::ControlsFrom(input);
-    parts_.session.Tick(kSimTick, controls_);
-    if (parts_.session.WasRespawned(kPlayer)) {
+    StepRace(parts_.session, input, controls_);
+    if (parts_.session.WasRespawned(kPlayerSlot)) {
         chase_.JumpTo(PlayerCar());
     } else {
         chase_.Follow(PlayerCar());
@@ -161,22 +149,8 @@ void RaceScene::Tick(const sim::InputFrame& input) {
 }
 
 void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
-    const sim::RaceSession& session = parts_.session;
-    out.entities.clear();
-    out.racers.clear();
-    std::uint64_t hash = 0;
-    for (std::size_t i = 0; i < session.Racers().size(); ++i) {
-        const sim::Racer& racer = session.Racers()[i];
-        out.entities.push_back({.id = RacerId(i),
-                                .transform = TransformToEngine(racer.Pose()),
-                                .flags = FlagsFor(session, i)});
-        out.racers.push_back({.id = RacerId(i),
-                              .forwardSpeed = racer.Body().derived.forwardSpeed,
-                              .turnRadius = racer.Body().turnRadius});
-        hash = (hash * kHashPrime) ^ sim::HashRacerState(racer);
-    }
-    out.camera = {.transform = chase_.Pose(PlayerCar()), .flags = FlagsFor(session, kPlayer)};
-    out.simStateHash = hash;
+    SnapshotRace(parts_.session, out);
+    out.camera = {.transform = chase_.Pose(PlayerCar()), .flags = out.entities[kPlayerSlot].flags};
 }
 
 void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
@@ -186,7 +160,7 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     render::Camera camera = parts_.camera;
     camera.transform = interpolated.camera.transform;
     DrawDebugLines();
-    FormatRaceStatus(parts_.session, kPlayer, status_);
+    FormatRaceStatus(parts_.session, kPlayerSlot, status_);
     Result<void> drawn =
         parts_.renderer->Draw({.camera = camera, .meshes = draws_, .lines = debugLines_});
     if (!drawn) {
@@ -203,14 +177,14 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
 }
 
 Transform RaceScene::PlayerCar() const {
-    return CarToEngine(parts_.session.Racers()[kPlayer].Pose());
+    return CarToEngine(parts_.session.Racers()[kPlayerSlot].Pose());
 }
 
 void RaceScene::DrawDebugLines() {
     debugLines_.clear();
     if (showsCheckpoints_) {
-        DrawGates(parts_.raceTrack->checkpoints, parts_.session.Progress().OfRacer(kPlayer).laps,
-                  debugLines_);
+        DrawGates(parts_.raceTrack->checkpoints,
+                  parts_.session.Progress().OfRacer(kPlayerSlot).laps, debugLines_);
     }
     if (showsCollision_) {
         debugLines_.insert(debugLines_.end(), collisionLines_.begin(), collisionLines_.end());

@@ -57,6 +57,16 @@ $env:RR_GAME_PATH = "C:\Program Files (x86)\LEGO Media\Games\LEGO Racers"
 ctest --preset debug
 ```
 
+### Recorded test race
+
+`tests/data/replays/test_track.replay` is a race on a test track built in code, and its `.hashes` file holds every tick's snapshot hash. A change that alters the simulation on purpose breaks it. Re-record it, check that the new behaviour is the one you meant, and commit both files:
+
+```powershell
+$env:RR_RECORD_TEST_REPLAY = "1"
+.\build\debug\bin\racers-rebuilt-tests.exe -tc="the recorded test track*"
+Remove-Item Env:RR_RECORD_TEST_REPLAY
+```
+
 ## Merge gate
 
 There's no CI. `scripts/check.ps1` is the gate, and every PR needs a passing run on its head commit.

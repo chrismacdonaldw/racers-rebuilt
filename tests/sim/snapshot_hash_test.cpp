@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "app/test_track.hpp"
 #include "sim/physics/plane_world.hpp"
 
 namespace rr::sim {
@@ -46,6 +47,20 @@ TEST_CASE("racer state hashes see the driver's steering") {
     steering.Tick(Milliseconds{12}, {.isLeftHeld = true}, world);
 
     CHECK(HashRacerState(steering) != HashRacerState(straight));
+}
+
+TEST_CASE("race session hashes see the race clock") {
+    const test::TestTrack track;
+    Result<RaceSession> first = RaceSession::Create(test::TestTrack::Setup(1), track.Course());
+    Result<RaceSession> second = RaceSession::Create(test::TestTrack::Setup(1), track.Course());
+    REQUIRE(first.has_value());
+    REQUIRE(second.has_value());
+    const std::vector<RacerControls> idle(test::kTestGridSlots);
+
+    CHECK(HashRaceSession(*first) == HashRaceSession(*second));
+    first->Tick(Milliseconds{12}, idle);
+
+    CHECK(HashRaceSession(*first) != HashRaceSession(*second));
 }
 
 TEST_CASE("snapshot hashes survive encoding and reject damage") {
