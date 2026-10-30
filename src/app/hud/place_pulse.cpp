@@ -9,7 +9,9 @@ constexpr float kSwell = 1.0F;
 }
 
 void PlacePulse::Advance(int place, Milliseconds elapsed) {
-    if (place != place_) {
+    if (!place_) {
+        place_ = place;
+    } else if (place != place_) {
         place_ = place;
         sinceChange_ = Milliseconds{0};
     } else if (sinceChange_) {

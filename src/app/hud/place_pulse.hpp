@@ -6,7 +6,7 @@
 
 namespace rr::app {
 
-/// Swells the place digit to twice its size and back over 350 ms whenever the place changes.
+/// Swells the place digit to twice its size and back over 350 ms when the place changes.
 class PlacePulse {
 public:
     void Advance(int place, Milliseconds elapsed);

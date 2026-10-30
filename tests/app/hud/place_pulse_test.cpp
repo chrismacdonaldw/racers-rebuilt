@@ -7,8 +7,18 @@ namespace {
 
 constexpr Milliseconds kQuarter{87};
 
+TEST_CASE("the starting place doesn't pulse") {
+    PlacePulse pulse;
+    pulse.Advance(6, Milliseconds{12});
+
+    pulse.Advance(6, kQuarter);
+
+    CHECK(pulse.Scale() == doctest::Approx(1.0F));
+}
+
 TEST_CASE("a new place swells to double size at 175 ms and settles by 350 ms") {
     PlacePulse pulse;
+    pulse.Advance(4, Milliseconds{12});
     pulse.Advance(3, Milliseconds{12});
     const float start = pulse.Scale();
 
@@ -24,8 +34,9 @@ TEST_CASE("a new place swells to double size at 175 ms and settles by 350 ms") {
     CHECK(pulse.Scale() == doctest::Approx(1.0F));
 }
 
-TEST_CASE("a steady place stays at normal size") {
+TEST_CASE("a pulse ends after 350 ms") {
     PlacePulse pulse;
+    pulse.Advance(3, Milliseconds{12});
     pulse.Advance(2, Milliseconds{12});
     pulse.Advance(2, Milliseconds{400});
 
@@ -36,6 +47,7 @@ TEST_CASE("a steady place stays at normal size") {
 
 TEST_CASE("a place change mid-pulse starts the pulse again") {
     PlacePulse pulse;
+    pulse.Advance(3, Milliseconds{12});
     pulse.Advance(2, Milliseconds{12});
     pulse.Advance(2, Milliseconds{175});
 
