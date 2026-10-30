@@ -7,6 +7,7 @@
 #include <format>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -54,6 +55,32 @@ inline void CheckSurvey(const Survey& survey, std::size_t expectedFiles) {
     for (const std::string& failure : survey.failures) {
         FAIL_CHECK(failure);
     }
+}
+
+[[nodiscard]] inline Result<assets::FileData> ReadRetailFile(const assets::VfsLayer& layer,
+                                                             std::string_view path) {
+    const std::optional<assets::EntryInfo> entry = layer.Index().Find(path);
+    if (!entry) {
+        return Fail(ErrorCode::NotFound, std::format("{} isn't in the archive", path));
+    }
+    return layer.Read(*entry);
+}
+
+[[nodiscard]] inline std::vector<assets::IndexEntry> FilesWithExtension(
+    const assets::VfsLayer& layer, std::string_view extension) {
+    return layer.Index().Entries() | std::views::filter([&](const assets::IndexEntry& entry) {
+               return entry.info.kind == assets::EntryKind::File &&
+                      Extension(entry.Name()) == extension;
+           }) |
+           std::ranges::to<std::vector>();
+}
+
+template <typename Parse>
+[[nodiscard]] auto ParseEntry(const assets::VfsLayer& layer, const assets::IndexEntry& entry,
+                              Parse parse) {
+    return layer.Read(entry.info).and_then([&](const assets::FileData& data) {
+        return parse(data.Bytes());
+    });
 }
 
 [[nodiscard]] inline std::optional<assets::JamArchive> OpenRetailJam() {
