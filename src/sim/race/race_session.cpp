@@ -34,6 +34,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       wasRespawned_(setup.racers.size()),
       positions_(setup.racers.size()),
       progress_(setup.racers.size(), setup.lapCount),
+      sounds_(setup.racers.size()),
       random_(setup.seed),
       rubberBand_(course.isMirrored),
       paced_(setup.racers.size()),
@@ -54,19 +55,24 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
 
 void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> controls) {
     RR_ASSERT(controls.size() == racers_.size());
+    sounds_.BeginTick();
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         TickRacer(i, elapsed, clock_.Phase() == RacePhase::Intro ? RacerControls{} : controls[i]);
     }
     progress_.Rank(*course_.checkpoints, positions_);
-    const RacePhase before = clock_.Phase();
+    const RaceClock before = clock_;
     clock_.Advance(elapsed, HasPlayerFinished());
-    if (before == RacePhase::Countdown && clock_.Phase() == RacePhase::Racing) {
+    sounds_.HearClock(before, clock_, isPlayer_);
+    if (before.Phase() == RacePhase::Countdown && clock_.Phase() == RacePhase::Racing) {
         for (Racer& racer : racers_) {
             racer.Go();
         }
     }
-    if (before == RacePhase::Finished && clock_.Phase() == RacePhase::Results) {
+    if (before.Phase() == RacePhase::Finished && clock_.Phase() == RacePhase::Results) {
         progress_.FinishRemaining();
+    }
+    for (std::size_t i = 0; i < racers_.size(); ++i) {
+        sounds_.HearRacer(i, racers_[i], isPlayer_[i], clock_.IsRunning(), elapsed);
     }
     PaceRoutes(elapsed);
 }
@@ -95,9 +101,13 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
         car.Place(RespawnPoint(*course_.checkpoints, progress_.OfRacer(racer).laps.LastCheckpoint(),
                                course_.grid[racer], *course_.world));
     } else {
+        const bool hadFinished = progress_.OfRacer(racer).finishPlace.has_value();
         progress_.Move(*course_.checkpoints, racer,
                        {.from = from, .to = motion.position, .facing = car.Body().facing}, elapsed,
                        clock_.IsRunning());
+        if (!hadFinished && progress_.OfRacer(racer).finishPlace) {
+            sounds_.HearFinish(racer);
+        }
     }
     positions_[racer] = car.Body().motion.position;
 }

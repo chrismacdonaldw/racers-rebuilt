@@ -42,6 +42,7 @@ rr_add_module(app
         racer/skeleton_pose.cpp
         replay_session.cpp
         scene_stack.cpp
+        sound_banks.cpp
         sprite_test_scene.cpp
         startup_settings.cpp
         startup_timer.cpp

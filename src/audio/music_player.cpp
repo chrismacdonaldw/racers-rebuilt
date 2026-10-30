@@ -12,7 +12,7 @@ namespace rr::audio {
 MusicPlayer::MusicPlayer(Mixer& mixer, std::vector<std::unique_ptr<MusicSource>> sources)
     : mixer_(&mixer), sources_(std::move(sources)) {}
 
-Result<void> MusicPlayer::Play(std::string_view id) {
+Result<void> MusicPlayer::Play(std::string_view id, Repeat repeat) {
     if (id == current_) {
         return {};
     }
@@ -20,8 +20,11 @@ Result<void> MusicPlayer::Play(std::string_view id) {
     if (!track) {
         return std::unexpected(std::move(track.error()));
     }
-    Result<void> played = mixer_->PlayMusic(
-        std::make_unique<LoopingStream>(std::move(track->stream), track->loop), kMusicCrossfade);
+    std::unique_ptr<PcmStream> stream = std::move(track->stream);
+    if (repeat == Repeat::Loop) {
+        stream = std::make_unique<LoopingStream>(std::move(stream), track->loop);
+    }
+    Result<void> played = mixer_->PlayMusic(std::move(stream), kMusicCrossfade);
     if (played) {
         current_ = id;
     }

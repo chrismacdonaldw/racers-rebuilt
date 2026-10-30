@@ -23,6 +23,13 @@ struct RacerStart {
     float headingRadians = 0.0F;
 };
 
+/// What happened in the racer's last `Tick`, and in any `Go` or `StartTurbo` call since.
+struct RacerEvents {
+    std::optional<TurboLevel> turboStarted;
+    std::optional<TurboLevel> turboFaded;
+    bool hasDriftStarted = false;
+};
+
 class Racer {
 public:
     Racer(const ChassisSpec& chassis, const CarBuild& build, const RacerStart& start);
@@ -59,6 +66,8 @@ public:
 
     [[nodiscard]] const std::optional<Turbo>& ActiveTurbo() const { return turbo_; }
 
+    [[nodiscard]] const RacerEvents& Events() const { return events_; }
+
     /// `world` is the one this racer stepped against.
     [[nodiscard]] ContactBody ForContacts(const CollisionQuery& world) {
         return {.body = &body_, .constants = &constants_, .world = &world};
@@ -76,6 +85,7 @@ private:
     StartBoost startBoost_;
     std::optional<Turbo> turbo_;
     std::optional<AiRacer> route_;
+    RacerEvents events_;
 };
 
 }

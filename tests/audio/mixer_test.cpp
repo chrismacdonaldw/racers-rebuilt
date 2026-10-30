@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <optional>
 #include <vector>
 
 #include "audio/alp_builder.hpp"
@@ -84,6 +85,51 @@ TEST_CASE_FIXTURE(MixerFixture, "a bus at zero volume is silent") {
     CHECK(RenderIsSilent());
 }
 
+TEST_CASE_FIXTURE(MixerFixture, "a looping effect plays until it stops") {
+    const std::optional<VoiceId> voice = mixer_.Loop({.sound = effectId_});
+    REQUIRE(voice.has_value());
+
+    for (int render = 0; render < 4; ++render) {
+        CHECK_FALSE(RenderIsSilent());
+    }
+
+    mixer_.Stop(voice.value_or(VoiceId{}));
+    CHECK(RenderIsSilent());
+}
+
+TEST_CASE_FIXTURE(MixerFixture, "mixing a voice to zero volume silences it") {
+    const std::optional<VoiceId> voice = mixer_.Loop({.sound = effectId_});
+    REQUIRE(voice.has_value());
+
+    mixer_.Mix(voice.value_or(VoiceId{}), {.volume = 0.0F, .pitch = 2.0F, .pan = 1.0F});
+
+    CHECK(RenderIsSilent());
+}
+
+TEST_CASE_FIXTURE(MixerFixture, "a stopped voice's id leaves the next voice in its slot alone") {
+    const std::optional<VoiceId> stopped = mixer_.Loop({.sound = effectId_});
+    REQUIRE(stopped.has_value());
+    mixer_.Stop(stopped.value_or(VoiceId{}));
+
+    const std::optional<VoiceId> next = mixer_.Loop({.sound = effectId_});
+    mixer_.Mix(stopped.value_or(VoiceId{}), {.volume = 0.0F});
+    mixer_.Stop(stopped.value_or(VoiceId{}));
+
+    REQUIRE(next.has_value());
+    CHECK(next.transform([](VoiceId id) { return id.slot; }) ==
+          stopped.transform([](VoiceId id) { return id.slot; }));
+    CHECK_FALSE(RenderIsSilent());
+}
+
+TEST_CASE_FIXTURE(MixerFixture, "every effect voice can loop at once and the next is refused") {
+    constexpr int kEffectVoices = 32;
+    for (int voice = 0; voice < kEffectVoices; ++voice) {
+        CHECK(mixer_.Loop({.sound = effectId_}).has_value());
+    }
+
+    CHECK_FALSE(mixer_.Loop({.sound = effectId_}).has_value());
+}
+
 TEST_CASE_FIXTURE(MixerFixture, "mixing allocates nothing") {
     const std::array cues{SoundCue{.sound = effectId_}, SoundCue{.sound = effectId_}};
     REQUIRE(mixer_.PlayMusic(trackId_).has_value());
@@ -92,6 +138,25 @@ TEST_CASE_FIXTURE(MixerFixture, "mixing allocates nothing") {
     REQUIRE(allocations > 0);
 
     for (int render = 0; render < 8; ++render) {
+        mixer_.Render(output_);
+    }
+
+    CHECK(mixer_.AllocationCount() == allocations);
+}
+
+TEST_CASE_FIXTURE(MixerFixture, "changing looping voices as they mix allocates nothing") {
+    std::vector<VoiceId> voices;
+    voices.reserve(12);
+    for (int voice = 0; voice < 12; ++voice) {
+        voices.push_back(mixer_.Loop({.sound = effectId_}).value_or(VoiceId{}));
+    }
+    const std::uint64_t allocations = mixer_.AllocationCount();
+
+    for (int render = 0; render < 16; ++render) {
+        const float shift = static_cast<float>(render) / 16.0F;
+        for (const VoiceId voice : voices) {
+            mixer_.Mix(voice, {.volume = 1.0F - shift, .pitch = 0.5F + shift, .pan = shift});
+        }
         mixer_.Render(output_);
     }
 

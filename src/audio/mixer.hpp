@@ -2,10 +2,12 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 
 #include "assets/vfs_layer.hpp"
 #include "audio/pcm_stream.hpp"
+#include "audio/voice_mix.hpp"
 #include "core/duration.hpp"
 #include "core/result.hpp"
 
@@ -20,7 +22,13 @@ struct SoundId {
 struct SoundCue {
     SoundId sound;
     Bus bus = Bus::Effects;
-    float volume = 1.0F;
+    VoiceMix mix;
+};
+
+/// Goes stale once its voice stops, so it never changes a later voice.
+struct VoiceId {
+    std::uint32_t slot = 0;
+    std::uint32_t generation = 0;
 };
 
 /// Mixes on miniaudio's audio thread. Call members from the main thread only.
@@ -45,6 +53,13 @@ public:
     /// Drops cues once every effect voice is busy.
     void Play(std::span<const SoundCue> cues);
 
+    /// Plays `cue` on repeat until `Stop`. Empty once every effect voice is busy.
+    [[nodiscard]] std::optional<VoiceId> Loop(const SoundCue& cue);
+
+    /// Does nothing to a voice that has stopped.
+    void Mix(VoiceId voice, const VoiceMix& mix);
+    void Stop(VoiceId voice);
+
     [[nodiscard]] Result<void> PlayMusic(std::unique_ptr<PcmStream> track, Milliseconds crossfade);
     /// Loops a sound from `AddSound` as music, with no crossfade.
     [[nodiscard]] Result<void> PlayMusic(SoundId track);
@@ -61,6 +76,9 @@ private:
     explicit Mixer(std::unique_ptr<State> state);
 
     [[nodiscard]] static Result<Mixer> Start(bool hasDevice, std::uint32_t sampleRateHz);
+
+    std::optional<VoiceId> StartEffect(const SoundCue& cue, bool isLooping);
+    [[nodiscard]] bool IsCurrent(VoiceId voice) const;
 
     std::unique_ptr<State> state_;
 };

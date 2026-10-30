@@ -21,7 +21,8 @@ MaterialBinding Bind(const assets::SurfaceEntry& entry) {
                     .supportThreshold = entry.supportThreshold.value_or(defaults.supportThreshold),
                     .friction = entry.friction.value_or(defaults.friction),
                     .lateralGrip = entry.lateralGrip.value_or(defaults.lateralGrip),
-                    .force = entry.force.value_or(defaults.force)},
+                    .force = entry.force.value_or(defaults.force),
+                    .soundId = entry.soundId},
         .isSolid = !entry.isNonSolid};
 }
 

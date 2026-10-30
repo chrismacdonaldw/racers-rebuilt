@@ -26,6 +26,7 @@ CollisionWorld Track() {
 std::vector<assets::SurfaceEntry> Surfaces() {
     return {{.name = "water",
              .force = Vector3{.y = 50.0F},
+             .soundId = 3006,
              .friction = 0.15F,
              .rollingResistance = 26.0F},
             {.name = "in", .isNonSolid = true}};
@@ -44,6 +45,7 @@ TEST_CASE("materials bind to their surface entry or the road defaults") {
     CHECK(track[1].surface.friction == 0.15F);
     CHECK(track[1].surface.lateralGrip == Surface{}.lateralGrip);
     CHECK(track[1].surface.force == Vector3{.y = 50.0F});
+    CHECK(track[1].surface.soundId == 3006);
     CHECK_FALSE(track[2].isSolid);
     CHECK(track[3].isSolid);
     CHECK_FALSE(checkpoints[3].isSolid);

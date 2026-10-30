@@ -29,6 +29,7 @@ add_executable(racers-rebuilt-tests
     app/racer_determinism_test.cpp
     app/replay_session_test.cpp
     app/scene_stack_test.cpp
+    app/sound_banks_test.cpp
     app/startup_settings_test.cpp
     app/startup_timer_test.cpp
     app/track_space_test.cpp
@@ -62,6 +63,7 @@ add_executable(racers-rebuilt-tests
     assets/race_route_test.cpp
     assets/racer_catalog_test.cpp
     assets/skeleton_database_test.cpp
+    assets/sound_list_test.cpp
     assets/start_grid_test.cpp
     assets/string_table_test.cpp
     assets/surface_table_test.cpp

@@ -30,6 +30,7 @@ rr_add_module(sim
         race/race_clock.cpp
         race/race_progress.cpp
         race/race_session.cpp
+        race/race_sounds.cpp
         race/race_track.cpp
         race/random.cpp
         race/respawn.cpp

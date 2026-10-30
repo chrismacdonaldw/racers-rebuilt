@@ -2,10 +2,14 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <iterator>
+#include <limits>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "../ai/straight_route.hpp"
@@ -53,6 +57,35 @@ void Run(RaceSession& session, int ticks, const RacerControls& controls = kThrot
     }
 }
 
+using HeardSound = std::pair<int, SoundEvent>;
+
+std::vector<HeardSound> Listen(RaceSession& session, int ticks, const RacerControls& controls) {
+    std::vector<HeardSound> heard;
+    for (int tick = 0; tick < ticks; ++tick) {
+        Run(session, 1, controls);
+        for (const SoundEvent& sound : session.Sounds()) {
+            heard.emplace_back(tick, sound);
+        }
+    }
+    return heard;
+}
+
+std::vector<HeardSound> WallHits(const std::vector<HeardSound>& heard) {
+    std::vector<HeardSound> hits;
+    std::ranges::copy_if(heard, std::back_inserter(hits), [](const HeardSound& sound) {
+        return sound.second.sound == RaceSound::WallHit;
+    });
+    return hits;
+}
+
+int ShortestGap(const std::vector<HeardSound>& hits) {
+    int gap = std::numeric_limits<int>::max();
+    for (std::size_t i = 1; i < hits.size(); ++i) {
+        gap = std::min(gap, hits[i].first - hits[i - 1].first);
+    }
+    return gap;
+}
+
 void RunUntilRacing(RaceSession& session) {
     while (session.Clock().Phase() != RacePhase::Racing) {
         Run(session, 1);
@@ -83,6 +116,55 @@ TEST_CASE("throttle right after go gives a strong start boost") {
 
     const auto level = [](const Turbo& turbo) { return turbo.level; };
     CHECK(session.Racers()[0].ActiveTurbo().transform(level) == TurboLevel::Strong);
+}
+
+TEST_CASE("the countdown sounds fire on the ticks the countdown reaches them") {
+    constexpr int kIntroTicks = 167;
+    constexpr int kTicksTo1000Ms = 84;
+    constexpr int kTicksTo2000Ms = 167;
+    constexpr int kTicksTo3000Ms = 250;
+    const Fixture fixture;
+    RaceSession session = fixture.Start(TwoRacers());
+
+    const std::vector<HeardSound> heard = Listen(session, kIntroTicks + kTicksTo3000Ms, {});
+
+    constexpr int kStart = kIntroTicks - 1;
+    CHECK(session.Clock().Phase() == RacePhase::Racing);
+    CHECK(heard == std::vector<HeardSound>{
+                       {kStart, {.sound = RaceSound::CountdownBeep}},
+                       {kStart, {.sound = RaceSound::EngineStart}},
+                       {kStart + kTicksTo1000Ms, {.sound = RaceSound::CountdownBeep}},
+                       {kStart + kTicksTo2000Ms, {.sound = RaceSound::CountdownBeep}},
+                       {kStart + kTicksTo3000Ms, {.sound = RaceSound::Go}},
+                   });
+}
+
+TEST_CASE("a turbo sounds on the tick it starts and on the tick it fades") {
+    const Fixture fixture;
+    RaceSession session = fixture.Start(TwoRacers());
+    while (session.Clock().Phase() != RacePhase::Racing) {
+        Run(session, 1, {});
+    }
+
+    const std::vector<HeardSound> heard = Listen(session, 200, kThrottle);
+
+    constexpr int kFadeTick = 158;
+    const SoundEvent start{.sound = RaceSound::TurboStart, .level = TurboLevel::Strong};
+    const SoundEvent fade{.sound = RaceSound::TurboFade, .level = TurboLevel::Strong};
+    CHECK(heard == std::vector<HeardSound>{{0, start}, {kFadeTick, fade}});
+}
+
+TEST_CASE("a racer against a wall hits it at most once every 250 ms") {
+    Fixture fixture;
+    fixture.world = test::PlaneWorld({test::TestPlane{}, test::TestPlane{.normal = {.x = -1.0F}}});
+    RaceSession session = fixture.Start(TwoRacers());
+    RunUntilRacing(session);
+
+    const std::vector<HeardSound> hits = WallHits(Listen(session, 400, kThrottle));
+
+    REQUIRE(hits.size() > 1);
+    CHECK(std::ranges::all_of(hits, [](const HeardSound& hit) { return hit.second.racer == 0; }));
+    CHECK(ShortestGap(hits) * kTick >= Milliseconds{250});
 }
 
 TEST_CASE("a racer off the ground respawns on its grid slot after the timeout") {

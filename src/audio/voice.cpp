@@ -15,7 +15,7 @@ Result<void> Voice::Start(ma_engine& engine, ma_sound_group& bus, std::unique_pt
         return source;
     }
     const ma_result result = ma_sound_init_from_data_source(
-        &engine, &source_, MA_SOUND_FLAG_NO_SPATIALIZATION | MA_SOUND_FLAG_NO_PITCH, &bus, &sound_);
+        &engine, &source_, MA_SOUND_FLAG_NO_SPATIALIZATION, &bus, &sound_);
     if (result != MA_SUCCESS) {
         UninitStreamDataSource(source_);
         stream_.reset();
@@ -23,13 +23,21 @@ Result<void> Voice::Start(ma_engine& engine, ma_sound_group& bus, std::unique_pt
                     std::format("can't play a sound: {}", ma_result_description(result)));
     }
     hasSound_ = true;
-    ma_sound_set_volume(&sound_, start.volume);
+    Mix(start.mix);
     if (start.fadeIn > Milliseconds{0}) {
         ma_sound_set_fade_in_milliseconds(&sound_, 0.0F, 1.0F,
                                           static_cast<ma_uint64>(start.fadeIn.count()));
     }
     ma_sound_start(&sound_);
     return {};
+}
+
+void Voice::Mix(const VoiceMix& mix) {
+    if (hasSound_) {
+        ma_sound_set_volume(&sound_, mix.volume);
+        ma_sound_set_pitch(&sound_, mix.pitch);
+        ma_sound_set_pan(&sound_, mix.pan);
+    }
 }
 
 void Voice::Stop() {
