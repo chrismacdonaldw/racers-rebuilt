@@ -35,6 +35,9 @@ public:
     /// Replaces any turbo already running.
     void StartTurbo(TurboLevel level);
 
+    /// Puts the racer at rest at `start`, as if it were built there.
+    void Place(const RacerStart& start);
+
     /// In game space.
     [[nodiscard]] Transform Pose() const;
 

@@ -22,6 +22,7 @@ rr_add_module(assets
         racer_catalog.cpp
         skeleton_database.cpp
         stored_rotation.cpp
+        start_grid.cpp
         surface_table.cpp
         texture_database.cpp
         tga_image.cpp

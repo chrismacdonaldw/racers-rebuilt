@@ -42,6 +42,7 @@ add_executable(racers-rebuilt-tests
     assets/race_route_test.cpp
     assets/racer_catalog_test.cpp
     assets/skeleton_database_test.cpp
+    assets/start_grid_test.cpp
     assets/surface_table_test.cpp
     assets/texture_database_test.cpp
     assets/tga_image_test.cpp
@@ -104,6 +105,12 @@ add_executable(racers-rebuilt-tests
     sim/physics/turbo_test.cpp
     sim/race/checkpoint_graph_test.cpp
     sim/race/lap_tracker_test.cpp
+    sim/race/race_clock_test.cpp
+    sim/race/race_progress_test.cpp
+    sim/race/race_session_test.cpp
+    sim/race/race_track_test.cpp
+    sim/race/random_test.cpp
+    sim/race/respawn_test.cpp
     sim/race/standings_test.cpp
     sim/replay_test.cpp
     sim/route_playback_test.cpp

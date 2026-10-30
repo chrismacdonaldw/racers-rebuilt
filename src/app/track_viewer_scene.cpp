@@ -15,6 +15,7 @@
 #include "core/log.hpp"
 #include "platform/clock.hpp"
 #include "sim/collision/track_collision.hpp"
+#include "sim/race/race_track.hpp"
 
 namespace rr::app {
 namespace {
@@ -73,7 +74,7 @@ Result<std::unique_ptr<TrackViewerScene>> TrackViewerScene::Create(render::Rende
     if (model->bounds.isEmpty) {
         return Fail(ErrorCode::InvalidData, std::format("{} places no models", track));
     }
-    Result<sim::CheckpointGraph> loaded = LoadCheckpoints(vfs, folder);
+    Result<sim::CheckpointGraph> loaded = sim::LoadCheckpoints(vfs, track);
     std::optional<sim::CheckpointGraph> checkpoints;
     if (loaded) {
         checkpoints = std::move(*loaded);

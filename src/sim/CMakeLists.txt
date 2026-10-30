@@ -27,6 +27,12 @@ rr_add_module(sim
         physics/wall_sweep.cpp
         race/checkpoint_graph.cpp
         race/lap_tracker.cpp
+        race/race_clock.cpp
+        race/race_progress.cpp
+        race/race_session.cpp
+        race/race_track.cpp
+        race/random.cpp
+        race/respawn.cpp
         race/standings.cpp
         replay/replay.cpp
         replay/replay_bytes.cpp
