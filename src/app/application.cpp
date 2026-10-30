@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <format>
 #include <memory>
 #include <optional>
 #include <string>
@@ -16,6 +17,8 @@
 #include "app/extensions.hpp"
 #include "app/input_bindings.hpp"
 #include "app/music_folder_source.hpp"
+#include "app/race_scene.hpp"
+#include "app/race_settings.hpp"
 #include "app/replay_session.hpp"
 #include "app/sprite_test_scene.hpp"
 #include "app/startup_settings.hpp"
@@ -30,6 +33,7 @@
 #include "core/utf8_path.hpp"
 #include "platform/clock.hpp"
 #include "platform/gamepads.hpp"
+#include "settings/command_line.hpp"
 
 namespace rr::app {
 namespace {
@@ -109,6 +113,19 @@ void PlaySceneMusic(audio::MusicPlayer& music, const Scene& scene) {
     }
 }
 
+std::string RaceNamed(std::string track, const settings::Registry& settings) {
+    return RaceSceneName({.track = std::move(track), .respawn = RespawnRuleFrom(settings)});
+}
+
+Result<std::optional<std::string>> StartupScene(const settings::CommandLine& commandLine,
+                                                const settings::Registry& settings) {
+    if (commandLine.track && commandLine.race) {
+        return Fail(ErrorCode::InvalidData, "--track and --race can't be used together");
+    }
+    return commandLine.race ? std::optional(RaceNamed(*commandLine.race, settings))
+                            : commandLine.track;
+}
+
 Result<platform::FramePacer> CreatePacer(const platform::PacingConfig& pacing) {
     Result<platform::FrameTimer> timer = platform::FrameTimer::Create();
     if (!timer) {
@@ -121,6 +138,10 @@ Result<platform::FramePacer> CreatePacer(const platform::PacingConfig& pacing) {
 }
 
 Result<Application> Application::Create(GameBoot boot) {
+    Result<std::optional<std::string>> scene = StartupScene(boot.commandLine, boot.settings);
+    if (!scene) {
+        return std::unexpected(std::move(scene.error()));
+    }
     Result<platform::Window> window = platform::Window::Create(
         {.title = kWindowTitle, .widthPx = kWindowWidthPx, .heightPx = kWindowHeightPx});
     if (!window) {
@@ -156,17 +177,20 @@ Result<Application> Application::Create(GameBoot boot) {
                         .renderer = std::move(*renderer),
                         .pacer = std::move(*pacer),
                         .pacing = pacing,
-                        .track = std::move(boot.commandLine.track),
+                        .scene = std::move(*scene),
                         .recordFile = boot.commandLine.recordFile.transform(PathFromUtf8),
                         .replayFile = boot.commandLine.replayFile.transform(PathFromUtf8),
                         .startupSummary = std::move(startupSummary)});
 }
 
 Result<void> Application::Run() {
-    Result<ReplaySession> replay = ReplaySession::Start(recordFile_, replayFile_, track_);
-    Result<std::unique_ptr<overlay::Overlay>> menu =
-        replay.and_then([&](const auto&) { return overlay::Overlay::Create(window_, renderer_); });
-    Result<void> opened = menu.and_then([&](const auto&) { return OpenScene(track_); });
+    Result<ReplaySession> replay = ReplaySession::Start(recordFile_, replayFile_, scene_);
+    if (!replay) {
+        return std::unexpected(std::move(replay.error()));
+    }
+    seed_ = replay->Seed();
+    Result<std::unique_ptr<overlay::Overlay>> menu = overlay::Overlay::Create(window_, renderer_);
+    Result<void> opened = menu.and_then([&](const auto&) { return OpenScene(scene_); });
     if (!opened) {
         return opened;
     }
@@ -219,10 +243,12 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
             CyclePacing();
         }
         const Nanoseconds now = platform::Now();
+        const Scene* scene = frameLoop_.Scenes().Top();
         Persist(menu.Build(settings_,
                            {.frameTime = std::chrono::duration_cast<FloatSeconds>(now - lastFrame),
                             .ticksPerFrame = frame.tickCount,
-                            .startupSummary = startupSummary_},
+                            .startupSummary = startupSummary_,
+                            .sceneStatus = scene != nullptr ? scene->DeveloperStatus() : ""},
                            scenes));
         lastFrame = now;
         frame = frameLoop_.RunFrame(now);
@@ -244,24 +270,35 @@ Application::Application(Parts parts)
       renderer_(std::move(parts.renderer)),
       pacer_(std::move(parts.pacer)),
       pacing_(parts.pacing),
-      track_(std::move(parts.track)),
+      scene_(std::move(parts.scene)),
       recordFile_(std::move(parts.recordFile)),
       replayFile_(std::move(parts.replayFile)),
       startupSummary_(std::move(parts.startupSummary)) {}
 
-Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std::string>& track) {
-    if (!track) {
+Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std::string>& scene) {
+    if (!scene) {
         return TestScene::Create(renderer_).transform(ToScene<TestScene>);
     }
     const Nanoseconds started = platform::Now();
     assets::LoaderPool pool(assets::LoaderPool::DefaultWorkerCount());
     assets::TrackLoader loader(vfs_, pool);
-    return TrackViewerScene::Create(renderer_, vfs_, loader, *track, started)
+    if (IsRaceScene(*scene)) {
+        return ParseRaceScene(*scene)
+            .and_then([&](const RaceSceneSetup& setup) {
+                return RaceScene::Create(renderer_, vfs_, loader, setup, seed_, started);
+            })
+            .transform(ToScene<RaceScene>);
+    }
+    return TrackViewerScene::Create(renderer_, vfs_, loader, *scene, started)
         .transform(ToScene<TrackViewerScene>);
 }
 
-Result<void> Application::OpenScene(const std::optional<std::string>& track) {
-    return SwitchScene([&] { return CreateScene(track); });
+Result<std::unique_ptr<Scene>> Application::CreateRace(const std::string& track) {
+    return CreateScene(RaceNamed(track, settings_));
+}
+
+Result<void> Application::OpenScene(const std::optional<std::string>& scene) {
+    return SwitchScene([&] { return CreateScene(scene); });
 }
 
 Result<void> Application::SwitchScene(const SceneFactory& create) {
@@ -296,6 +333,8 @@ std::vector<overlay::SceneChoice> Application::SceneChoices() {
     for (const std::string& track : assets::ListRaceTracks(vfs_)) {
         choices.push_back(
             choice(track, std::bind_front(&Application::CreateScene, this, std::optional(track))));
+        choices.push_back(choice(std::format("{} race", track),
+                                 std::bind_front(&Application::CreateRace, this, track)));
     }
     return choices;
 }

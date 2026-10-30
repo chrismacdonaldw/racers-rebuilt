@@ -12,6 +12,8 @@ namespace rr::sim {
 struct RespawnRule {
     bool isEnabled = true;
     Milliseconds timeout{3000};
+
+    friend bool operator==(const RespawnRule&, const RespawnRule&) = default;
 };
 
 class RespawnWatch {

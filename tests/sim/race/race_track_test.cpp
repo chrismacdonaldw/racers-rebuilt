@@ -11,6 +11,7 @@
 #include "assets/archive_survey.hpp"
 #include "assets/track_loader.hpp"
 #include "sim/collision/world_list.hpp"
+#include "sim/race/race_session.hpp"
 #include "sim/race/respawn.hpp"
 
 namespace rr::sim {
@@ -18,6 +19,8 @@ namespace {
 
 constexpr float kMaxHeightOffGround = 8.0F;
 constexpr float kOffTrackZ = 10000.0F;
+constexpr Milliseconds kTick{12};
+constexpr int kDriveTicks = 750;
 
 bool IsGoodSlot(const RaceTrack& track, const WorldList& world, const RacerStart& slot) {
     const RacerStart dropped = RespawnPoint(track.checkpoints, std::nullopt, slot, world);
@@ -64,6 +67,52 @@ void CheckTrack(const assets::Vfs& vfs, const std::string& folder) {
     CHECK(track->grid.size() == 6);
     CHECK(BadSlots(*track, world).empty());
     CHECK(CheckpointsWithoutGround(*track, world).empty());
+}
+
+struct DriveCheck {
+    bool hasCrossedStart = false;
+    int respawns = 0;
+};
+
+DriveCheck DriveFromGrid(const RaceTrack& track) {
+    const WorldList world(track.collision.Track());
+    Result<RaceSession> session = RaceSession::Create(
+        {.racers = std::vector<RacerEntry>(track.grid.size(), {.isPlayer = true})},
+        {.checkpoints = &track.checkpoints,
+         .grid = track.grid,
+         .world = &world,
+         .lowestTrackZ = track.lowestTrackZ});
+    REQUIRE(session.has_value());
+    const std::vector<RacerControls> throttle(track.grid.size(), {.isThrottleHeld = true});
+    DriveCheck check;
+    for (int tick = 0; tick < kDriveTicks; ++tick) {
+        session->Tick(kTick, throttle);
+        check.respawns += session->WasRespawned(0) ? 1 : 0;
+    }
+    check.hasCrossedStart = session->Progress().OfRacer(0).laps.LastCheckpoint().has_value();
+    return check;
+}
+
+void CheckDrive(const assets::Vfs& vfs, const std::string& folder) {
+    CAPTURE(folder);
+    const Result<RaceTrack> track = LoadRaceTrack(vfs, folder);
+    if (!track) {
+        FAIL(track.error().message);
+    }
+    const DriveCheck check = DriveFromGrid(*track);
+    CHECK(check.respawns == 0);
+    CHECK(check.hasCrossedStart);
+}
+
+TEST_CASE("on every retail race track, the pole racer drives off the grid without respawning") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+
+    for (const std::string& folder : assets::ListRaceTracks(*vfs)) {
+        CheckDrive(*vfs, folder);
+    }
 }
 
 TEST_CASE(

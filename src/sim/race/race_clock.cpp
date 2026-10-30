@@ -4,7 +4,6 @@ namespace rr::sim {
 namespace {
 
 constexpr Milliseconds kIntroTime{2000};
-constexpr Milliseconds kCountdownTime{2999};
 constexpr Milliseconds kFinishedTime{9999};
 
 }
@@ -21,7 +20,7 @@ void RaceClock::Advance(Milliseconds elapsed, bool hasPlayerFinished) {
             }
             break;
         case RacePhase::Countdown:
-            if (phaseTime_ > kCountdownTime) {
+            if (phaseTime_ >= kCountdownLength) {
                 Enter(RacePhase::Racing);
             }
             break;

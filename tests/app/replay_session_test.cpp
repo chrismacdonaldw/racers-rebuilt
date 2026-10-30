@@ -10,6 +10,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <string>
 #include <vector>
 
 #include "app/frame_loop.hpp"
@@ -125,6 +126,22 @@ TEST_CASE("a recorded session replays to the same snapshots at any framerate") {
             fps == 0 ? test::UncappedFrames(kSession) : test::FixedRateFrames(fps, kSession);
         CHECK(session.Play(frames) == Outcome{.isFinished = true, .checkedTicks = ticks});
     }
+}
+
+TEST_CASE("replaying a session takes the recorded scene and seed") {
+    const test::TempFolder folder;
+    const std::filesystem::path file = folder.Path() / "race.rrr";
+    std::optional<std::string> scene = "race:RACEC0R0:respawn=off";
+    const Result<ReplaySession> recorded = ReplaySession::Start(file, std::nullopt, scene);
+    REQUIRE(recorded.has_value());
+    recorded->Finish();
+
+    std::optional<std::string> replayed;
+    const Result<ReplaySession> playback = ReplaySession::Start(std::nullopt, file, replayed);
+
+    REQUIRE(playback.has_value());
+    CHECK(replayed == scene);
+    CHECK(playback->Seed() == recorded->Seed());
 }
 
 TEST_CASE("playback finds the first tick that drifts from the recording") {

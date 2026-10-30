@@ -77,7 +77,7 @@ Result<ReplayPlayback> ReplayPlayback::Load(const std::filesystem::path& file) {
     return ReplayPlayback(sim::ReplayPlayer(std::move(*replay), LoadHashes(file)));
 }
 
-std::optional<std::string> ReplayPlayback::Track() const {
+std::optional<std::string> ReplayPlayback::Scene() const {
     const std::string& scene = player_.Playing().scene;
     return scene.empty() ? std::nullopt : std::optional<std::string>(scene);
 }
@@ -109,7 +109,7 @@ void ReplayPlayback::LogOutcome() const {
 
 Result<ReplaySession> ReplaySession::Start(const std::optional<std::filesystem::path>& recordFile,
                                            const std::optional<std::filesystem::path>& replayFile,
-                                           std::optional<std::string>& track) {
+                                           std::optional<std::string>& scene) {
     ReplaySession session;
     if (recordFile && replayFile) {
         return Fail(ErrorCode::InvalidData, "--record and --replay can't be used together");
@@ -119,12 +119,15 @@ Result<ReplaySession> ReplaySession::Start(const std::optional<std::filesystem::
         if (!playback) {
             return std::unexpected(std::move(playback.error()));
         }
-        track = playback->Track();
+        scene = playback->Scene();
+        session.seed_ = playback->Player().Playing().seed;
         session.mode_.emplace<ReplayPlayback>(std::move(*playback));
-    } else if (recordFile) {
-        std::random_device random;
-        const std::uint64_t seed = (std::uint64_t{random()} << 32U) | random();
-        session.mode_.emplace<ReplayRecording>(*recordFile, track.value_or(""), seed);
+        return session;
+    }
+    std::random_device random;
+    session.seed_ = (std::uint64_t{random()} << 32U) | random();
+    if (recordFile) {
+        session.mode_.emplace<ReplayRecording>(*recordFile, scene.value_or(""), session.seed_);
     }
     return session;
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -43,7 +44,7 @@ private:
         render::Renderer renderer;
         platform::FramePacer pacer;
         platform::PacingConfig pacing;
-        std::optional<std::string> track;
+        std::optional<std::string> scene;
         std::optional<std::filesystem::path> recordFile;
         std::optional<std::filesystem::path> replayFile;
         std::string startupSummary;
@@ -54,8 +55,9 @@ private:
     explicit Application(Parts parts);
 
     [[nodiscard]] Result<std::unique_ptr<Scene>> CreateScene(
-        const std::optional<std::string>& track);
-    [[nodiscard]] Result<void> OpenScene(const std::optional<std::string>& track);
+        const std::optional<std::string>& scene);
+    [[nodiscard]] Result<std::unique_ptr<Scene>> CreateRace(const std::string& track);
+    [[nodiscard]] Result<void> OpenScene(const std::optional<std::string>& scene);
     [[nodiscard]] Result<void> SwitchScene(const SceneFactory& create);
     [[nodiscard]] std::vector<overlay::SceneChoice> SceneChoices();
     void RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music);
@@ -74,7 +76,8 @@ private:
     platform::EventPump events_;
     platform::FramePacer pacer_;
     platform::PacingConfig pacing_;
-    std::optional<std::string> track_;
+    std::optional<std::string> scene_;
+    std::uint64_t seed_ = 0;
     std::optional<std::filesystem::path> recordFile_;
     std::optional<std::filesystem::path> replayFile_;
     std::string startupSummary_;

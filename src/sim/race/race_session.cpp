@@ -31,6 +31,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
     : course_(course),
       respawn_(setup.respawn),
       respawns_(setup.racers.size()),
+      wasRespawned_(setup.racers.size()),
       positions_(setup.racers.size()),
       progress_(setup.racers.size(), setup.lapCount),
       random_(setup.seed),
@@ -87,8 +88,10 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     const Vector3 from = car.Body().motion.position;
     car.Tick(elapsed, controls, *course_.world);
     const BodyMotion& motion = car.Body().motion;
-    if (!car.Route() && respawns_[racer].Update(respawn_, elapsed, IsGrounded(motion),
-                                                motion.position.z, course_.lowestTrackZ)) {
+    wasRespawned_[racer] =
+        !car.Route() && respawns_[racer].Update(respawn_, elapsed, IsGrounded(motion),
+                                                motion.position.z, course_.lowestTrackZ);
+    if (wasRespawned_[racer]) {
         car.Place(RespawnPoint(*course_.checkpoints, progress_.OfRacer(racer).laps.LastCheckpoint(),
                                course_.grid[racer], *course_.world));
     } else {

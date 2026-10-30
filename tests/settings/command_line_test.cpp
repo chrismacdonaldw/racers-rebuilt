@@ -40,6 +40,16 @@ TEST_CASE("the command line takes a track to view") {
     CHECK(commandLine->track == "RACEC0R0");
 }
 
+TEST_CASE("the command line takes a track to race on") {
+    constexpr std::array<std::string_view, 1> kArgs{"--race=RACEC1R2"};
+
+    Result<CommandLine> commandLine = ParseCommandLine(kArgs);
+
+    REQUIRE(commandLine.has_value());
+    CHECK(commandLine->race == "RACEC1R2");
+    CHECK_FALSE(commandLine->track.has_value());
+}
+
 TEST_CASE("the command line takes a replay to record or play") {
     constexpr std::array<std::string_view, 3> kArgs{"--record", "a.rrr", "--replay=b.rrr"};
 

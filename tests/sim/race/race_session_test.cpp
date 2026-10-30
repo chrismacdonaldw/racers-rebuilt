@@ -90,11 +90,16 @@ TEST_CASE("a racer off the ground respawns on its grid slot after the timeout") 
     fixture.grid[0].position.z = kHighUp;
     RaceSession session = fixture.Start(TwoRacers({.timeout = Milliseconds{1000}}));
 
-    Run(session, 92);
+    Run(session, 83);
+    CHECK_FALSE(session.WasRespawned(0));
+    Run(session, 1);
+    CHECK(session.WasRespawned(0));
+    Run(session, 8);
 
     const Vector3& position = session.Racers()[0].Body().motion.position;
     CHECK(position.x == doctest::Approx(-20.0F));
     CHECK(position.z < 1.0F);
+    CHECK_FALSE(session.WasRespawned(0));
 }
 
 TEST_CASE("with respawn off, a falling racer keeps falling") {

@@ -8,6 +8,8 @@ namespace rr::sim {
 
 enum class RacePhase : std::uint8_t { Intro, Countdown, Racing, Finished, Results };
 
+inline constexpr Milliseconds kCountdownLength{3000};
+
 class RaceClock {
 public:
     /// Racing ends when `hasPlayerFinished`. Every other phase ends when its time is up.

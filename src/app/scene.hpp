@@ -21,6 +21,9 @@ public:
     /// A `MusicCatalog` id. Empty means silence.
     [[nodiscard]] virtual std::string_view MusicTrack() const { return {}; }
 
+    /// A line for the developer overlay.
+    [[nodiscard]] virtual std::string_view DeveloperStatus() const { return {}; }
+
     /// Advances exactly one `kSimTick`. Must not read clocks, settings or files.
     virtual void Tick(const sim::InputFrame& input) = 0;
 
