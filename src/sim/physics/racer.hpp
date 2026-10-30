@@ -9,6 +9,7 @@
 #include "sim/physics/chassis.hpp"
 #include "sim/physics/collision_query.hpp"
 #include "sim/physics/driver_input.hpp"
+#include "sim/physics/racer_contacts.hpp"
 #include "sim/physics/racer_controls.hpp"
 #include "sim/physics/start_boost.hpp"
 #include "sim/physics/turbo.hpp"
@@ -44,6 +45,11 @@ public:
     [[nodiscard]] const StartBoostState& Boost() const { return startBoost_.State(); }
 
     [[nodiscard]] const std::optional<Turbo>& ActiveTurbo() const { return turbo_; }
+
+    /// `world` is the one this racer stepped against.
+    [[nodiscard]] ContactBody ForContacts(const CollisionQuery& world) {
+        return {.body = &body_, .constants = &constants_, .world = &world};
+    }
 
 private:
     void UpdateTurbo(int dtMs);
