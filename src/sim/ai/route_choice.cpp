@@ -43,4 +43,23 @@ Result<assets::RaceRoute> LoadRoute(const assets::Vfs& vfs, std::string_view tra
         });
 }
 
+Result<GridRoutes> LoadGridRoutes(const assets::Vfs& vfs, std::string_view track,
+                                  std::size_t slotCount, bool isMirrored) {
+    Result<std::vector<assets::VfsEntry>> folder = vfs.List(std::format("GAMEDATA/{}", track));
+    if (!folder) {
+        return std::unexpected(std::move(folder.error()));
+    }
+    GridRoutes routes(slotCount);
+    for (std::size_t slot = 0; slot < slotCount; ++slot) {
+        for (const std::string& name : SlotRoutes(*folder, static_cast<int>(slot))) {
+            Result<assets::RaceRoute> route = LoadRoute(vfs, track, name, isMirrored);
+            if (!route) {
+                return std::unexpected(std::move(route.error()));
+            }
+            routes[slot].push_back(std::move(*route));
+        }
+    }
+    return routes;
+}
+
 }

@@ -57,13 +57,17 @@ Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track) 
     });
     Result<TrackCollision> collision = grid.and_then(
         [&](const assets::StartGridAsset&) { return LoadTrackCollision(vfs, track); });
-    if (!collision) {
-        return std::unexpected(std::move(collision.error()));
+    Result<GridRoutes> routes = collision.and_then([&](const TrackCollision&) {
+        return LoadGridRoutes(vfs, track, grid->slots.size(), false);
+    });
+    if (!routes) {
+        return std::unexpected(std::move(routes.error()));
     }
     const float lowestTrackZ = LowestPoint(collision->Track());
     return RaceTrack{.collision = std::move(*collision),
                      .checkpoints = std::move(*checkpoints),
                      .grid = GridStarts(*grid),
+                     .routes = std::move(*routes),
                      .lowestTrackZ = lowestTrackZ};
 }
 

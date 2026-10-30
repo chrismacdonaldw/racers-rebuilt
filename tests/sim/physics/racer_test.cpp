@@ -4,6 +4,7 @@
 
 #include <cmath>
 
+#include "../ai/straight_route.hpp"
 #include "plane_world.hpp"
 
 namespace rr::sim {
@@ -69,6 +70,50 @@ TEST_CASE("leaving the world bounds restores the car and stops it") {
 
     CHECK(racer.Body().motion.position.z >= -250.0F);
     CHECK(racer.Body().motion.velocity.z > -0.2F);
+}
+
+TEST_CASE("a racer on a route starts where it starts and ignores controls and the world") {
+    const test::PlaneWorld world = test::FlatGround();
+    Racer racer(kNeutralChassis, {}, {.position = {.x = 5.0F, .z = 0.2F}});
+
+    racer.FollowRoute(test::StraightRoute({.x = -20.0F, .z = 0.2F}));
+    CHECK(racer.Body().motion.position == Vector3{.x = -20.0F, .z = 0.2F});
+
+    Drive(racer, {.isLeftHeld = true, .isBrakeHeld = true}, 1200, world);
+
+    CHECK(racer.Body().motion.position.x == doctest::Approx(-8.0F));
+    CHECK(racer.Body().derived.forwardSpeed == doctest::Approx(0.01F));
+    CHECK(Heading(racer) == doctest::Approx(0.0F));
+    CHECK(racer.Body().motion.contactCount == 4);
+}
+
+TEST_CASE("a racer on a route waits at its start until go") {
+    const test::PlaneWorld world = test::FlatGround();
+    Racer racer(kNeutralChassis, {}, {});
+    racer.FollowRoute(test::StraightRoute({}));
+    racer.HoldAtStart();
+
+    Drive(racer, {}, 600, world);
+    CHECK(racer.Body().motion.position.x == 0.0F);
+
+    racer.Go();
+    Drive(racer, {}, 600, world);
+    CHECK(racer.Body().motion.position.x == doctest::Approx(6.0F));
+}
+
+TEST_CASE("only a racer on a route takes a route speed") {
+    const test::PlaneWorld world = test::FlatGround();
+    Racer driven(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+    Racer routed(kNeutralChassis, {}, {});
+    routed.FollowRoute(test::StraightRoute({}));
+
+    driven.SetRouteSpeed(1.5F);
+    routed.SetRouteSpeed(1.5F);
+    Drive(routed, {}, 1200, world);
+
+    const auto speed = [](const AiRacer& route) { return route.PlaybackSpeed(); };
+    CHECK_FALSE(driven.Route().has_value());
+    CHECK(routed.Route().transform(speed) == 1.5F);
 }
 
 }

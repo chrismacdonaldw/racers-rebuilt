@@ -1,10 +1,12 @@
 #include "sim/physics/racer.hpp"
 
 #include <cmath>
+#include <utility>
 
 #include "core/assert.hpp"
 #include "sim/physics/car_body.hpp"
 #include "sim/physics/drive_controller.hpp"
+#include "sim/physics/facing.hpp"
 #include "sim/physics/rigid_body.hpp"
 
 namespace rr::sim {
@@ -42,6 +44,13 @@ void Racer::Place(const RacerStart& start) {
 
 void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const CollisionQuery& world) {
     RR_ASSERT(elapsed > Milliseconds{0} && elapsed <= kMaxStep);
+    if (route_) {
+        if (!startBoost_.State().isHeldAtStart) {
+            route_->Tick(elapsed);
+            TakeRoutePose(*route_);
+        }
+        return;
+    }
     const auto dtMs = static_cast<int>(elapsed.count());
     if (const std::optional<TurboLevel> boost = startBoost_.Update(controls, dtMs)) {
         StartTurbo(*boost);
@@ -68,8 +77,18 @@ void Racer::HoldAtStart() {
 }
 
 void Racer::Go() {
-    if (const std::optional<TurboLevel> boost = startBoost_.Go()) {
+    if (const std::optional<TurboLevel> boost = startBoost_.Go(); boost && !route_) {
         StartTurbo(*boost);
+    }
+}
+
+void Racer::FollowRoute(assets::RaceRoute route) {
+    TakeRoutePose(route_.emplace(std::move(route)));
+}
+
+void Racer::SetRouteSpeed(float speed) {
+    if (route_) {
+        route_->SetTargetSpeed(speed);
     }
 }
 
@@ -86,6 +105,21 @@ void Racer::UpdateTurbo(int dtMs) {
 
 Transform Racer::Pose() const {
     return {.position = body_.motion.position, .rotation = ToQuaternion(body_.motion.basis)};
+}
+
+void Racer::TakeRoutePose(const AiRacer& route) {
+    const Transform pose = route.Pose();
+    const Quaternion& rotation = pose.rotation;
+    BodyMotion& motion = body_.motion;
+    body_.saved = motion;
+    motion.position = pose.position;
+    motion.basis = {.forward = Rotate(rotation, {.x = 1.0F}),
+                    .side = Rotate(rotation, {.y = 1.0F}),
+                    .up = Rotate(rotation, {.z = 1.0F})};
+    motion.velocity = route.Velocity();
+    motion.contactCount = route.ContactCount();
+    body_.facing = motion.basis.forward;
+    UpdateDerivedMotion(body_);
 }
 
 void Racer::KeepInWorldBounds() {

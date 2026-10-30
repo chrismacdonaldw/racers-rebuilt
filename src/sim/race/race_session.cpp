@@ -1,11 +1,22 @@
 #include "sim/race/race_session.hpp"
 
+#include <cstdint>
 #include <format>
 
 #include "core/assert.hpp"
 #include "sim/physics/body_state.hpp"
 
 namespace rr::sim {
+namespace {
+
+std::span<const assets::RaceRoute> RoutesFor(const RaceCourse& course, std::size_t slot) {
+    if (course.routes == nullptr || slot >= course.routes->size()) {
+        return {};
+    }
+    return (*course.routes)[slot];
+}
+
+}
 
 Result<RaceSession> RaceSession::Create(const RaceSetup& setup, const RaceCourse& course) {
     RR_ASSERT(course.checkpoints != nullptr && course.world != nullptr);
@@ -22,13 +33,21 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       respawns_(setup.racers.size()),
       positions_(setup.racers.size()),
       progress_(setup.racers.size(), setup.lapCount),
-      random_(setup.seed) {
+      random_(setup.seed),
+      rubberBand_(course.isMirrored),
+      paced_(setup.racers.size()),
+      routeSpeeds_(setup.racers.size(), 1.0F) {
     racers_.reserve(setup.racers.size());
     for (std::size_t i = 0; i < setup.racers.size(); ++i) {
         const RacerEntry& entry = setup.racers[i];
-        racers_.emplace_back(entry.chassis, entry.build, course.grid[i]).HoldAtStart();
+        Racer& racer = racers_.emplace_back(entry.chassis, entry.build, course.grid[i]);
+        racer.HoldAtStart();
+        const std::span<const assets::RaceRoute> routes = RoutesFor(course, i);
+        if (!entry.isPlayer && !routes.empty()) {
+            racer.FollowRoute(routes[random_.Below(static_cast<std::uint32_t>(routes.size()))]);
+        }
         isPlayer_.push_back(entry.isPlayer);
-        positions_[i] = course.grid[i].position;
+        positions_[i] = racer.Body().motion.position;
     }
 }
 
@@ -48,6 +67,18 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     if (before == RacePhase::Finished && clock_.Phase() == RacePhase::Results) {
         progress_.FinishRemaining();
     }
+    PaceRoutes(elapsed);
+}
+
+void RaceSession::PaceRoutes(Milliseconds elapsed) {
+    for (std::size_t i = 0; i < racers_.size(); ++i) {
+        paced_[i] = {.lapProgress = progress_.OfRacer(i).laps.Progress(*course_.checkpoints),
+                     .isAiControlled = !isPlayer_[i]};
+    }
+    rubberBand_.Update(elapsed, paced_, routeSpeeds_);
+    for (std::size_t i = 0; i < racers_.size(); ++i) {
+        racers_[i].SetRouteSpeed(routeSpeeds_[i]);
+    }
 }
 
 void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
@@ -56,8 +87,8 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     const Vector3 from = car.Body().motion.position;
     car.Tick(elapsed, controls, *course_.world);
     const BodyMotion& motion = car.Body().motion;
-    if (respawns_[racer].Update(respawn_, elapsed, IsGrounded(motion), motion.position.z,
-                                course_.lowestTrackZ)) {
+    if (!car.Route() && respawns_[racer].Update(respawn_, elapsed, IsGrounded(motion),
+                                                motion.position.z, course_.lowestTrackZ)) {
         car.Place(RespawnPoint(*course_.checkpoints, progress_.OfRacer(racer).laps.LastCheckpoint(),
                                course_.grid[racer], *course_.world));
     } else {

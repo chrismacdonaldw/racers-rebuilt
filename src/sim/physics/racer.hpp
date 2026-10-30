@@ -2,9 +2,11 @@
 
 #include <optional>
 
+#include "assets/race_route.hpp"
 #include "core/duration.hpp"
 #include "core/transform.hpp"
 #include "core/vector3.hpp"
+#include "sim/ai/ai_racer.hpp"
 #include "sim/physics/body_state.hpp"
 #include "sim/physics/chassis.hpp"
 #include "sim/physics/collision_query.hpp"
@@ -38,6 +40,14 @@ public:
     /// Puts the racer at rest at `start`, as if it were built there.
     void Place(const RacerStart& start);
 
+    /// From now on the racer replays `route` from its start, ignoring controls and the world.
+    void FollowRoute(assets::RaceRoute route);
+
+    /// Does nothing unless the racer follows a route.
+    void SetRouteSpeed(float speed);
+
+    [[nodiscard]] const std::optional<AiRacer>& Route() const { return route_; }
+
     /// In game space.
     [[nodiscard]] Transform Pose() const;
 
@@ -57,6 +67,7 @@ public:
 private:
     void UpdateTurbo(int dtMs);
     void KeepInWorldBounds();
+    void TakeRoutePose(const AiRacer& route);
 
     BodyConstants constants_;
     StatMultipliers stats_;
@@ -64,6 +75,7 @@ private:
     DriverInput driver_;
     StartBoost startBoost_;
     std::optional<Turbo> turbo_;
+    std::optional<AiRacer> route_;
 };
 
 }
