@@ -16,11 +16,16 @@ add_executable(racers-rebuilt-tests
     app/startup_timer_test.cpp
     app/track_space_test.cpp
     app/video_settings_test.cpp
+    assets/animation_database_test.cpp
     assets/asset_cache_test.cpp
     assets/bmp_image_test.cpp
     assets/byte_reader_test.cpp
+    assets/car_survey_test.cpp
+    assets/champion_database_test.cpp
+    assets/chassis_database_test.cpp
     assets/checkpoints_test.cpp
     assets/collision_mesh_test.cpp
+    assets/driver_database_test.cpp
     assets/game_path_test.cpp
     assets/geometry_database_test.cpp
     assets/image_survey_test.cpp
@@ -32,6 +37,7 @@ add_executable(racers-rebuilt-tests
     assets/material_library_test.cpp
     assets/model_survey_test.cpp
     assets/race_route_test.cpp
+    assets/skeleton_database_test.cpp
     assets/surface_table_test.cpp
     assets/texture_database_test.cpp
     assets/tga_image_test.cpp

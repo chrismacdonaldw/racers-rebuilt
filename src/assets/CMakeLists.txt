@@ -1,9 +1,13 @@
 rr_add_module(assets
     SOURCES
+        animation_database.cpp
         bmp_image.cpp
         byte_reader.cpp
+        champion_database.cpp
+        chassis_database.cpp
         checkpoints.cpp
         collision_mesh.cpp
+        driver_database.cpp
         folder_layer.cpp
         game_path.cpp
         geometry_database.cpp
@@ -15,6 +19,8 @@ rr_add_module(assets
         material_library.cpp
         path_index.cpp
         race_route.cpp
+        skeleton_database.cpp
+        stored_rotation.cpp
         surface_table.cpp
         texture_database.cpp
         tga_image.cpp
