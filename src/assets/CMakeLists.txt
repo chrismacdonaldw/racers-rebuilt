@@ -19,6 +19,7 @@ rr_add_module(assets
         material_library.cpp
         path_index.cpp
         race_route.cpp
+        racer_catalog.cpp
         skeleton_database.cpp
         stored_rotation.cpp
         surface_table.cpp

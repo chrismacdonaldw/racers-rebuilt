@@ -9,6 +9,9 @@ add_executable(racers-rebuilt-tests
     app/loop_sidecar_test.cpp
     app/music_folder_source_test.cpp
     app/pace_car_test.cpp
+    app/racer/animation_player_test.cpp
+    app/racer/body_lean_test.cpp
+    app/racer/skeleton_pose_test.cpp
     app/racer_determinism_test.cpp
     app/replay_session_test.cpp
     app/scene_stack_test.cpp
@@ -37,6 +40,7 @@ add_executable(racers-rebuilt-tests
     assets/material_library_test.cpp
     assets/model_survey_test.cpp
     assets/race_route_test.cpp
+    assets/racer_catalog_test.cpp
     assets/skeleton_database_test.cpp
     assets/surface_table_test.cpp
     assets/texture_database_test.cpp
@@ -58,6 +62,7 @@ add_executable(racers-rebuilt-tests
     core/log_test.cpp
     core/quaternion_test.cpp
     core/result_test.cpp
+    core/transform_test.cpp
     core/utf8_path_test.cpp
     mods/hook_registry_test.cpp
     mods/mod_list_test.cpp
@@ -92,6 +97,7 @@ add_executable(racers-rebuilt-tests
     sim/physics/chassis_test.cpp
     sim/physics/drive_controller_test.cpp
     sim/physics/driver_input_test.cpp
+    sim/physics/prebuilt_chassis_test.cpp
     sim/physics/racer_contacts_test.cpp
     sim/physics/racer_test.cpp
     sim/physics/start_boost_test.cpp

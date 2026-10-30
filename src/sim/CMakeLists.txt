@@ -17,6 +17,7 @@ rr_add_module(sim
         physics/driver_input.cpp
         physics/facing.cpp
         physics/ground_contact.cpp
+        physics/prebuilt_chassis.cpp
         physics/racer.cpp
         physics/racer_contacts.cpp
         physics/racer_controls.cpp
