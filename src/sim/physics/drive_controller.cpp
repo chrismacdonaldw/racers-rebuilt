@@ -40,7 +40,7 @@ float GripLimit(const BodyState& body) {
     if (!IsGrounded(body.motion)) {
         return kAirborneGripLimit;
     }
-    const float grip = AverageContactGrip(body.motion);
+    const float grip = AverageContactGrip(body.motion) * body.gripScale;
     if (grip <= 0.0F) {
         return kGriplessLimit;
     }
@@ -95,9 +95,10 @@ bool CanStartDrift(const BodyState& body) {
 }
 
 void ApplyDriveCommand(BodyState& body, const BodyConstants& constants, const DriveCommand& command,
-                       const StatMultipliers& stats) {
+                       const StatMultipliers& stats, std::optional<float> turboThrust) {
     float radius = TurnRadiusFor(command.steering * stats.handling);
-    const float thrust = ThrustFor(command.drive, body.derived.forwardSpeed) * stats.acceleration;
+    const float thrust = turboThrust.value_or(ThrustFor(command.drive, body.derived.forwardSpeed)) *
+                         stats.acceleration;
     SetDrive(body, constants, thrust, body.maxSpeed);
     if (radius == 0.0F) {
         StopSteering(body.steering);

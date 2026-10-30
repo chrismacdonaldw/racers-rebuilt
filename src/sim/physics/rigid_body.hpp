@@ -24,6 +24,10 @@ void CancelAngularMomentum(BodyMotion& motion, const Vector3& axis);
 void SetYawImpulse(BodyState& body, const BodyConstants& constants, float ratePerMs,
                    int durationMs);
 
+/// `ratePerMs` is in radians per ms about the body's side axis. Ignored during a roll impulse.
+void SetPitchImpulse(BodyState& body, const BodyConstants& constants, float ratePerMs,
+                     int durationMs);
+
 void Integrate(BodyState& body, const BodyConstants& constants, int dtMs);
 
 void LimitUprightTilt(BodyMotion& motion);

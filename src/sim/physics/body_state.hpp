@@ -77,6 +77,7 @@ struct BodyState {
     float thrust = 0.0F;
     float maxSpeed = 110.0F;
     float dragCoefficient = 0.0F;
+    float gripScale = 1.0F;
     SteeringState steering;
     ImpulseTimers impulses;
     bool hasWallYaw = false;

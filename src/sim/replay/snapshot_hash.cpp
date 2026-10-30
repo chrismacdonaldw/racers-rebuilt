@@ -5,6 +5,7 @@
 #include <concepts>
 #include <cstddef>
 #include <initializer_list>
+#include <optional>
 
 #include "sim/replay/replay_bytes.hpp"
 
@@ -80,12 +81,24 @@ public:
     void Add(const BodyState& body) {
         Add(body.motion, body.saved, body.angularVelocity, body.force, body.torque, body.facing,
             body.derived, body.turnRadius, body.yawRate, body.thrust, body.maxSpeed,
-            body.dragCoefficient, body.steering, body.impulses, body.hasWallYaw,
+            body.dragCoefficient, body.gripScale, body.steering, body.impulses, body.hasWallYaw,
             body.hasWallContact, body.airborneMs, body.supportForce);
     }
 
     void Add(const DriverState& driver) {
         Add(driver.steering, driver.isDrifting, driver.isHardDrift);
+    }
+
+    void Add(const StartBoostState& boost) {
+        Add(boost.isHeldAtStart, boost.windowMs, boost.heldMs, boost.isThrottleHeld);
+    }
+
+    void Add(const std::optional<Turbo>& turbo) {
+        Add(turbo.has_value());
+        if (turbo) {
+            Add(static_cast<int>(turbo->level), static_cast<int>(turbo->phase), turbo->phaseMs,
+                turbo->hasTouchedWall);
+        }
     }
 
     template <typename... Fields>
@@ -114,7 +127,7 @@ std::uint64_t HashSnapshot(const RenderSnapshot& snapshot) {
 
 std::uint64_t HashRacerState(const Racer& racer) {
     StateHash hash;
-    hash.Add(racer.Body(), racer.Driver());
+    hash.Add(racer.Body(), racer.Driver(), racer.Boost(), racer.ActiveTurbo());
     return hash.Value();
 }
 
