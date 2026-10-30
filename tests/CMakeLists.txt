@@ -14,6 +14,8 @@ add_executable(racers-rebuilt-tests
     app/input_bindings_test.cpp
     app/install_discovery_test.cpp
     app/loop_sidecar_test.cpp
+    app/menu/menu_files_test.cpp
+    app/menu/menu_focus_test.cpp
     app/music_folder_source_test.cpp
     app/pace_car_test.cpp
     app/race_status_test.cpp
@@ -28,6 +30,7 @@ add_executable(racers-rebuilt-tests
     app/startup_settings_test.cpp
     app/startup_timer_test.cpp
     app/track_space_test.cpp
+    app/ui_text/text_layout_test.cpp
     app/video_settings_test.cpp
     assets/animation_database_test.cpp
     assets/asset_cache_test.cpp
@@ -52,6 +55,7 @@ add_executable(racers-rebuilt-tests
     assets/lzss_test.cpp
     assets/material_library_test.cpp
     assets/menu_layout_test.cpp
+    assets/menu_styles_test.cpp
     assets/model_survey_test.cpp
     assets/race_route_test.cpp
     assets/racer_catalog_test.cpp

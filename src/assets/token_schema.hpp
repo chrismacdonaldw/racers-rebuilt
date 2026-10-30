@@ -50,6 +50,9 @@ template <typename T>
 
 [[nodiscard]] Result<void> ExpectField(TokenReader& reader, FieldId id);
 
+/// Reads a `{ }` block, nested blocks included, and drops it.
+[[nodiscard]] Result<void> SkipBlock(TokenReader& reader);
+
 /// Reads `[ count ] {`, calls `readElement` count times, then reads `}`.
 template <typename ReadElement>
 [[nodiscard]] Result<void> ReadList(TokenReader& reader, ReadElement&& readElement) {

@@ -8,10 +8,8 @@
 #include <span>
 #include <utility>
 
-#include "assets/bmp_image.hpp"
 #include "assets/game_path.hpp"
 #include "assets/geometry_database.hpp"
-#include "assets/tga_image.hpp"
 
 namespace rr::assets {
 namespace {
@@ -177,8 +175,7 @@ void FlipRows(ImageAsset& image) {
 
 Result<ImageAsset> DecodeTexture(std::span<const std::byte> bytes,
                                  const TextureDefinition& definition) {
-    Result<ImageAsset> image =
-        definition.fileKind == TextureFileKind::Bmp ? DecodeBmp(bytes) : DecodeTga(bytes);
+    Result<ImageAsset> image = DecodeImage(bytes, definition.fileKind);
     if (image && definition.colorKey) {
         ApplyColorKey(*image, *definition.colorKey);
     }

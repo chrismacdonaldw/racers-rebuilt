@@ -20,6 +20,9 @@ rr_add_module(app
         input_bindings.cpp
         install_discovery.cpp
         loop_sidecar.cpp
+        menu/main_menu_scene.cpp
+        menu/menu_files.cpp
+        menu/menu_focus.cpp
         music_folder_source.cpp
         orbiting_cube.cpp
         pace_car.cpp
@@ -41,6 +44,8 @@ rr_add_module(app
         track_model.cpp
         track_space.cpp
         track_viewer_scene.cpp
+        ui_text/text_layout.cpp
+        ui_text/ui_font.cpp
         video_settings.cpp
     DEPENDS
         rr::assets

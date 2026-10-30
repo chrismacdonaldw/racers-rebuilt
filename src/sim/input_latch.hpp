@@ -10,6 +10,7 @@ class InputLatch {
 public:
     void Press(Action action);
     void Release(Action action);
+    void Press(MenuAction action);
     void SetSteerLeftAxis(std::int8_t value);
     void ReleaseAll();
 

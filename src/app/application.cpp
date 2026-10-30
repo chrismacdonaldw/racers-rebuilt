@@ -16,6 +16,7 @@
 #include "app/audio_startup.hpp"
 #include "app/extensions.hpp"
 #include "app/input_bindings.hpp"
+#include "app/menu/main_menu_scene.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/race_scene.hpp"
 #include "app/race_settings.hpp"
@@ -327,8 +328,12 @@ std::vector<overlay::SceneChoice> Application::SceneChoices() {
     };
     std::vector<overlay::SceneChoice> choices{
         choice("Test scene", [this] { return CreateScene(std::nullopt); }),
-        choice("Sprite test", [this] {
-            return SpriteTestScene::Create(renderer_).transform(ToScene<SpriteTestScene>);
+        choice("Sprite test",
+               [this] {
+                   return SpriteTestScene::Create(renderer_).transform(ToScene<SpriteTestScene>);
+               }),
+        choice("Main menu", [this] {
+            return MainMenuScene::Create(renderer_, vfs_).transform(ToScene<MainMenuScene>);
         })};
     for (const std::string& track : assets::ListRaceTracks(vfs_)) {
         choices.push_back(

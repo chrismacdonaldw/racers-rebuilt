@@ -43,6 +43,9 @@ struct TextureDefinition {
 [[nodiscard]] Result<std::vector<TextureDefinition>> ParseTextureDatabase(
     std::span<const std::byte> bytes);
 
+[[nodiscard]] Result<ImageAsset> DecodeImage(std::span<const std::byte> bytes,
+                                             TextureFileKind kind);
+
 void ApplyColorKey(ImageAsset& image, ColorKey key);
 
 }

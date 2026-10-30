@@ -5,6 +5,7 @@
 #include <SDL3/SDL_keycode.h>
 
 #include <array>
+#include <span>
 #include <string_view>
 #include <vector>
 
@@ -15,16 +16,19 @@
 
 namespace rr::app {
 
-struct ActionBinding {
-    sim::Action action;
+template <typename Action>
+struct Binding {
+    Action action;
     settings::SettingSpec<std::string_view> keys;
     settings::SettingSpec<std::string_view> buttons;
 };
 
-[[nodiscard]] constexpr ActionBinding BindingFor(sim::Action action, std::string_view name,
-                                                 std::string_view keysKey,
-                                                 std::string_view buttonsKey, std::string_view keys,
-                                                 std::string_view buttons) {
+template <typename Action>
+[[nodiscard]] constexpr Binding<Action> BindingFor(Action action, std::string_view name,
+                                                   std::string_view keysKey,
+                                                   std::string_view buttonsKey,
+                                                   std::string_view keys,
+                                                   std::string_view buttons) {
     return {.action = action,
             .keys = {.key = keysKey, .defaultValue = keys, .label = name, .category = "Keyboard"},
             .buttons = {
@@ -49,6 +53,21 @@ inline constexpr std::array kActionBindings{
                "start"),
 };
 
+inline constexpr std::array kMenuBindings{
+    BindingFor(sim::MenuAction::Up, "Menu up", "input.keys.menu_up", "input.buttons.menu_up", "Up",
+               "dpup"),
+    BindingFor(sim::MenuAction::Down, "Menu down", "input.keys.menu_down",
+               "input.buttons.menu_down", "Down", "dpdown"),
+    BindingFor(sim::MenuAction::Left, "Menu left", "input.keys.menu_left",
+               "input.buttons.menu_left", "Left", "dpleft"),
+    BindingFor(sim::MenuAction::Right, "Menu right", "input.keys.menu_right",
+               "input.buttons.menu_right", "Right", "dpright"),
+    BindingFor(sim::MenuAction::Confirm, "Menu confirm", "input.keys.menu_confirm",
+               "input.buttons.menu_confirm", "Return,Space", "a"),
+    BindingFor(sim::MenuAction::Back, "Menu back", "input.keys.menu_back",
+               "input.buttons.menu_back", "Escape,Backspace", "b"),
+};
+
 void DeclareInputSettings(settings::Registry& registry);
 
 class InputBindings {
@@ -58,17 +77,27 @@ public:
     void Handle(const SDL_Event& event, sim::InputLatch& latch);
 
 private:
-    template <typename Input>
+    template <typename Input, typename Action>
     struct Bound {
         Input input;
-        sim::Action action;
+        Action action;
     };
+
+    template <typename Action>
+    struct BoundInputs {
+        std::vector<Bound<SDL_Keycode, Action>> keys;
+        std::vector<Bound<SDL_GamepadButton, Action>> buttons;
+        std::vector<Bound<SDL_GamepadAxis, Action>> triggers;
+    };
+
+    template <typename Action>
+    static BoundInputs<Action> Bind(const settings::Registry& registry,
+                                    std::span<const Binding<Action>> bindings);
 
     void HandleAxis(const SDL_GamepadAxisEvent& event, sim::InputLatch& latch);
 
-    std::vector<Bound<SDL_Keycode>> keys_;
-    std::vector<Bound<SDL_GamepadButton>> buttons_;
-    std::vector<Bound<SDL_GamepadAxis>> triggers_;
+    BoundInputs<sim::Action> race_;
+    BoundInputs<sim::MenuAction> menu_;
     std::array<bool, SDL_GAMEPAD_AXIS_COUNT> isTriggerHeld_{};
 };
 

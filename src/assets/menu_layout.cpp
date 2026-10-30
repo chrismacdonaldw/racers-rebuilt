@@ -5,16 +5,17 @@
 #include <limits>
 #include <utility>
 
+#include "assets/menu_fields.hpp"
 #include "assets/token_schema.hpp"
 
 namespace rr::assets {
 
-static Result<void> ReadValue(TokenReader& reader, MenuRect& rect) {
+Result<void> ReadValue(TokenReader& reader, MenuRect& rect) {
     return ReadMembers<&MenuRect::left, &MenuRect::top, &MenuRect::right, &MenuRect::bottom>(reader,
                                                                                              rect);
 }
 
-static Result<void> ReadValue(TokenReader& reader, MenuColor& color) {
+Result<void> ReadValue(TokenReader& reader, MenuColor& color) {
     return ReadMembers<&MenuColor::alpha, &MenuColor::red, &MenuColor::green, &MenuColor::blue>(
         reader, color);
 }
