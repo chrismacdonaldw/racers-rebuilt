@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -14,21 +15,24 @@
 namespace rr::app {
 namespace {
 
-constexpr float kCharWidth = 10.0F;
-constexpr float kNumberWidth = 20.0F;
-constexpr float kTextHeight = 16.0F;
-constexpr float kNumberHeight = 40.0F;
+constexpr std::uint32_t kTextWidth = 10;
+constexpr std::uint32_t kTextHeight = 16;
+constexpr std::uint32_t kNumberWidth = 20;
+constexpr std::uint32_t kNumberHeight = 40;
 
-class FixedMetrics final : public HudMetrics {
-public:
-    [[nodiscard]] float Width(HudFont font, std::u16string_view text) const override {
-        return static_cast<float>(text.size()) *
-               (font == HudFont::Numbers ? kNumberWidth : kCharWidth);
+UiFont MonospaceFont(std::uint32_t width, std::uint32_t height) {
+    UiFont font{.widthPx = width * 64, .heightPx = height, .glyphs = {.spaceWidthPx = width}};
+    for (char16_t character = u'!'; character <= u'Z'; ++character) {
+        font.glyphs.glyphs.push_back({.character = character, .leftPx = 0, .widthPx = width});
     }
+    return font;
+}
 
-    [[nodiscard]] float Height(HudFont font) const override {
-        return font == HudFont::Numbers ? kNumberHeight : kTextHeight;
-    }
+struct Fonts {
+    UiFont text = MonospaceFont(kTextWidth, kTextHeight);
+    UiFont numbers = MonospaceFont(kNumberWidth, kNumberHeight);
+
+    [[nodiscard]] HudFonts Hud() const { return {.text = &text, .numbers = &numbers}; }
 };
 
 HudStrings EnglishStrings() {
@@ -68,8 +72,8 @@ HudText LastNumbers(const std::vector<HudText>& texts) {
 }
 
 TEST_CASE("the lap counter and lap time sit top right, right of their labels") {
-    const FixedMetrics metrics;
-    RaceHud hud(EnglishStrings(), metrics);
+    const Fonts fonts;
+    RaceHud hud(EnglishStrings(), fonts.Hud());
     const test::RingRace race(3, 3);
     std::vector<HudText> texts;
 
@@ -84,8 +88,8 @@ TEST_CASE("the lap counter and lap time sit top right, right of their labels") {
 }
 
 TEST_CASE("the place digit ends where its suffix starts, top left") {
-    const FixedMetrics metrics;
-    RaceHud hud(EnglishStrings(), metrics);
+    const Fonts fonts;
+    RaceHud hud(EnglishStrings(), fonts.Hud());
     test::RingRace race(3, 3);
     const std::array<Vector3, 3> positions{Vector3{.x = -9.0F}, Vector3{.x = -8.0F},
                                            Vector3{.x = -7.0F}};
@@ -103,8 +107,8 @@ TEST_CASE("the place digit ends where its suffix starts, top left") {
 }
 
 TEST_CASE("the countdown is centred, yellow and in the number font") {
-    const FixedMetrics metrics;
-    RaceHud hud(EnglishStrings(), metrics);
+    const Fonts fonts;
+    RaceHud hud(EnglishStrings(), fonts.Hud());
     test::RingRace race(1, 3);
     race.clock.Advance(Milliseconds{2001}, false);
     race.clock.Advance(Milliseconds{2500}, false);
@@ -116,14 +120,15 @@ TEST_CASE("the countdown is centred, yellow and in the number font") {
     const float scale = 0.9F;
     CHECK(one.text == u"1");
     CHECK(one.scale == doctest::Approx(scale));
-    CHECK(one.x == doctest::Approx(320.0F - (kNumberWidth * scale / 2.0F)));
-    CHECK(one.y == doctest::Approx(7.0F + 42.0F - (kNumberHeight * scale / 4.0F)));
+    CHECK(one.x == doctest::Approx(320.0F - (static_cast<float>(kNumberWidth) * scale / 2.0F)));
+    CHECK(one.y ==
+          doctest::Approx(7.0F + 42.0F - (static_cast<float>(kNumberHeight) * scale / 4.0F)));
     CHECK(one.tint.b == 0.0F);
 }
 
 TEST_CASE("the results table lists each racer with its gap to the winner") {
-    const FixedMetrics metrics;
-    RaceHud hud(EnglishStrings(), metrics);
+    const Fonts fonts;
+    RaceHud hud(EnglishStrings(), fonts.Hud());
     test::RingRace race(3, 1);
     race.StartRacing();
     race.DriveLap(1);

@@ -21,8 +21,7 @@ namespace rr::app {
 /// One racer's full-screen HUD, placed as the original places it on a 640×480 screen.
 class RaceHud {
 public:
-    /// `metrics` must outlive the HUD.
-    RaceHud(HudStrings strings, const HudMetrics& metrics);
+    RaceHud(HudStrings strings, HudFonts fonts);
 
     /// Runs once per tick, after the session's.
     void Tick(const sim::RaceClock& clock, const sim::RaceProgress& progress, std::size_t racer,
@@ -31,6 +30,8 @@ public:
     /// Replaces `out` without allocating once warm. `names` holds one name per racer.
     void Layout(const sim::RaceClock& clock, const sim::RaceProgress& progress, std::size_t racer,
                 std::span<const std::u16string> names, std::vector<HudText>& out);
+
+    [[nodiscard]] const HudFonts& Fonts() const { return fonts_; }
 
 private:
     void AddLap(const HudValues& values, std::vector<HudText>& out);
@@ -41,7 +42,7 @@ private:
     [[nodiscard]] std::u16string_view BannerText(HudBanner banner) const;
 
     HudStrings strings_;
-    const HudMetrics* metrics_;
+    HudFonts fonts_;
     PlacePulse pulse_;
     TextPool pool_;
     std::vector<ResultRow> results_;

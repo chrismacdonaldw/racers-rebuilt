@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <span>
 #include <string_view>
@@ -28,6 +29,9 @@ public:
                                                 std::size_t slots, std::size_t playerRacer);
 
     [[nodiscard]] sim::ChassisSpec Chassis(std::size_t slot) const;
+
+    /// The slot driver's line in `DRIVERS.SRF`.
+    [[nodiscard]] std::int32_t NameIndex(std::size_t slot) const;
 
     /// `poses` and `motion` hold one engine-space entry per slot, in slot order.
     void Update(std::span<const sim::EntitySnapshot> poses,

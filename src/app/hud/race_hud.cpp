@@ -23,19 +23,19 @@ constexpr float kBestRow = 7.0F / 8.0F;
 constexpr float kGapRow = 21.0F / 8.0F;
 constexpr render::Color kCountdownTint{.r = 1.0F, .g = 1.0F, .b = 0.0F};
 
-float TimeWidth(const HudMetrics& metrics) {
+float TimeWidth(const HudFonts& fonts) {
     std::array<char16_t, kRaceTimeLength> zero{};
-    return metrics.Width(HudFont::Text, WriteRaceTime(Milliseconds{0}, zero));
+    return fonts.Width(HudFont::Text, WriteRaceTime(Milliseconds{0}, zero));
 }
 
 }
 
-RaceHud::RaceHud(HudStrings strings, const HudMetrics& metrics)
+RaceHud::RaceHud(HudStrings strings, HudFonts fonts)
     : strings_(std::move(strings)),
-      metrics_(&metrics),
-      lapTimeX_(render::kUiWidth - (kLapTimeWidths * TimeWidth(metrics))),
-      bestLapY_(kTopY + (kBestRow * metrics.Height(HudFont::Text))),
-      gapY_(kTopY + (kGapRow * metrics.Height(HudFont::Text))) {}
+      fonts_(fonts),
+      lapTimeX_(render::kUiWidth - (kLapTimeWidths * TimeWidth(fonts))),
+      bestLapY_(kTopY + (kBestRow * fonts.Height(HudFont::Text))),
+      gapY_(kTopY + (kGapRow * fonts.Height(HudFont::Text))) {}
 
 void RaceHud::Tick(const sim::RaceClock& clock, const sim::RaceProgress& progress,
                    std::size_t racer, Milliseconds elapsed) {
@@ -52,7 +52,7 @@ void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progr
     AddPlace(values.place, out);
     if (values.isWrongWay) {
         out.push_back({.text = strings_.wrongWay,
-                       .x = kCenterX - (metrics_->Width(HudFont::Text, strings_.wrongWay) / 2.0F),
+                       .x = kCenterX - (fonts_.Width(HudFont::Text, strings_.wrongWay) / 2.0F),
                        .y = kWrongWayY});
     }
     if (values.banner) {
@@ -68,9 +68,9 @@ void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progr
 
 void RaceHud::AddLap(const HudValues& values, std::vector<HudText>& out) {
     const std::u16string_view lap = pool_.Number(static_cast<std::size_t>(values.lap));
-    const float lapX = lapTimeX_ - (metrics_->Width(HudFont::Text, lap) + kLapNumberGap);
+    const float lapX = lapTimeX_ - (fonts_.Width(HudFont::Text, lap) + kLapNumberGap);
     out.push_back({.text = strings_.lap,
-                   .x = lapX - (metrics_->Width(HudFont::Text, strings_.lap) + kLapLabelGap),
+                   .x = lapX - (fonts_.Width(HudFont::Text, strings_.lap) + kLapLabelGap),
                    .y = kTopY});
     out.push_back({.text = lap, .x = lapX, .y = kTopY});
     if (values.lapTime) {
@@ -86,9 +86,8 @@ void RaceHud::AddLap(const HudValues& values, std::vector<HudText>& out) {
 
 void RaceHud::AddLabelledTime(std::u16string_view label, float labelGap, Milliseconds time, float y,
                               std::vector<HudText>& out) {
-    out.push_back({.text = label,
-                   .x = lapTimeX_ - (metrics_->Width(HudFont::Text, label) + labelGap),
-                   .y = y});
+    out.push_back(
+        {.text = label, .x = lapTimeX_ - (fonts_.Width(HudFont::Text, label) + labelGap), .y = y});
     out.push_back({.text = pool_.Time(time), .x = lapTimeX_, .y = y});
 }
 
@@ -102,15 +101,15 @@ void RaceHud::AddPlace(int place, std::vector<HudText>& out) {
     const std::u16string_view digit = pool_.Number(static_cast<std::size_t>(place));
     out.push_back({.font = HudFont::Numbers,
                    .text = digit,
-                   .x = kPlaceX - metrics_->Width(HudFont::Numbers, digit),
+                   .x = kPlaceX - fonts_.Width(HudFont::Numbers, digit),
                    .y = kTopY,
                    .scale = pulse_.Scale()});
 }
 
 void RaceHud::AddBanner(const BannerView& banner, std::vector<HudText>& out) const {
     const std::u16string_view text = BannerText(banner.text);
-    const float width = metrics_->Width(HudFont::Numbers, text) * banner.scale;
-    const float height = metrics_->Height(HudFont::Numbers) * banner.scale;
+    const float width = fonts_.Width(HudFont::Numbers, text) * banner.scale;
+    const float height = fonts_.Height(HudFont::Numbers) * banner.scale;
     out.push_back({.font = HudFont::Numbers,
                    .text = text,
                    .x = kCenterX - (width / 2.0F),

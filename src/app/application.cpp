@@ -251,12 +251,10 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
             CyclePacing();
         }
         const Nanoseconds now = platform::Now();
-        const Scene* scene = frameLoop_.Scenes().Top();
         Persist(menu.Build(settings_,
                            {.frameTime = std::chrono::duration_cast<FloatSeconds>(now - lastFrame),
                             .ticksPerFrame = frame.tickCount,
-                            .startupSummary = startupSummary_,
-                            .sceneStatus = scene != nullptr ? scene->DeveloperStatus() : ""},
+                            .startupSummary = startupSummary_},
                            scenes));
         lastFrame = now;
         frame = frameLoop_.RunFrame(now);

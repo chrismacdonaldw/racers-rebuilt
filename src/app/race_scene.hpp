@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "app/chase_camera.hpp"
+#include "app/hud/race_hud_layer.hpp"
 #include "app/race_audio.hpp"
 #include "app/racer/racer_grid.hpp"
 #include "app/scene.hpp"
@@ -62,12 +63,12 @@ public:
     void Tick(const sim::InputFrame& input) override;
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
-    [[nodiscard]] std::string_view DeveloperStatus() const override { return status_; }
     [[nodiscard]] SceneMusic Music() const override;
 
 private:
     struct Parts {
         render::Renderer* renderer = nullptr;
+        const assets::Vfs* vfs = nullptr;
         std::string track;
         std::vector<render::MeshDraw> trackDraws;
         RacerGrid racers;
@@ -86,11 +87,11 @@ private:
 
     Parts parts_;
     ChaseCamera chase_;
+    RaceHudLayer hud_;
     std::vector<sim::RacerControls> controls_;
     std::vector<render::MeshDraw> draws_;
     std::vector<render::DebugLine> collisionLines_;
     std::vector<render::DebugLine> debugLines_;
-    std::string status_;
     bool showsCheckpoints_ = false;
     bool showsCollision_ = false;
     std::optional<Nanoseconds> lastRender_;
