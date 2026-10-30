@@ -1,5 +1,7 @@
 #include "app/hud/race_hud.hpp"
 
+#include <algorithm>
+#include <array>
 #include <utility>
 
 #include "app/hud/race_time_text.hpp"
@@ -17,23 +19,21 @@ constexpr float kLapTimeWidths = 11.0F / 8.0F;
 constexpr float kLapNumberGap = 14.0F;
 constexpr float kLapLabelGap = 6.0F;
 constexpr float kBestLabelGap = 14.0F;
+constexpr float kGapLabelGap = 4.0F;
 constexpr float kBestRow = 7.0F / 8.0F;
-constexpr float kBannerRow = 21.0F / 8.0F;
+constexpr float kGapRow = 21.0F / 8.0F;
 constexpr float kResultsTop = 132.0F;
 constexpr float kResultsRowHeight = 32.0F;
+constexpr std::size_t kResultRows = 6;
 constexpr float kRankX = 20.0F;
 constexpr float kNameX = 50.0F;
 constexpr float kStatusX = 500.0F;
 constexpr float kBehindX = 520.0F;
 constexpr render::Color kCountdownTint{.r = 1.0F, .g = 1.0F, .b = 0.0F};
 
-std::u16string NumberText(std::size_t number) {
-    std::u16string text;
-    do {
-        text.insert(text.begin(), static_cast<char16_t>(u'0' + (number % 10)));
-        number /= 10;
-    } while (number > 0);
-    return text;
+float TimeWidth(const HudMetrics& metrics) {
+    std::array<char16_t, kRaceTimeLength> zero{};
+    return metrics.Width(HudFont::Text, WriteRaceTime(Milliseconds{0}, zero));
 }
 
 }
@@ -41,10 +41,9 @@ std::u16string NumberText(std::size_t number) {
 RaceHud::RaceHud(HudStrings strings, const HudMetrics& metrics)
     : strings_(std::move(strings)),
       metrics_(&metrics),
-      lapTimeX_(render::kUiWidth -
-                (kLapTimeWidths * metrics.Width(HudFont::Text, RaceTimeText(Milliseconds{0})))),
+      lapTimeX_(render::kUiWidth - (kLapTimeWidths * TimeWidth(metrics))),
       bestLapY_(kTopY + (kBestRow * metrics.Height(HudFont::Text))),
-      bannerY_(kTopY + (kBannerRow * metrics.Height(HudFont::Text))) {}
+      gapY_(kTopY + (kGapRow * metrics.Height(HudFont::Text))) {}
 
 void RaceHud::Tick(const sim::RaceClock& clock, const sim::RaceProgress& progress,
                    std::size_t racer, Milliseconds elapsed) {
@@ -55,6 +54,7 @@ void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progr
                      std::size_t racer, std::span<const std::u16string> names,
                      std::vector<HudText>& out) {
     out.clear();
+    pool_.Clear();
     const HudValues values = ReadHudValues(clock, progress, racer);
     AddLap(values, out);
     AddPlace(values.place, out);
@@ -72,37 +72,43 @@ void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progr
     }
 }
 
-void RaceHud::AddLap(const HudValues& values, std::vector<HudText>& out) const {
-    std::u16string lap = NumberText(static_cast<std::size_t>(values.lap));
+void RaceHud::AddLap(const HudValues& values, std::vector<HudText>& out) {
+    const std::u16string_view lap = pool_.Number(static_cast<std::size_t>(values.lap));
     const float lapX = lapTimeX_ - (metrics_->Width(HudFont::Text, lap) + kLapNumberGap);
     out.push_back({.text = strings_.lap,
                    .x = lapX - (metrics_->Width(HudFont::Text, strings_.lap) + kLapLabelGap),
                    .y = kTopY});
-    out.push_back({.text = std::move(lap), .x = lapX, .y = kTopY});
+    out.push_back({.text = lap, .x = lapX, .y = kTopY});
     if (values.lapTime) {
-        out.push_back({.text = RaceTimeText(*values.lapTime), .x = lapTimeX_, .y = kTopY});
+        out.push_back({.text = pool_.Time(*values.lapTime), .x = lapTimeX_, .y = kTopY});
     }
     if (values.bestLap) {
-        out.push_back(
-            {.text = strings_.best,
-             .x = lapTimeX_ - (metrics_->Width(HudFont::Text, strings_.best) + kBestLabelGap),
-             .y = bestLapY_});
-        out.push_back({.text = RaceTimeText(*values.bestLap), .x = lapTimeX_, .y = bestLapY_});
+        AddLabelledTime(strings_.best, kBestLabelGap, *values.bestLap, bestLapY_, out);
+    }
+    if (values.lapGap) {
+        AddLabelledTime(strings_.gap, kGapLabelGap, *values.lapGap, gapY_, out);
     }
 }
 
-void RaceHud::AddPlace(int place, std::vector<HudText>& out) const {
+void RaceHud::AddLabelledTime(std::u16string_view label, float labelGap, Milliseconds time, float y,
+                              std::vector<HudText>& out) {
+    out.push_back({.text = label,
+                   .x = lapTimeX_ - (metrics_->Width(HudFont::Text, label) + labelGap),
+                   .y = y});
+    out.push_back({.text = pool_.Time(time), .x = lapTimeX_, .y = y});
+}
+
+void RaceHud::AddPlace(int place, std::vector<HudText>& out) {
     if (place < 1 || std::cmp_greater(place, kShownPlaces)) {
         return;
     }
-    const auto index = static_cast<std::size_t>(place - 1);
-    out.push_back(
-        {.text = strings_.placeSuffixes[index], .x = kPlaceX + kPlaceSuffixGap, .y = kTopY});
-    std::u16string digit = NumberText(static_cast<std::size_t>(place));
-    const float digitX = kPlaceX - metrics_->Width(HudFont::Numbers, digit);
+    out.push_back({.text = strings_.placeSuffixes[static_cast<std::size_t>(place - 1)],
+                   .x = kPlaceX + kPlaceSuffixGap,
+                   .y = kTopY});
+    const std::u16string_view digit = pool_.Number(static_cast<std::size_t>(place));
     out.push_back({.font = HudFont::Numbers,
-                   .text = std::move(digit),
-                   .x = digitX,
+                   .text = digit,
+                   .x = kPlaceX - metrics_->Width(HudFont::Numbers, digit),
                    .y = kTopY,
                    .scale = pulse_.Scale()});
 }
@@ -112,18 +118,19 @@ void RaceHud::AddBanner(const BannerView& banner, std::vector<HudText>& out) con
     const float width = metrics_->Width(HudFont::Numbers, text) * banner.scale;
     const float height = metrics_->Height(HudFont::Numbers) * banner.scale;
     out.push_back({.font = HudFont::Numbers,
-                   .text = std::u16string(text),
+                   .text = text,
                    .x = kCenterX - (width / 2.0F),
-                   .y = bannerY_ - (height / 4.0F),
+                   .y = gapY_ - (height / 4.0F),
                    .scale = banner.scale,
                    .tint = banner.text == HudBanner::Finish ? render::Color{} : kCountdownTint});
 }
 
-void RaceHud::AddResults(std::span<const std::u16string> names, std::vector<HudText>& out) const {
-    float y = kResultsTop;
-    for (std::size_t rank = 0; rank < results_.size(); ++rank, y += kResultsRowHeight) {
+void RaceHud::AddResults(std::span<const std::u16string> names, std::vector<HudText>& out) {
+    const std::size_t rows = std::min(results_.size(), kResultRows);
+    for (std::size_t rank = 0; rank < rows; ++rank) {
         const ResultRow& row = results_[rank];
-        out.push_back({.text = NumberText(rank + 1), .x = kRankX, .y = y});
+        const float y = kResultsTop + (static_cast<float>(rank) * kResultsRowHeight);
+        out.push_back({.text = pool_.Number(rank + 1), .x = kRankX, .y = y});
         if (row.racer < names.size()) {
             out.push_back({.text = names[row.racer], .x = kNameX, .y = y});
         }
@@ -133,7 +140,7 @@ void RaceHud::AddResults(std::span<const std::u16string> names, std::vector<HudT
                 break;
             case ResultStatus::Behind:
                 out.push_back({.text = u"+", .x = kStatusX, .y = y});
-                out.push_back({.text = RaceTimeText(row.behind), .x = kBehindX, .y = y});
+                out.push_back({.text = pool_.Time(row.behind), .x = kBehindX, .y = y});
                 break;
             case ResultStatus::Racing:
                 out.push_back({.text = strings_.stillRacing, .x = kStatusX, .y = y});

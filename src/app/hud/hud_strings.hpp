@@ -12,6 +12,7 @@ inline constexpr std::size_t kShownPlaces = 8;
 
 struct HudStrings {
     std::array<std::u16string, kShownPlaces> placeSuffixes;
+    std::u16string gap;
     std::u16string wrongWay;
     std::u16string best;
     std::u16string lap;

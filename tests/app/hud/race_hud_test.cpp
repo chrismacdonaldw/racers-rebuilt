@@ -33,6 +33,7 @@ public:
 
 HudStrings EnglishStrings() {
     return {.placeSuffixes = {u"ST", u"ND", u"RD", u"TH", u"TH", u"TH", u"TH", u"TH"},
+            .gap = u"-",
             .wrongWay = u"WRONG WAY",
             .best = u"BEST",
             .lap = u"LAP",

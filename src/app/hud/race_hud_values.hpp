@@ -22,11 +22,12 @@ struct HudValues {
     int lap = 1;
     std::optional<Milliseconds> lapTime;
     std::optional<Milliseconds> bestLap;
+    std::optional<Milliseconds> lapGap;
     int place = 1;
     bool isWrongWay = false;
 };
 
-/// What `racer`'s HUD shows as the race stands. `lapTime` is empty while it flashes after a lap.
+/// What `racer`'s HUD shows as the race stands. Missing times are hidden or flashed off.
 [[nodiscard]] HudValues ReadHudValues(const sim::RaceClock& clock,
                                       const sim::RaceProgress& progress, std::size_t racer);
 

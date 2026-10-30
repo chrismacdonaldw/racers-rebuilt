@@ -11,6 +11,7 @@
 #include "app/hud/place_pulse.hpp"
 #include "app/hud/race_hud_values.hpp"
 #include "app/hud/race_results.hpp"
+#include "app/hud/text_pool.hpp"
 #include "core/duration.hpp"
 #include "render/render_view.hpp"
 #include "sim/race/race_clock.hpp"
@@ -30,10 +31,10 @@ public:
     [[nodiscard]] virtual float Height(HudFont font) const = 0;
 };
 
-/// `x` and `y` are the top left of the text in UI units.
+/// `x` and `y` are the top left of the text in UI units. `text` is valid until the next layout.
 struct HudText {
     HudFont font = HudFont::Text;
-    std::u16string text;
+    std::u16string_view text;
     float x = 0.0F;
     float y = 0.0F;
     float scale = 1.0F;
@@ -50,24 +51,27 @@ public:
     void Tick(const sim::RaceClock& clock, const sim::RaceProgress& progress, std::size_t racer,
               Milliseconds elapsed);
 
-    /// Replaces `out`. `names` holds one name per racer, for the results table.
+    /// Replaces `out` without allocating once warm. `names` holds one name per racer.
     void Layout(const sim::RaceClock& clock, const sim::RaceProgress& progress, std::size_t racer,
                 std::span<const std::u16string> names, std::vector<HudText>& out);
 
 private:
-    void AddLap(const HudValues& values, std::vector<HudText>& out) const;
-    void AddPlace(int place, std::vector<HudText>& out) const;
+    void AddLap(const HudValues& values, std::vector<HudText>& out);
+    void AddLabelledTime(std::u16string_view label, float labelGap, Milliseconds time, float y,
+                         std::vector<HudText>& out);
+    void AddPlace(int place, std::vector<HudText>& out);
     void AddBanner(const BannerView& banner, std::vector<HudText>& out) const;
-    void AddResults(std::span<const std::u16string> names, std::vector<HudText>& out) const;
+    void AddResults(std::span<const std::u16string> names, std::vector<HudText>& out);
     [[nodiscard]] std::u16string_view BannerText(HudBanner banner) const;
 
     HudStrings strings_;
     const HudMetrics* metrics_;
     PlacePulse pulse_;
+    TextPool pool_;
     std::vector<ResultRow> results_;
     float lapTimeX_ = 0.0F;
     float bestLapY_ = 0.0F;
-    float bannerY_ = 0.0F;
+    float gapY_ = 0.0F;
 };
 
 }

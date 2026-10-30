@@ -17,6 +17,7 @@ rr_add_module(app
         hud/race_hud_values.cpp
         hud/race_results.cpp
         hud/race_time_text.cpp
+        hud/text_pool.cpp
         image_dump.cpp
         input_bindings.cpp
         install_discovery.cpp

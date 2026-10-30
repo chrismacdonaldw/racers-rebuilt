@@ -137,5 +137,23 @@ TEST_CASE("finishing shows the banner until the results replace it") {
     CHECK(ShowsResults(race.clock));
 }
 
+TEST_CASE("the gap to the leader shows for 2 s after a lap") {
+    RingRace race(2, 3);
+    race.StartRacing();
+    race.DriveLap(1);
+    race.DriveLap(1);
+    const std::array<Vector3, 2> positions{Vector3{.x = -5.0F}, Vector3{.x = 5.0F}};
+    race.progress.Rank(race.graph, positions);
+    race.DriveLap(0);
+    race.Wait(0, Milliseconds{1000});
+    race.DriveLap(0);
+    const HudValues shown = ReadHudValues(race.clock, race.progress, 0);
+
+    race.Wait(0, Milliseconds{1500});
+
+    CHECK(shown.lapGap == Milliseconds{1000});
+    CHECK_FALSE(ReadHudValues(race.clock, race.progress, 0).lapGap.has_value());
+}
+
 }
 }
