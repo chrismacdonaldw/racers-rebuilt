@@ -2,15 +2,18 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
 #include "assets/archive_survey.hpp"
 #include "assets/track_loader.hpp"
 #include "sim/collision/world_list.hpp"
+#include "sim/powerup/brick_field.hpp"
 #include "sim/race/race_session.hpp"
 #include "sim/race/respawn.hpp"
 
@@ -21,6 +24,10 @@ constexpr float kMaxHeightOffGround = 8.0F;
 constexpr float kOffTrackZ = 10000.0F;
 constexpr Milliseconds kTick{12};
 constexpr int kDriveTicks = 750;
+constexpr int kSettleTicks = 60;
+constexpr Vector3 kAboveBrick{.z = 10.0F};
+constexpr Vector3 kBelowBrick{.z = -50.0F};
+constexpr float kMaxBrickHeight = 8.0F;
 
 bool IsGoodSlot(const RaceTrack& track, const WorldList& world, const RacerStart& slot) {
     const RacerStart dropped = RespawnPoint(track.checkpoints, std::nullopt, slot, world);
@@ -102,6 +109,71 @@ void CheckDrive(const assets::Vfs& vfs, const std::string& folder) {
     const DriveCheck check = DriveFromGrid(*track);
     CHECK(check.respawns == 0);
     CHECK(check.hasCrossedStart);
+}
+
+struct BrickCheck {
+    std::size_t bricks = 0;
+    std::size_t reached = 0;
+    std::vector<Vector3> tooHigh;
+};
+
+bool CarOnGroundTakes(const WorldList& world, const Vector3& ground, const Vector3& brick) {
+    Racer car({}, {}, {.position = ground});
+    for (int tick = 0; tick < kSettleTicks; ++tick) {
+        car.Tick(kTick, {}, world);
+    }
+    const BrickReach reach{.centre = car.Body().motion.position, .radius = car.BoundsRadius()};
+    BrickField field({.white = {brick}});
+    std::array<PowerupInventory, 1> held{};
+    field.Tick(kTick, std::span(&reach, 1), held);
+    return held[0].WhiteCount() == 1;
+}
+
+void CheckBrick(const WorldList& world, const Vector3& brick, BrickCheck& check) {
+    const std::optional<SegmentHit> ground =
+        CastSolid(world, brick + kAboveBrick, brick + kBelowBrick);
+    if (!ground) {
+        return;
+    }
+    ++check.bricks;
+    if (brick.z - ground->point.z > kMaxBrickHeight) {
+        check.tooHigh.push_back(brick);
+    }
+    check.reached += CarOnGroundTakes(world, ground->point, brick) ? 1 : 0;
+}
+
+BrickCheck CheckBricks(const assets::Vfs& vfs, const std::string& folder) {
+    const Result<RaceTrack> track = LoadRaceTrack(vfs, folder);
+    if (!track) {
+        FAIL(track.error().message);
+    }
+    const WorldList world(track->collision.Track());
+    BrickCheck check;
+    for (const assets::ColourBrickPlacement& brick : track->bricks.coloured) {
+        CheckBrick(world, brick.position, check);
+    }
+    for (const Vector3& brick : track->bricks.white) {
+        CheckBrick(world, brick, check);
+    }
+    return check;
+}
+
+TEST_CASE(
+    "on every retail race track, bricks over the track float just above it and a car below takes "
+    "them") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+
+    for (const std::string& folder : assets::ListRaceTracks(*vfs)) {
+        CAPTURE(folder);
+        const BrickCheck check = CheckBricks(*vfs, folder);
+        MESSAGE(folder << ": a stock car below takes " << check.reached << " of " << check.bricks
+                       << " bricks over the track");
+        CHECK(check.tooHigh.empty());
+        CHECK(check.reached > 0);
+    }
 }
 
 TEST_CASE("on every retail race track, the pole racer drives off the grid without respawning") {

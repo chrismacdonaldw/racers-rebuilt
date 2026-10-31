@@ -9,6 +9,15 @@
 namespace rr::sim {
 namespace {
 
+BrickField BricksFor(const RaceCourse& course) {
+    return course.bricks == nullptr ? BrickField() : BrickField(*course.bricks);
+}
+
+std::size_t BrickCount(const RaceCourse& course) {
+    return course.bricks == nullptr ? 0
+                                    : course.bricks->coloured.size() + course.bricks->white.size();
+}
+
 std::span<const assets::RaceRoute> RoutesFor(const RaceCourse& course, std::size_t slot) {
     if (course.routes == nullptr || slot >= course.routes->size()) {
         return {};
@@ -34,11 +43,14 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       wasRespawned_(setup.racers.size()),
       positions_(setup.racers.size()),
       progress_(setup.racers.size(), setup.lapCount),
-      sounds_(setup.racers.size()),
+      sounds_(setup.racers.size(), BrickCount(course)),
       random_(setup.seed),
       rubberBand_(course.isMirrored),
       paced_(setup.racers.size()),
-      routeSpeeds_(setup.racers.size(), 1.0F) {
+      routeSpeeds_(setup.racers.size(), 1.0F),
+      bricks_(BricksFor(course)),
+      inventories_(setup.racers.size()),
+      reaches_(setup.racers.size()) {
     racers_.reserve(setup.racers.size());
     for (std::size_t i = 0; i < setup.racers.size(); ++i) {
         const RacerEntry& entry = setup.racers[i];
@@ -59,6 +71,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         TickRacer(i, elapsed, clock_.Phase() == RacePhase::Intro ? RacerControls{} : controls[i]);
     }
+    TickBricks(elapsed);
     progress_.Rank(*course_.checkpoints, positions_);
     const RaceClock before = clock_;
     clock_.Advance(elapsed, HasPlayerFinished());
@@ -86,6 +99,15 @@ void RaceSession::PaceRoutes(Milliseconds elapsed) {
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         racers_[i].SetRouteSpeed(routeSpeeds_[i]);
     }
+}
+
+void RaceSession::TickBricks(Milliseconds elapsed) {
+    for (std::size_t i = 0; i < racers_.size(); ++i) {
+        reaches_[i] = {.centre = racers_[i].Body().motion.position,
+                       .radius = racers_[i].BoundsRadius()};
+    }
+    bricks_.Tick(elapsed, reaches_, inventories_);
+    sounds_.HearBricks(bricks_.Events());
 }
 
 void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,

@@ -13,14 +13,29 @@ constexpr std::size_t kMostRaceWideSounds = 2;
 constexpr std::array kLaterBeeps{Milliseconds{1000}, Milliseconds{2000}};
 constexpr Milliseconds kWallCooldown{250};
 
+RaceSound BrickSound(BrickEventKind kind) {
+    switch (kind) {
+        case BrickEventKind::Respawned:
+            return RaceSound::BrickRespawn;
+        case BrickEventKind::Collected:
+            return RaceSound::BrickCollect;
+        case BrickEventKind::Swapped:
+            return RaceSound::BrickSwap;
+        case BrickEventKind::WhiteCollected:
+            return RaceSound::WhiteBrickCollect;
+    }
+    return RaceSound::BrickRespawn;
+}
+
 bool HasCrossed(Milliseconds mark, const RaceClock& before, const RaceClock& after) {
     return before.PhaseTime() < mark && after.PhaseTime() >= mark;
 }
 
 }
 
-RaceSounds::RaceSounds(std::size_t racerCount) : wallCooldowns_(racerCount) {
-    events_.reserve((racerCount * kMostSoundsPerRacer) + kMostRaceWideSounds);
+RaceSounds::RaceSounds(std::size_t racerCount, std::size_t brickCount)
+    : wallCooldowns_(racerCount) {
+    events_.reserve((racerCount * kMostSoundsPerRacer) + kMostRaceWideSounds + brickCount);
 }
 
 void RaceSounds::BeginTick() {
@@ -71,9 +86,22 @@ void RaceSounds::HearFinish(std::size_t racer) {
     Add(RaceSound::Finish, racer);
 }
 
+void RaceSounds::HearBricks(std::span<const BrickEvent> events) {
+    for (const BrickEvent& event : events) {
+        Add({.sound = BrickSound(event.kind),
+             .racer = event.racer,
+             .brick = event.brick,
+             .whiteCount = event.whiteCount});
+    }
+}
+
 void RaceSounds::Add(RaceSound sound, std::size_t racer, TurboLevel level) {
+    Add({.sound = sound, .racer = static_cast<std::uint8_t>(racer), .level = level});
+}
+
+void RaceSounds::Add(SoundEvent event) {
     RR_ASSERT(events_.size() < events_.capacity());
-    events_.push_back({.sound = sound, .racer = static_cast<std::uint8_t>(racer), .level = level});
+    events_.push_back(event);
 }
 
 }

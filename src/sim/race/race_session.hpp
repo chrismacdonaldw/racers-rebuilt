@@ -4,6 +4,7 @@
 #include <span>
 #include <vector>
 
+#include "assets/brick_layout.hpp"
 #include "core/duration.hpp"
 #include "core/result.hpp"
 #include "core/vector3.hpp"
@@ -12,6 +13,8 @@
 #include "sim/physics/collision_query.hpp"
 #include "sim/physics/racer.hpp"
 #include "sim/physics/racer_controls.hpp"
+#include "sim/powerup/brick_field.hpp"
+#include "sim/powerup/powerup_inventory.hpp"
 #include "sim/race/checkpoint_graph.hpp"
 #include "sim/race/race_clock.hpp"
 #include "sim/race/race_progress.hpp"
@@ -29,6 +32,7 @@ struct RaceCourse {
     const CollisionQuery* world = nullptr;
     float lowestTrackZ = 0.0F;
     const GridRoutes* routes = nullptr;
+    const assets::BrickLayout* bricks = nullptr;
     bool isMirrored = false;
 };
 
@@ -45,6 +49,8 @@ public:
     [[nodiscard]] std::span<const Racer> Racers() const { return racers_; }
     [[nodiscard]] const RaceProgress& Progress() const { return progress_; }
     [[nodiscard]] Random& Rng() { return random_; }
+    [[nodiscard]] const BrickField& Bricks() const { return bricks_; }
+    [[nodiscard]] std::span<const PowerupInventory> Inventories() const { return inventories_; }
 
     /// The sounds the last `Tick` set off.
     [[nodiscard]] std::span<const SoundEvent> Sounds() const { return sounds_.Events(); }
@@ -57,6 +63,7 @@ private:
 
     void TickRacer(std::size_t racer, Milliseconds elapsed, const RacerControls& controls);
     void PaceRoutes(Milliseconds elapsed);
+    void TickBricks(Milliseconds elapsed);
     [[nodiscard]] bool HasPlayerFinished() const;
 
     RaceCourse course_;
@@ -73,6 +80,9 @@ private:
     RubberBand rubberBand_;
     std::vector<PacedRacer> paced_;
     std::vector<float> routeSpeeds_;
+    BrickField bricks_;
+    std::vector<PowerupInventory> inventories_;
+    std::vector<BrickReach> reaches_;
 };
 
 }

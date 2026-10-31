@@ -5,6 +5,7 @@
 #include <concepts>
 #include <cstddef>
 #include <initializer_list>
+#include <limits>
 #include <optional>
 
 #include "sim/replay/replay_bytes.hpp"
@@ -15,6 +16,7 @@ namespace {
 constexpr std::string_view kMagic = "RRRH";
 constexpr std::uint16_t kVersion = 1;
 constexpr std::size_t kHashBytes = 8;
+constexpr std::size_t kNoWhiteBrick = std::numeric_limits<std::size_t>::max();
 
 template <std::unsigned_integral T>
 std::uint64_t Mix(std::uint64_t hash, T value) {
@@ -125,6 +127,38 @@ public:
         }
     }
 
+    void Add(const Brick& brick) {
+        Add(brick.position, static_cast<int>(brick.state), brick.stateTime, brick.isTouched,
+            brick.wasTouched);
+    }
+
+    void Add(const ColourBrick& colour) {
+        Add(colour.brick, static_cast<int>(colour.colour), static_cast<int>(colour.nextColour),
+            static_cast<int>(colour.nextState));
+    }
+
+    void Add(const WhiteBrick& white) {
+        Add(white.brick, white.droppedTime.value_or(Milliseconds{-1}), white.isGoingHome);
+    }
+
+    void Add(const BrickField& bricks) {
+        Add(bricks.SpinRadians());
+        for (const ColourBrick& colour : bricks.Coloured()) {
+            Add(colour);
+        }
+        for (const WhiteBrick& white : bricks.White()) {
+            Add(white);
+        }
+    }
+
+    void Add(const PowerupInventory& inventory) {
+        Add(inventory.Colour().has_value(),
+            static_cast<int>(inventory.Colour().value_or(assets::BrickColour::Red)));
+        for (const std::optional<std::size_t> white : inventory.WhiteBricks()) {
+            Add(static_cast<std::uint64_t>(white.value_or(kNoWhiteBrick)));
+        }
+    }
+
     void Add(const RaceClock& clock) {
         Add(static_cast<int>(clock.Phase()), clock.PhaseTime(), clock.RaceTime());
     }
@@ -169,6 +203,12 @@ std::uint64_t HashRaceSession(const RaceSession& session) {
     }
     for (const std::size_t racer : session.Progress().Standings()) {
         hash.Add(static_cast<std::uint64_t>(racer));
+    }
+    if (!session.Bricks().IsEmpty()) {
+        hash.Add(session.Bricks());
+        for (const PowerupInventory& inventory : session.Inventories()) {
+            hash.Add(inventory);
+        }
     }
     return hash.Value();
 }
