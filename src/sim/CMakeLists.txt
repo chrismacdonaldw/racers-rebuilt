@@ -10,18 +10,22 @@ rr_add_module(sim
         collision/world_list.cpp
         input_latch.cpp
         interpolation.cpp
+        physics/body_effects.cpp
         physics/body_forces.cpp
         physics/box_contact.cpp
         physics/car_body.cpp
         physics/chassis.cpp
         physics/collision_query.cpp
+        physics/curse_jitter.cpp
         physics/drive_controller.cpp
         physics/driver_input.cpp
         physics/facing.cpp
         physics/ground_contact.cpp
+        physics/hover_contact.cpp
         physics/prebuilt_chassis.cpp
         physics/racer.cpp
         physics/racer_contacts.cpp
+        physics/racer_effects.cpp
         physics/racer_controls.cpp
         physics/rigid_body.cpp
         physics/start_boost.cpp

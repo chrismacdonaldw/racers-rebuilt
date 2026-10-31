@@ -41,7 +41,7 @@ std::optional<std::size_t> CastWheelRays(BodyState& body, const BodyConstants& c
     const float drop = std::max(0.0F, body.saved.position.z - motion.position.z);
     const float sweepHeight = constants.boundsRadius + drop;
     const float sweepDistance =
-        IsGrounded(motion) ? static_cast<float>(dtMs) * kFollowRatePerMs : 0.0F;
+        IsGrounded(motion) && !body.isSpunOut ? static_cast<float>(dtMs) * kFollowRatePerMs : 0.0F;
     for (WheelProbe& wheel : motion.wheels) {
         wheel.hasHit = false;
         wheel.isInContact = false;
@@ -195,12 +195,14 @@ void UpdateWheelSurfaces(BodyMotion& motion) {
 
 float AverageContactGrip(const BodyMotion& motion) {
     float total = 0.0F;
+    int contacts = 0;
     for (const WheelProbe& wheel : motion.wheels) {
         if (wheel.isInContact) {
             total += wheel.surface.lateralGrip;
+            ++contacts;
         }
     }
-    return motion.contactCount > 0 ? total / static_cast<float>(motion.contactCount) : 0.0F;
+    return contacts > 0 ? total / static_cast<float>(contacts) : 0.0F;
 }
 
 }

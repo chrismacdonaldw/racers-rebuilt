@@ -44,7 +44,7 @@ std::optional<WallHit> SweepBodyPoints(const BodyState& body, const BodyConstant
             const Vector3 from = body.saved.position + ToWorld(body.saved.basis, point);
             const Vector3 to = body.motion.position + ToWorld(body.motion.basis, point);
             const std::optional<SegmentHit> hit = query.CastSegment(world, from, to);
-            if (!hit || !hit->isSolid) {
+            if (!hit || !hit->isSolid || (hit->isTrackWorld && !body.hasTrackCollision)) {
                 continue;
             }
             const Vector3 overshoot = hit->point - to;
