@@ -62,6 +62,8 @@ public:
 
     [[nodiscard]] const DriverState& Driver() const { return driver_.State(); }
 
+    [[nodiscard]] const StatMultipliers& Stats() const { return stats_; }
+
     [[nodiscard]] const StartBoostState& Boost() const { return startBoost_.State(); }
 
     [[nodiscard]] const std::optional<Turbo>& ActiveTurbo() const { return turbo_; }

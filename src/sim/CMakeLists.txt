@@ -2,6 +2,7 @@ rr_add_module(sim
     SOURCES
         ai/ai_racer.cpp
         ai/route_choice.cpp
+        ai/route_driver.cpp
         ai/rubber_band.cpp
         collision/collision_mesh.cpp
         collision/collision_world.cpp

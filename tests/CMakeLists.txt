@@ -118,6 +118,8 @@ add_executable(racers-rebuilt-tests
     sim/ai/ai_grid_test.cpp
     sim/ai/ai_racer_test.cpp
     sim/ai/route_choice_test.cpp
+    sim/ai/route_driver_test.cpp
+    sim/ai/route_lap_test.cpp
     sim/ai/rubber_band_test.cpp
     sim/collision/collision_mesh_test.cpp
     sim/collision/collision_world_test.cpp
