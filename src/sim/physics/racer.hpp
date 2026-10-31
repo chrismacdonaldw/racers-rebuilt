@@ -64,8 +64,6 @@ public:
 
     [[nodiscard]] const StatMultipliers& Stats() const { return stats_; }
 
-    [[nodiscard]] float BoundsRadius() const { return constants_.boundsRadius; }
-
     [[nodiscard]] const StartBoostState& Boost() const { return startBoost_.State(); }
 
     [[nodiscard]] const std::optional<Turbo>& ActiveTurbo() const { return turbo_; }

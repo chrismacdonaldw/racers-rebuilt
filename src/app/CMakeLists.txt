@@ -46,6 +46,7 @@ rr_add_module(app
         racer/animation_player.cpp
         racer/body_lean.cpp
         racer/racer_assets.cpp
+        racer/racer_bounds.cpp
         racer/racer_draws.cpp
         racer/racer_grid.cpp
         racer/racer_visuals.cpp

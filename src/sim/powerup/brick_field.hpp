@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "assets/brick_layout.hpp"
+#include "core/bounding_sphere.hpp"
 #include "core/duration.hpp"
 #include "core/vector3.hpp"
 #include "sim/physics/collision_query.hpp"
@@ -45,11 +46,6 @@ struct WhiteBrick {
     bool isGoingHome = false;
 };
 
-struct BrickReach {
-    Vector3 centre;
-    float radius = 0.0F;
-};
-
 enum class BrickEventKind : std::uint8_t {
     Respawned,
     Collected,
@@ -76,7 +72,7 @@ public:
     explicit BrickField(const assets::BrickLayout& layout);
 
     /// `racers` and `inventories` have one entry per racer.
-    void Tick(Milliseconds elapsed, std::span<const BrickReach> racers,
+    void Tick(Milliseconds elapsed, std::span<const BoundingSphere> racers,
               std::span<PowerupInventory> inventories);
 
     /// Empties `inventory` and sends its white bricks home.

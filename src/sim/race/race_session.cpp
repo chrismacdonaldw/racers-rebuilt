@@ -4,6 +4,7 @@
 #include <format>
 
 #include "core/assert.hpp"
+#include "core/transform.hpp"
 #include "sim/physics/body_state.hpp"
 
 namespace rr::sim {
@@ -52,6 +53,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       inventories_(setup.racers.size()),
       reaches_(setup.racers.size()) {
     racers_.reserve(setup.racers.size());
+    localBounds_.reserve(setup.racers.size());
     for (std::size_t i = 0; i < setup.racers.size(); ++i) {
         const RacerEntry& entry = setup.racers[i];
         Racer& racer = racers_.emplace_back(entry.chassis, entry.build, course.grid[i]);
@@ -61,6 +63,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
             racer.FollowRoute(routes[random_.Below(static_cast<std::uint32_t>(routes.size()))]);
         }
         isPlayer_.push_back(entry.isPlayer);
+        localBounds_.push_back(entry.localBounds);
         positions_[i] = racer.Body().motion.position;
     }
 }
@@ -68,6 +71,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
 void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> controls) {
     RR_ASSERT(controls.size() == racers_.size());
     sounds_.BeginTick();
+    MeasureReaches();
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         TickRacer(i, elapsed, clock_.Phase() == RacePhase::Intro ? RacerControls{} : controls[i]);
     }
@@ -101,11 +105,14 @@ void RaceSession::PaceRoutes(Milliseconds elapsed) {
     }
 }
 
-void RaceSession::TickBricks(Milliseconds elapsed) {
+void RaceSession::MeasureReaches() {
     for (std::size_t i = 0; i < racers_.size(); ++i) {
-        reaches_[i] = {.centre = racers_[i].Body().motion.position,
-                       .radius = racers_[i].BoundsRadius()};
+        reaches_[i] = {.centre = Apply(racers_[i].Pose(), localBounds_[i].centre),
+                       .radius = localBounds_[i].radius};
     }
+}
+
+void RaceSession::TickBricks(Milliseconds elapsed) {
     bricks_.Tick(elapsed, reaches_, inventories_);
     sounds_.HearBricks(bricks_.Events());
 }

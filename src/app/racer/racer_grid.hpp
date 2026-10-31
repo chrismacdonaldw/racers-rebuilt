@@ -11,6 +11,7 @@
 #include "app/racer/racer_visuals.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
+#include "core/bounding_sphere.hpp"
 #include "core/result.hpp"
 #include "render/render_view.hpp"
 #include "render/renderer.hpp"
@@ -30,6 +31,10 @@ public:
 
     [[nodiscard]] sim::ChassisSpec Chassis(std::size_t slot) const;
 
+    [[nodiscard]] BoundingSphere LocalBounds(std::size_t slot) const {
+        return slots_.at(slot).localBounds;
+    }
+
     /// The slot driver's line in `DRIVERS.SRF`.
     [[nodiscard]] std::int32_t NameIndex(std::size_t slot) const;
 
@@ -44,6 +49,7 @@ private:
     struct Slot {
         std::unique_ptr<RacerAssets> assets;
         RacerVisuals visuals;
+        BoundingSphere localBounds;
     };
 
     explicit RacerGrid(std::vector<Slot> slots);

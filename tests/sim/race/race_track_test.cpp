@@ -24,7 +24,6 @@ constexpr float kMaxHeightOffGround = 8.0F;
 constexpr float kOffTrackZ = 10000.0F;
 constexpr Milliseconds kTick{12};
 constexpr int kDriveTicks = 750;
-constexpr int kSettleTicks = 60;
 constexpr Vector3 kAboveBrick{.z = 10.0F};
 constexpr Vector3 kBelowBrick{.z = -50.0F};
 constexpr float kMaxBrickHeight = 8.0F;
@@ -117,12 +116,9 @@ struct BrickCheck {
     std::vector<Vector3> tooHigh;
 };
 
-bool CarOnGroundTakes(const WorldList& world, const Vector3& ground, const Vector3& brick) {
-    Racer car({}, {}, {.position = ground});
-    for (int tick = 0; tick < kSettleTicks; ++tick) {
-        car.Tick(kTick, {}, world);
-    }
-    const BrickReach reach{.centre = car.Body().motion.position, .radius = car.BoundsRadius()};
+bool CarOnGroundTakes(const Vector3& ground, const Vector3& brick) {
+    const BoundingSphere reach{.centre = ground + kTypicalRacerBounds.centre,
+                               .radius = kTypicalRacerBounds.radius};
     BrickField field({.white = {brick}});
     std::array<PowerupInventory, 1> held{};
     field.Tick(kTick, std::span(&reach, 1), held);
@@ -139,7 +135,7 @@ void CheckBrick(const WorldList& world, const Vector3& brick, BrickCheck& check)
     if (brick.z - ground->point.z > kMaxBrickHeight) {
         check.tooHigh.push_back(brick);
     }
-    check.reached += CarOnGroundTakes(world, ground->point, brick) ? 1 : 0;
+    check.reached += CarOnGroundTakes(ground->point, brick) ? 1 : 0;
 }
 
 BrickCheck CheckBricks(const assets::Vfs& vfs, const std::string& folder) {
@@ -172,7 +168,7 @@ TEST_CASE(
         MESSAGE(folder << ": a stock car below takes " << check.reached << " of " << check.bricks
                        << " bricks over the track");
         CHECK(check.tooHigh.empty());
-        CHECK(check.reached > 0);
+        CHECK(check.reached == check.bricks);
     }
 }
 

@@ -17,11 +17,11 @@ using assets::BrickColour;
 
 constexpr Milliseconds kTick{10};
 constexpr float kReach = 5.0F;
-constexpr BrickReach kAway{.centre = {.z = 1000.0F}, .radius = kReach};
+constexpr BoundingSphere kAway{.centre = {.z = 1000.0F}, .radius = kReach};
 constexpr int kTicksToIdle = 52;
 constexpr int kTicksToHide = 26;
 
-BrickReach At(const Vector3& point) {
+BoundingSphere At(const Vector3& point) {
     return {.centre = point, .radius = kReach};
 }
 
@@ -29,7 +29,7 @@ class Field {
 public:
     explicit Field(const assets::BrickLayout& layout) : field_(layout) {}
 
-    std::vector<BrickEvent> Run(int ticks, const BrickReach& racer = kAway) {
+    std::vector<BrickEvent> Run(int ticks, const BoundingSphere& racer = kAway) {
         std::vector<BrickEvent> events;
         for (int i = 0; i < ticks; ++i) {
             field_.Tick(kTick, std::span(&racer, 1), inventory_);

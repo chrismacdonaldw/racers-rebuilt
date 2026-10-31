@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 
+#include "app/racer/racer_bounds.hpp"
 #include "app/racer/racer_draws.hpp"
 #include "app/track_space.hpp"
 #include "assets/circuit_database.hpp"
@@ -45,17 +46,19 @@ Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs&
     std::vector<Slot> loaded;
     for (const std::string& code : std::span(*codes).first(slots)) {
         Result<std::unique_ptr<RacerAssets>> assets = LoadSlot(vfs, loader, *catalog, code);
-        Result<RacerVisuals> visuals =
-            assets.and_then([&](const std::unique_ptr<RacerAssets>& racer) {
-                return UploadRacer(renderer, *racer).and_then([&](RacerDraws draws) {
-                    return RacerVisuals::Create(*racer, std::move(draws));
-                });
+        Result<BoundingSphere> bounds = assets.and_then(
+            [](const std::unique_ptr<RacerAssets>& racer) { return RacerBounds(*racer); });
+        Result<RacerVisuals> visuals = bounds.and_then([&](const BoundingSphere&) {
+            return UploadRacer(renderer, **assets).and_then([&](RacerDraws draws) {
+                return RacerVisuals::Create(**assets, std::move(draws));
             });
+        });
         if (!visuals) {
             return Fail(visuals.error().code,
                         std::format("racer {}: {}", code, visuals.error().message));
         }
-        loaded.push_back({.assets = std::move(*assets), .visuals = std::move(*visuals)});
+        loaded.push_back(
+            {.assets = std::move(*assets), .visuals = std::move(*visuals), .localBounds = *bounds});
     }
     return RacerGrid(std::move(loaded));
 }
