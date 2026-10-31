@@ -48,6 +48,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_CXX_FLAGS_RELEASE": "/O2 /Ob2",
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE": "OFF",
         "RR_BUILD_TESTS": "ON"
       }
     }

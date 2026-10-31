@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Runs every pre-PR check on a clean tree: repo guards, a fresh configure, build, tests, clang-format
+Runs every pre-PR check on a clean tree: repo guards, clang-format, a fresh configure, build, tests
 and clang-tidy. Prints one summary line per step and exits non-zero on the first failure.
 
 .PARAMETER Preset
@@ -79,6 +79,33 @@ function Read-FileMagic([string]$Path) {
     }
 }
 
+function Invoke-ClangTidy([string]$ClangTidy, [string]$Database, [string[]]$Files) {
+    $pool = [RunspaceFactory]::CreateRunspacePool(1, [Environment]::ProcessorCount)
+    $pool.Open()
+    try {
+        $runs = foreach ($file in $Files) {
+            $shell = [PowerShell]::Create().AddScript({
+                param($ClangTidy, $Database, $File)
+                $output = @(& $ClangTidy -p $Database --quiet $File 2>&1 | ForEach-Object { "$_" })
+                [pscustomobject]@{ Output = $output; ExitCode = $LASTEXITCODE }
+            }).AddArgument($ClangTidy).AddArgument($Database).AddArgument($file)
+            $shell.RunspacePool = $pool
+            [pscustomobject]@{ Shell = $shell; Handle = $shell.BeginInvoke() }
+        }
+        foreach ($run in $runs) {
+            $result = $run.Shell.EndInvoke($run.Handle)[0]
+            $run.Shell.Dispose()
+            $result.Output
+            if ($result.ExitCode -ne 0) {
+                $global:LASTEXITCODE = 1
+            }
+        }
+    }
+    finally {
+        $pool.Dispose()
+    }
+}
+
 function Get-BannedTerms {
     $path = $env:RR_BANNED_TERMS_FILE
     if (-not $path -or -not (Test-Path $path -PathType Leaf)) {
@@ -126,6 +153,13 @@ Invoke-Step 'No banned terms in tree, history or branch' {
     $metadataHits | ForEach-Object { Fail "history or branch: $_" }
 }
 
+Invoke-Step 'clang-format' {
+    $clangFormat = Find-Tool 'clang-format'
+    if ($clangFormat) {
+        & $clangFormat --dry-run --Werror (Get-TrackedFiles @('*.cpp', '*.hpp'))
+    }
+}
+
 Invoke-Step 'Toolchain' {
     if (-not $env:VCPKG_ROOT) {
         Fail 'VCPKG_ROOT is not set. Point it at a vcpkg clone.'
@@ -150,16 +184,11 @@ Invoke-Step "Configure into empty build/$Preset" {
 Invoke-Step "Build ($Preset)" { cmake --build --preset $Preset }
 Invoke-Step "Test ($Preset)" { ctest --preset $Preset }
 
-Invoke-Step 'clang-format' {
-    $clangFormat = Find-Tool 'clang-format'
-    if ($clangFormat) {
-        & $clangFormat --dry-run --Werror (Get-TrackedFiles @('*.cpp', '*.hpp'))
-    }
-}
 Invoke-Step 'clang-tidy' {
     $clangTidy = Find-Tool 'clang-tidy'
     if ($clangTidy) {
-        & $clangTidy -p "build/$Preset" --quiet (Get-TrackedFiles @('src/*.cpp', 'tests/*.cpp', 'tools/*.cpp'))
+        $files = Get-TrackedFiles @('src/*.cpp', 'tests/*.cpp', 'tools/*.cpp') | ForEach-Object { Join-Path $repoRoot $_ }
+        Invoke-ClangTidy $clangTidy (Join-Path $repoRoot "build/$Preset") $files
     }
 }
 
