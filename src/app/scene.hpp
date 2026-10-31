@@ -33,6 +33,8 @@ public:
     /// A scene name for the application to open after this frame. Each request is taken once.
     [[nodiscard]] virtual std::optional<std::string> TakeNextScene() { return std::nullopt; }
 
+    [[nodiscard]] virtual std::string DeveloperStatus() const { return {}; }
+
     /// Advances exactly one `kSimTick`. Must not read clocks, settings or files.
     virtual void Tick(const sim::InputFrame& input) = 0;
 

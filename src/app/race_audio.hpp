@@ -76,7 +76,8 @@ private:
     };
 
     void PlayEvent(const sim::RaceSession& session, const sim::SoundEvent& event);
-    void PlayAt(std::size_t effect, const Vector3& source, const audio::VoiceMix& mix = {});
+    void PlayAt(std::size_t effect, const Vector3& source, const audio::VoiceMix& mix = {},
+                SoundRange range = {});
     void PlayFlat(std::size_t effect);
     void HearEngine(const sim::RaceSession& session, Milliseconds elapsed);
     void HearSurfaces(const sim::RaceSession& session, Milliseconds elapsed);

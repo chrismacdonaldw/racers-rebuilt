@@ -3,6 +3,7 @@ rr_add_module(app
         application.cpp
         audio_settings.cpp
         audio_startup.cpp
+        brick_models.cpp
         car_sounds.cpp
         chase_camera.cpp
         checkpoint_gates.cpp

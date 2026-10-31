@@ -1,12 +1,38 @@
 #include "app/race_step.hpp"
 
 #include <cstdint>
+#include <optional>
 
 #include "app/frame_loop.hpp"
 #include "app/track_space.hpp"
 #include "sim/replay/snapshot_hash.hpp"
 
 namespace rr::app {
+namespace {
+
+void AddBrick(const sim::Brick& brick, const Quaternion& spin,
+              std::optional<assets::BrickColour> colour, sim::RenderSnapshot& out) {
+    const float scale = sim::BrickScale(brick);
+    if (scale > 0.0F) {
+        out.bricks.push_back(
+            {.transform = TransformToEngine({.position = brick.position, .rotation = spin}),
+             .scale = scale,
+             .colour = colour});
+    }
+}
+
+void SnapshotBricks(const sim::BrickField& bricks, sim::RenderSnapshot& out) {
+    out.bricks.clear();
+    const Quaternion spin = FromAxisAngle({.z = 1.0F}, bricks.SpinRadians());
+    for (const sim::ColourBrick& coloured : bricks.Coloured()) {
+        AddBrick(coloured.brick, spin, coloured.colour, out);
+    }
+    for (const sim::WhiteBrick& white : bricks.White()) {
+        AddBrick(white.brick, spin, std::nullopt, out);
+    }
+}
+
+}
 
 void StepRace(sim::RaceSession& session, const sim::InputFrame& input,
               std::span<sim::RacerControls> controls) {
@@ -28,6 +54,7 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
                               .forwardSpeed = racer.Body().derived.forwardSpeed,
                               .turnRadius = racer.Body().turnRadius});
     }
+    SnapshotBricks(session.Bricks(), out);
     out.simStateHash = sim::HashRaceSession(session);
 }
 

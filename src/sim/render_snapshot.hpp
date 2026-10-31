@@ -1,8 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
+#include "assets/brick_layout.hpp"
 #include "core/transform.hpp"
 
 namespace rr::sim {
@@ -46,11 +48,20 @@ struct RacerSnapshot {
     friend bool operator==(const RacerSnapshot&, const RacerSnapshot&) = default;
 };
 
+struct BrickSnapshot {
+    Transform transform;
+    float scale = 0.0F;
+    std::optional<assets::BrickColour> colour;
+
+    friend bool operator==(const BrickSnapshot&, const BrickSnapshot&) = default;
+};
+
 /// `entities` stays sorted by id. Reuse a snapshot between ticks so its storage isn't reallocated.
 struct RenderSnapshot {
     std::uint64_t tick = 0;
     std::vector<EntitySnapshot> entities;
     std::vector<RacerSnapshot> racers;
+    std::vector<BrickSnapshot> bricks;
     CameraSnapshot camera;
     std::uint64_t simStateHash = 0;
 

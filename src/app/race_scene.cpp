@@ -60,6 +60,23 @@ float MsSince(std::optional<Nanoseconds>& last) {
     return std::chrono::duration<float, std::milli>(elapsed).count();
 }
 
+std::string_view ColourName(std::optional<assets::BrickColour> colour) {
+    if (!colour) {
+        return "none";
+    }
+    switch (*colour) {
+        case assets::BrickColour::Red:
+            return "red";
+        case assets::BrickColour::Blue:
+            return "blue";
+        case assets::BrickColour::Green:
+            return "green";
+        case assets::BrickColour::Yellow:
+            return "yellow";
+    }
+    return "none";
+}
+
 template <typename T>
 std::optional<T> ParseNumber(std::string_view text) {
     T value{};
@@ -146,8 +163,10 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     Result<RacerGrid> racers = loaded.and_then([&](const sim::RaceTrack& race) {
         return RacerGrid::Load(renderer, vfs, loader, track, race.grid.size(), setup.racer);
     });
-    if (!racers) {
-        return std::unexpected(std::move(racers.error()));
+    Result<BrickModels> bricks =
+        racers.and_then([&](const RacerGrid&) { return BrickModels::Load(renderer, loader); });
+    if (!bricks) {
+        return std::unexpected(std::move(bricks.error()));
     }
     auto raceTrack = std::make_unique<sim::RaceTrack>(std::move(*loaded));
     auto world = std::make_unique<sim::WorldList>(raceTrack->collision.Track());
@@ -157,7 +176,8 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                                   .grid = raceTrack->grid,
                                   .world = world.get(),
                                   .lowestTrackZ = raceTrack->lowestTrackZ,
-                                  .routes = &raceTrack->routes});
+                                  .routes = &raceTrack->routes,
+                                  .bricks = &raceTrack->bricks});
     if (!session) {
         return std::unexpected(std::move(session.error()));
     }
@@ -172,6 +192,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                                                      .setup = setup,
                                                      .trackDraws = std::move(model->draws),
                                                      .racers = std::move(*racers),
+                                                     .bricks = std::move(*bricks),
                                                      .camera = TrackCamera(model->bounds),
                                                      .raceTrack = std::move(raceTrack),
                                                      .world = std::move(world),
@@ -225,6 +246,11 @@ SceneMusic RaceScene::Music() const {
     return parts_.audio ? parts_.audio->Music() : SceneMusic{};
 }
 
+std::string RaceScene::DeveloperStatus() const {
+    const sim::PowerupInventory& held = parts_.session.Inventories()[kPlayerSlot];
+    return std::format("Power-up: {}, {} white", ColourName(held.Colour()), held.WhiteCount());
+}
+
 void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
     SnapshotRace(parts_.session, out);
     out.camera = {.transform = chase_.Pose(PlayerCar()), .flags = out.entities[kPlayerSlot].flags};
@@ -235,8 +261,10 @@ void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
 
 void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     parts_.racers.Update(interpolated.entities, interpolated.racers, MsSince(lastRender_));
+    draws_.resize(parts_.trackDraws.size() + parts_.racers.Draws().size());
     std::ranges::copy(parts_.racers.Draws(),
                       draws_.begin() + static_cast<std::ptrdiff_t>(parts_.trackDraws.size()));
+    parts_.bricks.AppendDraws(interpolated.bricks, draws_);
     render::Camera camera = parts_.camera;
     camera.transform = interpolated.camera.transform;
     DrawDebugLines();

@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/brick_models.hpp"
 #include "app/chase_camera.hpp"
 #include "app/hud/race_hud_layer.hpp"
 #include "app/menu/pause_menu.hpp"
@@ -66,6 +67,7 @@ public:
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
     [[nodiscard]] SceneMusic Music() const override;
+    [[nodiscard]] std::string DeveloperStatus() const override;
 
 private:
     struct Parts {
@@ -74,6 +76,7 @@ private:
         RaceSceneSetup setup;
         std::vector<render::MeshDraw> trackDraws;
         RacerGrid racers;
+        BrickModels bricks;
         render::Camera camera;
         std::unique_ptr<sim::RaceTrack> raceTrack;
         std::unique_ptr<sim::WorldList> world;

@@ -44,6 +44,7 @@ struct MeshDraw {
     std::uint32_t indexCount = kWholeMesh;
     Material material;
     Transform transform;
+    float scale = 1.0F;
 };
 
 struct DebugLine {

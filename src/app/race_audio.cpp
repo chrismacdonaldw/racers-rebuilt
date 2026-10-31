@@ -13,15 +13,19 @@ constexpr std::string_view kEffectsBank = "GAMEDATA/COMMON/GENERAL.SBK";
 constexpr std::size_t kCountdownBeep = 0;
 constexpr std::size_t kBrakeStart = 2;
 constexpr std::size_t kBrakeLoop = 3;
+constexpr std::size_t kWhiteBrickBeforeFirst = 10;
+constexpr std::size_t kBrickRespawn = 14;
 constexpr std::size_t kDriveLoop = 10;
 constexpr std::size_t kGo = 15;
 constexpr std::size_t kWallHit = 25;
 constexpr std::size_t kIdleLoop = 32;
+constexpr std::size_t kBrickCollect = 49;
 constexpr std::size_t kTurboStart = 36;
 constexpr std::size_t kTurboEnd = 40;
 constexpr std::size_t kWallScrape = 56;
 constexpr std::size_t kDriftStart = 57;
 constexpr std::size_t kCoastLoop = 61;
+constexpr std::size_t kBrickSwap = 72;
 constexpr std::size_t kEngineStart = 62;
 constexpr std::size_t kTurboWhoosh = 65;
 constexpr std::size_t kOpponentEngine = 79;
@@ -31,6 +35,11 @@ constexpr std::int32_t kFirstAmbientId = 3000;
 constexpr float kWeakTurboEndVolume = 0.6F;
 constexpr float kStrongTurboEndVolume = 0.8F;
 constexpr SoundRange kOpponentRange{.min = 30.0F, .max = 200.0F};
+constexpr SoundRange kBrickRange{.min = 30.0F, .max = 150.0F};
+
+const Vector3& BrickAt(const sim::RaceSession& session, const sim::SoundEvent& event) {
+    return session.Bricks().Coloured()[event.brick].brick.position;
+}
 
 std::span<const audio::SoundId> LoadOptionalBank(audio::Mixer& mixer, SoundBanks& banks,
                                                  const assets::Vfs& vfs, std::string_view path) {
@@ -137,12 +146,25 @@ void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent
             break;
         case sim::RaceSound::Finish:
             break;
+        case sim::RaceSound::BrickRespawn:
+            PlayAt(kBrickRespawn, BrickAt(session, event), {}, kBrickRange);
+            break;
+        case sim::RaceSound::BrickCollect:
+            PlayAt(kBrickCollect, BrickAt(session, event), {}, kBrickRange);
+            break;
+        case sim::RaceSound::BrickSwap:
+            PlayAt(kBrickSwap, BrickAt(session, event), {}, kBrickRange);
+            break;
+        case sim::RaceSound::WhiteBrickCollect:
+            PlayAt(kWhiteBrickBeforeFirst + event.whiteCount, car);
+            break;
     }
 }
 
-void RaceAudio::PlayAt(std::size_t effect, const Vector3& source, const audio::VoiceMix& mix) {
+void RaceAudio::PlayAt(std::size_t effect, const Vector3& source, const audio::VoiceMix& mix,
+                       SoundRange range) {
     const std::array cue{audio::SoundCue{.sound = sounds_.effects[effect],
-                                         .mix = PlaceSound(listener_, source, mix)}};
+                                         .mix = PlaceSound(listener_, source, mix, range)}};
     mixer_->Play(cue);
 }
 
