@@ -33,13 +33,15 @@ struct Fixture {
                                    RacerStart{.position = {.x = -20.0F, .y = -10.0F, .z = 0.2F}}};
     GridRoutes routes{{test::StraightRoute({.x = -21.0F, .z = 0.2F})},
                       {test::StraightRoute(kRouteStart)}};
+    const assets::BrickLayout* bricks = nullptr;
 
     [[nodiscard]] RaceSession Start(const RaceSetup& setup) const {
         Result<RaceSession> session = RaceSession::Create(setup, {.checkpoints = &graph,
                                                                   .grid = grid,
                                                                   .world = &world,
                                                                   .lowestTrackZ = -100.0F,
-                                                                  .routes = &routes});
+                                                                  .routes = &routes,
+                                                                  .bricks = bricks});
         REQUIRE(session.has_value());
         return std::move(*session);
     }
@@ -259,6 +261,42 @@ TEST_CASE("a computer racer on a route never respawns") {
     Run(session, 92);
 
     CHECK(session.Racers()[1].Body().motion.position.z == -kHighUp);
+}
+
+TEST_CASE("a racer takes a brick inside its bounds, wherever they sit on the car") {
+    Fixture fixture;
+    const assets::BrickLayout bricks{
+        .coloured = {{.position = {.x = -20.0F, .z = 5.2F}, .colour = assets::BrickColour::Red}}};
+    fixture.bricks = &bricks;
+    RaceSetup setup = TwoRacers();
+    setup.racers[0].localBounds = {.centre = {.z = 5.0F}, .radius = 0.5F};
+    setup.racers[1].localBounds = {.radius = 0.5F};
+    RaceSession session = fixture.Start(setup);
+
+    Run(session, 100, {});
+
+    CHECK(session.Inventories()[0].Colour() == assets::BrickColour::Red);
+    CHECK_FALSE(session.Inventories()[1].Colour().has_value());
+}
+
+TEST_CASE("bricks stay silent until racing starts") {
+    constexpr int kTicksTo7Seconds = 584;
+    Fixture fixture;
+    const assets::BrickLayout bricks{
+        .coloured = {{.position = {.z = kHighUp}},
+                     {.position = {.z = kHighUp}, .respawn = Milliseconds{10000}}}};
+    fixture.bricks = &bricks;
+    RaceSession session = fixture.Start(TwoRacers());
+
+    const std::vector<HeardSound> heard = Listen(session, kTicksTo7Seconds, {});
+
+    std::vector<SoundEvent> respawns;
+    for (const HeardSound& sound : heard) {
+        if (sound.second.sound == RaceSound::BrickRespawn) {
+            respawns.push_back(sound.second);
+        }
+    }
+    CHECK(respawns == std::vector<SoundEvent>{{.sound = RaceSound::BrickRespawn, .brick = 1}});
 }
 
 }

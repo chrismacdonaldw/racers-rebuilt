@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "assets/brick_layout.hpp"
+#include "core/bounding_sphere.hpp"
 #include "core/duration.hpp"
 #include "core/result.hpp"
 #include "core/vector3.hpp"
@@ -63,6 +64,7 @@ private:
 
     void TickRacer(std::size_t racer, Milliseconds elapsed, const RacerControls& controls);
     void PaceRoutes(Milliseconds elapsed);
+    void MeasureReaches();
     void TickBricks(Milliseconds elapsed);
     [[nodiscard]] bool HasPlayerFinished() const;
 
@@ -82,7 +84,8 @@ private:
     std::vector<float> routeSpeeds_;
     BrickField bricks_;
     std::vector<PowerupInventory> inventories_;
-    std::vector<BrickReach> reaches_;
+    std::vector<BoundingSphere> localBounds_;
+    std::vector<BoundingSphere> reaches_;
 };
 
 }

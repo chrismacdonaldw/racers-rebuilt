@@ -36,7 +36,7 @@ void Enter(Brick& brick, BrickState state) {
     brick.stateTime = Milliseconds{0};
 }
 
-bool Reaches(const BrickReach& racer, const Vector3& point) {
+bool Reaches(const BoundingSphere& racer, const Vector3& point) {
     const Vector3 offset = point - racer.centre;
     return Dot(offset, offset) < racer.radius * racer.radius;
 }
@@ -124,7 +124,7 @@ BrickField::BrickField(const assets::BrickLayout& layout) {
     events_.reserve(coloured_.size() + white_.size());
 }
 
-void BrickField::Tick(Milliseconds elapsed, std::span<const BrickReach> racers,
+void BrickField::Tick(Milliseconds elapsed, std::span<const BoundingSphere> racers,
                       std::span<PowerupInventory> inventories) {
     RR_ASSERT(racers.size() == inventories.size());
     events_.clear();

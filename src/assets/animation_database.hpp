@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "core/bounding_sphere.hpp"
 #include "core/quaternion.hpp"
 #include "core/result.hpp"
 #include "core/vector3.hpp"
@@ -26,11 +27,6 @@ struct AnimationTrack {
     KeyRun positions;
 
     friend constexpr bool operator==(const AnimationTrack&, const AnimationTrack&) = default;
-};
-
-struct BoundingSphere {
-    Vector3 centre;
-    float radius = 0.0F;
 };
 
 /// Node `i` of the skeleton plays track `firstTrack + i`.
