@@ -12,6 +12,7 @@
 #include "core/duration.hpp"
 #include "core/result.hpp"
 #include "overlay/input_gate.hpp"
+#include "overlay/racer_tools.hpp"
 #include "platform/window.hpp"
 #include "render/overlay_pass.hpp"
 #include "render/renderer.hpp"
@@ -50,7 +51,8 @@ public:
     /// Does nothing while hidden. Returns the setting keys whose edit finished, to persist.
     [[nodiscard]] std::vector<std::string> Build(settings::Registry& registry,
                                                  const DeveloperStats& stats,
-                                                 std::span<const SceneChoice> scenes);
+                                                 std::span<const SceneChoice> scenes,
+                                                 const RacerTools& racerTools);
 
     void Prepare(SDL_GPUCommandBuffer* commands) override;
     void Draw(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass) override;

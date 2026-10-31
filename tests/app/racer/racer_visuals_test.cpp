@@ -52,11 +52,15 @@ JointedAssets Wheels() {
 JointedAssets Driver() {
     return {
         .skeleton = {.nodes = {{.name = "alpelvis", .position = {}, .rotation = {}, .parent = {}}}},
-        .animations = {.positionKeys = {{.y = 64.0F}},
+        .animations = {.positionKeys = {{.y = 64.0F}, {.z = 64.0F}},
                        .rotationKeys = {},
                        .keyFrames = {},
-                       .tracks = {{}, {}, {.rotations = {}, .positions = {.count = 1}}},
-                       .parts = {Part("default", 0), Part("steer-r", 1), Part("steer-l", 2)}},
+                       .tracks = {{},
+                                  {},
+                                  {.rotations = {}, .positions = {.count = 1}},
+                                  {.rotations = {}, .positions = {.firstValue = 1, .count = 1}}},
+                       .parts = {Part("default", 0), Part("power1", 3), Part("steer-r", 1),
+                                 Part("steer-l", 2)}},
     };
 }
 
@@ -129,6 +133,28 @@ TEST_CASE("the driver leans into a left turn over the steering blend") {
 
     CHECK(blending.y == doctest::Approx(0.5F));
     CHECK(blended.y == doctest::Approx(1.0F));
+}
+
+TEST_CASE("the driver reacts to a hit once, then blends back into steering") {
+    const RacerAssets racer = Racer();
+    RacerVisuals visuals = MakeVisuals(racer);
+    const sim::RacerSnapshot hit{
+        .id = {}, .forwardSpeed = 0.0F, .turnRadius = 50.0F, .hitReactions = 1};
+
+    visuals.Update({}, hit, 100.0F);
+    const Vector3 reacting = GamePosition(visuals.Draws()[2]);
+    visuals.Update({}, hit, 300.0F);
+    visuals.Update({}, hit, 150.0F);
+    const Vector3 blending = GamePosition(visuals.Draws()[2]);
+    visuals.Update({}, hit, 150.0F);
+    const Vector3 steering = GamePosition(visuals.Draws()[2]);
+
+    CHECK(reacting.z == doctest::Approx(2.0F));
+    CHECK(reacting.y == doctest::Approx(0.0F));
+    CHECK(blending.z == doctest::Approx(1.5F));
+    CHECK(blending.y == doctest::Approx(0.5F));
+    CHECK(steering.z == doctest::Approx(1.0F));
+    CHECK(steering.y == doctest::Approx(1.0F));
 }
 
 TEST_CASE("a draw that follows a node the skeleton lacks fails") {

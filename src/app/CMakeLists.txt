@@ -43,6 +43,7 @@ rr_add_module(app
         race_music.cpp
         race_scene.cpp
         race_step.cpp
+        racer_effect_tools.cpp
         racer/animation_player.cpp
         racer/body_lean.cpp
         racer/racer_assets.cpp

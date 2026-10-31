@@ -110,8 +110,12 @@ Result<RacerVisuals::DriverParts> RacerVisuals::FindDriverParts(const AnimationP
             parts.steerRight = steerRight;
             return FindPart(player, "steer-l");
         })
-        .transform([&](std::size_t steerLeft) {
+        .and_then([&](std::size_t steerLeft) {
             parts.steerLeft = steerLeft;
+            return FindPart(player, "power1");
+        })
+        .transform([&](std::size_t hit) {
+            parts.hit = hit;
             return parts;
         });
 }
@@ -119,7 +123,7 @@ Result<RacerVisuals::DriverParts> RacerVisuals::FindDriverParts(const AnimationP
 void RacerVisuals::Update(const Transform& wheels, const sim::RacerSnapshot& motion,
                           float elapsedMs) {
     Spin(motion.forwardSpeed, elapsedMs);
-    Steer(motion.turnRadius, elapsedMs);
+    Drive(motion, elapsedMs);
     const Transform body = lean_.Update(wheels, elapsedMs, parts_.mass);
     const Transform seat{.position = Apply(body, parts_.seat), .rotation = body.rotation};
     Place(parts_.wheelDraws, wheels, parts_.wheels.pose.Solve());
@@ -135,7 +139,22 @@ void RacerVisuals::Spin(float forwardSpeed, float elapsedMs) {
     player.PoseNodes(parts_.wheels.pose.Locals());
 }
 
-void RacerVisuals::Steer(float turnRadius, float elapsedMs) {
+void RacerVisuals::Drive(const sim::RacerSnapshot& motion, float elapsedMs) {
+    AnimationPlayer& player = parts_.driver.player;
+    if (std::exchange(hitReactions_, motion.hitReactions) != motion.hitReactions) {
+        player.Play(parts_.driverParts.hit, false);
+        isReacting_ = true;
+    } else if (!player.IsPlayingOnce()) {
+        if (std::exchange(isReacting_, false)) {
+            player.Play(parts_.driverParts.straight, true);
+        }
+        Steer(motion.turnRadius);
+    }
+    player.Advance(elapsedMs);
+    player.PoseNodes(parts_.driver.pose.Locals());
+}
+
+void RacerVisuals::Steer(float turnRadius) {
     AnimationPlayer& player = parts_.driver.player;
     const DriverParts& driverParts = parts_.driverParts;
     std::size_t part = driverParts.straight;
@@ -145,8 +164,6 @@ void RacerVisuals::Steer(float turnRadius, float elapsedMs) {
         part = driverParts.steerLeft;
     }
     player.BlendTo(part, kSteerBlendMs);
-    player.Advance(elapsedMs);
-    player.PoseNodes(parts_.driver.pose.Locals());
 }
 
 void RacerVisuals::Place(Group group, const Transform& entity, std::span<const Transform> nodes) {

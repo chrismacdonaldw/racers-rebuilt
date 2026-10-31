@@ -86,7 +86,8 @@ void Overlay::Toggle() {
 }
 
 std::vector<std::string> Overlay::Build(settings::Registry& registry, const DeveloperStats& stats,
-                                        std::span<const SceneChoice> scenes) {
+                                        std::span<const SceneChoice> scenes,
+                                        const RacerTools& racerTools) {
     if (!input_.IsOpen()) {
         return {};
     }
@@ -108,6 +109,7 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
             DrawStats(stats, lastFrameCost_);
             ImGui::Separator();
             DrawScenes(scenes);
+            DrawRacerTools(racerTools);
             const auto developer =
                 std::ranges::find(menus, kDeveloperCategory, &SettingMenu::category);
             if (developer != menus.end()) {

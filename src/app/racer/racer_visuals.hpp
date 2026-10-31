@@ -49,6 +49,7 @@ private:
         std::size_t straight = 0;
         std::size_t steerRight = 0;
         std::size_t steerLeft = 0;
+        std::size_t hit = 0;
     };
 
     struct Parts {
@@ -73,11 +74,14 @@ private:
     explicit RacerVisuals(Parts parts) : parts_(std::move(parts)) {}
 
     void Spin(float forwardSpeed, float elapsedMs);
-    void Steer(float turnRadius, float elapsedMs);
+    void Drive(const sim::RacerSnapshot& motion, float elapsedMs);
+    void Steer(float turnRadius);
     void Place(Group group, const Transform& entity, std::span<const Transform> nodes);
 
     Parts parts_;
     BodyLean lean_;
+    std::uint32_t hitReactions_ = 0;
+    bool isReacting_ = false;
 };
 
 }
