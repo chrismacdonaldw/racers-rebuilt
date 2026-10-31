@@ -55,6 +55,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       routeSpeeds_(setup.racers.size(), 1.0F),
       bricks_(BricksFor(course)),
       inventories_(setup.racers.size()),
+      powerups_(setup.effects, setup.racers.size()),
       reaches_(setup.racers.size()) {
     racers_.reserve(setup.racers.size());
     localBounds_.reserve(setup.racers.size());
@@ -75,11 +76,14 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
 void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> controls) {
     RR_ASSERT(controls.size() == racers_.size());
     sounds_.BeginTick();
+    powerups_.BeginTick();
     MeasureReaches();
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         TickRacer(i, elapsed, clock_.Phase() == RacePhase::Intro ? RacerControls{} : controls[i]);
     }
     TickBricks(elapsed);
+    PowerupContext effects = EffectContext();
+    powerups_.Tick(elapsed, effects);
     progress_.Rank(*course_.checkpoints, positions_);
     const RaceClock before = clock_;
     clock_.Advance(elapsed, HasPlayerFinished());
@@ -119,6 +123,16 @@ void RaceSession::MeasureReaches() {
     }
 }
 
+void RaceSession::GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level) {
+    PowerupInventory& inventory = inventories_.at(racer);
+    bricks_.Spend(inventory);
+    inventory.Grant(colour, level);
+}
+
+PowerupContext RaceSession::EffectContext() {
+    return {.racers = racers_, .world = course_.world, .random = &random_};
+}
+
 void RaceSession::TickBricks(Milliseconds elapsed) {
     bricks_.Tick(elapsed, reaches_, inventories_);
     sounds_.HearBricks(bricks_.Events(), AreBricksAudible(clock_));
@@ -129,6 +143,10 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     Racer& car = racers_[racer];
     const Vector3 from = car.Body().motion.position;
     car.RollCurse(elapsed, random_);
+    if (controls.isUsePressed && clock_.IsRunning()) {
+        PowerupContext effects = EffectContext();
+        powerups_.Use(racer, inventories_[racer], bricks_, effects);
+    }
     car.Tick(elapsed, controls, *course_.world);
     const BodyMotion& motion = car.Body().motion;
     wasRespawned_[racer] =

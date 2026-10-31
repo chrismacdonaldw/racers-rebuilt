@@ -32,6 +32,17 @@ void SnapshotBricks(const sim::BrickField& bricks, sim::RenderSnapshot& out) {
     }
 }
 
+void SnapshotEffects(const sim::PowerupSystem& powerups, sim::RenderSnapshot& out) {
+    out.effects.clear();
+    for (const std::uint16_t slot : powerups.Active()) {
+        const sim::EffectSlot& effect = powerups.Slots()[slot];
+        out.effects.push_back({.slot = slot,
+                               .kind = effect.kind,
+                               .use = effect.use,
+                               .transform = TransformToEngine(effect.effect->Pose())});
+    }
+}
+
 }
 
 void StepRace(sim::RaceSession& session, const sim::InputFrame& input,
@@ -56,6 +67,7 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
                               .hitReactions = racer.Status().hitReactions});
     }
     SnapshotBricks(session.Bricks(), out);
+    SnapshotEffects(session.Powerups(), out);
     out.simStateHash = sim::HashRaceSession(session);
 }
 

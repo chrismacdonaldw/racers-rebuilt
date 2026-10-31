@@ -7,7 +7,7 @@
 namespace rr::overlay {
 
 void DrawRacerTools(const RacerTools& tools) {
-    if (tools.racers.empty() || !ImGui::BeginMenu("Racer effects")) {
+    if (tools.racers.empty() || !ImGui::BeginMenu("Racer tools")) {
         return;
     }
     RR_ASSERT(tools.selected != nullptr);
@@ -17,10 +17,16 @@ void DrawRacerTools(const RacerTools& tools) {
         }
     }
     ImGui::Separator();
-    for (const RacerAction& action : tools.actions) {
-        if (ImGui::MenuItem(action.name.c_str())) {
-            action.run();
+    for (const RacerActionGroup& group : tools.groups) {
+        if (!ImGui::BeginMenu(group.name.c_str())) {
+            continue;
         }
+        for (const RacerAction& action : group.actions) {
+            if (ImGui::MenuItem(action.name.c_str())) {
+                action.run();
+            }
+        }
+        ImGui::EndMenu();
     }
     ImGui::EndMenu();
 }

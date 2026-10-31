@@ -6,6 +6,7 @@
 
 #include "assets/brick_layout.hpp"
 #include "core/transform.hpp"
+#include "sim/powerup/powerup_kind.hpp"
 
 namespace rr::sim {
 
@@ -58,12 +59,23 @@ struct BrickSnapshot {
     friend bool operator==(const BrickSnapshot&, const BrickSnapshot&) = default;
 };
 
+/// `slot` stays the same while the effect runs. `transform` is in engine space.
+struct EffectSnapshot {
+    std::uint16_t slot = 0;
+    PowerupKind kind = PowerupKind::Cannonball;
+    PowerupUse use;
+    Transform transform;
+
+    friend bool operator==(const EffectSnapshot&, const EffectSnapshot&) = default;
+};
+
 /// `entities` stays sorted by id. Reuse a snapshot between ticks so its storage isn't reallocated.
 struct RenderSnapshot {
     std::uint64_t tick = 0;
     std::vector<EntitySnapshot> entities;
     std::vector<RacerSnapshot> racers;
     std::vector<BrickSnapshot> bricks;
+    std::vector<EffectSnapshot> effects;
     CameraSnapshot camera;
     std::uint64_t simStateHash = 0;
 

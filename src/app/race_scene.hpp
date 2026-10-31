@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -87,16 +88,13 @@ private:
         Nanoseconds started{};
     };
 
-    struct ChosenEffect {
-        std::size_t racer = 0;
-        RacerEffect effect = RacerEffect::Spin;
-    };
-
     explicit RaceScene(Parts parts);
 
     [[nodiscard]] Transform PlayerCar() const;
     void TickPause(const sim::InputFrame& input);
-    void ApplyChosenEffects();
+    [[nodiscard]] overlay::RacerActionGroup EffectTools();
+    [[nodiscard]] overlay::RacerActionGroup PowerupTools();
+    void ApplyChosenTools();
     [[nodiscard]] std::optional<std::size_t> PauseFocus() const;
     void DrawDebugLines();
 
@@ -107,7 +105,7 @@ private:
     std::optional<std::string> next_;
     std::vector<sim::RacerControls> controls_;
     std::size_t chosenRacer_ = 0;
-    std::vector<ChosenEffect> chosenEffects_;
+    std::vector<std::function<void(sim::RaceSession&)>> chosenTools_;
     std::vector<render::MeshDraw> draws_;
     std::vector<render::DebugLine> collisionLines_;
     std::vector<render::DebugLine> debugLines_;

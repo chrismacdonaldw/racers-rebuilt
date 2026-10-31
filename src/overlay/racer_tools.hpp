@@ -12,11 +12,16 @@ struct RacerAction {
     std::function<void()> run;
 };
 
+struct RacerActionGroup {
+    std::string name;
+    std::vector<RacerAction> actions;
+};
+
 /// Buttons that act on the chosen racer of the running scene. `selected` must outlive the frame.
 struct RacerTools {
     std::vector<std::string> racers;
     std::size_t* selected = nullptr;
-    std::vector<RacerAction> actions;
+    std::vector<RacerActionGroup> groups;
 };
 
 /// Draws into the open menu.

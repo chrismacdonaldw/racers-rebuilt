@@ -34,6 +34,8 @@ rr_add_module(sim
         physics/wall_sweep.cpp
         powerup/brick_field.cpp
         powerup/powerup_inventory.cpp
+        powerup/powerup_kind.cpp
+        powerup/powerup_system.cpp
         race/checkpoint_graph.cpp
         race/lap_tracker.cpp
         race/race_clock.cpp

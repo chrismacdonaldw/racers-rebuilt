@@ -19,6 +19,7 @@
 #include "app/game_settings.hpp"
 #include "app/hud/race_hud_values.hpp"
 #include "app/menu/menu_scenes.hpp"
+#include "app/powerup_tools.hpp"
 #include "app/race_step.hpp"
 #include "app/track_model.hpp"
 #include "app/track_space.hpp"
@@ -60,23 +61,6 @@ float MsSince(std::optional<Nanoseconds>& last) {
     const Nanoseconds elapsed = last ? now - *last : Nanoseconds{};
     last = now;
     return std::chrono::duration<float, std::milli>(elapsed).count();
-}
-
-std::string_view ColourName(std::optional<assets::BrickColour> colour) {
-    if (!colour) {
-        return "none";
-    }
-    switch (*colour) {
-        case assets::BrickColour::Red:
-            return "red";
-        case assets::BrickColour::Blue:
-            return "blue";
-        case assets::BrickColour::Green:
-            return "green";
-        case assets::BrickColour::Yellow:
-            return "yellow";
-    }
-    return "none";
 }
 
 template <typename T>
@@ -231,13 +215,39 @@ overlay::RacerTools RaceScene::OverlayRacerTools() {
         tools.racers.push_back(i == kPlayerSlot ? std::format("Racer {} (you)", i + 1)
                                                 : std::format("Racer {}", i + 1));
     }
-    for (const RacerEffect effect : kRacerEffects) {
-        tools.actions.push_back(
-            {.name = RacerEffectLabel(effect, racers[chosenRacer_]), .run = [this, effect] {
-                 chosenEffects_.push_back({.racer = chosenRacer_, .effect = effect});
-             }});
-    }
+    tools.groups.push_back(EffectTools());
+    tools.groups.push_back(PowerupTools());
     return tools;
+}
+
+overlay::RacerActionGroup RaceScene::EffectTools() {
+    overlay::RacerActionGroup group{.name = "Effects"};
+    const sim::Racer& racer = std::as_const(parts_.session).Racers()[chosenRacer_];
+    for (const RacerEffect effect : kRacerEffects) {
+        group.actions.push_back({.name = RacerEffectLabel(effect, racer), .run = [this, effect] {
+                                     chosenTools_.emplace_back(
+                                         [racer = chosenRacer_, effect](sim::RaceSession& race) {
+                                             ApplyRacerEffect(effect, race.Racers()[racer]);
+                                         });
+                                 }});
+    }
+    return group;
+}
+
+overlay::RacerActionGroup RaceScene::PowerupTools() {
+    overlay::RacerActionGroup group{.name = "Give power-up"};
+    for (const assets::BrickColour colour : kBrickColours) {
+        for (std::uint8_t level = 0; level <= sim::kMaxPowerupLevel; ++level) {
+            group.actions.push_back(
+                {.name = PowerupLabel(colour, level), .run = [this, colour, level] {
+                     chosenTools_.emplace_back(
+                         [racer = chosenRacer_, colour, level](sim::RaceSession& race) {
+                             race.GivePowerup(racer, colour, level);
+                         });
+                 }});
+        }
+    }
+    return group;
 }
 
 void RaceScene::Tick(const sim::InputFrame& input) {
@@ -245,7 +255,7 @@ void RaceScene::Tick(const sim::InputFrame& input) {
         TickPause(input);
         return;
     }
-    ApplyChosenEffects();
+    ApplyChosenTools();
     if (ShowsResults(parts_.session.Clock()) && input.WasPressed(sim::MenuAction::Confirm)) {
         next_ = std::string(kMainMenuScene);
     }
@@ -321,11 +331,11 @@ void RaceScene::TickPause(const sim::InputFrame& input) {
     }
 }
 
-void RaceScene::ApplyChosenEffects() {
-    for (const ChosenEffect& chosen : chosenEffects_) {
-        ApplyRacerEffect(chosen.effect, parts_.session.Racers()[chosen.racer]);
+void RaceScene::ApplyChosenTools() {
+    for (const std::function<void(sim::RaceSession&)>& tool : chosenTools_) {
+        tool(parts_.session);
     }
-    chosenEffects_.clear();
+    chosenTools_.clear();
 }
 
 std::optional<std::size_t> RaceScene::PauseFocus() const {

@@ -28,6 +28,10 @@ public:
     /// Fails when already holding `kMaxWhiteBricks`.
     [[nodiscard]] bool TakeWhite(std::size_t brick);
 
+    /// For an empty inventory only. Granted white bricks belong to no brick on the track.
+    void Grant(assets::BrickColour colour, std::size_t level);
+
+    /// Returns the brick lost, or nothing when it held none or lost a granted one.
     [[nodiscard]] std::optional<std::size_t> LoseWhite();
 
     [[nodiscard]] std::array<std::optional<std::size_t>, kMaxWhiteBricks> Spend();
@@ -37,6 +41,7 @@ public:
 private:
     std::optional<assets::BrickColour> colour_;
     std::array<std::optional<std::size_t>, kMaxWhiteBricks> whites_{};
+    std::size_t grantedWhites_ = 0;
 };
 
 }

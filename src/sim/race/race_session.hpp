@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <span>
 #include <vector>
 
@@ -16,6 +17,7 @@
 #include "sim/physics/racer_controls.hpp"
 #include "sim/powerup/brick_field.hpp"
 #include "sim/powerup/powerup_inventory.hpp"
+#include "sim/powerup/powerup_system.hpp"
 #include "sim/race/checkpoint_graph.hpp"
 #include "sim/race/race_clock.hpp"
 #include "sim/race/race_progress.hpp"
@@ -53,6 +55,10 @@ public:
     [[nodiscard]] Random& Rng() { return random_; }
     [[nodiscard]] const BrickField& Bricks() const { return bricks_; }
     [[nodiscard]] std::span<const PowerupInventory> Inventories() const { return inventories_; }
+    [[nodiscard]] const PowerupSystem& Powerups() const { return powerups_; }
+
+    /// Replaces what `racer` holds, sending its white bricks home.
+    void GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level);
 
     /// The sounds the last `Tick` set off.
     [[nodiscard]] std::span<const SoundEvent> Sounds() const { return sounds_.Events(); }
@@ -67,6 +73,7 @@ private:
     void PaceRoutes(Milliseconds elapsed);
     void MeasureReaches();
     void TickBricks(Milliseconds elapsed);
+    [[nodiscard]] PowerupContext EffectContext();
     [[nodiscard]] bool HasPlayerFinished() const;
 
     RaceCourse course_;
@@ -85,6 +92,7 @@ private:
     std::vector<float> routeSpeeds_;
     BrickField bricks_;
     std::vector<PowerupInventory> inventories_;
+    PowerupSystem powerups_;
     std::vector<BoundingSphere> localBounds_;
     std::vector<BoundingSphere> reaches_;
 };

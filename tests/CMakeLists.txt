@@ -1,5 +1,6 @@
 add_executable(racers-rebuilt-tests
     main.cpp
+    allocation_counter.cpp
     app/car_sounds_test.cpp
     app/checkpoint_gates_test.cpp
     app/collision_wireframe_test.cpp
@@ -146,6 +147,7 @@ add_executable(racers-rebuilt-tests
     sim/physics/turbo_test.cpp
     sim/powerup/brick_field_test.cpp
     sim/powerup/powerup_inventory_test.cpp
+    sim/powerup/powerup_system_test.cpp
     sim/race/ai_race_test.cpp
     sim/race/checkpoint_graph_test.cpp
     sim/race/lap_tracker_test.cpp

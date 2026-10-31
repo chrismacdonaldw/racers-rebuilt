@@ -6,6 +6,7 @@
 
 #include "core/bounding_sphere.hpp"
 #include "sim/physics/chassis.hpp"
+#include "sim/powerup/powerup_effect.hpp"
 #include "sim/race/respawn.hpp"
 
 namespace rr::sim {
@@ -27,6 +28,7 @@ struct RaceSetup {
     std::uint64_t seed = 0;
     int lapCount = 3;
     RespawnRule respawn;
+    EffectFactories effects;
 };
 
 }

@@ -14,6 +14,7 @@
 
 #include "../ai/straight_route.hpp"
 #include "../physics/plane_world.hpp"
+#include "../powerup/fake_effect.hpp"
 #include "checkpoint_ring.hpp"
 
 namespace rr::sim {
@@ -300,4 +301,26 @@ TEST_CASE("bricks stay silent until racing starts") {
 }
 
 }
+TEST_CASE("pressing use fires the held power-up once racing has started") {
+    const Fixture fixture;
+    RaceSetup setup = TwoRacers();
+    setup.effects = test::FakeEffects(Milliseconds{60'000});
+    RaceSession session = fixture.Start(setup);
+    session.GivePowerup(0, assets::BrickColour::Green, 1);
+    constexpr RacerControls kUse{.isUsePressed = true};
+
+    Run(session, 1, kUse);
+    CHECK(session.Powerups().Active().empty());
+    CHECK(session.Inventories()[0].Colour() == assets::BrickColour::Green);
+
+    RunUntilRacing(session);
+    Run(session, 1, kUse);
+
+    REQUIRE(session.Powerups().Active().size() == 1);
+    const EffectSlot& turbo = session.Powerups().Slots()[session.Powerups().Active()[0]];
+    CHECK(turbo.kind == PowerupKind::Turbo);
+    CHECK(turbo.use.level == 1);
+    CHECK(session.Inventories()[0] == PowerupInventory{});
+}
+
 }
