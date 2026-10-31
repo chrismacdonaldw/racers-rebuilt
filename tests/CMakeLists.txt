@@ -4,6 +4,7 @@ add_executable(racers-rebuilt-tests
     app/checkpoint_gates_test.cpp
     app/collision_wireframe_test.cpp
     app/frame_loop_test.cpp
+    app/game_extraction_test.cpp
     app/hud/hud_assets_test.cpp
     app/hud/hud_strings_test.cpp
     app/hud/hud_text_test.cpp

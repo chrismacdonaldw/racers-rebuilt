@@ -11,6 +11,7 @@ rr_add_module(app
         frame_loop.cpp
         free_camera.cpp
         game_boot.cpp
+        game_extraction.cpp
         hud/hud_assets.cpp
         hud/hud_strings.cpp
         hud/hud_text.cpp

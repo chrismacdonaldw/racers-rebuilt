@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "app/game_extraction.hpp"
 #include "app/game_settings.hpp"
 #include "app/install_discovery.hpp"
 #include "app/startup_settings.hpp"
@@ -23,6 +24,7 @@ namespace {
 
 constexpr std::string_view kSettingsFileName = "settings.toml";
 constexpr std::string_view kModsFolderName = "mods";
+constexpr std::string_view kExtractedFolderName = "game";
 
 void OpenLogFile(const std::filesystem::path& dataFolder) {
     const std::filesystem::path logPath = dataFolder / "logs" / "racers-rebuilt.log";
@@ -70,6 +72,37 @@ Result<GameInstall> ResolveInstall(const settings::CommandLine& commandLine,
     return install;
 }
 
+GameInstall ExtractedOrInstall(GameInstall install, const std::filesystem::path& extractedFolder) {
+    log::Info("copying the game files from {} to {}", Utf8FromPath(install.folder),
+              Utf8FromPath(extractedFolder));
+    Result<void> extracted = ExtractGameFiles(install.folder, extractedFolder);
+    if (!extracted) {
+        log::Warn("{}, reading the game files from {}", extracted.error().message,
+                  Utf8FromPath(install.folder));
+        return install;
+    }
+    std::optional<GameInstall> copy = OpenExtractedCopy(extractedFolder, std::nullopt);
+    return copy ? std::move(*copy) : std::move(install);
+}
+
+Result<GameInstall> ResolveGameFiles(const settings::CommandLine& commandLine,
+                                     settings::Registry& registry,
+                                     const std::filesystem::path& settingsFile,
+                                     const std::filesystem::path& dataFolder) {
+    if (OptionalPath(commandLine.gamePath.value_or(""))) {
+        return ResolveInstall(commandLine, registry, settingsFile);
+    }
+    const std::filesystem::path extractedFolder = dataFolder / kExtractedFolderName;
+    std::optional<GameInstall> extracted =
+        OpenExtractedCopy(extractedFolder, OptionalPath(registry.Get(kGamePath)));
+    if (extracted) {
+        return std::move(*extracted);
+    }
+    return ResolveInstall(commandLine, registry, settingsFile).transform([&](GameInstall install) {
+        return ExtractedOrInstall(std::move(install), extractedFolder);
+    });
+}
+
 Result<assets::Vfs> MountGameFiles(GameInstall install, const mods::ModList& mods,
                                    const settings::Registry& registry) {
     Result<assets::FolderLayer> looseFiles =
@@ -108,7 +141,7 @@ Result<GameBoot> BootGame(std::span<const std::string_view> args) {
 
     Result<platform::SdlContext> sdl = platform::SdlContext::Create();
     Result<assets::Vfs> vfs = sdl.and_then([&](const auto&) {
-        return ResolveInstall(*commandLine, *registry, settingsFile)
+        return ResolveGameFiles(*commandLine, *registry, settingsFile, *dataFolder)
             .and_then([&](GameInstall install) {
                 return MountGameFiles(std::move(install), extensions.mods, *registry);
             });
