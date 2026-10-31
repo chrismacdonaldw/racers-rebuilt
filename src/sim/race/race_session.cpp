@@ -92,6 +92,9 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     if (before.Phase() == RacePhase::Finished && clock_.Phase() == RacePhase::Results) {
         progress_.FinishRemaining();
     }
+    for (Racer& racer : racers_) {
+        racer.UpdateTimers(elapsed);
+    }
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         sounds_.HearRacer(i, racers_[i], isPlayer_[i], clock_.IsRunning(), elapsed);
     }
@@ -125,6 +128,7 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
                             const RacerControls& controls) {
     Racer& car = racers_[racer];
     const Vector3 from = car.Body().motion.position;
+    car.RollCurse(elapsed, random_);
     car.Tick(elapsed, controls, *course_.world);
     const BodyMotion& motion = car.Body().motion;
     wasRespawned_[racer] =

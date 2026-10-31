@@ -2,7 +2,9 @@
 
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <numbers>
+#include <optional>
 
 #include "core/vector3.hpp"
 #include "sim/physics/chassis.hpp"
@@ -63,6 +65,31 @@ struct ImpulseTimers {
     int rollMs = 0;
 };
 
+struct SpinState {
+    bool isSpinning = false;
+    bool isFresh = false;
+    int periodMs = 0;
+    int stopAtMs = 0;
+};
+
+/// `ratePerSecond` moves the height, and the bank is in radians.
+struct HoverLift {
+    float height = 0.0F;
+    float targetHeight = 0.0F;
+    float ratePerSecond = 0.0F;
+    float bank = 0.0F;
+    float targetBank = 0.0F;
+};
+
+struct HoverState {
+    bool isHovering = false;
+    HoverLift lift;
+    Vector3 frontAxle;
+    Vector3 rearAxle;
+};
+
+inline constexpr std::size_t kExternalForceSlots = 2;
+
 /// Distances are world units and times are ms, so velocities are units per ms.
 struct BodyState {
     BodyMotion motion;
@@ -84,6 +111,12 @@ struct BodyState {
     bool hasWallContact = false;
     int airborneMs = 0;
     Vector3 supportForce;
+    SpinState spin;
+    bool isSpunOut = false;
+    int spinOutMs = 0;
+    HoverState hover;
+    std::array<std::optional<Vector3>, kExternalForceSlots> externalForces{};
+    bool hasTrackCollision = true;
 };
 
 [[nodiscard]] constexpr bool IsGrounded(const BodyMotion& motion) {

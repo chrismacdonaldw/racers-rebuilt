@@ -101,9 +101,10 @@ TEST_CASE("the lap counter and lap time sit top right, right of their labels") {
     const Fonts fonts;
     RaceHud hud(EnglishStrings(), fonts.Hud());
     const test::RingRace race(3, 3);
+    const auto names = Names();
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 0, Names(), texts);
+    hud.Layout(race.clock, race.progress, 0, names, texts);
 
     const float lapTimeX = 640.0F - (11.0F / 8.0F * 70.0F);
     CHECK(XOf(texts, u"0:00:00") == doctest::Approx(lapTimeX));
@@ -120,9 +121,10 @@ TEST_CASE("the place digit ends where its suffix starts, top left") {
     const std::array<Vector3, 3> positions{Vector3{.x = -9.0F}, Vector3{.x = -8.0F},
                                            Vector3{.x = -7.0F}};
     race.progress.Rank(race.graph, positions);
+    const auto names = Names();
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 0, Names(), texts);
+    hud.Layout(race.clock, race.progress, 0, names, texts);
 
     const auto digit = std::ranges::find_if(
         texts, [](const HudText& item) { return item.font == HudFont::Numbers; });
@@ -138,9 +140,10 @@ TEST_CASE("the countdown is centred, yellow and in the number font") {
     test::RingRace race(1, 3);
     race.clock.Advance(Milliseconds{2001}, false);
     race.clock.Advance(Milliseconds{2500}, false);
+    const auto names = Names();
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 0, Names(), texts);
+    hud.Layout(race.clock, race.progress, 0, names, texts);
 
     const HudText one = LastNumbers(texts);
     const float scale = 0.9F;
@@ -166,9 +169,10 @@ TEST_CASE("the results table lists each racer with its gap to the winner") {
     race.clock.Advance(Milliseconds{5001}, false);
     const std::array<Vector3, 3> positions{};
     race.progress.Rank(race.graph, positions);
+    const auto names = Names();
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 1, Names(), texts);
+    hud.Layout(race.clock, race.progress, 1, names, texts);
 
     CHECK(YOf(texts, u"ANN DROID") == doctest::Approx(132.0F));
     CHECK(XOf(texts, u"ANN DROID") == doctest::Approx(50.0F));

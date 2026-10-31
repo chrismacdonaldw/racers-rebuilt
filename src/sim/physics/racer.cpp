@@ -1,9 +1,12 @@
 #include "sim/physics/racer.hpp"
 
 #include <cmath>
+#include <cstdint>
 #include <utility>
 
 #include "core/assert.hpp"
+#include "core/quaternion.hpp"
+#include "sim/physics/body_effects.hpp"
 #include "sim/physics/car_body.hpp"
 #include "sim/physics/drive_controller.hpp"
 #include "sim/physics/facing.hpp"
@@ -40,6 +43,9 @@ void Racer::Place(const RacerStart& start) {
     SetDrive(body_, constants_, 0.0F, kBaseMaxSpeed * stats_.topSpeed);
     driver_ = {};
     turbo_.reset();
+    const std::uint32_t hitReactions = status_.hitReactions;
+    status_ = {};
+    status_.hitReactions = hitReactions;
 }
 
 void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const CollisionQuery& world) {
@@ -56,10 +62,14 @@ void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const Coll
     if (const std::optional<TurboLevel> boost = startBoost_.Update(controls, dtMs)) {
         StartTurbo(*boost);
     }
+    if (controls.isBrakeHeld && !wasBrakeHeld_) {
+        FinishSpin(body_);
+    }
+    wasBrakeHeld_ = controls.isBrakeHeld;
     const bool wasDrifting = driver_.State().isDrifting;
     const RacerControls driven =
         startBoost_.State().isHeldAtStart ? SteeringOnly(controls) : controls;
-    DriveCommand command = driver_.Update(driven, CanStartDrift(body_), dtMs);
+    DriveCommand command = AffectedDrive(driver_.Update(driven, CanStartDrift(body_), dtMs));
     if (command.isDrifting && body_.derived.forwardSpeed < kMinDriftSpeed) {
         driver_.EndDrift();
         command.isDrifting = false;
@@ -97,7 +107,29 @@ void Racer::SetRouteSpeed(float speed) {
 
 void Racer::StartTurbo(TurboLevel level) {
     turbo_ = sim::StartTurbo(body_, constants_, stats_, level);
+    if (status_.isCursed) {
+        EndTurbo(body_, constants_, stats_);
+    }
     events_.turboStarted = level;
+}
+
+DriveCommand Racer::AffectedDrive(DriveCommand command) {
+    if (status_.isMagnetHeld) {
+        driver_.EndDrift();
+        const float drive = body_.derived.forwardSpeed > 0.0F ? -1.0F : 0.0F;
+        command = {.steering = command.steering,
+                   .drive = drive,
+                   .isDrifting = false,
+                   .isHardDrift = false};
+    }
+    if (!status_.isCursed) {
+        return command;
+    }
+    if (status_.isMagnetHeld) {
+        command.steering = -command.steering;
+        return command;
+    }
+    return Cursed(command, status_.jitter);
 }
 
 void Racer::UpdateTurbo(int dtMs) {
@@ -114,7 +146,14 @@ void Racer::UpdateTurbo(int dtMs) {
 }
 
 Transform Racer::Pose() const {
-    return {.position = body_.motion.position, .rotation = ToQuaternion(body_.motion.basis)};
+    const Basis& basis = body_.motion.basis;
+    const float bank = body_.hover.lift.bank;
+    if (route_ || bank == 0.0F) {
+        return {.position = body_.motion.position, .rotation = ToQuaternion(basis)};
+    }
+    const Vector3 up = Rotate(FromAxisAngle(basis.forward, bank), basis.up);
+    return {.position = body_.motion.position,
+            .rotation = ToQuaternion(OrthonormalBasis(basis.forward, up))};
 }
 
 void Racer::TakeRoutePose(const AiRacer& route) {

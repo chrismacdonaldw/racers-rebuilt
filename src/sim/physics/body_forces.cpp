@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <optional>
 
 #include "sim/physics/rigid_body.hpp"
 
@@ -41,6 +42,14 @@ void AddAirborneForces(BodyState& body, const BodyConstants& constants) {
     }
 }
 
+void CancelTipping(BodyMotion& motion, const Vector3& contact, const Vector3& opposite) {
+    const Vector3 axis = Normalized(Cross(opposite - contact, motion.supportNormal), {});
+    const float toward = Dot(motion.angularMomentum, axis);
+    if (toward > 0.0F) {
+        motion.angularMomentum -= axis * toward;
+    }
+}
+
 void AddWheelForces(BodyState& body, const BodyConstants& constants) {
     BodyMotion& motion = body.motion;
     for (std::size_t i = 0; i < kWheelCount; ++i) {
@@ -51,12 +60,18 @@ void AddWheelForces(BodyState& body, const BodyConstants& constants) {
         if (motion.contactCount < 3) {
             ApplyForceAt(body, constants, wheel.contactForce, wheel.position);
         }
-        const Vector3& diagonal = motion.wheels[kWheelCount - 1 - i].position;
-        const Vector3 axis = Normalized(Cross(diagonal - wheel.position, motion.supportNormal), {});
-        const float toward = Dot(motion.angularMomentum, axis);
-        if (toward > 0.0F) {
-            motion.angularMomentum -= axis * toward;
-        }
+        CancelTipping(motion, wheel.position, motion.wheels[kWheelCount - 1 - i].position);
+    }
+}
+
+void AddHoverForces(BodyState& body) {
+    BodyMotion& motion = body.motion;
+    const HoverState& hover = body.hover;
+    if (motion.wheels[0].isInContact) {
+        CancelTipping(motion, hover.frontAxle, hover.rearAxle);
+    }
+    if (motion.wheels[2].isInContact) {
+        CancelTipping(motion, hover.rearAxle, hover.frontAxle);
     }
 }
 
@@ -100,17 +115,19 @@ void AddGroundedForces(BodyState& body, const BodyConstants& constants) {
     if (Length(body.supportForce) > kGravity * constants.massScale * threshold) {
         body.force += body.supportForce;
     }
-    if (body.impulses.rollMs <= 0 && body.impulses.pitchMs <= 0) {
+    if (body.hover.isHovering) {
+        AddHoverForces(body);
+    } else if (body.impulses.rollMs <= 0 && body.impulses.pitchMs <= 0) {
         AddWheelForces(body, constants);
     }
     float contactScale = 1.0F;
-    if (body.steering.isSteering) {
+    if (body.steering.isSteering || body.spin.isSpinning) {
         const float friction = AverageOverWheels(motion, &Surface::friction);
         body.force += body.derived.velocityDirection *
                       (GravityForce(constants) * friction * body.steering.slip);
         contactScale = 1.0F - body.steering.slip;
     }
-    if (body.hasWallYaw) {
+    if (body.spin.isSpinning || body.hasWallYaw) {
         body.force +=
             body.derived.lateralVelocity * (-kWallYawDamping * constants.mass * contactScale);
     } else {
@@ -119,15 +136,30 @@ void AddGroundedForces(BodyState& body, const BodyConstants& constants) {
 }
 
 void AddSurfaceAndDrag(BodyState& body, const BodyConstants& constants) {
-    Vector3 push;
-    float rolling = 0.0F;
-    for (const WheelProbe& wheel : body.motion.wheels) {
-        push += wheel.surface.force;
-        rolling += wheel.surface.rollingResistance;
+    const bool isHovering = body.hover.isHovering;
+    if (!isHovering && !body.isSpunOut) {
+        Vector3 push;
+        for (const WheelProbe& wheel : body.motion.wheels) {
+            push += wheel.surface.force;
+        }
+        body.force += push * (constants.massScale * kWheelShare);
     }
-    body.force += push * (constants.massScale * kWheelShare);
+    float rolling = 0.0F;
+    if (!isHovering) {
+        for (const WheelProbe& wheel : body.motion.wheels) {
+            rolling += wheel.surface.rollingResistance;
+        }
+    }
     const float drag = (kWheelShare * rolling) + body.dragCoefficient;
     body.force += body.motion.velocity * (-drag * body.derived.speed);
+}
+
+void AddExternalForces(BodyState& body) {
+    for (const std::optional<Vector3>& force : body.externalForces) {
+        if (force) {
+            body.force += *force;
+        }
+    }
 }
 
 }
@@ -144,6 +176,7 @@ void AccumulateForces(BodyState& body, const BodyConstants& constants) {
         AddAirborneForces(body, constants);
     }
     AddSurfaceAndDrag(body, constants);
+    AddExternalForces(body);
 }
 
 }

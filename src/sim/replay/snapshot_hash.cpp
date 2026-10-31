@@ -84,11 +84,35 @@ public:
 
     void Add(const ImpulseTimers& timers) { Add(timers.yawMs, timers.pitchMs, timers.rollMs); }
 
+    void Add(const SpinState& spin) {
+        Add(spin.isSpinning, spin.isFresh, spin.periodMs, spin.stopAtMs);
+    }
+
+    void Add(const HoverLift& lift) {
+        Add(lift.height, lift.targetHeight, lift.ratePerSecond, lift.bank, lift.targetBank);
+    }
+
+    void Add(const HoverState& hover) {
+        Add(hover.isHovering, hover.lift, hover.frontAxle, hover.rearAxle);
+    }
+
+    void Add(const std::optional<Vector3>& force) {
+        Add(force.has_value(), force.value_or(Vector3{}));
+    }
+
     void Add(const BodyState& body) {
         Add(body.motion, body.saved, body.angularVelocity, body.force, body.torque, body.facing,
             body.derived, body.turnRadius, body.yawRate, body.thrust, body.maxSpeed,
             body.dragCoefficient, body.gripScale, body.steering, body.impulses, body.hasWallYaw,
-            body.hasWallContact, body.airborneMs, body.supportForce);
+            body.hasWallContact, body.airborneMs, body.supportForce, body.spin, body.isSpunOut,
+            body.spinOutMs, body.hover, body.externalForces[0], body.externalForces[1],
+            body.hasTrackCollision);
+    }
+
+    void Add(const RacerStatus& status) {
+        Add(status.isHalted, status.isMagnetHeld, status.isGhost, status.isCursed, status.curseMs,
+            status.jitter.countdownMs, status.jitter.throttleOffset, status.jitter.steerOffset,
+            static_cast<std::uint64_t>(status.hitReactions));
     }
 
     void Add(const DriverState& driver) {
@@ -189,7 +213,7 @@ std::uint64_t HashSnapshot(const RenderSnapshot& snapshot) {
 
 std::uint64_t HashRacerState(const Racer& racer) {
     StateHash hash;
-    hash.Add(racer.Body(), racer.Driver(), racer.Boost(), racer.ActiveTurbo());
+    hash.Add(racer.Body(), racer.Driver(), racer.Boost(), racer.ActiveTurbo(), racer.Status());
     return hash.Value();
 }
 

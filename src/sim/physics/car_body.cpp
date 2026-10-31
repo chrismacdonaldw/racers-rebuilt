@@ -4,9 +4,11 @@
 #include <cmath>
 #include <optional>
 
+#include "sim/physics/body_effects.hpp"
 #include "sim/physics/body_forces.hpp"
 #include "sim/physics/facing.hpp"
 #include "sim/physics/ground_contact.hpp"
+#include "sim/physics/hover_contact.hpp"
 #include "sim/physics/rigid_body.hpp"
 #include "sim/physics/wall_sweep.hpp"
 
@@ -30,18 +32,36 @@ bool CountDown(int& timerMs, int dtMs) {
     return true;
 }
 
-void RunTimers(BodyState& body, int dtMs) {
+int RunTimers(BodyState& body, int dtMs) {
     body.hasWallContact = false;
+    CountDownSpinOut(body, dtMs);
     const Basis& basis = body.motion.basis;
-    if (CountDown(body.impulses.yawMs, dtMs)) {
+    if (body.spin.isSpinning) {
+        dtMs = CountDownSpin(body, dtMs);
+    } else if (CountDown(body.impulses.yawMs, dtMs)) {
         CancelAngularMomentum(body.motion, basis.up);
         body.hasWallYaw = false;
     }
+    body.spin.stopAtMs = std::max(body.spin.stopAtMs - dtMs, 0);
     if (CountDown(body.impulses.rollMs, dtMs)) {
         CancelAngularMomentum(body.motion, basis.forward);
     }
     if (CountDown(body.impulses.pitchMs, dtMs)) {
         CancelAngularMomentum(body.motion, basis.side);
+    }
+    if (body.hover.isHovering) {
+        body.hover.lift.targetBank = HoverBankTarget(body.turnRadius);
+    }
+    return dtMs;
+}
+
+void UpdateContacts(BodyState& body, const BodyConstants& constants, int dtMs,
+                    const CollisionQuery& world) {
+    if (body.hover.isHovering) {
+        UpdateHoverLift(body.hover.lift, dtMs);
+        UpdateHoverContact(body, constants, dtMs, world);
+    } else {
+        UpdateGroundContact(body, constants, dtMs, world);
     }
 }
 
@@ -50,7 +70,7 @@ void RunPass(BodyState& body, const BodyConstants& constants, int dtMs,
     AccumulateForces(body, constants);
     Integrate(body, constants, dtMs);
     LimitUprightTilt(body.motion);
-    UpdateGroundContact(body, constants, dtMs, world);
+    UpdateContacts(body, constants, dtMs, world);
     UpdateFacing(body, dtMs);
     UpdateDerivedMotion(body);
     UpdateWheelSurfaces(body.motion);
@@ -133,9 +153,9 @@ void SetTurnRadius(BodyState& body, float radius) {
 
 void StepBody(BodyState& body, const BodyConstants& constants, int dtMs,
               const CollisionQuery& world) {
-    RunTimers(body, dtMs);
+    const int stepMs = RunTimers(body, dtMs);
     body.saved = body.motion;
-    RunPassesAgainstWalls(body, constants, dtMs, world);
+    RunPassesAgainstWalls(body, constants, stepMs, world);
     body.airborneMs = IsGrounded(body.motion) ? 0 : body.airborneMs + dtMs;
 }
 
