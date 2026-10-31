@@ -30,4 +30,7 @@ public:
                                                                 const Vector3& to) const = 0;
 };
 
+[[nodiscard]] std::optional<SegmentHit> CastSolid(const CollisionQuery& world, const Vector3& from,
+                                                  const Vector3& to);
+
 }

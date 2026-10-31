@@ -12,15 +12,8 @@ constexpr Vector3 kDropEnd{.z = -500.0F};
 constexpr float kFallDepth = 20.0F;
 
 std::optional<Vector3> GroundBelow(const Vector3& point, const CollisionQuery& world) {
-    std::optional<SegmentHit> nearest;
-    for (std::size_t i = 0; i < world.WorldCount(); ++i) {
-        const std::optional<SegmentHit> hit =
-            world.CastSegment(i, point + kDropStart, point + kDropEnd);
-        if (hit && hit->isSolid && (!nearest || hit->fraction < nearest->fraction)) {
-            nearest = hit;
-        }
-    }
-    return nearest.transform([](const SegmentHit& hit) { return hit.point; });
+    return CastSolid(world, point + kDropStart, point + kDropEnd)
+        .transform([](const SegmentHit& hit) { return hit.point; });
 }
 
 float HeadingThrough(const assets::Checkpoint& gate) {

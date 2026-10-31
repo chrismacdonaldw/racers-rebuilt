@@ -14,7 +14,7 @@ struct Camera {
     float farPlane = 1000.0F;
 };
 
-[[nodiscard]] glm::mat4 ModelMatrix(const Transform& transform);
+[[nodiscard]] glm::mat4 ModelMatrix(const Transform& transform, float scale = 1.0F);
 
 /// Maps to D3D clip space, with depth from 0 at the near plane to 1 at the far plane.
 [[nodiscard]] glm::mat4 ViewProjection(const Camera& camera, float aspectRatio);

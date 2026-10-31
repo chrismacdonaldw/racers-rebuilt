@@ -3,6 +3,7 @@
 #include <string_view>
 #include <vector>
 
+#include "assets/brick_layout.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 #include "sim/ai/route_choice.hpp"
@@ -17,6 +18,7 @@ struct RaceTrack {
     CheckpointGraph checkpoints;
     std::vector<RacerStart> grid;
     GridRoutes routes;
+    assets::BrickLayout bricks;
     float lowestTrackZ = 0.0F;
 };
 

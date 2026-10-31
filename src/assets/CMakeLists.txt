@@ -2,6 +2,7 @@ rr_add_module(assets
     SOURCES
         animation_database.cpp
         bmp_image.cpp
+        brick_layout.cpp
         byte_reader.cpp
         champion_database.cpp
         circuit_database.cpp

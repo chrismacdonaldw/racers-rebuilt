@@ -47,6 +47,7 @@ add_executable(racers-rebuilt-tests
     assets/animation_database_test.cpp
     assets/asset_cache_test.cpp
     assets/bmp_image_test.cpp
+    assets/brick_layout_test.cpp
     assets/byte_reader_test.cpp
     assets/car_survey_test.cpp
     assets/champion_database_test.cpp
@@ -137,6 +138,8 @@ add_executable(racers-rebuilt-tests
     sim/physics/racer_test.cpp
     sim/physics/start_boost_test.cpp
     sim/physics/turbo_test.cpp
+    sim/powerup/brick_field_test.cpp
+    sim/powerup/powerup_inventory_test.cpp
     sim/race/ai_race_test.cpp
     sim/race/checkpoint_graph_test.cpp
     sim/race/lap_tracker_test.cpp

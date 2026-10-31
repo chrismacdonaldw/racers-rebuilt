@@ -6,6 +6,7 @@
 #include <limits>
 #include <utility>
 
+#include "assets/brick_layout.hpp"
 #include "assets/checkpoints.hpp"
 #include "assets/start_grid.hpp"
 
@@ -60,14 +61,17 @@ Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track) 
     Result<GridRoutes> routes = collision.and_then([&](const TrackCollision&) {
         return LoadGridRoutes(vfs, track, grid->slots.size(), false);
     });
-    if (!routes) {
-        return std::unexpected(std::move(routes.error()));
+    Result<assets::BrickLayout> bricks = routes.and_then(
+        [&](const GridRoutes&) { return ReadParsed(vfs, track, "POWERUP.PWB", assets::ParsePwb); });
+    if (!bricks) {
+        return std::unexpected(std::move(bricks.error()));
     }
     const float lowestTrackZ = LowestPoint(collision->Track());
     return RaceTrack{.collision = std::move(*collision),
                      .checkpoints = std::move(*checkpoints),
                      .grid = GridStarts(*grid),
                      .routes = std::move(*routes),
+                     .bricks = std::move(*bricks),
                      .lowestTrackZ = lowestTrackZ};
 }
 

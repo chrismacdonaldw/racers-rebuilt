@@ -14,6 +14,7 @@ rr_add_module(sim
         physics/box_contact.cpp
         physics/car_body.cpp
         physics/chassis.cpp
+        physics/collision_query.cpp
         physics/drive_controller.cpp
         physics/driver_input.cpp
         physics/facing.cpp
@@ -26,6 +27,8 @@ rr_add_module(sim
         physics/start_boost.cpp
         physics/turbo.cpp
         physics/wall_sweep.cpp
+        powerup/brick_field.cpp
+        powerup/powerup_inventory.cpp
         race/checkpoint_graph.cpp
         race/lap_tracker.cpp
         race/race_clock.cpp

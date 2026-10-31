@@ -523,7 +523,7 @@ void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
         SDL_BindGPUGraphicsPipeline(pass, pipeline);
         bound = pipeline;
     }
-    const DrawUniforms drawUniforms{.model = ModelMatrix(draw.transform),
+    const DrawUniforms drawUniforms{.model = ModelMatrix(draw.transform, draw.scale),
                                     .viewProjection = viewProjection};
     const MaterialUniforms materialUniforms{
         .tint = draw.material.tint,
