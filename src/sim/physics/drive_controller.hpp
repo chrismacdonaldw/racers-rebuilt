@@ -11,6 +11,12 @@ namespace rr::sim {
 /// Positive radii turn left. Zero means straight.
 [[nodiscard]] float TurnRadiusFor(float steering);
 
+/// Inverts `TurnRadiusFor`, past full lock for radii under 40.
+[[nodiscard]] float SteeringFor(float radius);
+
+/// Steering assist widens any turn radius under this, in units.
+[[nodiscard]] float GripLimit(const BodyState& body);
+
 [[nodiscard]] bool CanStartDrift(const BodyState& body);
 
 /// `turboThrust` replaces the pedal thrust, in units per s² before the acceleration multiplier.

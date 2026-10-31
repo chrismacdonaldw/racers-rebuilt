@@ -14,6 +14,29 @@ TEST_CASE("full lock turns on a radius of 40 and a tiny input on about 4000") {
     CHECK(TurnRadiusFor(0.0F) == 0.0F);
 }
 
+TEST_CASE("steering for a radius undoes the turn radius, past full lock when tighter than 40") {
+    CHECK(SteeringFor(TurnRadiusFor(0.3F)) == doctest::Approx(0.3F));
+    CHECK(SteeringFor(TurnRadiusFor(-0.7F)) == doctest::Approx(-0.7F));
+    CHECK(SteeringFor(20.0F) > 1.0F);
+    CHECK(SteeringFor(5000.0F) == 0.0F);
+    CHECK(SteeringFor(0.0F) == 0.0F);
+}
+
+TEST_CASE("the grip limit grows with the square of speed") {
+    BodyState body;
+    body.motion.contactCount = 4;
+    for (WheelProbe& wheel : body.motion.wheels) {
+        wheel.isInContact = true;
+        wheel.surface.lateralGrip = 2.0F;
+    }
+    body.derived.forwardSpeed = 0.1F;
+    const float slow = GripLimit(body);
+    body.derived.forwardSpeed = 0.2F;
+
+    CHECK(GripLimit(body) == doctest::Approx(4.0F * slow));
+    CHECK(slow == doctest::Approx(0.01F * 1.0e6F / (2.0F * kGravity)));
+}
+
 TEST_CASE("turn radii are clamped to 40 and drop to straight beyond 4096") {
     BodyState body;
 

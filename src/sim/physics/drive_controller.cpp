@@ -36,18 +36,6 @@ float Alignment(const BodyState& body) {
     return Dot(body.motion.basis.forward, body.derived.velocityDirection);
 }
 
-float GripLimit(const BodyState& body) {
-    if (!IsGrounded(body.motion)) {
-        return kAirborneGripLimit;
-    }
-    const float grip = AverageContactGrip(body.motion) * body.gripScale;
-    if (grip <= 0.0F) {
-        return kGriplessLimit;
-    }
-    const float speed = body.derived.forwardSpeed;
-    return speed * speed * 1.0e6F / (grip * kGravity);
-}
-
 bool CanSteer(const BodyState& body, float radius) {
     const float alignment = Alignment(body);
     return alignment > 0.0F && radius * body.turnRadius >= 0.0F &&
@@ -87,6 +75,27 @@ float TurnRadiusFor(float steering) {
         return 1.0F / (((kTightCurvature - kWideCurvature) * steering) - kWideCurvature);
     }
     return 0.0F;
+}
+
+float SteeringFor(float radius) {
+    if (radius == 0.0F) {
+        return 0.0F;
+    }
+    const float curvature = 1.0F / std::abs(radius);
+    const float steering = (curvature - kWideCurvature) / (kTightCurvature - kWideCurvature);
+    return std::copysign(std::max(steering, 0.0F), radius);
+}
+
+float GripLimit(const BodyState& body) {
+    if (!IsGrounded(body.motion)) {
+        return kAirborneGripLimit;
+    }
+    const float grip = AverageContactGrip(body.motion) * body.gripScale;
+    if (grip <= 0.0F) {
+        return kGriplessLimit;
+    }
+    const float speed = body.derived.forwardSpeed;
+    return speed * speed * 1.0e6F / (grip * kGravity);
 }
 
 bool CanStartDrift(const BodyState& body) {
