@@ -25,7 +25,7 @@ racers-rebuilt is a reimplementation of LEGO Racers for 64-bit Windows. It reads
 ## Features
 
 - One `.exe` with no installer and no extra DLLs
-- Game data read in place from `LEGO.JAM`, with nothing extracted to disk
+- Game files copied from your install once, so later launches don't need it
 - Any framerate from 30 to 360 FPS, uncapped, or VSync, on a fixed simulation tick
 - Automatic detection of your LEGO Racers install, with a one-time folder picker as the fallback
 - Replacement music in OGG, FLAC, MP3 or WAV, with optional loop points
@@ -51,9 +51,19 @@ Tested with the English PC release.
 
 The choice is saved, so the picker only shows once.
 
+### Game files
+
+The first launch copies `LEGO.JAM` and the `.tun` music and `.avi` videos from your install to `game/` in the [data folder](#data-folder), about 130 MB. Later launches read that copy, so the original install can be moved or removed.
+
+- A racers-rebuilt update that needs different files copies them again on its next launch. It needs the install to do that.
+- Changing `game.path` copies from the new folder on the next launch.
+- `--game-path` reads that folder in place and copies nothing.
+- If the copy fails, for example on a full disk, the game reads the install in place and the log says why.
+- Deleting `game/` makes the next launch find the install and copy it again.
+
 ### How the game is found
 
-Each location is checked in order. The first folder with a valid `LEGO.JAM` wins.
+This runs on the first launch, with `--game-path`, and when the game files need copying again. Each location is checked in order. The first folder with a valid `LEGO.JAM` wins.
 
 1. `--game-path <folder>` on the command line
 2. `game.path` in `settings.toml`
@@ -68,7 +78,7 @@ A folder is valid when `LEGO.JAM` exists and contains the `GAMEDATA` and `MENUDA
 
 ### Data folder
 
-Settings, logs, music and mods live in the data folder, `%APPDATA%\racers-rebuilt\` by default.
+Settings, logs, the copied game files, music and mods live in the data folder, `%APPDATA%\racers-rebuilt\` by default.
 
 To keep everything next to the exe instead, create an empty file named `portable.txt` beside `racers-rebuilt.exe`. That folder becomes the data folder.
 
@@ -76,6 +86,7 @@ To keep everything next to the exe instead, create an empty file named `portable
 <data>/
   settings.toml
   logs/racers-rebuilt.log
+  game/
   music/
   mods/
 ```
