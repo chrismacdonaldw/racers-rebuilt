@@ -279,5 +279,25 @@ TEST_CASE("a racer takes a brick inside its bounds, wherever they sit on the car
     CHECK_FALSE(session.Inventories()[1].Colour().has_value());
 }
 
+TEST_CASE("bricks stay silent until racing starts") {
+    constexpr int kTicksTo7Seconds = 584;
+    Fixture fixture;
+    const assets::BrickLayout bricks{
+        .coloured = {{.position = {.z = kHighUp}},
+                     {.position = {.z = kHighUp}, .respawn = Milliseconds{10000}}}};
+    fixture.bricks = &bricks;
+    RaceSession session = fixture.Start(TwoRacers());
+
+    const std::vector<HeardSound> heard = Listen(session, kTicksTo7Seconds, {});
+
+    std::vector<SoundEvent> respawns;
+    for (const HeardSound& sound : heard) {
+        if (sound.second.sound == RaceSound::BrickRespawn) {
+            respawns.push_back(sound.second);
+        }
+    }
+    CHECK(respawns == std::vector<SoundEvent>{{.sound = RaceSound::BrickRespawn, .brick = 1}});
+}
+
 }
 }

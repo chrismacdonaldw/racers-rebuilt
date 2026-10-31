@@ -55,7 +55,8 @@ public:
 
     void HearFinish(std::size_t racer);
 
-    void HearBricks(std::span<const BrickEvent> events);
+    /// `areBricksAudible` gates the bricks' own sounds, not the white pickup sound.
+    void HearBricks(std::span<const BrickEvent> events, bool areBricksAudible);
 
     [[nodiscard]] std::span<const SoundEvent> Events() const { return events_; }
 

@@ -19,6 +19,10 @@ std::size_t BrickCount(const RaceCourse& course) {
                                     : course.bricks->coloured.size() + course.bricks->white.size();
 }
 
+bool AreBricksAudible(const RaceClock& clock) {
+    return clock.Phase() != RacePhase::Intro && clock.Phase() != RacePhase::Countdown;
+}
+
 std::span<const assets::RaceRoute> RoutesFor(const RaceCourse& course, std::size_t slot) {
     if (course.routes == nullptr || slot >= course.routes->size()) {
         return {};
@@ -114,7 +118,7 @@ void RaceSession::MeasureReaches() {
 
 void RaceSession::TickBricks(Milliseconds elapsed) {
     bricks_.Tick(elapsed, reaches_, inventories_);
-    sounds_.HearBricks(bricks_.Events());
+    sounds_.HearBricks(bricks_.Events(), AreBricksAudible(clock_));
 }
 
 void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,

@@ -86,8 +86,11 @@ void RaceSounds::HearFinish(std::size_t racer) {
     Add(RaceSound::Finish, racer);
 }
 
-void RaceSounds::HearBricks(std::span<const BrickEvent> events) {
+void RaceSounds::HearBricks(std::span<const BrickEvent> events, bool areBricksAudible) {
     for (const BrickEvent& event : events) {
+        if (!areBricksAudible && event.kind != BrickEventKind::WhiteCollected) {
+            continue;
+        }
         Add({.sound = BrickSound(event.kind),
              .racer = event.racer,
              .brick = event.brick,
