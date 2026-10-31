@@ -118,6 +118,12 @@ void AnimationPlayer::AdvanceFrames(float frames) {
     Wrap(current_);
 }
 
+bool AnimationPlayer::IsPlayingOnce() const {
+    const assets::AnimationPart& part = animations_->parts[current_.part];
+    return !next_ && !current_.loops &&
+           current_.frame < static_cast<float>(std::max(part.frameCount - 1, 0));
+}
+
 void AnimationPlayer::PoseNodes(std::span<Transform> locals) {
     RR_ASSERT(locals.size() == blended_.size());
     Sample(current_, locals);

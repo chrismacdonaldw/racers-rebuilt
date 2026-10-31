@@ -32,6 +32,9 @@ public:
 
     void AdvanceFrames(float frames);
 
+    /// Whether a part started with `loops` false is still short of its last frame.
+    [[nodiscard]] bool IsPlayingOnce() const;
+
     /// Writes the animated nodes into `locals`. Nodes without keys keep their values.
     void PoseNodes(std::span<Transform> locals);
 

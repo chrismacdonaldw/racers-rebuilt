@@ -5,6 +5,7 @@
 #include <string_view>
 
 #include "audio/music_player.hpp"
+#include "overlay/racer_tools.hpp"
 #include "settings/registry.hpp"
 #include "sim/input_frame.hpp"
 #include "sim/render_snapshot.hpp"
@@ -34,6 +35,9 @@ public:
     [[nodiscard]] virtual std::optional<std::string> TakeNextScene() { return std::nullopt; }
 
     [[nodiscard]] virtual std::string DeveloperStatus() const { return {}; }
+
+    /// Only built while the overlay shows. Its actions take effect on the next `Tick`.
+    [[nodiscard]] virtual overlay::RacerTools OverlayRacerTools() { return {}; }
 
     /// Advances exactly one `kSimTick`. Must not read clocks, settings or files.
     virtual void Tick(const sim::InputFrame& input) = 0;

@@ -115,6 +115,15 @@ public:
             static_cast<std::uint64_t>(status.hitReactions));
     }
 
+    void Add(const RouteEffects& effects) {
+        Add(effects.isSpinning, effects.isSpunOut, effects.isHovering, effects.isBoosting,
+            effects.isGhost, effects.isCurseSlowed, effects.isPushed);
+        Add(effects.spin.remainingMs, effects.spin.ratePerMs, effects.spin.angle);
+        Add(effects.tilt.remainingMs, effects.tilt.ratePerMs, effects.tilt.angle,
+            effects.tilt.height);
+        Add(effects.hop.velocity, effects.hop.height, effects.lift);
+    }
+
     void Add(const DriverState& driver) {
         Add(driver.steering, driver.isDrifting, driver.isHardDrift);
     }
@@ -134,7 +143,8 @@ public:
     void Add(const std::optional<AiRacer>& route) {
         Add(route.has_value());
         if (route) {
-            Add(route->PlaybackSpeed(), route->Velocity(), route->ContactCount());
+            Add(route->PlaybackSpeed(), route->TargetSpeed(), route->Velocity(),
+                route->ContactCount(), route->Effects());
         }
     }
 

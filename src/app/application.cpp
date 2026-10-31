@@ -251,15 +251,17 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
             CyclePacing();
         }
         const Nanoseconds now = platform::Now();
-        const Scene* shown = frameLoop_.Scenes().Top();
-        const std::string sceneStatus =
-            menu.IsVisible() && shown != nullptr ? shown->DeveloperStatus() : std::string();
+        Scene* shown = frameLoop_.Scenes().Top();
+        const bool showsScene = menu.IsVisible() && shown != nullptr;
+        const std::string sceneStatus = showsScene ? shown->DeveloperStatus() : std::string();
+        const overlay::RacerTools racerTools =
+            showsScene ? shown->OverlayRacerTools() : overlay::RacerTools{};
         Persist(menu.Build(settings_,
                            {.frameTime = std::chrono::duration_cast<FloatSeconds>(now - lastFrame),
                             .ticksPerFrame = frame.tickCount,
                             .startupSummary = startupSummary_,
                             .sceneStatus = sceneStatus},
-                           scenes));
+                           scenes, racerTools));
         lastFrame = now;
         frame = frameLoop_.RunFrame(now);
         OpenNextScene();

@@ -8,6 +8,7 @@
 #include <format>
 #include <optional>
 #include <ranges>
+#include <span>
 #include <string>
 #include <system_error>
 #include <utility>
@@ -223,11 +224,28 @@ std::optional<std::string> RaceScene::TakeNextScene() {
     return std::exchange(next_, std::nullopt);
 }
 
+overlay::RacerTools RaceScene::OverlayRacerTools() {
+    overlay::RacerTools tools{.selected = &chosenRacer_};
+    const std::span<const sim::Racer> racers = std::as_const(parts_.session).Racers();
+    for (std::size_t i = 0; i < racers.size(); ++i) {
+        tools.racers.push_back(i == kPlayerSlot ? std::format("Racer {} (you)", i + 1)
+                                                : std::format("Racer {}", i + 1));
+    }
+    for (const RacerEffect effect : kRacerEffects) {
+        tools.actions.push_back(
+            {.name = RacerEffectLabel(effect, racers[chosenRacer_]), .run = [this, effect] {
+                 chosenEffects_.push_back({.racer = chosenRacer_, .effect = effect});
+             }});
+    }
+    return tools;
+}
+
 void RaceScene::Tick(const sim::InputFrame& input) {
     if (pause_.IsOpen() || input.WasPressed(sim::Action::Pause)) {
         TickPause(input);
         return;
     }
+    ApplyChosenEffects();
     if (ShowsResults(parts_.session.Clock()) && input.WasPressed(sim::MenuAction::Confirm)) {
         next_ = std::string(kMainMenuScene);
     }
@@ -301,6 +319,13 @@ void RaceScene::TickPause(const sim::InputFrame& input) {
     } else if (chosen == PauseRow::Quit) {
         next_ = std::string(kMainMenuScene);
     }
+}
+
+void RaceScene::ApplyChosenEffects() {
+    for (const ChosenEffect& chosen : chosenEffects_) {
+        ApplyRacerEffect(chosen.effect, parts_.session.Racers()[chosen.racer]);
+    }
+    chosenEffects_.clear();
 }
 
 std::optional<std::size_t> RaceScene::PauseFocus() const {

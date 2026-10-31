@@ -40,10 +40,12 @@ struct CameraSnapshot {
 };
 
 /// `turnRadius` is in world units, positive turning left and 0 when driving straight.
+/// `hitReactions` only ever counts up, so a change means the driver was hit since.
 struct RacerSnapshot {
     EntityId id{};
     float forwardSpeed = 0.0F;
     float turnRadius = 0.0F;
+    std::uint32_t hitReactions = 0;
 
     friend bool operator==(const RacerSnapshot&, const RacerSnapshot&) = default;
 };

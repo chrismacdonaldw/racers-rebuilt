@@ -48,6 +48,7 @@ public:
 
     [[nodiscard]] const RaceClock& Clock() const { return clock_; }
     [[nodiscard]] std::span<const Racer> Racers() const { return racers_; }
+    [[nodiscard]] std::span<Racer> Racers() { return racers_; }
     [[nodiscard]] const RaceProgress& Progress() const { return progress_; }
     [[nodiscard]] Random& Rng() { return random_; }
     [[nodiscard]] const BrickField& Bricks() const { return bricks_; }

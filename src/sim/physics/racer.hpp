@@ -65,7 +65,7 @@ public:
     void StartSpin(float turns, float ratePerMs, float align = 0.0F);
     void StartSpinOut();
 
-    /// Spins out and throws the car forward and up. `strength` runs from 0 to 1.
+    /// Spins out, and off a route throws the car forward and up. `strength` runs from 0 to 1.
     void LaunchHit(float strength);
 
     void Halt();

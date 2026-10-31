@@ -52,7 +52,8 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
                                                                  : sim::SnapshotFlags::None});
         out.racers.push_back({.id = id,
                               .forwardSpeed = racer.Body().derived.forwardSpeed,
-                              .turnRadius = racer.Body().turnRadius});
+                              .turnRadius = racer.Body().turnRadius,
+                              .hitReactions = racer.Status().hitReactions});
     }
     SnapshotBricks(session.Bricks(), out);
     out.simStateHash = sim::HashRaceSession(session);

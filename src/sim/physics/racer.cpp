@@ -96,12 +96,12 @@ void Racer::Go() {
 }
 
 void Racer::FollowRoute(assets::RaceRoute route) {
-    TakeRoutePose(route_.emplace(std::move(route)));
+    TakeRoutePose(route_.emplace(std::move(route), constants_.wheelAnchor));
 }
 
 void Racer::SetRouteSpeed(float speed) {
-    if (route_) {
-        route_->SetTargetSpeed(speed);
+    if (route_ && !status_.isMagnetHeld) {
+        route_->SetBaseSpeed(speed);
     }
 }
 

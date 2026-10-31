@@ -13,6 +13,7 @@
 #include "app/menu/pause_menu.hpp"
 #include "app/race_audio.hpp"
 #include "app/racer/racer_grid.hpp"
+#include "app/racer_effect_tools.hpp"
 #include "app/scene.hpp"
 #include "app/sound_banks.hpp"
 #include "assets/track_loader.hpp"
@@ -63,6 +64,7 @@ public:
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
+    [[nodiscard]] overlay::RacerTools OverlayRacerTools() override;
     void Tick(const sim::InputFrame& input) override;
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
@@ -85,10 +87,16 @@ private:
         Nanoseconds started{};
     };
 
+    struct ChosenEffect {
+        std::size_t racer = 0;
+        RacerEffect effect = RacerEffect::Spin;
+    };
+
     explicit RaceScene(Parts parts);
 
     [[nodiscard]] Transform PlayerCar() const;
     void TickPause(const sim::InputFrame& input);
+    void ApplyChosenEffects();
     [[nodiscard]] std::optional<std::size_t> PauseFocus() const;
     void DrawDebugLines();
 
@@ -98,6 +106,8 @@ private:
     PauseMenu pause_;
     std::optional<std::string> next_;
     std::vector<sim::RacerControls> controls_;
+    std::size_t chosenRacer_ = 0;
+    std::vector<ChosenEffect> chosenEffects_;
     std::vector<render::MeshDraw> draws_;
     std::vector<render::DebugLine> collisionLines_;
     std::vector<render::DebugLine> debugLines_;
