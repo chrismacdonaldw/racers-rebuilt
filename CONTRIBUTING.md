@@ -81,12 +81,12 @@ It runs on a clean working tree, loads the MSVC environment if needed, and stops
 1. No uncommitted changes
 2. No game data or ignored files tracked
 3. No banned terms in the tree, commit messages or branch name
-4. Toolchain present
-5. Configure the `check` preset into an empty build folder
-6. Build
-7. Run the tests
-8. `clang-format --dry-run --Werror` on every source file
-9. `clang-tidy` on every source file
+4. `clang-format --dry-run --Werror` on every source file
+5. Toolchain present
+6. Configure the `check` preset into an empty build folder
+7. Build
+8. Run the tests
+9. `clang-tidy` on every source file, in parallel
 
 `RR_BANNED_TERMS_FILE` names a text file outside the repo with one regular expression per line. Ask a maintainer for the current list.
 
