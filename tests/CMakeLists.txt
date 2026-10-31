@@ -47,6 +47,7 @@ add_executable(racers-rebuilt-tests
     assets/animation_database_test.cpp
     assets/asset_cache_test.cpp
     assets/bmp_image_test.cpp
+    assets/brick_layout_test.cpp
     assets/byte_reader_test.cpp
     assets/car_survey_test.cpp
     assets/champion_database_test.cpp
