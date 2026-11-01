@@ -15,6 +15,7 @@
 #include "core/result.hpp"
 #include "render/render_view.hpp"
 #include "render/renderer.hpp"
+#include "sim/ai/powerup_habits.hpp"
 #include "sim/physics/chassis.hpp"
 #include "sim/render_snapshot.hpp"
 
@@ -30,6 +31,7 @@ public:
                                                 std::size_t slots, std::size_t playerRacer);
 
     [[nodiscard]] sim::ChassisSpec Chassis(std::size_t slot) const;
+    [[nodiscard]] sim::PowerupHabits Habits(std::size_t slot) const;
 
     [[nodiscard]] BoundingSphere LocalBounds(std::size_t slot) const {
         return slots_.at(slot).localBounds;

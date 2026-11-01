@@ -74,6 +74,10 @@ sim::ChassisSpec RacerGrid::Chassis(std::size_t slot) const {
     return sim::PrebuiltChassis(files.champion, files.chassis);
 }
 
+sim::PowerupHabits RacerGrid::Habits(std::size_t slot) const {
+    return sim::HabitsOf(slots_.at(slot).assets->files.driver);
+}
+
 std::int32_t RacerGrid::NameIndex(std::size_t slot) const {
     return slots_.at(slot).assets->files.driver.nameIndex;
 }

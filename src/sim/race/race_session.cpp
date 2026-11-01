@@ -82,6 +82,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
         }
         isPlayer_.push_back(entry.isPlayer);
         localBounds_.push_back(entry.localBounds);
+        aiPowerups_.emplace_back(entry.habits);
         positions_[i] = racer.Body().motion.position;
     }
 }
@@ -111,6 +112,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
         for (Racer& racer : racers_) {
             racer.Go();
         }
+        StartBoosts();
     }
     if (before.Phase() == RacePhase::Finished && clock_.Phase() == RacePhase::Results) {
         progress_.FinishRemaining();
@@ -122,6 +124,33 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
         sounds_.HearRacer(i, racers_[i], isPlayer_[i], clock_.IsRunning(), elapsed);
     }
     PaceRoutes(elapsed);
+}
+
+bool RaceSession::WantsPowerup(std::size_t racer, Milliseconds elapsed,
+                               const RacerControls& controls) {
+    if (isPlayer_[racer]) {
+        return controls.isUsePressed;
+    }
+    return aiPowerups_[racer].Tick(
+        elapsed,
+        {.racers = racers_,
+         .racer = racer,
+         .inventory = &inventories_[racer],
+         .isCrowded = powerups_.IsCrowded(),
+         .hasFinished = progress_.OfRacer(racer).finishPlace.has_value()},
+        random_);
+}
+
+void RaceSession::StartBoosts() {
+    PowerupContext effects = EffectContext();
+    for (std::size_t i = 0; i < racers_.size(); ++i) {
+        if (!isPlayer_[i] && aiPowerups_[i].RollsStartBoost(random_)) {
+            powerups_.Fire({.racer = static_cast<std::uint8_t>(i),
+                            .colour = assets::BrickColour::Green,
+                            .level = 0},
+                           effects);
+        }
+    }
 }
 
 void RaceSession::ResolveContacts() {
@@ -202,7 +231,7 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
         }
     }
     positions_[racer] = car.Body().motion.position;
-    if (controls.isUsePressed && clock_.IsRunning()) {
+    if (clock_.IsRunning() && WantsPowerup(racer, elapsed, controls)) {
         PowerupContext effects = EffectContext();
         if (isPlayer_[racer]) {
             effects.targets = course_.targets;

@@ -51,6 +51,7 @@ sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, st
     for (std::size_t i = 0; i < slots; ++i) {
         setup.racers[i].chassis = racers.Chassis(i);
         setup.racers[i].localBounds = racers.LocalBounds(i);
+        setup.racers[i].habits = racers.Habits(i);
     }
     setup.racers[kPlayerSlot].isPlayer = true;
     return setup;

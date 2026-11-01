@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <format>
 #include <optional>
@@ -7,8 +8,14 @@
 #include <vector>
 
 #include "assets/archive_survey.hpp"
+#include "assets/circuit_database.hpp"
+#include "assets/racer_catalog.hpp"
 #include "assets/track_loader.hpp"
 #include "sim/collision/world_list.hpp"
+#include "sim/powerup/green_effects.hpp"
+#include "sim/powerup/red_effects.hpp"
+#include "sim/powerup/shield_effect.hpp"
+#include "sim/powerup/yellow_effects.hpp"
 #include "sim/race/race_session.hpp"
 #include "sim/race/race_track.hpp"
 
@@ -19,9 +26,49 @@ constexpr Milliseconds kTick{12};
 constexpr int kMaxTicks = 100000;
 constexpr ChassisSpec kChassis{.handling = 50, .topSpeed = 50, .acceleration = 50};
 
-RaceSetup IdlePlayerAndComputers(std::size_t slotCount) {
+struct PowerupTally {
+    std::vector<bool> pickedUp;
+    std::vector<bool> used;
+    std::size_t startBoosts = 0;
+
+    explicit PowerupTally(std::size_t racers) : pickedUp(racers), used(racers) {}
+
+    void Count(const RaceSession& session, bool isStart) {
+        for (std::size_t i = 0; i < pickedUp.size(); ++i) {
+            pickedUp[i] = pickedUp[i] || session.Inventories()[i].Colour().has_value();
+        }
+        for (const PowerupEvent& event : session.Powerups().Events()) {
+            used[event.use.racer] = used[event.use.racer] || event.kind == PowerupEventKind::Used;
+            startBoosts += isStart && event.kind == PowerupEventKind::Started ? 1 : 0;
+        }
+    }
+
+    [[nodiscard]] bool HaveComputersUsedPowerups() const {
+        return std::all_of(pickedUp.begin() + 1, pickedUp.end(), std::identity{}) &&
+               std::all_of(used.begin() + 1, used.end(), std::identity{});
+    }
+};
+
+Result<RaceSetup> CircuitRace(const assets::Vfs& vfs, const std::string& track,
+                              std::size_t slotCount) {
+    Result<assets::RacerCatalog> catalog = assets::RacerCatalog::Load(vfs);
+    Result<std::vector<std::string>> codes =
+        catalog.and_then([&](const assets::RacerCatalog&) { return assets::LoadGrid(vfs, track); });
+    if (!codes) {
+        return std::unexpected(codes.error());
+    }
     RaceSetup setup{.racers = {{.chassis = kChassis, .isPlayer = true}}};
-    setup.racers.resize(slotCount, {.chassis = kChassis});
+    AddGreenEffects(setup.effects);
+    AddBlueEffects(setup.effects);
+    AddRedEffects(setup.effects);
+    AddYellowEffects(setup.effects);
+    for (std::size_t i = 1; i < slotCount; ++i) {
+        Result<assets::RacerFiles> files = catalog->Find(codes->at(i));
+        if (!files) {
+            return std::unexpected(files.error());
+        }
+        setup.racers.push_back({.chassis = kChassis, .habits = HabitsOf(files->driver)});
+    }
     return setup;
 }
 
@@ -34,45 +81,63 @@ bool HaveComputersFinished(const RaceSession& session) {
     return true;
 }
 
-std::optional<std::string> RaceProblem(const assets::Vfs& vfs, const std::string& track) {
-    Result<RaceTrack> loaded = LoadRaceTrack(vfs, track);
-    if (!loaded) {
-        return std::format("{}: {}", track, loaded.error().message);
-    }
-    const WorldList world(loaded->collision.Track());
-    Result<RaceSession> session = RaceSession::Create(IdlePlayerAndComputers(loaded->grid.size()),
-                                                      {.checkpoints = &loaded->checkpoints,
-                                                       .grid = loaded->grid,
-                                                       .world = &world,
-                                                       .lowestTrackZ = loaded->lowestTrackZ,
-                                                       .routes = &loaded->routes});
-    if (!session) {
-        return std::format("{}: {}", track, session.error().message);
-    }
-    const std::vector<RacerControls> idle(session->Racers().size());
+std::optional<std::string> RunRace(RaceSession& session, const std::string& track,
+                                   std::size_t& startBoosts) {
+    const std::vector<RacerControls> idle(session.Racers().size());
+    PowerupTally tally(session.Racers().size());
     int ticks = 0;
-    while (!HaveComputersFinished(*session) && ticks++ < kMaxTicks) {
-        session->Tick(kTick, idle);
+    while (!HaveComputersFinished(session) && ticks++ < kMaxTicks) {
+        const bool wasRacing = session.Clock().Phase() == RacePhase::Racing;
+        session.Tick(kTick, idle);
+        tally.Count(session, !wasRacing && session.Clock().Phase() == RacePhase::Racing);
     }
     if (ticks > kMaxTicks) {
         return std::format("{}: the computer racers didn't all finish", track);
     }
-    MESSAGE(
-        std::format("{}: computer racers finished in {} s", track, ticks * kTick.count() / 1000));
+    if (!tally.HaveComputersUsedPowerups()) {
+        return std::format("{}: a computer racer never picked up and used a power-up", track);
+    }
+    startBoosts += tally.startBoosts;
+    MESSAGE(std::format("{}: computer racers finished in {} s, {} with a start boost", track,
+                        ticks * kTick.count() / 1000, tally.startBoosts));
     return std::nullopt;
 }
 
-TEST_CASE("five computer racers finish a three-lap race on every retail track") {
+std::optional<std::string> RaceProblem(const assets::Vfs& vfs, const std::string& track,
+                                       std::size_t& startBoosts) {
+    Result<RaceTrack> loaded = LoadRaceTrack(vfs, track);
+    Result<RaceSetup> setup = loaded.and_then(
+        [&](const RaceTrack& race) { return CircuitRace(vfs, track, race.grid.size()); });
+    if (!setup) {
+        return std::format("{}: {}", track, setup.error().message);
+    }
+    const WorldList world(loaded->collision.Track());
+    Result<RaceSession> session = RaceSession::Create(*setup, {.checkpoints = &loaded->checkpoints,
+                                                               .grid = loaded->grid,
+                                                               .world = &world,
+                                                               .lowestTrackZ = loaded->lowestTrackZ,
+                                                               .routes = &loaded->routes,
+                                                               .bricks = &loaded->bricks,
+                                                               .targets = loaded->targets});
+    if (!session) {
+        return std::format("{}: {}", track, session.error().message);
+    }
+    return RunRace(*session, track, startBoosts);
+}
+
+TEST_CASE("on every retail track, five computer racers use power-ups and finish three laps") {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
         return;
     }
 
+    std::size_t startBoosts = 0;
     for (const std::string& track : assets::ListRaceTracks(*vfs)) {
-        if (const std::optional<std::string> problem = RaceProblem(*vfs, track)) {
+        if (const std::optional<std::string> problem = RaceProblem(*vfs, track, startBoosts)) {
             FAIL_CHECK(*problem);
         }
     }
+    CHECK(startBoosts > 0);
 }
 
 }
