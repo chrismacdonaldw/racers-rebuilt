@@ -11,6 +11,7 @@ rr_add_module(assets
         collision_mesh.cpp
         driver_database.cpp
         emitter_library.cpp
+        event_table.cpp
         folder_layer.cpp
         font_list.cpp
         game_path.cpp
