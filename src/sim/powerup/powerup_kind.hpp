@@ -26,14 +26,12 @@ enum class PowerupKind : std::uint8_t {
 
 inline constexpr std::size_t kPowerupKindCount = static_cast<std::size_t>(PowerupKind::Count);
 
-/// `entities` are claimed from the manager's shared pool, and each use starts `launches` effects.
 struct PowerupKindSpec {
     std::size_t poolSize = 0;
     std::size_t entities = 0;
     std::size_t launches = 1;
 };
 
-/// `shot` numbers the launches of one use, such as each of the three missiles.
 struct PowerupUse {
     std::uint8_t racer = 0;
     assets::BrickColour colour = assets::BrickColour::Red;

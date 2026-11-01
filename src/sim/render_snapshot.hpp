@@ -59,7 +59,6 @@ struct BrickSnapshot {
     friend bool operator==(const BrickSnapshot&, const BrickSnapshot&) = default;
 };
 
-/// `slot` stays the same while the effect runs. `transform` is in engine space.
 struct EffectSnapshot {
     std::uint16_t slot = 0;
     PowerupKind kind = PowerupKind::Cannonball;

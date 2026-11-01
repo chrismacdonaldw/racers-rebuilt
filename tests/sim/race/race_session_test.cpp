@@ -300,7 +300,6 @@ TEST_CASE("bricks stay silent until racing starts") {
     CHECK(respawns == std::vector<SoundEvent>{{.sound = RaceSound::BrickRespawn, .brick = 1}});
 }
 
-}
 TEST_CASE("pressing use fires the held power-up once racing has started") {
     const Fixture fixture;
     RaceSetup setup = TwoRacers();
@@ -323,4 +322,5 @@ TEST_CASE("pressing use fires the held power-up once racing has started") {
     CHECK(session.Inventories()[0] == PowerupInventory{});
 }
 
+}
 }

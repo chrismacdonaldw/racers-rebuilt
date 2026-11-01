@@ -37,7 +37,6 @@ enum class PowerupEventKind : std::uint8_t {
     Ended,
 };
 
-/// `effect` is the slot of a started or ended effect. A taunt only fills in `use.racer`.
 struct PowerupEvent {
     PowerupEventKind kind = PowerupEventKind::Used;
     PowerupUse use;
