@@ -115,14 +115,16 @@ TEST_CASE("a chance too large for a whole number never skips") {
     }
 }
 
-TEST_CASE("one update spawns at most a slot's worth of particles") {
+TEST_CASE("one update spawns at most a slot's worth of particles and drops the backlog") {
     ParticleBank bank = Bank({Emitter("dust")});
     const std::optional<EmitterHandle> handle = bank.Start("dust", {});
     REQUIRE(handle.has_value());
 
     bank.Update(FloatMilliseconds{60'000.0F});
-
     CHECK(bank.SpawnCount(*handle) == kParticlesPerSlot);
+
+    bank.Update(FloatMilliseconds{1.0F});
+    CHECK(bank.SpawnCount(*handle) == kParticlesPerSlot + 1);
 }
 
 TEST_CASE("an emitter without a rate spawns once per update") {
