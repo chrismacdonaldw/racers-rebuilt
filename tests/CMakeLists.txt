@@ -55,6 +55,7 @@ add_executable(racers-rebuilt-tests
     app/startup_timer_test.cpp
     app/track_space_test.cpp
     app/ui_text/text_layout_test.cpp
+    app/trigger_spheres_test.cpp
     app/video_settings_test.cpp
     assets/animation_database_test.cpp
     assets/asset_cache_test.cpp

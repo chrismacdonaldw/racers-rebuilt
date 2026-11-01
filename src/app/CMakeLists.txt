@@ -74,6 +74,7 @@ rr_add_module(app
         track_model.cpp
         track_space.cpp
         track_viewer_scene.cpp
+        trigger_spheres.cpp
         ui_text/text_layout.cpp
         ui_text/ui_font.cpp
         ui_text/ui_image.cpp
