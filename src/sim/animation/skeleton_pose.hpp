@@ -6,7 +6,7 @@
 #include "assets/skeleton_database.hpp"
 #include "core/transform.hpp"
 
-namespace rr::app {
+namespace rr::sim {
 
 /// `Solve` gives model-space node transforms, with positions multiplied by the model scale.
 class SkeletonPose {

@@ -47,7 +47,6 @@ add_executable(racers-rebuilt-tests
     app/racer/racer_assets_test.cpp
     app/racer/racer_bounds_test.cpp
     app/racer/racer_visuals_test.cpp
-    app/racer/skeleton_pose_test.cpp
     app/racer_determinism_test.cpp
     app/replay_session_test.cpp
     app/scene_stack_test.cpp
@@ -148,6 +147,8 @@ add_executable(racers-rebuilt-tests
     sim/ai/route_effects_test.cpp
     sim/ai/route_lap_test.cpp
     sim/ai/rubber_band_test.cpp
+    sim/animation/part_clock_test.cpp
+    sim/animation/skeleton_pose_test.cpp
     sim/collision/collision_mesh_test.cpp
     sim/collision/collision_world_test.cpp
     sim/collision/racer_worlds_test.cpp

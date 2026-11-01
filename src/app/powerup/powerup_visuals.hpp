@@ -8,7 +8,7 @@
 
 #include "app/powerup/powerup_models.hpp"
 #include "app/racer/animation_player.hpp"
-#include "app/racer/skeleton_pose.hpp"
+#include "sim/animation/skeleton_pose.hpp"
 #include "core/transform.hpp"
 #include "render/render_view.hpp"
 #include "sim/render_snapshot.hpp"
@@ -28,7 +28,7 @@ public:
 private:
     struct Posed {
         const EffectModel* model = nullptr;
-        std::optional<SkeletonPose> pose;
+        std::optional<sim::SkeletonPose> pose;
         std::optional<AnimationPlayer> player;
     };
 

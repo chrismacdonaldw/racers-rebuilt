@@ -7,6 +7,8 @@ rr_add_module(sim
         ai/route_driver.cpp
         ai/route_effects.cpp
         ai/rubber_band.cpp
+        animation/part_clock.cpp
+        animation/skeleton_pose.cpp
         collision/collision_mesh.cpp
         collision/collision_world.cpp
         collision/racer_worlds.cpp

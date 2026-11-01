@@ -9,7 +9,7 @@
 #include "app/racer/body_lean.hpp"
 #include "app/racer/racer_assets.hpp"
 #include "app/racer/racer_draws.hpp"
-#include "app/racer/skeleton_pose.hpp"
+#include "sim/animation/skeleton_pose.hpp"
 #include "core/result.hpp"
 #include "core/transform.hpp"
 #include "render/render_view.hpp"
@@ -36,7 +36,7 @@ private:
     };
 
     struct Animated {
-        SkeletonPose pose;
+        sim::SkeletonPose pose;
         AnimationPlayer player;
     };
 

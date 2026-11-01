@@ -24,20 +24,20 @@ Result<std::size_t> FindPart(const AnimationPlayer& player, std::string_view nam
     return *part;
 }
 
-Result<SkeletonPose> MakePose(const JointedAssets& jointed, const ModelDraws& model) {
+Result<sim::SkeletonPose> MakePose(const JointedAssets& jointed, const ModelDraws& model) {
     const std::size_t nodeCount = jointed.skeleton.nodes.size();
     if (std::ranges::any_of(model.joints,
                             [&](std::uint16_t joint) { return joint >= nodeCount; })) {
         return Fail(ErrorCode::InvalidData,
                     std::format("a model follows a node past the skeleton's {}", nodeCount));
     }
-    return SkeletonPose(jointed.skeleton, model.scale);
+    return sim::SkeletonPose(jointed.skeleton, model.scale);
 }
 
 Result<void> Bind(const JointedAssets& jointed, const ModelDraws& model,
-                  std::optional<SkeletonPose>& pose, std::optional<AnimationPlayer>& player) {
-    Result<SkeletonPose> made = MakePose(jointed, model);
-    Result<AnimationPlayer> created = made.and_then([&](const SkeletonPose&) {
+                  std::optional<sim::SkeletonPose>& pose, std::optional<AnimationPlayer>& player) {
+    Result<sim::SkeletonPose> made = MakePose(jointed, model);
+    Result<AnimationPlayer> created = made.and_then([&](const sim::SkeletonPose&) {
         return AnimationPlayer::Create(jointed.animations, jointed.skeleton.nodes.size());
     });
     if (!created) {
@@ -51,8 +51,8 @@ Result<void> Bind(const JointedAssets& jointed, const ModelDraws& model,
 }
 
 Result<RacerVisuals> RacerVisuals::Create(const RacerAssets& assets, RacerDraws draws) {
-    std::optional<SkeletonPose> wheelPose;
-    std::optional<SkeletonPose> driverPose;
+    std::optional<sim::SkeletonPose> wheelPose;
+    std::optional<sim::SkeletonPose> driverPose;
     std::optional<AnimationPlayer> wheelPlayer;
     std::optional<AnimationPlayer> driverPlayer;
     Result<WheelParts> wheelParts =
