@@ -54,9 +54,18 @@ render::EmitterPlacement AtFuse(const Transform& dynamite) {
             .rotation = TransformToEngine(dynamite).rotation};
 }
 
-render::EmitterPlacement AtBoltEnd(const sim::EffectSlot& slot, const sim::Racer& owner) {
+render::EmitterPlacement AtLauncher(const sim::EffectSlot& slot, const sim::RaceSession& session) {
+    if (slot.use.hazard) {
+        return {.position = ToEngine(session.TrackHazards().Aims()[*slot.use.hazard].source)};
+    }
+    return AtCar(session.Racers()[slot.use.racer], kShotSmokeOffset, 1.0F);
+}
+
+render::EmitterPlacement AtBoltEnd(const sim::EffectSlot& slot, const sim::RaceSession& session) {
     const Vector3 end = slot.effect->Pose().position;
-    const Vector3 source = owner.Body().motion.position + kBoltSource;
+    const Vector3 source =
+        slot.use.hazard ? session.TrackHazards().Aims()[*slot.use.hazard].source
+                        : session.Racers()[slot.use.racer].Body().motion.position + kBoltSource;
     return {.position = ToEngine(end),
             .rotation = PlacementToEngine(end, source - end, kGameUp).rotation};
 }
@@ -115,21 +124,22 @@ void PowerupParticles::Strike(const Vector3& at, const sim::RaceSession& session
     if (emitter.handle) {
         bank.Finish(*emitter.handle);
     }
-    emitter.handle = bank.Start(kLightningHit, AtBoltEnd(bolt, session.Racers()[bolt.use.racer]));
+    emitter.handle = bank.Start(kLightningHit, AtBoltEnd(bolt, session));
 }
 
 void PowerupParticles::Follow(std::size_t slot, const sim::RaceSession& session,
                               render::ParticleBank& bank, Milliseconds elapsed) {
     const sim::EffectSlot& effect = session.Powerups().Slots()[slot];
-    const sim::Racer& owner = session.Racers()[effect.use.racer];
     const std::uint8_t phase = effect.effect->Progress().phase;
     SlotEmitter& emitter = slots_[slot];
     switch (effect.kind) {
         case PowerupKind::Cannonball:
-            KeepShotSmoke(emitter, Is(phase, sim::ShotPhase::Flying), owner, bank);
+            KeepShotSmoke(emitter, Is(phase, sim::ShotPhase::Flying), AtLauncher(effect, session),
+                          bank);
             break;
         case PowerupKind::GrapplingHook:
-            KeepShotSmoke(emitter, Is(phase, sim::GrapplePhase::Flying), owner, bank);
+            KeepShotSmoke(emitter, Is(phase, sim::GrapplePhase::Flying),
+                          AtLauncher(effect, session), bank);
             break;
         case PowerupKind::Turbo:
             if (Is(phase, sim::TurboPhase::Boost)) {
@@ -138,7 +148,10 @@ void PowerupParticles::Follow(std::size_t slot, const sim::RaceSession& session,
             Keep(emitter,
                  effect.use.level == kSmokyTurboLevel && Is(phase, sim::TurboPhase::Boost) &&
                      emitter.boost <= kTurboSmokeWindow,
-                 kTurboSmoke, AtCar(owner, kTurboSmokeOffset, kTurboSmokeVelocityScale), bank);
+                 kTurboSmoke,
+                 AtCar(session.Racers()[effect.use.racer], kTurboSmokeOffset,
+                       kTurboSmokeVelocityScale),
+                 bank);
             break;
         case PowerupKind::Dynamite:
             Keep(emitter, Is(phase, sim::DynamitePhase::Flying), kDynamiteSparks,
@@ -150,7 +163,7 @@ void PowerupParticles::Follow(std::size_t slot, const sim::RaceSession& session,
             break;
         case PowerupKind::Lightning:
             if (emitter.handle) {
-                bank.Place(*emitter.handle, AtBoltEnd(effect, owner));
+                bank.Place(*emitter.handle, AtBoltEnd(effect, session));
             }
             break;
         default:
@@ -168,9 +181,10 @@ void PowerupParticles::Keep(SlotEmitter& emitter, bool shouldStart, std::string_
     }
 }
 
-void PowerupParticles::KeepShotSmoke(SlotEmitter& emitter, bool isFlying, const sim::Racer& owner,
+void PowerupParticles::KeepShotSmoke(SlotEmitter& emitter, bool isFlying,
+                                     const render::EmitterPlacement& launcher,
                                      render::ParticleBank& bank) {
-    Keep(emitter, isFlying, kShotSmoke, AtCar(owner, kShotSmokeOffset, 1.0F), bank);
+    Keep(emitter, isFlying, kShotSmoke, launcher, bank);
     if (emitter.handle && bank.SpawnCount(*emitter.handle) >= kShotSmokePuffs) {
         bank.Finish(*emitter.handle);
         emitter.handle.reset();

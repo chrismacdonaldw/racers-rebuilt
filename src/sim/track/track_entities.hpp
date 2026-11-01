@@ -19,6 +19,10 @@ using EntityClock = std::optional<PartClock>;
 [[nodiscard]] Transform NodeWorld(const TrackEntitySources& sources, std::size_t entity,
                                   const EntityClock& clock, std::size_t node);
 
+/// In game space.
+[[nodiscard]] Transform NodeWorldBefore(const TrackEntitySources& sources, std::size_t entity,
+                                        EntityClock clock, std::size_t node, Milliseconds ago);
+
 /// `sources` must outlive it.
 class TrackEntities {
 public:
@@ -66,6 +70,9 @@ public:
 
     /// In game space.
     [[nodiscard]] Transform NodeWorld(std::size_t entity, std::size_t node) const;
+
+    [[nodiscard]] Transform NodeWorldBefore(std::size_t entity, std::size_t node,
+                                            Milliseconds ago) const;
 
 private:
     const TrackEntitySources* sources_;

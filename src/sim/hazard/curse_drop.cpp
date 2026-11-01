@@ -18,8 +18,7 @@ constexpr std::uint8_t kCurseLevel = 3;
 
 void CurseDrop::Activate(HazardContext& context) {
     RR_ASSERT(context.random != nullptr && context.effects != nullptr && context.aim != nullptr);
-    const Vector3& point =
-        kDropPoints.at(context.random->Below(static_cast<std::uint32_t>(kDropPoints.size())));
+    const Vector3& point = kDropPoints.at(context.random->Below(kRollRange) % kDropPoints.size());
     *context.aim = {.source = point, .target = point};
     context.effects->powerups->Fire(
         {.colour = assets::BrickColour::Yellow, .level = kCurseLevel, .hazard = context.slot},

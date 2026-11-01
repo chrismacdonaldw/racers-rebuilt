@@ -7,24 +7,15 @@
 namespace rr::app {
 
 HiddenModels::HiddenModels(std::span<const assets::ModelDistanceResource> distances,
+                           std::span<const std::string> switches,
                            std::span<const NamedDraws> trackDraws,
                            const sim::TrackEntitySources& sources) {
     for (const assets::ModelDistanceResource& distance : distances) {
-        Target& target = targets_.emplace_back();
-        if (!distance.entity) {
-            continue;
-        }
-        const std::string name = assets::ToUpperAscii(distance.entity->name);
-        for (const NamedDraws& named : trackDraws) {
-            if (assets::ToUpperAscii(named.entity) == name) {
-                target.track.push_back(named.span);
-            }
-        }
-        for (std::size_t entity = 0; entity < sources.entities.size(); ++entity) {
-            if (assets::ToUpperAscii(sources.entities[entity].name) == name) {
-                target.entities.push_back(entity);
-            }
-        }
+        Add(distance.entity ? std::string_view(distance.entity->name) : std::string_view{},
+            trackDraws, sources);
+    }
+    for (const std::string& entity : switches) {
+        Add(entity, trackDraws, sources);
     }
 }
 
@@ -42,6 +33,25 @@ void HiddenModels::Apply(const std::vector<bool>& hidden, std::span<const render
             for (std::size_t draw = 0; hidden[i] && draw < span.count; ++draw) {
                 draws[entityOffset + span.first + draw].indexCount = 0;
             }
+        }
+    }
+}
+
+void HiddenModels::Add(std::string_view entity, std::span<const NamedDraws> trackDraws,
+                       const sim::TrackEntitySources& sources) {
+    Target& target = targets_.emplace_back();
+    if (entity.empty()) {
+        return;
+    }
+    const std::string name = assets::ToUpperAscii(entity);
+    for (const NamedDraws& named : trackDraws) {
+        if (assets::ToUpperAscii(named.entity) == name) {
+            target.track.push_back(named.span);
+        }
+    }
+    for (std::size_t i = 0; i < sources.entities.size(); ++i) {
+        if (assets::ToUpperAscii(sources.entities[i].name) == name) {
+            target.entities.push_back(i);
         }
     }
 }

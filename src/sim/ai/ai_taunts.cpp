@@ -6,7 +6,6 @@
 namespace rr::sim {
 namespace {
 
-constexpr std::uint32_t kRandomRange = 1024;
 constexpr int kMsPerRandomStep = 8;
 
 }
@@ -23,7 +22,7 @@ bool AiTaunter::Tick(Milliseconds elapsed, std::span<const Racer> racers, std::s
         return false;
     }
     wait_ =
-        kTauntRetry + Milliseconds{kMsPerRandomStep * static_cast<int>(random.Below(kRandomRange))};
+        kTauntRetry + Milliseconds{kMsPerRandomStep * static_cast<int>(random.Below(kRollRange))};
     return true;
 }
 

@@ -131,9 +131,12 @@ void PowerupQuads::AppendEffect(const sim::EffectSnapshot& effect,
                                 float elapsedMs) {
     const Vector3 at = effect.transform.position;
     const std::size_t owner = effect.use.racer;
-    const Vector3 source = owner < snapshot.entities.size()
-                               ? ToGame(snapshot.entities[owner].transform.position) + kSourceHeight
-                               : ToGame(at);
+    Vector3 source = ToGame(at);
+    if (effect.hazardSource) {
+        source = ToGame(*effect.hazardSource);
+    } else if (owner < snapshot.entities.size()) {
+        source = ToGame(snapshot.entities[owner].transform.position) + kSourceHeight;
+    }
     switch (effect.kind) {
         case PowerupKind::Cannonball:
             if (IsPhase(effect, sim::ShotPhase::Flying)) {

@@ -2,6 +2,8 @@
 
 #include <doctest/doctest.h>
 
+#include <variant>
+
 #include "hazard_rig.hpp"
 
 namespace rr::sim {
@@ -44,6 +46,24 @@ TEST_CASE("the lava blob splashes just after each window opens and closes, then 
     CHECK(rig.CountStarts(kLavaBlobEvent) == 0);
     rig.Tick();
     CHECK(rig.CountStarts(kLavaBlobEvent) == 1);
+}
+
+TEST_CASE("the lava blob bubbles after a window closes, until the next one opens") {
+    test::HazardRig rig({LavaHazard()}, BlobEntity());
+    rig.Hear(kLavaBlobTrigger, EventEdge::Start);
+    const auto bubbling = [&] {
+        return std::get<LavaBlob>(rig.Hazards().Slots()[0].state).isBubbling;
+    };
+    CHECK_FALSE(bubbling());
+
+    rig.Seek(0, 27.0F);
+    rig.Tick();
+    CHECK(bubbling());
+
+    TickFor(rig, (400 / 12) + 1);
+    rig.Seek(0, 62.0F);
+    rig.Tick();
+    CHECK_FALSE(bubbling());
 }
 
 TEST_CASE("the lava blob stays quiet between windows") {

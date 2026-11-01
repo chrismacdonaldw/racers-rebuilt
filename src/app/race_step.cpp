@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cstdint>
 #include <optional>
+#include <span>
+#include <vector>
 
 #include "app/frame_loop.hpp"
 #include "app/track_space.hpp"
@@ -39,19 +41,23 @@ bool HasStarted(const sim::PowerupSystem& powerups, std::uint16_t slot) {
     });
 }
 
-void SnapshotEffects(const sim::PowerupSystem& powerups, sim::RenderSnapshot& out) {
+void SnapshotEffects(const sim::PowerupSystem& powerups, std::span<const sim::HazardAim> aims,
+                     sim::RenderSnapshot& out) {
     out.effects.clear();
     for (const std::uint16_t slot : powerups.Active()) {
         const sim::EffectSlot& effect = powerups.Slots()[slot];
         const sim::EffectProgress progress = effect.effect->Progress();
-        out.effects.push_back({.slot = slot,
-                               .kind = effect.kind,
-                               .use = effect.use,
-                               .phase = progress.phase,
-                               .isHoldingRacer = progress.isHoldingRacer,
-                               .transform = TransformToEngine(effect.effect->Pose()),
-                               .flags = HasStarted(powerups, slot) ? sim::SnapshotFlags::Teleported
-                                                                   : sim::SnapshotFlags::None});
+        const std::optional<std::uint8_t> hazard = effect.use.hazard;
+        out.effects.push_back(
+            {.slot = slot,
+             .kind = effect.kind,
+             .use = effect.use,
+             .phase = progress.phase,
+             .isHoldingRacer = progress.isHoldingRacer,
+             .transform = TransformToEngine(effect.effect->Pose()),
+             .hazardSource = hazard ? std::optional(ToEngine(aims[*hazard].source)) : std::nullopt,
+             .flags = HasStarted(powerups, slot) ? sim::SnapshotFlags::Teleported
+                                                 : sim::SnapshotFlags::None});
     }
 }
 
@@ -96,7 +102,7 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
                               .whiteCount = static_cast<std::uint8_t>(inventory.WhiteCount())});
     }
     SnapshotBricks(session.Bricks(), out);
-    SnapshotEffects(session.Powerups(), out);
+    SnapshotEffects(session.Powerups(), session.TrackHazards().Aims(), out);
     out.explosions.clear();
     SnapshotExplosions(session.Blasts(), sim::ExplosionKind::Blast, out);
     SnapshotExplosions(session.Spikes(), sim::ExplosionKind::Spike, out);
@@ -106,6 +112,8 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
     for (std::size_t i = 0; i < out.hiddenModels.size(); ++i) {
         out.hiddenModels[i] = session.Resources().IsModelHidden(i);
     }
+    const std::vector<bool>& switched = session.TrackHazards().Models().Hidden();
+    out.hiddenModels.insert(out.hiddenModels.end(), switched.begin(), switched.end());
     out.simStateHash = sim::HashRaceSession(session);
 }
 

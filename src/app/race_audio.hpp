@@ -12,6 +12,7 @@
 
 #include "app/ambient_sounds.hpp"
 #include "app/car_sounds.hpp"
+#include "app/hazard/hazard_sounds.hpp"
 #include "app/loop_voice.hpp"
 #include "app/positional_sound.hpp"
 #include "app/race_music.hpp"
@@ -95,6 +96,7 @@ private:
     std::vector<LoopVoice> shieldLoops_;
     LoopVoice opponentLoop_;
     AmbientSounds ambience_;
+    HazardSounds hazards_;
 };
 
 }

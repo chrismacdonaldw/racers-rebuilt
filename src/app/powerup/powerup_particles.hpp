@@ -32,8 +32,8 @@ private:
                 Milliseconds elapsed);
     static void Keep(SlotEmitter& emitter, bool shouldStart, std::string_view name,
                      const render::EmitterPlacement& placement, render::ParticleBank& bank);
-    static void KeepShotSmoke(SlotEmitter& emitter, bool isFlying, const sim::Racer& owner,
-                              render::ParticleBank& bank);
+    static void KeepShotSmoke(SlotEmitter& emitter, bool isFlying,
+                              const render::EmitterPlacement& launcher, render::ParticleBank& bank);
     [[nodiscard]] Vector3 BubbleOffset();
 
     std::vector<SlotEmitter> slots_;

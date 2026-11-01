@@ -17,7 +17,7 @@ constexpr float kDropHeight = 1.0F;
 constexpr std::uint8_t kCannonballLevel = 0;
 
 float Offset(Random& random) {
-    return static_cast<float>(random.Below(kOffsets)) - kOffsetBias;
+    return static_cast<float>(random.Below(kRollRange) % kOffsets) - kOffsetBias;
 }
 
 }

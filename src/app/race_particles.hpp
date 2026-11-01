@@ -8,6 +8,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/hazard/hazard_particles.hpp"
 #include "app/powerup/powerup_particles.hpp"
 #include "assets/surface_table.hpp"
 #include "assets/track_loader.hpp"
@@ -39,7 +40,8 @@ public:
         render::Renderer& renderer, const assets::Vfs& vfs, assets::TrackLoader& loader,
         std::string_view track, std::span<const assets::SurfaceEntry> surfaces, std::size_t player);
 
-    void Tick(const sim::RaceSession& session, Milliseconds elapsed);
+    /// `camera` is the player's, in engine space.
+    void Tick(const sim::RaceSession& session, const Transform& camera, Milliseconds elapsed);
     void Update(const sim::RaceSession& session, render::FloatMilliseconds elapsed);
     void AppendQuads(const Transform& camera, std::vector<render::QuadDraw>& out) const;
 
@@ -62,6 +64,7 @@ private:
     std::size_t player_;
     std::array<WheelEmitter, sim::kWheelCount> wheels_{};
     PowerupParticles powerups_;
+    HazardParticles hazards_;
 };
 
 }

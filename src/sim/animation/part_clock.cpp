@@ -78,6 +78,15 @@ void AdvanceClock(const assets::AnimationAsset& animations, PartClock& clock, fl
     AdvanceFrames(animations, clock, elapsedMs * rate / kMsPerSecond);
 }
 
+void RewindClock(const assets::AnimationAsset& animations, PartClock& clock, float elapsedMs) {
+    const assets::AnimationPart& part = animations.parts[clock.part];
+    clock.frame -= elapsedMs * static_cast<float>(part.framesPerSecond) / kMsPerSecond;
+    if (clock.frame < 0.0F) {
+        const auto loop = static_cast<float>(part.loopFrames);
+        clock.frame = clock.loops ? std::fmod(clock.frame, loop) + loop : 0.0F;
+    }
+}
+
 bool IsHoldingLastFrame(const assets::AnimationAsset& animations, const PartClock& clock) {
     return !clock.loops && clock.frame >= LastFrame(animations.parts[clock.part]);
 }
