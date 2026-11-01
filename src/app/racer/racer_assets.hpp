@@ -24,6 +24,10 @@ struct RacerAssets {
     JointedAssets driver;
 };
 
+/// Reads `<skeleton>.SDB` and `<animations>.ADB` from `GAMEDATA/COMMON`.
+[[nodiscard]] Result<JointedAssets> LoadJointed(const assets::Vfs& vfs, std::string_view skeleton,
+                                                std::string_view animations);
+
 /// `code` names a driver in `DRIVERS.DDB`, such as `RR`.
 [[nodiscard]] Result<RacerAssets> LoadRacer(const assets::Vfs& vfs, assets::TrackLoader& loader,
                                             const assets::RacerCatalog& catalog,

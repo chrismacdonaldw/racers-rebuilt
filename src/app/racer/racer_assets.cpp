@@ -18,6 +18,8 @@ Result<Asset> ReadCommon(const assets::Vfs& vfs, std::string_view name, std::str
         .and_then([parse](const assets::FileData& data) { return parse(data.Bytes()); });
 }
 
+}
+
 Result<JointedAssets> LoadJointed(const assets::Vfs& vfs, std::string_view skeleton,
                                   std::string_view animations) {
     JointedAssets jointed;
@@ -30,8 +32,6 @@ Result<JointedAssets> LoadJointed(const assets::Vfs& vfs, std::string_view skele
             jointed.animations = std::move(parsed);
             return std::move(jointed);
         });
-}
-
 }
 
 Result<RacerAssets> LoadRacer(const assets::Vfs& vfs, assets::TrackLoader& loader,
