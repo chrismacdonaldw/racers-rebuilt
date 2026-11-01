@@ -9,6 +9,7 @@
 
 #include "app/pace_car.hpp"
 #include "app/scene.hpp"
+#include "app/track_entity_draws.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
 #include "core/duration.hpp"
@@ -17,6 +18,7 @@
 #include "render/renderer.hpp"
 #include "sim/race/checkpoint_graph.hpp"
 #include "sim/race/lap_tracker.hpp"
+#include "sim/track/track_entities.hpp"
 
 namespace rr::app {
 
@@ -45,6 +47,9 @@ private:
         std::vector<render::DebugLine> collisionLines;
         Nanoseconds started{};
         std::optional<sim::CheckpointGraph> checkpoints;
+        std::unique_ptr<sim::TrackEntitySources> entitySources;
+        sim::TrackEntities entities;
+        TrackEntityDraws entityDraws;
     };
 
     explicit TrackViewerScene(Parts parts) : parts_(std::move(parts)) {}
@@ -56,6 +61,7 @@ private:
     bool showsCheckpoints_ = false;
     bool showsCollision_ = false;
     std::vector<render::DebugLine> debugLines_;
+    std::vector<render::MeshDraw> frameDraws_;
     bool hasDrawn_ = false;
 };
 

@@ -1,8 +1,8 @@
-#include "app/racer/skeleton_pose.hpp"
+#include "sim/animation/skeleton_pose.hpp"
 
 #include <cstddef>
 
-namespace rr::app {
+namespace rr::sim {
 namespace {
 
 constexpr std::size_t kNoParent = static_cast<std::size_t>(-1);

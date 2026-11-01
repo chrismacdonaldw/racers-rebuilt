@@ -31,6 +31,16 @@ std::vector<render::DebugLine> CollisionLines(const assets::Vfs& vfs, std::strin
     return BuildCollisionWireframe(*collision);
 }
 
+std::unique_ptr<sim::TrackEntitySources> EntitySources(const assets::Vfs& vfs,
+                                                       std::string_view track) {
+    Result<sim::TrackEntitySources> sources = sim::LoadTrackEntities(vfs, track);
+    if (!sources) {
+        log::Warn("animated entities stand still: {}", sources.error().message);
+        return std::make_unique<sim::TrackEntitySources>();
+    }
+    return std::make_unique<sim::TrackEntitySources>(std::move(*sources));
+}
+
 }
 
 Result<std::unique_ptr<TrackViewerScene>> TrackViewerScene::Create(render::Renderer& renderer,
@@ -60,6 +70,9 @@ Result<std::unique_ptr<TrackViewerScene>> TrackViewerScene::Create(render::Rende
     }
     const std::size_t firstCarDraw = model->draws.size();
     model->draws.insert(model->draws.end(), car->begin(), car->end());
+    std::unique_ptr<sim::TrackEntitySources> entitySources = EntitySources(vfs, track);
+    sim::TrackEntities entities(*entitySources);
+    TrackEntityDraws entityDraws(model->animatedModels, *entitySources);
     return std::unique_ptr<TrackViewerScene>(
         new TrackViewerScene({.renderer = &renderer,
                               .track = std::string(track),
@@ -69,7 +82,10 @@ Result<std::unique_ptr<TrackViewerScene>> TrackViewerScene::Create(render::Rende
                               .camera = TrackCamera(model->bounds),
                               .collisionLines = CollisionLines(vfs, track),
                               .started = started,
-                              .checkpoints = std::move(checkpoints)}));
+                              .checkpoints = std::move(checkpoints),
+                              .entitySources = std::move(entitySources),
+                              .entities = std::move(entities),
+                              .entityDraws = std::move(entityDraws)}));
 }
 
 void TrackViewerScene::ApplySettings(const settings::Registry& settings) {
@@ -80,6 +96,7 @@ void TrackViewerScene::ApplySettings(const settings::Registry& settings) {
 void TrackViewerScene::Tick([[maybe_unused]] const sim::InputFrame& input) {
     const Transform before = parts_.paceCar.GamePose();
     parts_.paceCar.Tick();
+    parts_.entities.Tick(kSimTick);
     if (parts_.checkpoints) {
         TrackLaps(*parts_.checkpoints, before);
     }
@@ -100,6 +117,7 @@ void TrackViewerScene::TrackLaps(const sim::CheckpointGraph& checkpoints, const 
 void TrackViewerScene::Snapshot(sim::RenderSnapshot& out) const {
     out.entities.assign(1, {.id = kPaceCarId, .transform = parts_.paceCar.Car()});
     out.camera = {.transform = parts_.paceCar.Camera()};
+    out.entityClocks.assign(parts_.entities.Clocks().begin(), parts_.entities.Clocks().end());
 }
 
 void TrackViewerScene::Render(const sim::RenderSnapshot& interpolated) {
@@ -118,8 +136,12 @@ void TrackViewerScene::Render(const sim::RenderSnapshot& interpolated) {
         debugLines_.insert(debugLines_.end(), parts_.collisionLines.begin(),
                            parts_.collisionLines.end());
     }
+    parts_.entityDraws.Update(interpolated.entityClocks);
+    frameDraws_.assign(parts_.draws.begin(), parts_.draws.end());
+    frameDraws_.insert(frameDraws_.end(), parts_.entityDraws.Draws().begin(),
+                       parts_.entityDraws.Draws().end());
     Result<void> drawn =
-        parts_.renderer->Draw({.camera = camera, .meshes = parts_.draws, .lines = debugLines_});
+        parts_.renderer->Draw({.camera = camera, .meshes = frameDraws_, .lines = debugLines_});
     if (!drawn) {
         log::Error("{}", drawn.error().message);
         return;
@@ -127,8 +149,7 @@ void TrackViewerScene::Render(const sim::RenderSnapshot& interpolated) {
     if (!hasDrawn_) {
         hasDrawn_ = true;
         log::Info(
-            "{}: {} draws, first frame {} ms after loading began", parts_.track,
-            parts_.draws.size(),
+            "{}: {} draws, first frame {} ms after loading began", parts_.track, frameDraws_.size(),
             std::chrono::duration_cast<Milliseconds>(platform::Now() - parts_.started).count());
     }
 }

@@ -9,6 +9,7 @@
 #include "assets/animation_database.hpp"
 #include "core/result.hpp"
 #include "core/transform.hpp"
+#include "sim/animation/part_clock.hpp"
 
 namespace rr::app {
 
@@ -39,21 +40,12 @@ public:
     void PoseNodes(std::span<Transform> locals);
 
 private:
-    struct Clock {
-        std::size_t part = 0;
-        float frame = 0.0F;
-        bool loops = true;
-    };
-
     AnimationPlayer(const assets::AnimationAsset& animations, std::size_t nodeCount)
         : animations_(&animations), blended_(nodeCount) {}
 
-    void Wrap(Clock& clock) const;
-    void Sample(const Clock& clock, std::span<Transform> locals) const;
-
     const assets::AnimationAsset* animations_;
-    Clock current_;
-    std::optional<Clock> next_;
+    sim::PartClock current_;
+    std::optional<sim::PartClock> next_;
     float blendMs_ = 0.0F;
     float blendedMs_ = 0.0F;
     std::vector<Transform> blended_;

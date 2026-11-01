@@ -118,8 +118,10 @@ Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track) 
         bricks.and_then([&](const assets::BrickLayout&) { return LoadTargetPoints(vfs, track); });
     Result<TrackEventSources> events = targets.and_then(
         [&](const std::vector<assets::TargetPoint>&) { return LoadEventSources(vfs, track); });
-    if (!events) {
-        return std::unexpected(std::move(events.error()));
+    Result<TrackEntitySources> entities =
+        events.and_then([&](const TrackEventSources&) { return LoadTrackEntities(vfs, track); });
+    if (!entities) {
+        return std::unexpected(std::move(entities.error()));
     }
     const float lowestTrackZ = LowestPoint(collision->Track());
     return RaceTrack{.collision = std::move(*collision),
@@ -129,6 +131,7 @@ Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track) 
                      .bricks = std::move(*bricks),
                      .targets = std::move(*targets),
                      .events = std::move(*events),
+                     .entities = std::move(*entities),
                      .lowestTrackZ = lowestTrackZ};
 }
 

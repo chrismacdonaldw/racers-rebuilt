@@ -28,11 +28,11 @@ struct WorldLod {
     friend constexpr bool operator==(const WorldLod&, const WorldLod&) = default;
 };
 
-struct NodeReference {
+struct NameOrIndex {
     std::int32_t index = kNoIndex;
     std::string name;
 
-    friend bool operator==(const NodeReference&, const NodeReference&) = default;
+    friend bool operator==(const NameOrIndex&, const NameOrIndex&) = default;
 };
 
 struct MaterialAnimationBinding {
@@ -62,7 +62,7 @@ struct WorldEntity {
     std::array<std::int32_t, kMaxWorldLods> materialTables{kNoIndex, kNoIndex, kNoIndex};
     std::vector<MaterialAnimationBinding> materialAnimations;
     std::optional<TextureScroll> textureScroll;
-    std::optional<NodeReference> node;
+    std::optional<NameOrIndex> startPart;
     std::int32_t boundingVolume = kNoIndex;
     bool hasFlag42 = false;
     bool hasFlag4C = false;
@@ -97,7 +97,7 @@ struct WorldCamera {
     std::string name;
     std::int32_t trackedEntity = kNoIndex;
     std::int32_t trackedNode = 0;
-    std::optional<NodeReference> node;
+    std::optional<NameOrIndex> node;
     Vector3 position;
     Vector3 forward{.x = 1.0F};
     Vector3 up{.z = 1.0F};
@@ -133,7 +133,7 @@ struct WorldAsset {
     std::vector<WorldLight> lights;
 };
 
-/// Fails on any index past its list. Node references are not checked.
+/// Fails on any index past its list. Start parts and camera nodes are not checked.
 [[nodiscard]] Result<WorldAsset> ParseWorld(std::span<const std::byte> bytes);
 
 }

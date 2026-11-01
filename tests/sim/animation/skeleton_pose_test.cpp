@@ -1,11 +1,11 @@
-#include "app/racer/skeleton_pose.hpp"
+#include "sim/animation/skeleton_pose.hpp"
 
 #include <doctest/doctest.h>
 
 #include <numbers>
 #include <span>
 
-namespace rr::app {
+namespace rr::sim {
 namespace {
 
 void CheckNear(const Vector3& actual, const Vector3& expected) {

@@ -22,6 +22,7 @@
 #include "app/racer_effect_tools.hpp"
 #include "app/scene.hpp"
 #include "app/sound_banks.hpp"
+#include "app/track_entity_draws.hpp"
 #include "app/trigger_spheres.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
@@ -89,6 +90,7 @@ private:
         PowerupModelSet powerups;
         render::Camera camera;
         std::unique_ptr<sim::RaceTrack> raceTrack;
+        TrackEntityDraws entityDraws;
         std::unique_ptr<sim::WorldList> world;
         sim::RaceSession session;
         std::unique_ptr<RaceAudio> audio;

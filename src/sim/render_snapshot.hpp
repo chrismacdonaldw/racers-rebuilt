@@ -6,6 +6,7 @@
 
 #include "assets/brick_layout.hpp"
 #include "core/transform.hpp"
+#include "sim/animation/part_clock.hpp"
 #include "sim/powerup/powerup_kind.hpp"
 
 namespace rr::sim {
@@ -93,6 +94,7 @@ struct RenderSnapshot {
     std::vector<BrickSnapshot> bricks;
     std::vector<EffectSnapshot> effects;
     std::vector<ExplosionSnapshot> explosions;
+    std::vector<std::optional<PartClock>> entityClocks;
     CameraSnapshot camera;
     std::uint64_t simStateHash = 0;
 

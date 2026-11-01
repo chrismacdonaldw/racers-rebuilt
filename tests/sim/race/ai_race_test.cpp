@@ -123,7 +123,8 @@ std::optional<std::string> RaceProblem(const assets::Vfs& vfs, const std::string
                                                                .routes = &loaded->routes,
                                                                .bricks = &loaded->bricks,
                                                                .targets = loaded->targets,
-                                                               .events = &loaded->events});
+                                                               .events = &loaded->events,
+                                                               .entities = &loaded->entities});
     if (!session) {
         return std::format("{}: {}", track, session.error().message);
     }

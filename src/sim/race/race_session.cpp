@@ -78,6 +78,11 @@ std::vector<std::optional<std::size_t>> SphereWorldsFor(const RaceCourse& course
     return worlds;
 }
 
+const TrackEntitySources& EntitySourcesFor(const RaceCourse& course) {
+    static const TrackEntitySources kNone;
+    return course.entities == nullptr ? kNone : *course.entities;
+}
+
 std::span<const assets::RaceRoute> RoutesFor(const RaceCourse& course, std::size_t slot) {
     if (course.routes == nullptr || slot >= course.routes->size()) {
         return {};
@@ -108,6 +113,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       surfaces_(SurfacesFor(course)),
       triggers_(EventSourcesFor(course), setup.racers.size(), course.isMirrored, random_,
                 OutsideEventCount(setup)),
+      entities_(EntitySourcesFor(course)),
       triggerRacers_(setup.racers.size()),
       sphereWorlds_(SphereWorldsFor(course)),
       switchedWorlds_(setup.racers.size()),
@@ -141,6 +147,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
 
 void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> controls) {
     RR_ASSERT(controls.size() == racers_.size());
+    entities_.Tick(elapsed);
     sounds_.BeginTick();
     powerups_.BeginTick();
     weapons_.Clear();

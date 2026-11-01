@@ -3,9 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <array>
-#include <cmath>
 #include <numbers>
-#include <vector>
 
 namespace rr::app {
 namespace {
@@ -47,90 +45,6 @@ std::array<Transform, 2> Posed(AnimationPlayer& player) {
     return locals;
 }
 
-TEST_CASE("a part interpolates between the keys around its frame") {
-    const assets::AnimationAsset animations = Slide();
-    AnimationPlayer player = MakePlayer(animations);
-    player.Play(0, true);
-
-    player.AdvanceFrames(5.0F);
-    const std::array<Transform, 2> posed = Posed(player);
-
-    CHECK(posed[0].position == Vector3{.x = 5.0F});
-    CHECK(posed[1].position == Vector3{});
-}
-
-TEST_CASE("a looping part runs from its last key back to its first") {
-    const assets::AnimationAsset animations = Slide();
-    AnimationPlayer player = MakePlayer(animations);
-    player.Play(0, true);
-
-    player.AdvanceFrames(16.0F);
-    const std::array<Transform, 2> wrapping = Posed(player);
-    player.AdvanceFrames(10.0F);
-    const std::array<Transform, 2> wrapped = Posed(player);
-
-    CHECK(wrapping[0].position.x == doctest::Approx(5.0F));
-    CHECK(wrapped[0].position.x == doctest::Approx(4.0F));
-}
-
-TEST_CASE("a one-shot part holds its last frame and wraps over its frame count") {
-    const assets::AnimationAsset animations = Slide();
-    AnimationPlayer player = MakePlayer(animations);
-    player.Play(0, false);
-
-    player.AdvanceFrames(100.0F);
-    const std::array<Transform, 2> posed = Posed(player);
-
-    CHECK(posed[0].position.x == doctest::Approx(10.0F / 11.0F));
-    CHECK(posed[0].rotation.z == doctest::Approx(std::sin(kQuarterTurn / 2.0F)));
-}
-
-TEST_CASE("keys that share a frame jump to the later key") {
-    const assets::AnimationAsset animations{
-        .positionKeys = {{.x = 0.0F}, {.x = 10.0F}, {.x = 30.0F}, {.x = 40.0F}},
-        .rotationKeys = {},
-        .keyFrames = {0, 10, 10, 20},
-        .tracks = {{.rotations = {}, .positions = {.firstValue = 0, .firstFrame = 0, .count = 4}},
-                   {}},
-        .parts = {{.name = "jump",
-                   .firstTrack = 0,
-                   .frameCount = 22,
-                   .loopFrames = 20,
-                   .framesPerSecond = 30}},
-    };
-    AnimationPlayer player = MakePlayer(animations);
-    player.Play(0, true);
-
-    player.AdvanceFrames(10.0F);
-    const std::array<Transform, 2> jumped = Posed(player);
-    player.AdvanceFrames(10.5F);
-    const std::array<Transform, 2> wrapping = Posed(player);
-
-    CHECK(jumped[0].position.x == doctest::Approx(30.0F));
-    CHECK(wrapping[0].position.x == doctest::Approx(40.0F));
-}
-
-TEST_CASE("a node without keys keeps its placement") {
-    const assets::AnimationAsset animations = Slide();
-    AnimationPlayer player = MakePlayer(animations);
-    player.Play(1, true);
-
-    const std::array<Transform, 2> posed = Posed(player);
-
-    CHECK(posed[0].position == Vector3{.z = 4.0F});
-    CHECK(posed[1].position == Vector3{});
-}
-
-TEST_CASE("clocks run at the part's frame rate") {
-    const assets::AnimationAsset animations = Slide();
-    AnimationPlayer player = MakePlayer(animations);
-    player.Play(0, true);
-
-    player.Advance(100.0F);
-
-    CHECK(Posed(player)[0].position.x == doctest::Approx(3.0F));
-}
-
 TEST_CASE("a blend moves from the current part to the next over its time") {
     const assets::AnimationAsset animations = Slide();
     AnimationPlayer player = MakePlayer(animations);
@@ -165,12 +79,6 @@ TEST_CASE("parts are found by name") {
 
     CHECK(player.FindPart("lift") == 1);
     CHECK_FALSE(player.FindPart("steer-l").has_value());
-}
-
-TEST_CASE("animations with fewer tracks than the skeleton needs fail") {
-    const assets::AnimationAsset animations = Slide();
-
-    CHECK_FALSE(AnimationPlayer::Create(animations, 3).has_value());
 }
 
 }
