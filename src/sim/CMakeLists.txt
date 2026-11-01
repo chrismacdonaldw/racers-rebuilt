@@ -26,6 +26,7 @@ rr_add_module(sim
         physics/hover_contact.cpp
         physics/prebuilt_chassis.cpp
         physics/racer.cpp
+        physics/racer_contact_state.cpp
         physics/racer_contacts.cpp
         physics/racer_effects.cpp
         physics/racer_controls.cpp

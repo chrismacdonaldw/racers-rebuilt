@@ -14,6 +14,7 @@
 #include "sim/ai/rubber_band.hpp"
 #include "sim/physics/collision_query.hpp"
 #include "sim/physics/racer.hpp"
+#include "sim/physics/racer_contacts.hpp"
 #include "sim/physics/racer_controls.hpp"
 #include "sim/powerup/brick_field.hpp"
 #include "sim/powerup/explosions.hpp"
@@ -73,6 +74,7 @@ private:
     RaceSession(const RaceSetup& setup, const RaceCourse& course);
 
     void TickRacer(std::size_t racer, Milliseconds elapsed, const RacerControls& controls);
+    void ResolveContacts();
     void PaceRoutes(Milliseconds elapsed);
     void MeasureReaches();
     void TickBricks(Milliseconds elapsed);
@@ -100,6 +102,8 @@ private:
     Explosions explosions_;
     std::vector<BoundingSphere> localBounds_;
     std::vector<BoundingSphere> reaches_;
+    std::vector<ContactBody> contactBodies_;
+    RacerContacts contacts_;
 };
 
 }

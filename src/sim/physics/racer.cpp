@@ -80,7 +80,11 @@ void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const Coll
     if (turbo_ && body_.hasWallContact) {
         turbo_->hasTouchedWall = true;
     }
+    const SteeringState shoveSteering = body_.steering;
     ApplyDriveCommand(body_, constants_, command, stats_, turbo_.transform(TurboThrust));
+    if (status_.shoveForce) {
+        body_.steering = shoveSteering;
+    }
     StepBody(body_, constants_, dtMs, world);
     KeepInWorldBounds();
     UpdateTurbo(dtMs);

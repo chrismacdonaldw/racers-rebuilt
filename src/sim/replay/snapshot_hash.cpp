@@ -110,10 +110,23 @@ public:
             body.hasTrackCollision);
     }
 
+    void Add(const ShieldStatus& shield) {
+        Add(shield.level.has_value(), static_cast<int>(shield.level.value_or(0)),
+            static_cast<std::uint64_t>(shield.raised), static_cast<std::uint64_t>(shield.absorbs),
+            static_cast<int>(shield.absorbSound), shield.cooldownMs);
+    }
+
+    void Add(const ContactStatus& contact) {
+        Add(contact.isTouching, contact.boxMs, contact.boxScale, contact.scrapeCooldownMs);
+    }
+
     void Add(const RacerStatus& status) {
-        Add(status.isHalted, status.isMagnetHeld, status.isGhost, status.isCursed, status.curseMs,
-            status.jitter.countdownMs, status.jitter.throttleOffset, status.jitter.steerOffset,
-            static_cast<std::uint64_t>(status.hitReactions));
+        Add(status.isHalted, status.isMagnetHeld, status.isGhost, status.isWarping, status.isCursed,
+            status.curseMs, status.jitter.countdownMs, status.jitter.throttleOffset,
+            status.jitter.steerOffset, static_cast<std::uint64_t>(status.hitReactions),
+            status.shield, status.shoveForce.has_value(),
+            static_cast<std::uint64_t>(status.shoveForce.value_or(0)), status.shoveMs,
+            status.contact);
     }
 
     void Add(const RouteEffects& effects) {
@@ -144,8 +157,8 @@ public:
     void Add(const std::optional<AiRacer>& route) {
         Add(route.has_value());
         if (route) {
-            Add(route->PlaybackSpeed(), route->TargetSpeed(), route->Velocity(),
-                route->ContactCount(), route->Effects());
+            Add(route->PlaybackSpeed(), route->TargetSpeed(), route->SideOffset(),
+                route->Velocity(), route->ContactCount(), route->Effects());
         }
     }
 

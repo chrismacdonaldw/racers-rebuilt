@@ -6,6 +6,7 @@
 #include "core/assert.hpp"
 #include "core/transform.hpp"
 #include "sim/physics/body_state.hpp"
+#include "sim/physics/contact_effects.hpp"
 
 namespace rr::sim {
 namespace {
@@ -65,7 +66,8 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       inventories_(setup.racers.size()),
       powerups_(setup.effects, setup.racers.size()),
       weapons_(WeaponEventCount(setup)),
-      reaches_(setup.racers.size()) {
+      reaches_(setup.racers.size()),
+      contactBodies_(setup.racers.size()) {
     racers_.reserve(setup.racers.size());
     localBounds_.reserve(setup.racers.size());
     for (std::size_t i = 0; i < setup.racers.size(); ++i) {
@@ -91,6 +93,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         TickRacer(i, elapsed, clock_.Phase() == RacePhase::Intro ? RacerControls{} : controls[i]);
     }
+    ResolveContacts();
     TickBricks(elapsed);
     MeasureReaches();
     PowerupContext effects = EffectContext();
@@ -116,6 +119,17 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
         sounds_.HearRacer(i, racers_[i], isPlayer_[i], clock_.IsRunning(), elapsed);
     }
     PaceRoutes(elapsed);
+}
+
+void RaceSession::ResolveContacts() {
+    for (std::size_t i = 0; i < racers_.size(); ++i) {
+        contactBodies_[i] = racers_[i].ForContacts(*course_.world);
+    }
+    contacts_.Resolve(contactBodies_);
+    for (const RacerContact& contact : contacts_.Contacts()) {
+        ApplyContactEffects(racers_[contact.first], racers_[contact.second], contact.point,
+                            random_);
+    }
 }
 
 void RaceSession::PaceRoutes(Milliseconds elapsed) {

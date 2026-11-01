@@ -1,6 +1,7 @@
 #include "sim/ai/ai_racer.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 #include "core/quaternion.hpp"
@@ -33,6 +34,10 @@ constexpr int kHoverTiltMs = 150;
 constexpr float kBankLookAheadMs = 500.0F;
 constexpr float kBankPerTurn = 8.0F;
 constexpr float kMaxBank = 0.7853982F;
+constexpr float kSideReturnPerMs = 1.0F / 512.0F;
+constexpr float kFullBump = 240.0F;
+constexpr float kForwardBumpSwing = 0.05F;
+constexpr float kBackwardBumpSwing = 0.25F;
 
 }
 
@@ -52,12 +57,14 @@ void AiRacer::Tick(Milliseconds elapsed) {
         EaseTowardTarget(elapsedMs);
     }
     const Vector3 from = pose_.position;
-    route_.Advance(elapsed, std::max(playbackSpeed_, 0.0F));
+    route_.Advance(elapsed, playbackSpeed_);
     if (effects_.isHovering || effects_.lift.height != 0.0F) {
         UpdateHoverLift(effects_.lift, dtMs);
     }
+    const float sideReturn = kSideReturnPerMs * elapsedMs;
+    sideOffset_ = std::clamp(0.0F, sideOffset_ - sideReturn, sideOffset_ + sideReturn);
     UpdateRouteHop(effects_, dtMs);
-    pose_ = PlaceOnRoute(effects_, route_.Pose(), wheelAnchor_, dtMs);
+    Place(dtMs);
     velocity_ = (pose_.position - from) * (1.0F / elapsedMs);
 }
 
@@ -201,6 +208,30 @@ void AiRacer::Release() {
     }
 }
 
+void AiRacer::Shift(const Vector3& move) {
+    route_.Seek(move);
+    const float side = Dot(move, Rotate(pose_.rotation, {.y = 1.0F}));
+    sideOffset_ = std::clamp(side, -route_.WidthLeft(), route_.WidthRight());
+    Place(0);
+}
+
+void AiRacer::Bump(const Vector3& direction, float impulse) {
+    float along = Dot(Facing(), direction);
+    if (impulse < 0.0F) {
+        along = -along;
+    }
+    const float share = std::min(std::abs(impulse), kFullBump) / kFullBump;
+    if (along >= 0.0F) {
+        const float speed =
+            effects_.isSpinning ? kSpinSpeed + kSpinPushSwing : playbackSpeed_ + share;
+        playbackSpeed_ = std::min(speed + ((1.0F - along) * kForwardBumpSwing), kMaxSpeed);
+    } else {
+        const float speed =
+            effects_.isSpinning ? kSpinSpeed - kSpinPushSwing : playbackSpeed_ - share;
+        playbackSpeed_ = std::max(speed - ((along + 1.0F) * kBackwardBumpSwing), kMinSpeed);
+    }
+}
+
 Vector3 AiRacer::Facing() const {
     return Rotate(pose_.rotation, {.x = 1.0F});
 }
@@ -227,6 +258,11 @@ void AiRacer::AimBank() {
         route_.PoseAhead(kBankLookAheadMs * std::max(playbackSpeed_, 0.0F)).rotation;
     const float turn = Dot(Rotate(ahead, {.x = 1.0F}), Rotate(now, {.y = 1.0F}));
     effects_.lift.targetBank = -kMaxBank * std::clamp(turn * kBankPerTurn, -1.0F, 1.0F);
+}
+
+void AiRacer::Place(int dtMs) {
+    pose_ = PlaceOnRoute(effects_, route_.Pose(), wheelAnchor_, dtMs);
+    pose_.position += Rotate(pose_.rotation, {.y = 1.0F}) * sideOffset_;
 }
 
 bool AiRacer::HoldsSpeed() const {

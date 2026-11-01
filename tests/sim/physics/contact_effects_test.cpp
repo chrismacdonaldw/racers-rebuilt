@@ -6,6 +6,7 @@
 #include <optional>
 
 #include "sim/ai/straight_route.hpp"
+#include "sim/physics/plane_world.hpp"
 #include "sim/physics/racer.hpp"
 
 namespace rr::sim {
@@ -15,6 +16,7 @@ constexpr ChassisSpec kNeutralChassis{.handling = 50, .topSpeed = 50, .accelerat
 constexpr Vector3 kBeside{.y = 5.0F, .z = 0.2F};
 constexpr Vector3 kAhead{.x = 5.0F, .z = 0.2F};
 constexpr Milliseconds kShove{750};
+constexpr Milliseconds kTick{12};
 
 Racer RacerAt(const Vector3& position) {
     return {kNeutralChassis, {}, {.position = position}};
@@ -32,7 +34,24 @@ Vector3 PointBetween(const Racer& first, const Racer& second) {
 }
 
 void Touch(Racer& first, Racer& second) {
-    ApplyContactEffects(first, second, PointBetween(first, second));
+    Random random(3);
+    ApplyContactEffects(first, second, PointBetween(first, second), random);
+}
+
+Racer RouteRacerAt(const Vector3& position) {
+    Racer racer = RacerAt({});
+    racer.FollowRoute(test::StraightRoute(position));
+    return racer;
+}
+
+Racer MovingRacerAt(const Vector3& position) {
+    const test::PlaneWorld world = test::FlatGround();
+    Racer racer = RacerAt(position);
+    racer.Go();
+    for (int ms = 0; ms < 600; ms += 12) {
+        racer.Tick(kTick, {.isThrottleHeld = true}, world);
+    }
+    return racer;
 }
 
 bool IsShoved(const Racer& racer) {
@@ -75,6 +94,22 @@ TEST_CASE("a level 1 shield shoves a racer it meets side on for 750 ms") {
     other.UpdateTimers(Milliseconds{12});
     CHECK_FALSE(IsShoved(other));
     CHECK_FALSE(other.Status().shoveForce.has_value());
+}
+
+TEST_CASE("a shove's steering holds through the drive commands until the shove ends") {
+    const test::PlaneWorld world = test::FlatGround();
+    Racer shielded = ShieldedAt({}, 1);
+    Racer other = RacerAt(kBeside);
+    Touch(shielded, other);
+
+    other.Tick(kTick, {}, world);
+    other.UpdateTimers(kTick);
+    CHECK(other.Body().steering.isSteering);
+    CHECK(other.Body().steering.gain == 2.5F);
+
+    other.UpdateTimers(kShove);
+    other.Tick(kTick, {}, world);
+    CHECK_FALSE(other.Body().steering.isSteering);
 }
 
 TEST_CASE("a level 1 shield doesn't shove a racer it meets nose to tail") {
@@ -183,6 +218,77 @@ TEST_CASE("a curse doesn't pass to a racer that is already cursed") {
 
     CHECK(first.Status().curseMs == 10'000);
     CHECK(second.Status().curseMs == 2000);
+}
+
+TEST_CASE("two computer racers that touch shrink their boxes to nothing over 250 ms") {
+    Racer first = RouteRacerAt({});
+    Racer second = RouteRacerAt(kBeside);
+
+    Touch(first, second);
+    second.UpdateTimers(kTick);
+    CHECK(second.Status().contact.boxMs == 738);
+    CHECK(second.Status().contact.boxScale == doctest::Approx(0.952F));
+
+    for (int tick = 0; tick < 20; ++tick) {
+        Touch(first, second);
+        first.UpdateTimers(kTick);
+    }
+    CHECK(first.Status().contact.boxScale == doctest::Approx(0.04F));
+    Touch(first, second);
+    first.UpdateTimers(kTick);
+    CHECK(first.Status().contact.boxScale == 0.0F);
+}
+
+TEST_CASE("a box grows back to full size the tick after it stops touching") {
+    Racer first = RouteRacerAt({});
+    Racer second = RouteRacerAt(kBeside);
+    Touch(first, second);
+    first.UpdateTimers(kTick);
+
+    first.UpdateTimers(kTick);
+
+    CHECK(first.Status().contact.boxScale == 1.0F);
+    CHECK(first.Status().contact.boxMs == 0);
+    CHECK_FALSE(first.Status().contact.isTouching);
+}
+
+TEST_CASE("a player's box never shrinks") {
+    Racer player = RacerAt({});
+    Racer computer = RouteRacerAt(kBeside);
+
+    Touch(computer, player);
+    player.UpdateTimers(kTick);
+    computer.UpdateTimers(kTick);
+
+    CHECK(player.Status().contact.boxScale == 1.0F);
+    CHECK(computer.Status().contact.boxScale == 1.0F);
+}
+
+TEST_CASE("a faster first racer scrapes, then both wait 250 ms to scrape again") {
+    Racer faster = MovingRacerAt({});
+    Racer slower = RacerAt(kBeside);
+
+    Touch(faster, slower);
+    REQUIRE(faster.Events().scrapeSound.has_value());
+    CHECK(faster.Status().contact.scrapeCooldownMs == 250);
+    CHECK(slower.Status().contact.scrapeCooldownMs == 250);
+    CHECK(faster.Status().contact.isTouching);
+    CHECK(slower.Status().contact.isTouching);
+
+    slower.UpdateTimers(Milliseconds{240});
+    CHECK_FALSE(slower.IsScrapeReady());
+    slower.UpdateTimers(Milliseconds{10});
+    CHECK(slower.IsScrapeReady());
+}
+
+TEST_CASE("a slower first racer doesn't scrape") {
+    Racer slower = RacerAt({});
+    Racer faster = MovingRacerAt(kBeside);
+
+    Touch(slower, faster);
+
+    CHECK_FALSE(slower.Events().scrapeSound.has_value());
+    CHECK(slower.IsScrapeReady());
 }
 
 }

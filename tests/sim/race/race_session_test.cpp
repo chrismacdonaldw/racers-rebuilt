@@ -18,6 +18,7 @@
 #include "checkpoint_ring.hpp"
 #include "sim/powerup/green_effects.hpp"
 #include "sim/powerup/red_effects.hpp"
+#include "sim/powerup/shield_effect.hpp"
 
 namespace rr::sim {
 namespace {
@@ -364,6 +365,42 @@ TEST_CASE("a cannonball sounds as it fires and as it lands, then explodes") {
     CHECK(std::ranges::any_of(session.Blasts().All(), [](const Explosion& explosion) {
         return explosion.phase != ExplosionPhase::Idle;
     }));
+}
+
+TEST_CASE("a player beside a computer racer is pushed clear of it") {
+    Fixture fixture;
+    fixture.grid[1].position = {.x = -20.0F, .y = -4.5F, .z = 0.2F};
+    fixture.routes = {{test::StraightRoute({.x = -21.0F, .z = 0.2F})},
+                      {test::StraightRoute({.x = -20.0F, .y = -4.5F, .z = 0.2F})}};
+    RaceSession session = fixture.Start(TwoRacers());
+
+    Run(session, 1, {});
+
+    const float gap =
+        session.Racers()[0].Body().motion.position.y - session.Racers()[1].Body().motion.position.y;
+    CHECK(gap == doctest::Approx(5.0F).epsilon(0.01));
+}
+
+TEST_CASE("a computer racer that drives into a level 2 shield spins") {
+    Fixture fixture;
+    fixture.routes = {{test::StraightRoute({.x = -21.0F, .z = 0.2F})},
+                      {test::StraightRoute({.x = -30.0F, .z = 0.2F})}};
+    RaceSetup setup = TwoRacers();
+    AddBlueEffects(setup.effects);
+    RaceSession session = fixture.Start(setup);
+    session.GivePowerup(0, assets::BrickColour::Blue, 2);
+    RunUntilRacing(session);
+
+    Run(session, 1, {.isUsePressed = true});
+    REQUIRE(session.Racers()[0].IsShielded());
+    int ticks = 0;
+    while (!session.Racers()[1].IsSpinning() && ticks < 250) {
+        Run(session, 1, {});
+        ++ticks;
+    }
+
+    CHECK(session.Racers()[1].IsSpinning());
+    CHECK_FALSE(session.Racers()[0].IsSpinning());
 }
 
 }

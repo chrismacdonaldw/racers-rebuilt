@@ -31,6 +31,7 @@ struct RacerStart {
 struct RacerEvents {
     std::optional<TurboLevel> turboStarted;
     std::optional<TurboLevel> turboFaded;
+    std::optional<std::uint8_t> scrapeSound;
     bool hasDriftStarted = false;
     bool hasWarpEntered = false;
     bool hasWarpLanded = false;
@@ -42,6 +43,13 @@ struct ShieldStatus {
     std::uint32_t absorbs = 0;
     std::uint8_t absorbSound = 0;
     int cooldownMs = 0;
+};
+
+struct ContactStatus {
+    bool isTouching = false;
+    int boxMs = 0;
+    float boxScale = 1.0F;
+    int scrapeCooldownMs = 0;
 };
 
 struct RacerStatus {
@@ -56,6 +64,7 @@ struct RacerStatus {
     ShieldStatus shield;
     std::optional<std::size_t> shoveForce;
     int shoveMs = 0;
+    ContactStatus contact;
 };
 
 class Racer {
@@ -122,6 +131,14 @@ public:
     /// Pushes with `force` for 750 ms. Does nothing while a shove runs or no force slot is free.
     void Shove(const Vector3& force);
 
+    /// Starts shrinking the contact box over 750 ms, unless it is already shrinking.
+    void ShrinkBox();
+    void MarkTouching();
+
+    [[nodiscard]] bool IsScrapeReady() const { return status_.contact.scrapeCooldownMs == 0; }
+    void Scrape(std::uint8_t sound);
+    void HoldScrape();
+
     /// Runs before each `Tick`, drawing from `random` while cursed.
     void RollCurse(Milliseconds elapsed, Random& random);
 
@@ -161,15 +178,14 @@ public:
     [[nodiscard]] const RacerEvents& Events() const { return events_; }
 
     /// `world` is the one this racer stepped against.
-    [[nodiscard]] ContactBody ForContacts(const CollisionQuery& world) {
-        return {.body = &body_, .constants = &constants_, .world = &world};
-    }
+    [[nodiscard]] ContactBody ForContacts(const CollisionQuery& world);
 
 private:
     void UpdateTurbo(int dtMs);
     void FinishTurbo();
     [[nodiscard]] bool HasHoverStalled() const;
     void KeepInWorldBounds();
+    void UpdateContactTimers(int elapsedMs);
     void TakeRoutePose(const AiRacer& route);
     [[nodiscard]] DriveCommand AffectedDrive(DriveCommand command);
 

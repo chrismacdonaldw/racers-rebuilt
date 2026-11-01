@@ -6,6 +6,7 @@
 #include "assets/race_route.hpp"
 #include "core/duration.hpp"
 #include "core/transform.hpp"
+#include "core/vector3.hpp"
 
 namespace rr::sim {
 
@@ -13,7 +14,7 @@ class RoutePlayback {
 public:
     explicit RoutePlayback(assets::RaceRoute route);
 
-    /// Moves route time on by `speed` times `elapsed`. `speed` must not be negative.
+    /// Runs backward when `speed` is negative, stopping at the route's start.
     void Advance(Milliseconds elapsed, float speed = 1.0F);
 
     /// In game space.
@@ -21,6 +22,13 @@ public:
 
     /// The pose `routeMs` of route time ahead, in game space.
     [[nodiscard]] Transform PoseAhead(float routeMs) const;
+
+    /// Ignores the part of `move` off the current segment, and stops at the route's start.
+    void Seek(const Vector3& move);
+
+    /// How far the car may stray left and right of the line at the point being approached.
+    [[nodiscard]] float WidthLeft() const { return route_.points[cursor_.target].widthLeft; }
+    [[nodiscard]] float WidthRight() const { return route_.points[cursor_.target].widthRight; }
 
     /// Wheels on the ground at the point being approached: 0, 1, 2 or 4.
     [[nodiscard]] int ContactCount() const { return cursor_.contactCount; }
@@ -36,6 +44,7 @@ private:
     };
 
     void Move(Cursor& cursor, float routeMs) const;
+    void MoveBack(Cursor& cursor) const;
     void StartSegment(Cursor& cursor, std::size_t target, Transform from,
                       std::int32_t startMs) const;
     [[nodiscard]] std::int32_t SegmentEndMs(const Cursor& cursor) const;
