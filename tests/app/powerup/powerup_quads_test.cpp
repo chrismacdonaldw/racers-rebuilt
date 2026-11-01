@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -69,7 +70,9 @@ TEST_CASE("a flying cannonball draws its billboard and a smoke trail behind it")
     CHECK(quads.Quads().empty());
 }
 
-TEST_CASE("a grappling rope runs from above its owner to the hook, sagging until it pulls") {
+TEST_CASE(
+    "a grappling rope runs from above its owner to the hook, sagging until it pulls and darker "
+    "between its knots") {
     const assets::NameMap<render::Material> materials = AllMaterials();
     PowerupQuads quads(materials);
     const Vector3 hook = kOwner + Vector3{.y = 40.0F, .z = 3.0F};
@@ -86,13 +89,15 @@ TEST_CASE("a grappling rope runs from above its owner to the hook, sagging until
     quads.Update(WithEffect(sim::PowerupKind::GrapplingHook,
                             static_cast<std::uint8_t>(sim::GrapplePhase::Flying), hook),
                  {.position = {.y = 100.0F}}, kFrameMs);
-    CHECK(CountOf(quads, "TETHER") == 8);
+    CHECK(CountOf(quads, "TETHER") == 25);
     CHECK(lowest() < 0.0F);
 
     quads.Update(WithEffect(sim::PowerupKind::GrapplingHook,
                             static_cast<std::uint8_t>(sim::GrapplePhase::Pulling), hook),
                  {.position = {.y = 100.0F}}, kFrameMs);
     CHECK(lowest() == doctest::Approx(3.0F).epsilon(0.01));
+    const std::array<render::Color, 4>& ends = quads.Quads()[0].cornerTints;
+    CHECK(ends[1].r < ends[0].r);
 }
 
 TEST_CASE("a lightning beam jitters between its source and the bolt's end") {
@@ -103,11 +108,31 @@ TEST_CASE("a lightning beam jitters between its source and the bolt's end") {
     quads.Update(WithEffect(sim::PowerupKind::Lightning, 1, end), {.position = {.y = 100.0F}},
                  kFrameMs);
 
-    REQUIRE(CountOf(quads, "LIGHTNG") == 4);
+    REQUIRE(CountOf(quads, "LIGHTNG") == 20);
+    CHECK(CountOf(quads, "LTFLASH") == 0);
     const Vector3 first = ToGame(quads.Quads().front().corners[0]);
     const Vector3 last = ToGame(quads.Quads().back().corners[3]);
     CHECK(first.x == doctest::Approx(kOwner.x).epsilon(0.01));
     CHECK(last.x == doctest::Approx(end.x).epsilon(0.01));
+}
+
+TEST_CASE("a lightning beam turns white with a flash at its end while it holds a racer") {
+    const assets::NameMap<render::Material> materials = AllMaterials();
+    PowerupQuads quads(materials);
+    sim::RenderSnapshot snapshot =
+        WithEffect(sim::PowerupKind::Lightning, 1, kOwner + Vector3{.x = 50.0F, .z = 3.0F});
+
+    quads.Update(snapshot, {.position = {.y = 100.0F}}, kFrameMs);
+    const render::QuadDraw middle = quads.Quads()[2];
+    snapshot.effects[0].isHoldingRacer = true;
+    quads.Update(snapshot, {.position = {.y = 100.0F}}, kFrameMs);
+
+    CHECK(middle.cornerTints[0].r < 0.2F);
+    CHECK(middle.cornerTints[0].b > 0.9F);
+    CHECK(quads.Quads()[2].cornerTints[0].r == doctest::Approx(1.0F));
+    REQUIRE(CountOf(quads, "LTFLASH") == 1);
+    CHECK(Length(quads.Quads().back().corners[1] - quads.Quads().back().corners[0]) ==
+          doctest::Approx(8.0F));
 }
 
 TEST_CASE("an oil slick lies on the track only once armed") {

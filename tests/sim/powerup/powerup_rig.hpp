@@ -171,8 +171,12 @@ public:
     [[nodiscard]] const sim::Explosions& Spikes() const { return spikes_; }
     [[nodiscard]] std::span<const sim::WeaponEvent> Weapons() const { return weapons_.Events(); }
 
+    [[nodiscard]] const sim::PowerupEffect& Effect(std::size_t active = 0) const {
+        return *system_.Slots()[system_.Active()[active]].effect;
+    }
+
     [[nodiscard]] Vector3 EffectAt(std::size_t active = 0) const {
-        return system_.Slots()[system_.Active()[active]].effect->Pose().position;
+        return Effect(active).Pose().position;
     }
 
 private:

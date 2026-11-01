@@ -40,8 +40,12 @@ TEST_CASE("a decal lies level, just above its centre") {
     CheckNear(quads[0].corners[3], {.x = 5.0F, .y = 5.1F, .z = 5.0F});
 }
 
-TEST_CASE("a ribbon draws one quad per segment, as wide as asked and facing the camera") {
-    const std::array<Vector3, 3> points{Vector3{}, Vector3{.x = 10.0F}, Vector3{.x = 20.0F}};
+TEST_CASE(
+    "a ribbon draws one quad per segment, as wide as asked, facing the camera and tinted per "
+    "point") {
+    const std::array<RibbonPoint, 3> points{
+        RibbonPoint{}, RibbonPoint{.position = {.x = 10.0F}, .tint = {.g = 0.5F}},
+        RibbonPoint{.position = {.x = 20.0F}}};
     const Transform camera{.position = {.x = 10.0F, .z = 50.0F}};
     std::vector<render::QuadDraw> quads;
 
@@ -51,6 +55,9 @@ TEST_CASE("a ribbon draws one quad per segment, as wide as asked and facing the 
     CheckNear(quads[0].corners[0], {.y = 1.0F});
     CheckNear(quads[0].corners[3], {.x = 10.0F, .y = -1.0F});
     CheckNear(quads[1].corners[1], {.x = 20.0F, .y = 1.0F});
+    CHECK(quads[0].cornerTints[0].g == doctest::Approx(1.0F));
+    CHECK(quads[0].cornerTints[3].g == doctest::Approx(0.5F));
+    CHECK(quads[1].cornerTints[0].g == doctest::Approx(0.5F));
 }
 
 TEST_CASE("an opaque material blends by its texture's alpha as a quad") {

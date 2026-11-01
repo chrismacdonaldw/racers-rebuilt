@@ -46,7 +46,7 @@ private:
     assets::NameMap<QuadLook> looks_;
     std::vector<SlotTrail> trails_;
     std::vector<render::QuadDraw> quads_;
-    std::vector<Vector3> path_;
+    std::vector<RibbonPoint> path_;
 };
 
 }

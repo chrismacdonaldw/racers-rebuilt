@@ -19,6 +19,7 @@ namespace {
 
 constexpr std::string_view kCommonFolder = "GAMEDATA/COMMON";
 constexpr std::string_view kPowerupWorld = "GAMEDATA/COMMON/POWERUP.WDB";
+constexpr std::string_view kEmitterLibrary = "EMITTER";
 
 const std::string* NameAt(const std::vector<std::string>& names, std::int32_t index) {
     return index >= 0 && static_cast<std::size_t>(index) < names.size()
@@ -28,7 +29,8 @@ const std::string* NameAt(const std::vector<std::string>& names, std::int32_t in
 
 std::vector<assets::ModelFiles> FilesOf(const assets::WorldAsset& world) {
     std::vector<assets::ModelFiles> files;
-    files.reserve(world.models.size() + world.materialLibraries.size() + world.textureLists.size());
+    files.reserve(world.models.size() + world.materialLibraries.size() + world.textureLists.size() +
+                  1);
     for (const std::string& model : world.models) {
         files.push_back({.geometry = model});
     }
@@ -38,6 +40,8 @@ std::vector<assets::ModelFiles> FilesOf(const assets::WorldAsset& world) {
     for (const std::string& textures : world.textureLists) {
         files.push_back({.textures = textures});
     }
+    files.push_back(
+        {.materials = std::string(kEmitterLibrary), .textures = std::string(kEmitterLibrary)});
     return files;
 }
 

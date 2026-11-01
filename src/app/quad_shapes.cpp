@@ -23,10 +23,6 @@ QuadLook LookOf(const render::Material& material) {
                                                                  : material.blend};
 }
 
-render::Color Modulate(const render::Color& a, const render::Color& b) {
-    return {.r = a.r * b.r, .g = a.g * b.g, .b = a.b * b.b, .a = a.a * b.a};
-}
-
 void AppendBillboard(const QuadLook& look, const Vector3& centre, float width, float height,
                      const Transform& camera, std::vector<render::QuadDraw>& out) {
     const Vector3 top = Rotate(camera.rotation, kCameraUp) * (height * 0.5F);
@@ -50,17 +46,20 @@ void AppendDecal(const QuadLook& look, const Vector3& centre, float size,
                    .blend = look.blend});
 }
 
-void AppendRibbon(const QuadLook& look, std::span<const Vector3> points, float width,
+void AppendRibbon(const QuadLook& look, std::span<const RibbonPoint> points, float width,
                   const Transform& camera, std::vector<render::QuadDraw>& out) {
     for (std::size_t i = 1; i < points.size(); ++i) {
-        const Vector3& from = points[i - 1];
-        const Vector3& to = points[i];
-        const Vector3 toCamera = camera.position - ((from + to) * 0.5F);
+        const RibbonPoint& from = points[i - 1];
+        const RibbonPoint& to = points[i];
+        const Vector3 toCamera = camera.position - ((from.position + to.position) * 0.5F);
         const Vector3 fallback = Rotate(camera.rotation, kCameraUp);
-        const Vector3 side = Normalized(Cross(to - from, toCamera), fallback) * (width * 0.5F);
+        const Vector3 side =
+            Normalized(Cross(to.position - from.position, toCamera), fallback) * (width * 0.5F);
         out.push_back({.texture = look.texture,
-                       .corners = {from - side, to - side, from + side, to + side},
+                       .corners = {from.position - side, to.position - side, from.position + side,
+                                   to.position + side},
                        .tint = look.tint,
+                       .cornerTints = {from.tint, to.tint, from.tint, to.tint},
                        .blend = look.blend});
     }
 }

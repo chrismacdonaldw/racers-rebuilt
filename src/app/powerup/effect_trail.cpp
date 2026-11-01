@@ -46,7 +46,7 @@ void EffectTrail::Clear() {
 
 void EffectTrail::Append(const QuadLook& look, const TrailStyle& style,
                          std::vector<render::QuadDraw>& out) const {
-    const render::Color tint = Modulate(look.tint, style.colour);
+    const render::Color tint = look.tint * style.colour;
     const auto halfWidth = [&](const Point& point) {
         const float share = std::clamp(point.ageMs / style.lifeMs, 0.0F, 1.0F);
         return style.width * 0.5F * (1.0F - ((1.0F - kTailShare) * share));

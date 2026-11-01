@@ -72,7 +72,9 @@ void LightningEffect::End(PowerupContext& /*context*/) {
 }
 
 EffectProgress LightningEffect::Progress() const {
-    return {.phase = static_cast<std::uint8_t>(phase_), .phaseTime = timer_};
+    return {.phase = static_cast<std::uint8_t>(phase_),
+            .phaseTime = timer_,
+            .isHoldingRacer = isHolding_};
 }
 
 void LightningEffect::Advance(PowerupContext& context) {

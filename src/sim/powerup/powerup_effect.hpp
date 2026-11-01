@@ -52,6 +52,7 @@ struct PowerupHit {
 struct EffectProgress {
     std::uint8_t phase = 0;
     Milliseconds phaseTime{0};
+    bool isHoldingRacer = false;
 
     friend bool operator==(const EffectProgress&, const EffectProgress&) = default;
 };

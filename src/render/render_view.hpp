@@ -26,6 +26,10 @@ struct Color {
     float g = 1.0F;
     float b = 1.0F;
     float a = 1.0F;
+
+    friend constexpr Color operator*(const Color& x, const Color& y) {
+        return {.r = x.r * y.r, .g = x.g * y.g, .b = x.b * y.b, .a = x.a * y.a};
+    }
 };
 
 /// Lit like fixed-function Direct3D: `ambient` plus `tint` by the light, or the vertex color where
@@ -76,6 +80,7 @@ struct QuadDraw {
     std::array<Vector3, 4> corners{};
     Rect uv{.width = 1.0F, .height = 1.0F};
     Color tint;
+    std::array<Color, 4> cornerTints{};
     BlendMode blend = BlendMode::Alpha;
 };
 

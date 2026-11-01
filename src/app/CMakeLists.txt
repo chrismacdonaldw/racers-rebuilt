@@ -43,6 +43,7 @@ rr_add_module(app
         pace_car.cpp
         particle_assets.cpp
         positional_sound.cpp
+        powerup/beam_span.cpp
         powerup/effect_trail.cpp
         powerup/powerup_models.cpp
         powerup/powerup_particles.cpp

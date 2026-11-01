@@ -7,6 +7,7 @@
 #include <string_view>
 #include <utility>
 
+#include "app/powerup/powerup_quads.hpp"
 #include "assets/archive_survey.hpp"
 #include "assets/game_path.hpp"
 #include "assets/loader_pool.hpp"
@@ -43,6 +44,16 @@ TEST_CASE("the power-up world loads the animated models with their skeletons") {
     }
     for (const std::string_view name : kAnimated) {
         CHECK_MESSAGE(IsJointedAndLoaded(*loaded, name), name);
+    }
+}
+
+TEST_CASE("the power-up world holds every quad material") {
+    const std::optional<PowerupAssets> loaded = LoadRetail();
+    if (!loaded) {
+        return;
+    }
+    for (const std::string_view name : PowerupQuadMaterials()) {
+        CHECK_MESSAGE(loaded->models.materials.contains(name), name);
     }
 }
 

@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <numbers>
 
+#include "app/frame_loop.hpp"
+#include "app/powerup/beam_span.hpp"
 #include "app/powerup/visual_random.hpp"
 #include "app/track_space.hpp"
 #include "sim/powerup/dropped_trap.hpp"
@@ -22,12 +24,13 @@ constexpr std::string_view kCannonballTrailLook = "CANSTRK";
 constexpr std::string_view kMissileTrailLook = "MSLSTRK";
 constexpr std::string_view kRopeLook = "TETHER";
 constexpr std::string_view kBeamLook = "LIGHTNG";
+constexpr std::string_view kBeamFlashLook = "LTFLASH";
 constexpr std::string_view kFlashLook = "EXFLASH";
 constexpr std::string_view kScarLook = "EXSCAR";
 constexpr std::string_view kOilSlickLook = "OILSLCK";
-constexpr std::array kLooks{
-    kCannonballLook, kCannonballTrailLook, kMissileTrailLook, kRopeLook,
-    kBeamLook,       kFlashLook,           kScarLook,         kOilSlickLook};
+constexpr std::array kLooks{kCannonballLook, kCannonballTrailLook, kMissileTrailLook, kRopeLook,
+                            kBeamLook,       kBeamFlashLook,       kFlashLook,        kScarLook,
+                            kOilSlickLook};
 
 constexpr float kChannelMax = 255.0F;
 constexpr Vector3 kSourceHeight{.z = 3.0F};
@@ -44,17 +47,29 @@ constexpr TrailStyle kCannonballTrail{.width = 3.0F,
 constexpr TrailStyle kMissileTrail{
     .width = 1.0F, .lifeMs = 400.0F, .colour = {.a = 0xc8 / kChannelMax}};
 
+constexpr render::Color Rgb(std::uint8_t r, std::uint8_t g, std::uint8_t b) {
+    return {.r = static_cast<float>(r) / kChannelMax,
+            .g = static_cast<float>(g) / kChannelMax,
+            .b = static_cast<float>(b) / kChannelMax};
+}
+
 constexpr float kRopeWidth = 0.6F;
 constexpr float kRopeSag = 4.0F;
-constexpr std::size_t kRopeSegments = 8;
-constexpr render::Color kRopeColour{
-    .r = 0x64 / kChannelMax, .g = 0x3c / kChannelMax, .b = 0x0e / kChannelMax};
+constexpr std::size_t kRopeSpans = 5;
+constexpr BeamColours kRopeColours{.base = Rgb(0x64, 0x3c, 0x0e),
+                                   .outward = Rgb(0x8f, 0x5a, 0x1c),
+                                   .inward = Rgb(0x14, 0x14, 0x00)};
 
 constexpr float kBeamWidth = 0.85F;
-constexpr float kBeamJitter = 9.0F;
-constexpr std::size_t kBeamSegments = 4;
-constexpr render::Color kBeamColour{
-    .r = 0x19 / kChannelMax, .g = 0x41 / kChannelMax, .b = 0xf5 / kChannelMax};
+constexpr float kBeamBulge = 9.0F;
+constexpr float kBeamJitter = 5.0F;
+constexpr Milliseconds kBeamJitterStep{50};
+constexpr std::size_t kBeamSpans = 4;
+constexpr BeamColours kBeamColours{.base = Rgb(0x19, 0x41, 0xf5),
+                                   .outward = Rgb(0x19, 0x41, 0xff),
+                                   .inward = Rgb(0x19, 0x41, 0xeb)};
+constexpr BeamColours kStrikingBeamColours{};
+constexpr float kBeamFlashSize = 8.0F;
 
 constexpr float kFlashBaseWidth = 0.1F;
 constexpr float kFlashBaseHeight = 0.2F;
@@ -175,15 +190,16 @@ void PowerupQuads::AppendRope(const sim::EffectSnapshot& effect, const Vector3& 
     }
     const Vector3 hook = ToGame(effect.transform.position);
     const float sag = IsPhase(effect, sim::GrapplePhase::Pulling) ? 0.0F : kRopeSag;
-    path_.clear();
-    for (std::size_t i = 0; i <= kRopeSegments; ++i) {
-        const float share = static_cast<float>(i) / static_cast<float>(kRopeSegments);
-        const float droop = sag * std::sin(std::numbers::pi_v<float> * share);
-        path_.push_back(ToEngine(Lerp(owner, hook, share) - (kGameUp * droop)));
+    const auto knot = [&](std::size_t i) {
+        const float share = static_cast<float>(i) / static_cast<float>(kRopeSpans);
+        return Lerp(owner, hook, share) -
+               (kGameUp * (sag * std::sin(std::numbers::pi_v<float> * share)));
+    };
+    path_.assign({{.position = ToEngine(owner), .tint = kRopeColours.base}});
+    for (std::size_t i = 0; i < kRopeSpans; ++i) {
+        AppendBeamSpan(knot(i), knot(i + 1), kGameSide, 0.0F, kRopeColours, path_);
     }
-    AppendRibbon(
-        {.texture = look->texture, .tint = Modulate(look->tint, kRopeColour), .blend = look->blend},
-        path_, kRopeWidth, camera, quads_);
+    AppendRibbon(*look, path_, kRopeWidth, camera, quads_);
 }
 
 void PowerupQuads::AppendBeam(const sim::EffectSnapshot& effect, const Vector3& owner,
@@ -194,20 +210,27 @@ void PowerupQuads::AppendBeam(const sim::EffectSnapshot& effect, const Vector3& 
     }
     const Vector3 end = ToGame(effect.transform.position);
     const Vector3 side = Normalized(Cross(end - owner, kGameUp), kGameSide);
-    VisualRandom random(static_cast<std::uint32_t>(tick) + effect.slot + 1U);
-    path_.clear();
-    for (std::size_t i = 0; i <= kBeamSegments; ++i) {
-        const float share = static_cast<float>(i) / static_cast<float>(kBeamSegments);
-        Vector3 point = Lerp(owner, end, share);
-        if (i != 0 && i != kBeamSegments) {
-            point += (side * (Jitter(random) * kBeamJitter)) +
-                     (kGameUp * (Jitter(random) * kBeamJitter));
-        }
-        path_.push_back(ToEngine(point));
+    const BeamColours& colours = effect.isHoldingRacer ? kStrikingBeamColours : kBeamColours;
+    path_.assign({{.position = ToEngine(owner), .tint = colours.base}});
+    float bulge = kBeamBulge;
+    for (std::size_t i = 0; i < kBeamSpans; ++i) {
+        AppendBeamSpan(Lerp(owner, end, static_cast<float>(i) / static_cast<float>(kBeamSpans)),
+                       Lerp(owner, end, static_cast<float>(i + 1) / static_cast<float>(kBeamSpans)),
+                       side, bulge, colours, path_);
+        bulge = -bulge;
     }
-    AppendRibbon(
-        {.texture = look->texture, .tint = Modulate(look->tint, kBeamColour), .blend = look->blend},
-        path_, kBeamWidth, camera, quads_);
+    VisualRandom random(
+        static_cast<std::uint32_t>(tick * kSimTick.count() / kBeamJitterStep.count()) +
+        effect.slot + 1U);
+    for (std::size_t i = 1; i + 1 < path_.size(); ++i) {
+        path_[i].position += ToEngine((side * (Jitter(random) * kBeamJitter)) +
+                                      (kGameUp * (Jitter(random) * kBeamJitter)));
+    }
+    AppendRibbon(*look, path_, kBeamWidth, camera, quads_);
+    if (const QuadLook* flash = Find(kBeamFlashLook); flash != nullptr && effect.isHoldingRacer) {
+        AppendBillboard(*flash, effect.transform.position, kBeamFlashSize, kBeamFlashSize, camera,
+                        quads_);
+    }
 }
 
 void PowerupQuads::AppendExplosion(const sim::ExplosionSnapshot& explosion,
