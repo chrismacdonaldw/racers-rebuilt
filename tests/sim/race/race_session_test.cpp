@@ -17,6 +17,7 @@
 #include "../powerup/fake_effect.hpp"
 #include "checkpoint_ring.hpp"
 #include "sim/powerup/green_effects.hpp"
+#include "sim/powerup/red_effects.hpp"
 
 namespace rr::sim {
 namespace {
@@ -340,6 +341,29 @@ TEST_CASE("a warp sounds as it opens and as it lands") {
     });
     CHECK(warps == std::vector<HeardSound>{{41, {.sound = RaceSound::WarpEnter}},
                                            {166, {.sound = RaceSound::WarpLand}}});
+}
+
+TEST_CASE("a cannonball sounds as it fires and as it lands, then explodes") {
+    const Fixture fixture;
+    RaceSetup setup = TwoRacers();
+    AddRedEffects(setup.effects);
+    RaceSession session = fixture.Start(setup);
+    RunUntilRacing(session);
+    session.GivePowerup(0, assets::BrickColour::Red, 0);
+
+    const std::vector<HeardSound> heard = Listen(session, 300, {.isUsePressed = true});
+
+    std::vector<RaceSound> cannon;
+    for (const HeardSound& sound : heard) {
+        if (sound.second.sound == RaceSound::CannonFire ||
+            sound.second.sound == RaceSound::CannonHit) {
+            cannon.push_back(sound.second.sound);
+        }
+    }
+    CHECK(cannon == std::vector{RaceSound::CannonFire, RaceSound::CannonHit});
+    CHECK(std::ranges::any_of(session.Blasts().All(), [](const Explosion& explosion) {
+        return explosion.phase != ExplosionPhase::Idle;
+    }));
 }
 
 }

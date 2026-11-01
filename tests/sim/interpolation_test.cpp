@@ -54,5 +54,21 @@ TEST_CASE("a camera cut skips camera interpolation") {
     CHECK(out.camera.transform.position.y == 6.0F);
 }
 
+TEST_CASE("effects blend by slot unless they started this tick") {
+    const RenderSnapshot previous{.effects = {{.slot = 3, .transform = {.position = {.x = 0.0F}}},
+                                              {.slot = 4, .transform = {.position = {.x = 0.0F}}}}};
+    const RenderSnapshot current{.effects = {{.slot = 4,
+                                              .transform = {.position = {.x = 10.0F}},
+                                              .flags = SnapshotFlags::Teleported},
+                                             {.slot = 3, .transform = {.position = {.x = 10.0F}}}}};
+    RenderSnapshot out;
+
+    Interpolate(previous, current, 0.5F, out);
+
+    REQUIRE(out.effects.size() == 2);
+    CHECK(out.effects[0].transform.position.x == 10.0F);
+    CHECK(out.effects[1].transform.position.x == doctest::Approx(5.0F));
+}
+
 }
 }

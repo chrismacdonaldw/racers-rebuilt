@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <optional>
 
 #include "core/assert.hpp"
 
@@ -27,15 +28,24 @@ RaceSound BrickSound(BrickEventKind kind) {
     return RaceSound::BrickRespawn;
 }
 
+std::optional<RaceSound> WeaponSound(const WeaponEvent& event) {
+    const bool isFired = event.kind == WeaponEventKind::Fired;
+    if (event.weapon == PowerupKind::Cannonball) {
+        return isFired ? RaceSound::CannonFire : RaceSound::CannonHit;
+    }
+    return std::nullopt;
+}
+
 bool HasCrossed(Milliseconds mark, const RaceClock& before, const RaceClock& after) {
     return before.PhaseTime() < mark && after.PhaseTime() >= mark;
 }
 
 }
 
-RaceSounds::RaceSounds(std::size_t racerCount, std::size_t brickCount)
+RaceSounds::RaceSounds(std::size_t racerCount, std::size_t brickCount, std::size_t weaponEventCount)
     : wallCooldowns_(racerCount), shields_(racerCount) {
-    events_.reserve((racerCount * kMostSoundsPerRacer) + kMostRaceWideSounds + brickCount);
+    events_.reserve((racerCount * kMostSoundsPerRacer) + kMostRaceWideSounds + brickCount +
+                    weaponEventCount);
 }
 
 void RaceSounds::BeginTick() {
@@ -102,6 +112,14 @@ void RaceSounds::HearBricks(std::span<const BrickEvent> events, bool areBricksAu
              .racer = event.racer,
              .brick = event.brick,
              .whiteCount = event.whiteCount});
+    }
+}
+
+void RaceSounds::HearWeapons(std::span<const WeaponEvent> events) {
+    for (const WeaponEvent& event : events) {
+        if (const std::optional<RaceSound> sound = WeaponSound(event)) {
+            Add({.sound = *sound, .racer = event.racer, .position = event.position});
+        }
     }
 }
 

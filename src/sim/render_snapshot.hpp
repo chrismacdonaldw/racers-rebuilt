@@ -64,6 +64,7 @@ struct EffectSnapshot {
     PowerupKind kind = PowerupKind::Cannonball;
     PowerupUse use;
     Transform transform;
+    SnapshotFlags flags = SnapshotFlags::None;
 
     friend bool operator==(const EffectSnapshot&, const EffectSnapshot&) = default;
 };

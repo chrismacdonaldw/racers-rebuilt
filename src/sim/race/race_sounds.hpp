@@ -6,9 +6,11 @@
 #include <vector>
 
 #include "core/duration.hpp"
+#include "core/vector3.hpp"
 #include "sim/physics/racer.hpp"
 #include "sim/physics/turbo.hpp"
 #include "sim/powerup/brick_field.hpp"
+#include "sim/powerup/weapon_events.hpp"
 #include "sim/race/race_clock.hpp"
 
 namespace rr::sim {
@@ -30,6 +32,8 @@ enum class RaceSound : std::uint8_t {
     WhiteBrickCollect,
     ShieldAbsorb,
     ShieldExpire,
+    CannonFire,
+    CannonHit,
 };
 
 /// `racer` means nothing for countdown sounds, and the rest only for the sounds that use them.
@@ -40,6 +44,7 @@ struct SoundEvent {
     std::uint32_t brick = 0;
     std::uint8_t whiteCount = 0;
     std::uint8_t variant = 0;
+    Vector3 position;
 
     friend bool operator==(const SoundEvent&, const SoundEvent&) = default;
 };
@@ -47,7 +52,7 @@ struct SoundEvent {
 /// Only reads the race, so it never changes the outcome.
 class RaceSounds {
 public:
-    RaceSounds(std::size_t racerCount, std::size_t brickCount);
+    RaceSounds(std::size_t racerCount, std::size_t brickCount, std::size_t weaponEventCount = 0);
 
     void BeginTick();
 
@@ -62,6 +67,8 @@ public:
 
     /// `areBricksAudible` gates the bricks' own sounds, not the white pickup sound.
     void HearBricks(std::span<const BrickEvent> events, bool areBricksAudible);
+
+    void HearWeapons(std::span<const WeaponEvent> events);
 
     [[nodiscard]] std::span<const SoundEvent> Events() const { return events_; }
 

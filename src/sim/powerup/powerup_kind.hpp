@@ -8,6 +8,7 @@
 namespace rr::sim {
 
 inline constexpr std::uint8_t kMaxPowerupLevel = 3;
+inline constexpr std::size_t kMaxLaunches = 3;
 
 enum class PowerupKind : std::uint8_t {
     Cannonball,

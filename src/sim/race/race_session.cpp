@@ -19,6 +19,14 @@ std::size_t BrickCount(const RaceCourse& course) {
                                     : course.bricks->coloured.size() + course.bricks->white.size();
 }
 
+std::size_t WeaponEventCount(const RaceSetup& setup) {
+    std::size_t slots = 0;
+    for (std::size_t kind = 0; kind < kPowerupKindCount; ++kind) {
+        slots += setup.effects.at(kind) ? SpecFor(static_cast<PowerupKind>(kind)).poolSize : 0;
+    }
+    return slots + (setup.racers.size() * kMaxLaunches);
+}
+
 bool AreBricksAudible(const RaceClock& clock) {
     return clock.Phase() != RacePhase::Intro && clock.Phase() != RacePhase::Countdown;
 }
@@ -48,7 +56,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       wasRespawned_(setup.racers.size()),
       positions_(setup.racers.size()),
       progress_(setup.racers.size(), setup.lapCount),
-      sounds_(setup.racers.size(), BrickCount(course)),
+      sounds_(setup.racers.size(), BrickCount(course), WeaponEventCount(setup)),
       random_(setup.seed),
       rubberBand_(course.isMirrored),
       paced_(setup.racers.size()),
@@ -56,6 +64,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       bricks_(BricksFor(course)),
       inventories_(setup.racers.size()),
       powerups_(setup.effects, setup.racers.size()),
+      weapons_(WeaponEventCount(setup)),
       reaches_(setup.racers.size()) {
     racers_.reserve(setup.racers.size());
     localBounds_.reserve(setup.racers.size());
@@ -77,13 +86,17 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     RR_ASSERT(controls.size() == racers_.size());
     sounds_.BeginTick();
     powerups_.BeginTick();
+    weapons_.Clear();
     MeasureReaches();
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         TickRacer(i, elapsed, clock_.Phase() == RacePhase::Intro ? RacerControls{} : controls[i]);
     }
     TickBricks(elapsed);
+    MeasureReaches();
     PowerupContext effects = EffectContext();
     powerups_.Tick(elapsed, effects);
+    explosions_.Tick(elapsed, racers_, reaches_);
+    sounds_.HearWeapons(weapons_.Events());
     progress_.Rank(*course_.checkpoints, positions_);
     const RaceClock before = clock_;
     clock_.Advance(elapsed, HasPlayerFinished());
@@ -134,7 +147,13 @@ PowerupContext RaceSession::EffectContext() {
             .world = course_.world,
             .random = &random_,
             .checkpoints = course_.checkpoints,
-            .progress = &progress_};
+            .progress = &progress_,
+            .reaches = reaches_,
+            .powerups = &powerups_,
+            .bricks = &bricks_,
+            .inventories = inventories_,
+            .explosions = &explosions_,
+            .weapons = &weapons_};
 }
 
 void RaceSession::TickBricks(Milliseconds elapsed) {

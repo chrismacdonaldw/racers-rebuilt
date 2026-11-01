@@ -260,4 +260,8 @@ bool Racer::IsSpinning() const {
     return route_ ? route_->Effects().isSpinning : body_.spin.isSpinning;
 }
 
+bool Racer::IsSpunOut() const {
+    return route_ ? route_->Effects().isSpunOut : body_.isSpunOut;
+}
+
 }

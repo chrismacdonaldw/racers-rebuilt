@@ -17,6 +17,7 @@ constexpr std::string_view kMagic = "RRRH";
 constexpr std::uint16_t kVersion = 1;
 constexpr std::size_t kHashBytes = 8;
 constexpr std::size_t kNoWhiteBrick = std::numeric_limits<std::size_t>::max();
+constexpr std::uint8_t kNoOwner = std::numeric_limits<std::uint8_t>::max();
 
 template <std::unsigned_integral T>
 std::uint64_t Mix(std::uint64_t hash, T value) {
@@ -207,6 +208,17 @@ public:
         }
     }
 
+    void Add(const Explosions& explosions) {
+        for (const Explosion& explosion : explosions.All()) {
+            if (explosion.phase == ExplosionPhase::Idle) {
+                continue;
+            }
+            Add(explosion.position, static_cast<int>(explosion.owner.value_or(kNoOwner)),
+                static_cast<int>(explosion.phase), explosion.remaining, explosion.growth,
+                explosion.growthRate, explosion.leavesScar);
+        }
+    }
+
     void Add(const RaceClock& clock) {
         Add(static_cast<int>(clock.Phase()), clock.PhaseTime(), clock.RaceTime());
     }
@@ -252,7 +264,7 @@ std::uint64_t HashRaceSession(const RaceSession& session) {
     for (const std::size_t racer : session.Progress().Standings()) {
         hash.Add(static_cast<std::uint64_t>(racer));
     }
-    hash.Add(session.Powerups());
+    hash.Add(session.Powerups(), session.Blasts());
     if (!session.Bricks().IsEmpty()) {
         hash.Add(session.Bricks());
         for (const PowerupInventory& inventory : session.Inventories()) {

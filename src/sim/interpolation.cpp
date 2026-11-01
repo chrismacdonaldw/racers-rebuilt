@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 
 namespace rr::sim {
 namespace {
@@ -12,6 +13,11 @@ const EntitySnapshot* FindEntity(const RenderSnapshot& snapshot, EntityId id) {
         return nullptr;
     }
     return &*found;
+}
+
+const EffectSnapshot* FindEffect(const RenderSnapshot& snapshot, std::uint16_t slot) {
+    auto found = std::ranges::find(snapshot.effects, slot, &EffectSnapshot::slot);
+    return found == snapshot.effects.end() ? nullptr : &*found;
 }
 
 Transform Blend(const Transform& previous, const Transform& current, SnapshotFlags flags,
@@ -40,6 +46,11 @@ void Interpolate(const RenderSnapshot& previous, const RenderSnapshot& current, 
     out.racers.assign(current.racers.begin(), current.racers.end());
     out.bricks.assign(current.bricks.begin(), current.bricks.end());
     out.effects.assign(current.effects.begin(), current.effects.end());
+    for (EffectSnapshot& effect : out.effects) {
+        if (const EffectSnapshot* before = FindEffect(previous, effect.slot)) {
+            effect.transform = Blend(before->transform, effect.transform, effect.flags, alpha);
+        }
+    }
     out.camera = current.camera;
     out.simStateHash = current.simStateHash;
     out.camera.transform =

@@ -13,6 +13,8 @@ constexpr std::string_view kEffectsBank = "GAMEDATA/COMMON/GENERAL.SBK";
 constexpr std::size_t kCountdownBeep = 0;
 constexpr std::size_t kShieldAbsorb = 1;
 constexpr std::size_t kBrakeStart = 2;
+constexpr std::size_t kCannonHit = 5;
+constexpr std::size_t kCannonFire = 6;
 constexpr std::size_t kBrakeLoop = 3;
 constexpr std::size_t kWhiteBrickBeforeFirst = 10;
 constexpr std::size_t kBrickRespawn = 14;
@@ -49,6 +51,8 @@ constexpr SoundRange kOpponentRange{.min = 30.0F, .max = 200.0F};
 constexpr SoundRange kBrickRange{.min = 30.0F, .max = 150.0F};
 constexpr SoundRange kWarpRange{.min = 200.0F, .max = 600.0F};
 constexpr SoundRange kShieldRange{.min = 200.0F, .max = 600.0F};
+constexpr SoundRange kWeaponFireRange{.min = 30.0F, .max = 300.0F};
+constexpr SoundRange kWeaponHitRange{.min = 200.0F, .max = 600.0F};
 constexpr Vector3 kShieldExpireOffset{.z = 5.0F};
 
 std::size_t ShieldAbsorbSound(std::uint8_t variant) {
@@ -164,6 +168,8 @@ void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent
         case sim::RaceSound::WarpLand:
         case sim::RaceSound::ShieldAbsorb:
         case sim::RaceSound::ShieldExpire:
+        case sim::RaceSound::CannonFire:
+        case sim::RaceSound::CannonHit:
             PlayPowerupEvent(event, car);
             break;
         case sim::RaceSound::DriftStart:
@@ -208,6 +214,12 @@ void RaceAudio::PlayPowerupEvent(const sim::SoundEvent& event, const Vector3& ca
             break;
         case sim::RaceSound::ShieldExpire:
             PlayAt(kShieldExpire, car + kShieldExpireOffset, {}, kShieldRange);
+            break;
+        case sim::RaceSound::CannonFire:
+            PlayAt(kCannonFire, event.position, {}, kWeaponFireRange);
+            break;
+        case sim::RaceSound::CannonHit:
+            PlayAt(kCannonHit, event.position, {}, kWeaponHitRange);
             break;
         default:
             break;

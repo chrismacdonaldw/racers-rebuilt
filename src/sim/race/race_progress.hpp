@@ -43,6 +43,10 @@ public:
         return racers_.at(racer);
     }
 
+    /// The first link of the last gate `racer` crossed, or nothing before its first gate.
+    [[nodiscard]] std::optional<std::size_t> NextGate(const CheckpointGraph& graph,
+                                                      std::size_t racer) const;
+
     /// Racer indexes, first place first, as of the last `Rank`.
     [[nodiscard]] std::span<const std::size_t> Standings() const { return order_; }
 

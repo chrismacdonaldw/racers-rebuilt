@@ -1,5 +1,6 @@
 #include "app/race_step.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <optional>
 
@@ -32,6 +33,12 @@ void SnapshotBricks(const sim::BrickField& bricks, sim::RenderSnapshot& out) {
     }
 }
 
+bool HasStarted(const sim::PowerupSystem& powerups, std::uint16_t slot) {
+    return std::ranges::any_of(powerups.Events(), [slot](const sim::PowerupEvent& event) {
+        return event.kind == sim::PowerupEventKind::Started && event.effect == slot;
+    });
+}
+
 void SnapshotEffects(const sim::PowerupSystem& powerups, sim::RenderSnapshot& out) {
     out.effects.clear();
     for (const std::uint16_t slot : powerups.Active()) {
@@ -39,7 +46,9 @@ void SnapshotEffects(const sim::PowerupSystem& powerups, sim::RenderSnapshot& ou
         out.effects.push_back({.slot = slot,
                                .kind = effect.kind,
                                .use = effect.use,
-                               .transform = TransformToEngine(effect.effect->Pose())});
+                               .transform = TransformToEngine(effect.effect->Pose()),
+                               .flags = HasStarted(powerups, slot) ? sim::SnapshotFlags::Teleported
+                                                                   : sim::SnapshotFlags::None});
     }
 }
 
