@@ -296,6 +296,36 @@ TEST_CASE("every racer on a retail grid starts inside its track's start world sp
     }
 }
 
+std::size_t RacersWithStartWorld(const RaceTrack& track) {
+    const WorldList world(track.collision.Track());
+    const RaceSetup setup{.racers = std::vector<RacerEntry>(track.grid.size(), {.isPlayer = true})};
+    Result<RaceSession> session = RaceSession::Create(setup, {.checkpoints = &track.checkpoints,
+                                                              .grid = track.grid,
+                                                              .world = &world,
+                                                              .lowestTrackZ = track.lowestTrackZ,
+                                                              .events = &track.events,
+                                                              .collision = &track.collision});
+    REQUIRE(session.has_value());
+    session->Tick(kTick, std::vector<RacerControls>(track.grid.size()));
+    return static_cast<std::size_t>(std::ranges::count_if(
+        session->SwitchedWorlds(),
+        [](const TriggerWorlds& worlds) { return !worlds.Worlds().empty(); }));
+}
+
+TEST_CASE("every racer on a retail grid switches on its track's start world") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+
+    for (const std::string& folder : assets::ListRaceTracks(*vfs)) {
+        CAPTURE(folder);
+        const Result<RaceTrack> track = LoadRaceTrack(*vfs, folder);
+        REQUIRE(track.has_value());
+        CHECK(RacersWithStartWorld(*track) == track->grid.size());
+    }
+}
+
 TEST_CASE("a race track loads the target points in its TGB") {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {

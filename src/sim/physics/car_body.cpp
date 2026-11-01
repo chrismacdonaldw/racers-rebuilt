@@ -90,7 +90,7 @@ void RespondToWall(BodyState& body, const BodyConstants& constants, const Vector
 }
 
 void RunPassesAgainstWalls(BodyState& body, const BodyConstants& constants, int dtMs,
-                           const CollisionQuery& world) {
+                           const CollisionQuery& world, SurfaceTouches* touches) {
     int remainingMs = dtMs;
     int stepMs = dtMs;
     std::optional<Vector3> wallNormal;
@@ -98,7 +98,8 @@ void RunPassesAgainstWalls(BodyState& body, const BodyConstants& constants, int 
         const bool isLastPass = pass == kMaxWallPasses;
         if (stepMs > 0) {
             RunPass(body, constants, stepMs, world);
-            if (const std::optional<WallHit> hit = SweepBodyPoints(body, constants, world)) {
+            if (const std::optional<WallHit> hit =
+                    SweepBodyPoints(body, constants, world, touches)) {
                 body.motion = body.saved;
                 wallNormal = hit->normal;
                 stepMs = isLastPass ? 0 : RetryStepMs(stepMs, hit->fraction);
@@ -152,10 +153,10 @@ void SetTurnRadius(BodyState& body, float radius) {
 }
 
 void StepBody(BodyState& body, const BodyConstants& constants, int dtMs,
-              const CollisionQuery& world) {
+              const CollisionQuery& world, SurfaceTouches* touches) {
     const int stepMs = RunTimers(body, dtMs);
     body.saved = body.motion;
-    RunPassesAgainstWalls(body, constants, stepMs, world);
+    RunPassesAgainstWalls(body, constants, stepMs, world, touches);
     body.airborneMs = IsGrounded(body.motion) ? 0 : body.airborneMs + dtMs;
 }
 

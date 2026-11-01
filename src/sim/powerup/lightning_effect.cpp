@@ -5,6 +5,7 @@
 
 #include "core/assert.hpp"
 #include "sim/powerup/aim_cones.hpp"
+#include "sim/powerup/shot_world.hpp"
 #include "sim/powerup/weapon_events.hpp"
 #include "sim/powerup/weapon_hits.hpp"
 
@@ -124,7 +125,7 @@ void LightningEffect::TraceBolt(const PowerupContext& context) {
         direction = Normalized(toVictim, direction);
         segment = (distance > radius ? distance - radius : distance) * kSegmentShare;
     } else if (const std::optional<SegmentHit> hit = CastSolid(
-                   *context.world, origin_,
+                   ShotsOf(context), origin_,
                    origin_ + (direction * (segment * static_cast<float>(bolt_.size()))))) {
         segment = Length(hit->point - origin_) * kSegmentShare;
     }

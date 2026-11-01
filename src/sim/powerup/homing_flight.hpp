@@ -32,8 +32,9 @@ public:
     void Steer(Milliseconds elapsed, std::span<const Racer> racers, std::size_t owner,
                const CheckpointGraph& checkpoints, const CollisionQuery& world);
 
+    /// `ground` carries the hover, and `shots` stops the drawn path.
     [[nodiscard]] FlightState Step(Milliseconds elapsed, std::span<const Racer> racers,
-                                   const CollisionQuery& world);
+                                   const CollisionQuery& ground, const CollisionQuery& shots);
 
     void TurnBack(std::optional<std::size_t> target);
 

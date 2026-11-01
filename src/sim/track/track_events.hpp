@@ -22,13 +22,15 @@ struct TrackEventSources {
 class TrackEvents {
 public:
     TrackEvents(const TrackEventSources& sources, std::size_t racerCount, bool isMirrored,
-                Random& random);
+                Random& random, std::size_t mostFiredPerTick = 0);
 
     /// Clears the last tick's events and ends those of the spheres left behind.
     void BeginTick();
 
     /// Tests the spheres against where the racers ended up, then runs the timers.
     void Tick(Milliseconds elapsed, std::span<const TriggerRacer> racers, Random& random);
+
+    void Fire(const TrackEvent& event) { queue_.Fire(event); }
 
     [[nodiscard]] std::span<const TrackEvent> Events() const { return queue_.Events(); }
     [[nodiscard]] const RacerTriggers& RacerSpheres() const { return racerSpheres_; }

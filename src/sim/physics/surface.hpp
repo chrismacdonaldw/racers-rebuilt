@@ -16,6 +16,7 @@ struct Surface {
     float lateralGrip = 3.0F;
     Vector3 force;
     std::optional<std::int32_t> soundId;
+    std::optional<std::int32_t> touchEvent;
     std::optional<std::size_t> tableEntry;
 
     friend constexpr bool operator==(const Surface&, const Surface&) = default;

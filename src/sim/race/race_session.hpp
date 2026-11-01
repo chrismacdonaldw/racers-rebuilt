@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -14,6 +15,9 @@
 #include "sim/ai/ai_powerups.hpp"
 #include "sim/ai/route_choice.hpp"
 #include "sim/ai/rubber_band.hpp"
+#include "sim/collision/racer_worlds.hpp"
+#include "sim/collision/track_collision.hpp"
+#include "sim/collision/track_surfaces.hpp"
 #include "sim/physics/collision_query.hpp"
 #include "sim/physics/racer.hpp"
 #include "sim/physics/racer_contacts.hpp"
@@ -30,6 +34,7 @@
 #include "sim/race/race_sounds.hpp"
 #include "sim/race/random.hpp"
 #include "sim/race/respawn.hpp"
+#include "sim/track/surface_events.hpp"
 #include "sim/track/track_events.hpp"
 #include "sim/track/trigger_lists.hpp"
 
@@ -45,6 +50,7 @@ struct RaceCourse {
     const assets::BrickLayout* bricks = nullptr;
     std::span<const assets::TargetPoint> targets;
     const TrackEventSources* events = nullptr;
+    const TrackCollision* collision = nullptr;
     bool isMirrored = false;
 };
 
@@ -68,6 +74,9 @@ public:
     [[nodiscard]] const Explosions& Blasts() const { return explosions_; }
     [[nodiscard]] const Explosions& Spikes() const { return spikes_; }
     [[nodiscard]] const TrackEvents& Triggers() const { return triggers_; }
+    [[nodiscard]] const TrackSurfaces& Surfaces() const { return surfaces_; }
+    [[nodiscard]] std::span<const TriggerWorlds> SwitchedWorlds() const { return switchedWorlds_; }
+    [[nodiscard]] const SurfaceEvents& SurfaceContacts() const { return surfaceEvents_; }
 
     /// Replaces what `racer` holds, sending its white bricks home.
     void GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level);
@@ -90,6 +99,8 @@ private:
     void MeasureReaches();
     void TickBricks(Milliseconds elapsed);
     void TickTriggers(Milliseconds elapsed);
+    void SwitchOnTriggerWorlds();
+    [[nodiscard]] RacerWorldView WorldsOf(std::size_t racer) const;
     [[nodiscard]] PowerupContext EffectContext();
     [[nodiscard]] bool HasPlayerFinished() const;
 
@@ -104,8 +115,12 @@ private:
     RaceClock clock_;
     RaceSounds sounds_;
     Random random_;
+    TrackSurfaces surfaces_;
     TrackEvents triggers_;
     std::vector<TriggerRacer> triggerRacers_;
+    std::vector<std::optional<std::size_t>> sphereWorlds_;
+    std::vector<TriggerWorlds> switchedWorlds_;
+    SurfaceEvents surfaceEvents_;
     RubberBand rubberBand_;
     std::vector<PacedRacer> paced_;
     std::vector<float> routeSpeeds_;
@@ -119,6 +134,7 @@ private:
     std::vector<BoundingSphere> localBounds_;
     std::vector<BoundingSphere> reaches_;
     std::vector<ContactBody> contactBodies_;
+    std::vector<RacerWorldView> contactWorlds_;
     RacerContacts contacts_;
 };
 

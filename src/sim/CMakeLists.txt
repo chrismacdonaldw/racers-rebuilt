@@ -9,7 +9,9 @@ rr_add_module(sim
         ai/rubber_band.cpp
         collision/collision_mesh.cpp
         collision/collision_world.cpp
+        collision/racer_worlds.cpp
         collision/track_collision.cpp
+        collision/track_surfaces.cpp
         collision/world_list.cpp
         input_latch.cpp
         interpolation.cpp
@@ -56,6 +58,7 @@ rr_add_module(sim
         powerup/powerup_system.cpp
         powerup/red_effects.cpp
         powerup/shield_effect.cpp
+        powerup/shot_world.cpp
         powerup/turbo_effect.cpp
         powerup/warp_effect.cpp
         powerup/weapon_hits.cpp
@@ -75,6 +78,7 @@ rr_add_module(sim
         replay/replay_recorder.cpp
         replay/snapshot_hash.cpp
         route_playback.cpp
+        track/surface_events.cpp
         track/track_events.cpp
         track/track_timers.cpp
         track/trigger_lists.cpp

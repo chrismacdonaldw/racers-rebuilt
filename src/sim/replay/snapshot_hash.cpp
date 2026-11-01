@@ -249,6 +249,27 @@ public:
         }
     }
 
+    void Add(const TrackSurfaces& surfaces) {
+        for (std::size_t i = 0; i < surfaces.Count(); ++i) {
+            Add(surfaces.IsSolid(i), surfaces.LetsShotsThrough(i));
+        }
+    }
+
+    void Add(const TriggerWorlds& worlds) {
+        for (const TriggerWorld& slot : worlds.Worlds()) {
+            Add(static_cast<std::uint64_t>(slot.world), slot.left);
+        }
+    }
+
+    void Add(const WheelSurfaces& under) {
+        for (std::size_t wheel = 0; wheel < under.size(); ++wheel) {
+            if (under.at(wheel)) {
+                Add(static_cast<std::uint64_t>(wheel),
+                    static_cast<std::uint64_t>(*under.at(wheel)));
+            }
+        }
+    }
+
     void Add(const RaceClock& clock) {
         Add(static_cast<int>(clock.Phase()), clock.PhaseTime(), clock.RaceTime());
     }
@@ -289,12 +310,14 @@ std::uint64_t HashRaceSession(const RaceSession& session) {
     for (std::size_t i = 0; i < session.Racers().size(); ++i) {
         const Racer& racer = session.Racers()[i];
         hash.Add(HashRacerState(racer), racer.Route(), session.Progress().OfRacer(i),
-                 session.WasRespawned(i));
+                 session.WasRespawned(i), session.SwitchedWorlds()[i],
+                 session.SurfaceContacts().Under(i));
     }
     for (const std::size_t racer : session.Progress().Standings()) {
         hash.Add(static_cast<std::uint64_t>(racer));
     }
-    hash.Add(session.Powerups(), session.Blasts(), session.Spikes(), session.Triggers());
+    hash.Add(session.Powerups(), session.Blasts(), session.Spikes(), session.Triggers(),
+             session.Surfaces());
     if (!session.Bricks().IsEmpty()) {
         hash.Add(session.Bricks());
         for (const PowerupInventory& inventory : session.Inventories()) {

@@ -7,6 +7,7 @@
 #include "sim/physics/rigid_body.hpp"
 #include "sim/powerup/aim_cones.hpp"
 #include "sim/powerup/ballistic_flight.hpp"
+#include "sim/powerup/shot_world.hpp"
 #include "sim/powerup/weapon_events.hpp"
 #include "sim/powerup/weapon_hits.hpp"
 
@@ -117,7 +118,8 @@ void MissileEffect::Launch(const PowerupContext& context) {
 
 bool MissileEffect::Fly(Milliseconds elapsed, PowerupContext& context) {
     flight_.Steer(elapsed, context.racers, owner_, *context.checkpoints, *context.world);
-    const FlightState state = flight_.Step(elapsed, context.racers, *context.world);
+    const FlightState state =
+        flight_.Step(elapsed, context.racers, *context.world, ShotsOf(context));
     const ShotOutcome outcome = ResolveShot(context, {.weapon = PowerupKind::Missile,
                                                       .owner = owner_,
                                                       .state = state,

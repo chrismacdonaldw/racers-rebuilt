@@ -150,7 +150,9 @@ add_executable(racers-rebuilt-tests
     sim/ai/rubber_band_test.cpp
     sim/collision/collision_mesh_test.cpp
     sim/collision/collision_world_test.cpp
+    sim/collision/racer_worlds_test.cpp
     sim/collision/track_collision_test.cpp
+    sim/collision/track_surfaces_test.cpp
     sim/collision/wall_tunnel_test.cpp
     sim/input_latch_test.cpp
     sim/interpolation_test.cpp
@@ -188,6 +190,7 @@ add_executable(racers-rebuilt-tests
     sim/powerup/turbo_effect_test.cpp
     sim/powerup/warp_effect_test.cpp
     sim/powerup/shield_effect_test.cpp
+    sim/powerup/shot_world_test.cpp
     sim/race/ai_race_test.cpp
     sim/race/checkpoint_graph_test.cpp
     sim/race/lap_tracker_test.cpp
@@ -202,6 +205,7 @@ add_executable(racers-rebuilt-tests
     sim/replay_test.cpp
     sim/route_playback_test.cpp
     sim/snapshot_hash_test.cpp
+    sim/track/surface_events_test.cpp
     sim/track/track_events_test.cpp
     sim/track/track_timers_test.cpp
     sim/track/trigger_lists_test.cpp

@@ -4,6 +4,7 @@
 
 #include "core/assert.hpp"
 #include "sim/powerup/aim_cones.hpp"
+#include "sim/powerup/shot_world.hpp"
 #include "sim/powerup/weapon_events.hpp"
 #include "sim/powerup/weapon_hits.hpp"
 
@@ -47,7 +48,7 @@ bool CannonballEffect::Tick(Milliseconds elapsed, PowerupContext& context) {
     if (phase_ != ShotPhase::Flying) {
         return false;
     }
-    const FlightState state = flight_.Step(elapsed, *context.world);
+    const FlightState state = flight_.Step(elapsed, ShotsOf(context));
     const ShotOutcome outcome = ResolveShot(context, {.weapon = PowerupKind::Cannonball,
                                                       .owner = owner_,
                                                       .state = state,

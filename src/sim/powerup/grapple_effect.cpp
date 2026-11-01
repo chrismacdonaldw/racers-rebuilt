@@ -6,6 +6,7 @@
 
 #include "core/assert.hpp"
 #include "sim/powerup/aim_cones.hpp"
+#include "sim/powerup/shot_world.hpp"
 #include "sim/powerup/weapon_events.hpp"
 #include "sim/powerup/weapon_hits.hpp"
 
@@ -127,7 +128,7 @@ Transform GrappleEffect::Pose() const {
 }
 
 void GrappleEffect::Fly(Milliseconds elapsed, PowerupContext& context) {
-    if (flight_.Step(elapsed, *context.world) != FlightState::Flying) {
+    if (flight_.Step(elapsed, ShotsOf(context)) != FlightState::Flying) {
         Release(flight_.Position(), context);
         return;
     }
@@ -163,7 +164,7 @@ void GrappleEffect::Pull(Milliseconds elapsed, PowerupContext& context) {
     tension_ = std::min(tension_ + (kTensionPerSecond * seconds), 1.0F);
     if (tension_ >= 1.0F) {
         const Vector3 rope = context.racers[owner_].Body().motion.position + kRopeHeight;
-        if (const std::optional<SegmentHit> hit = CastSolid(*context.world, rope, hook_)) {
+        if (const std::optional<SegmentHit> hit = CastSolid(ShotsOf(context), rope, hook_)) {
             Release(hit->point, context);
             return;
         }

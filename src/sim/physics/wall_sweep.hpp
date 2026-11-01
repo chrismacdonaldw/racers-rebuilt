@@ -6,6 +6,7 @@
 #include "sim/physics/body_state.hpp"
 #include "sim/physics/chassis.hpp"
 #include "sim/physics/collision_query.hpp"
+#include "sim/physics/surface_touches.hpp"
 
 namespace rr::sim {
 
@@ -17,7 +18,8 @@ struct WallHit {
 /// Each body point starts at its pose in `body.saved`. The deepest hit wins.
 [[nodiscard]] std::optional<WallHit> SweepBodyPoints(const BodyState& body,
                                                      const BodyConstants& constants,
-                                                     const CollisionQuery& query);
+                                                     const CollisionQuery& query,
+                                                     SurfaceTouches* touches = nullptr);
 
 void ApplyWallResponse(BodyState& body, const BodyConstants& constants, const Vector3& normal);
 
