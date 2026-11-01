@@ -16,11 +16,14 @@ void ScrapeOrShrink(Racer& first, Racer& second, Random& random) {
     if (first.Route() && second.Route()) {
         first.ShrinkBox();
         second.ShrinkBox();
-    } else if (second.Body().derived.speed < first.Body().derived.speed && first.IsScrapeReady() &&
-               second.IsScrapeReady()) {
+        return;
+    }
+    const bool isSecondSlower = second.Body().derived.speed < first.Body().derived.speed;
+    if (isSecondSlower && first.IsScrapeReady() && second.IsScrapeReady()) {
         first.Scrape(static_cast<std::uint8_t>(random.Below(kScrapeSounds)));
         second.HoldScrape();
     }
+    (isSecondSlower ? second : first).React(VoiceReaction::Negative);
 }
 
 void ShieldActsOn(std::uint8_t level, Racer& other, const Vector3& point) {

@@ -9,6 +9,7 @@
 #include <ranges>
 #include <vector>
 
+#include "app/voice_reactions.hpp"
 #include "sim/powerup/dropped_trap.hpp"
 #include "sim/powerup/dynamite_effect.hpp"
 #include "sim/powerup/grapple_effect.hpp"
@@ -63,16 +64,16 @@ bool IsCrackleReach(float reach) {
 
 }
 
-TEST_CASE("the player taunts with its own sound and computer racers with their voice bank's") {
-    CHECK(TauntSound(true, 4) == 0x1A);
-    CHECK(TauntSound(false, 0) == 0x1C);
-    CHECK(TauntSound(false, 1) == 0x1B);
-    CHECK(TauntSound(false, 2) == 0x1D);
-    CHECK(TauntSound(false, 3) == 0x1E);
-    CHECK(TauntSound(false, 4) == 0x1F);
-    CHECK(TauntSound(false, 5) == 0x1F);
-    CHECK_FALSE(TauntSound(false, 6));
-    CHECK_FALSE(TauntSound(false, -1));
+TEST_CASE("a built car taunts with its own sound and a prebuilt driver with its voice bank's") {
+    CHECK(TauntSound(kBuiltCarVoice) == 0x1A);
+    CHECK(TauntSound(DriverVoice(0)) == 0x1C);
+    CHECK(TauntSound(DriverVoice(1)) == 0x1B);
+    CHECK(TauntSound(DriverVoice(2)) == 0x1D);
+    CHECK(TauntSound(DriverVoice(3)) == 0x1E);
+    CHECK(TauntSound(DriverVoice(4)) == 0x1F);
+    CHECK(TauntSound(DriverVoice(5)) == 0x1F);
+    CHECK_FALSE(TauntSound(DriverVoice(6)));
+    CHECK_FALSE(TauntSound(DriverVoice(-1)));
 }
 
 TEST_CASE("dropped traps loop once they land, and a magnet from the start") {

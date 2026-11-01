@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "app/track_space.hpp"
+#include "app/voice_reactions.hpp"
 #include "sim/powerup/dropped_trap.hpp"
 #include "sim/powerup/grapple_effect.hpp"
 #include "sim/powerup/lightning_effect.hpp"
@@ -18,7 +19,7 @@ constexpr std::size_t kCurseLoop = 9;
 constexpr std::size_t kFuseLoop = 0x11;
 constexpr std::size_t kGrappleAttached = 0x13;
 constexpr std::size_t kGrappleFlight = 0x17;
-constexpr std::size_t kPlayerTaunt = 0x1A;
+constexpr std::size_t kBuiltCarTaunt = 0x1A;
 constexpr std::size_t kMagnetLoop = 0x22;
 constexpr std::size_t kOilLoop = 0x30;
 constexpr std::size_t kMissileFlight = 0x34;
@@ -64,14 +65,12 @@ std::optional<std::size_t> FlightIndex(std::size_t effect) {
 
 }
 
-std::optional<std::size_t> TauntSound(bool isPlayer, std::int32_t voiceBank) {
-    if (isPlayer) {
-        return kPlayerTaunt;
+std::optional<std::size_t> TauntSound(std::int32_t voice) {
+    if (voice == kBuiltCarVoice) {
+        return kBuiltCarTaunt;
     }
-    if (voiceBank < 0 || std::cmp_greater_equal(voiceBank, kOpponentTaunts.size())) {
-        return std::nullopt;
-    }
-    return kOpponentTaunts.at(static_cast<std::size_t>(voiceBank));
+    return CircuitDriver(voice).transform(
+        [](std::size_t driver) { return kOpponentTaunts.at(driver); });
 }
 
 std::optional<EffectLoop> LoopOf(sim::PowerupKind kind, const sim::EffectProgress& progress) {

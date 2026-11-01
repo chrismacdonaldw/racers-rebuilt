@@ -19,6 +19,7 @@
 #include "app/race_music.hpp"
 #include "app/scene.hpp"
 #include "app/sound_banks.hpp"
+#include "app/voice_reactions.hpp"
 #include "assets/vfs.hpp"
 #include "audio/mixer.hpp"
 #include "core/duration.hpp"
@@ -29,10 +30,11 @@
 
 namespace rr::app {
 
-/// `effects` is `GENERAL.SBK` and `ambient` the track's own bank, both in bank order.
+/// `effects` is `GENERAL.SBK`, `ambient` the track's own bank and `voices` its circuit bank.
 struct RaceSoundSet {
     std::span<const audio::SoundId> effects;
     std::span<const audio::SoundId> ambient;
+    std::span<const audio::SoundId> voices;
     std::vector<std::string> music;
     std::vector<assets::SoundResource> ambience;
 };
@@ -100,6 +102,7 @@ private:
     AmbientSounds ambience_;
     HazardSounds hazards_;
     PowerupSounds powerups_;
+    VoiceReactions reactions_;
 };
 
 }

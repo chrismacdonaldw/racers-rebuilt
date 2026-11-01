@@ -1,5 +1,6 @@
 #include "app/race_audio.hpp"
 
+#include <algorithm>
 #include <format>
 #include <optional>
 #include <utility>
@@ -15,6 +16,7 @@ constexpr std::string_view kEffectsBank = "GAMEDATA/COMMON/GENERAL.SBK";
 constexpr std::uint64_t kAmbienceSeed = 0xA3B1E7C5D9F20468;
 constexpr std::uint64_t kHazardSeed = 0x5C2E9B71F04D8A36;
 constexpr std::uint64_t kPowerupSeed = 0x91D4F3A7C2E85B06;
+constexpr std::uint64_t kVoiceSeed = 0x2F6B8D0E4A1C7395;
 constexpr std::size_t kCountdownBeep = 0;
 constexpr std::size_t kShieldAbsorb = 1;
 constexpr std::size_t kBrakeStart = 2;
@@ -122,12 +124,17 @@ std::size_t ShieldAbsorbSound(std::uint8_t variant) {
     return variant == 0 ? kShieldAbsorb : kShieldAbsorbAlternate + variant - 1;
 }
 
-std::vector<std::optional<std::size_t>> Taunts(const RaceAudioSetup& setup) {
-    std::vector<std::optional<std::size_t>> taunts(setup.racerCount);
-    for (std::size_t i = 0; i < taunts.size(); ++i) {
-        const std::int32_t voiceBank = i < setup.voiceBanks.size() ? setup.voiceBanks[i] : 0;
-        taunts[i] = TauntSound(i == setup.player, voiceBank);
+std::vector<std::int32_t> Voices(const RaceAudioSetup& setup) {
+    std::vector<std::int32_t> voices(setup.racerCount);
+    for (std::size_t i = 0; i < voices.size(); ++i) {
+        voices[i] = DriverVoice(i < setup.voiceBanks.size() ? setup.voiceBanks[i] : 0);
     }
+    return voices;
+}
+
+std::vector<std::optional<std::size_t>> Taunts(std::span<const std::int32_t> voices) {
+    std::vector<std::optional<std::size_t>> taunts(voices.size());
+    std::ranges::transform(voices, taunts.begin(), TauntSound);
     return taunts;
 }
 
@@ -166,6 +173,7 @@ Result<std::unique_ptr<RaceAudio>> RaceAudio::Load(audio::Mixer& mixer, SoundBan
         mixer,
         RaceSoundSet{.effects = *effects,
                      .ambient = LoadOptionalBank(mixer, banks, vfs, AmbientBankPath(track)),
+                     .voices = LoadCircuitVoices(mixer, banks, vfs, track),
                      .music = std::move(music).value_or(std::vector<std::string>{}),
                      .ambience = {setup.ambience.begin(), setup.ambience.end()}},
         setup);
@@ -182,7 +190,8 @@ RaceAudio::RaceAudio(audio::Mixer& mixer, RaceSoundSet sounds, const RaceAudioSe
       shieldLoops_(setup.racerCount),
       ambience_(sounds_.ambience, sounds_.ambient, sim::Random(setup.seed ^ kAmbienceSeed)),
       hazards_(sounds_.ambient, sim::Random(setup.seed ^ kHazardSeed)),
-      powerups_(sounds_.effects, Taunts(setup), sim::Random(setup.seed ^ kPowerupSeed)) {
+      powerups_(sounds_.effects, Taunts(Voices(setup)), sim::Random(setup.seed ^ kPowerupSeed)),
+      reactions_(sounds_.voices, Voices(setup), sim::Random(setup.seed ^ kVoiceSeed)) {
     RR_ASSERT(sounds_.effects.size() >= kEffectCount && setup.player < setup.racerCount);
 }
 
@@ -221,6 +230,7 @@ void RaceAudio::Hear(const sim::RaceSession& session, const Transform& camera,
     ambience_.Hear(session.Triggers().Events(), listener_, elapsed, *mixer_);
     hazards_.Hear(session, listener_, elapsed, *mixer_);
     powerups_.Hear(session, listener_, elapsed, *mixer_);
+    reactions_.Hear(session, listener_, elapsed, *mixer_);
 }
 
 void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent& event) {

@@ -13,6 +13,7 @@ constexpr std::array kLevels{TurboLevel::Weak, TurboLevel::Strong, TurboLevel::H
 void TurboEffect::Start(const PowerupUse& use, PowerupContext& context) {
     racer_ = use.racer;
     Racer& racer = context.racers[racer_];
+    racer.React(VoiceReaction::Positive);
     racer.StartTurbo(kLevels.at(use.level));
     turbo_ = racer.TurboCount();
     Follow(racer);

@@ -29,6 +29,7 @@ rr_add_module(assets
         menu_styles.cpp
         path_index.cpp
         race_route.cpp
+        race_voices.cpp
         racer_catalog.cpp
         skeleton_database.cpp
         sound_list.cpp

@@ -57,6 +57,7 @@ void Ghost::Touch(HazardContext& context) const {
         racer.Stop();
         racer.Push(kHopDirection, kHopImpulse);
         racer.ReactToHit();
+        racer.React(VoiceReaction::Negative);
         context.sounds->push_back({.soundId = kHitSound, .position = racer.Body().motion.position});
     }
 }

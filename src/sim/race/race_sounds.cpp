@@ -9,7 +9,7 @@
 namespace rr::sim {
 namespace {
 
-constexpr std::size_t kMostSoundsPerRacer = 12;
+constexpr std::size_t kMostSoundsPerRacer = 13;
 constexpr std::size_t kMostRaceWideSounds = 2;
 constexpr std::array kLaterBeeps{Milliseconds{1000}, Milliseconds{2000}};
 constexpr Milliseconds kWallCooldown{250};
@@ -162,6 +162,11 @@ void RaceSounds::HearRacer(std::size_t racer, const Racer& car, bool isPlayer, b
     if (isRacing && car.Body().hasWallContact && cooldown == Milliseconds{0}) {
         Add(RaceSound::WallHit, racer);
         cooldown = kWallCooldown;
+    }
+    if (events.reaction) {
+        Add(*events.reaction == VoiceReaction::Positive ? RaceSound::PositiveReaction
+                                                        : RaceSound::NegativeReaction,
+            racer);
     }
     HearShield(racer, car.Status().shield);
 }

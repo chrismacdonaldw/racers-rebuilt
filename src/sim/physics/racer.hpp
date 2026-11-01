@@ -28,6 +28,8 @@ struct RacerStart {
     float headingRadians = 0.0F;
 };
 
+enum class VoiceReaction : std::uint8_t { Negative, Positive };
+
 /// What happened in the racer's last `Tick`, and in any `Go` or `StartTurbo` call since.
 struct RacerEvents {
     std::optional<TurboLevel> turboStarted;
@@ -36,6 +38,7 @@ struct RacerEvents {
     bool hasDriftStarted = false;
     bool hasWarpEntered = false;
     bool hasWarpLanded = false;
+    std::optional<VoiceReaction> reaction;
     SurfaceTouches touches;
 };
 
@@ -123,6 +126,9 @@ public:
     void EnterGhostMode();
     void LeaveGhostMode();
     void ReactToHit();
+
+    /// Only the first reaction since the last `Tick` counts.
+    void React(VoiceReaction reaction);
 
     /// Fails while the racer is a ghost or already warping. Ends any magnet hold.
     [[nodiscard]] bool BeginWarp();
