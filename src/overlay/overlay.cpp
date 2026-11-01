@@ -32,10 +32,6 @@ void DrawStats(const DeveloperStats& stats, Nanoseconds overlayCost) {
     ImGui::Text("Overlay: %.3f ms", ToMilliseconds(overlayCost));
     ImGui::TextUnformatted(stats.startupSummary.data(),
                            stats.startupSummary.data() + stats.startupSummary.size());
-    if (!stats.sceneStatus.empty()) {
-        ImGui::TextUnformatted(stats.sceneStatus.data(),
-                               stats.sceneStatus.data() + stats.sceneStatus.size());
-    }
 }
 
 void DrawScenes(std::span<const SceneChoice> scenes) {

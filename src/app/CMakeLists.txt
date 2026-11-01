@@ -17,6 +17,7 @@ rr_add_module(app
         hud/hud_strings.cpp
         hud/hud_text.cpp
         hud/place_pulse.cpp
+        hud/powerup_panel.cpp
         hud/race_hud.cpp
         hud/race_hud_layer.cpp
         hud/race_hud_values.cpp
@@ -65,6 +66,7 @@ rr_add_module(app
         track_viewer_scene.cpp
         ui_text/text_layout.cpp
         ui_text/ui_font.cpp
+        ui_text/ui_image.cpp
         video_settings.cpp
     DEPENDS
         rr::assets

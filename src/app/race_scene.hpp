@@ -70,7 +70,6 @@ public:
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
     [[nodiscard]] SceneMusic Music() const override;
-    [[nodiscard]] std::string DeveloperStatus() const override;
 
 private:
     struct Parts {

@@ -8,7 +8,6 @@
 
 #include "assets/game_path.hpp"
 #include "assets/string_table.hpp"
-#include "assets/texture_database.hpp"
 
 namespace rr::app {
 namespace {
@@ -95,25 +94,6 @@ Result<MenuFiles> ReadMenuFiles(const assets::Vfs& vfs, std::string_view screen)
     }
     files.images = imageLists | std::views::join | std::ranges::to<std::vector>();
     return files;
-}
-
-Result<MenuImage> LoadMenuImage(render::Renderer& renderer, const assets::Vfs& vfs,
-                                const assets::ImageListEntry& entry) {
-    Result<assets::ImageAsset> image =
-        ReadFile(vfs, assets::JoinGamePath(kMenuFolder, entry.FileName()),
-                 [&](std::span<const std::byte> bytes) {
-                     return assets::DecodeImage(bytes, entry.fileKind);
-                 });
-    if (!image) {
-        return std::unexpected(std::move(image.error()));
-    }
-    if (entry.colorKey) {
-        assets::ApplyColorKey(*image, *entry.colorKey);
-    }
-    return renderer.UploadTexture(*image).transform([&](render::TextureId texture) {
-        return MenuImage{
-            .texture = texture, .widthPx = image->widthPx, .heightPx = image->heightPx};
-    });
 }
 
 Result<std::vector<std::u16string>> ReadMenuText(const assets::Vfs& vfs,

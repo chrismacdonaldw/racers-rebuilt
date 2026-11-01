@@ -7,12 +7,15 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "../../sim/physics/plane_world.hpp"
 #include "../../sim/race/checkpoint_ring.hpp"
 #include "app/hud/race_hud_values.hpp"
+#include "app/race_step.hpp"
 #include "sim/race/race_session.hpp"
+#include "sim/render_snapshot.hpp"
 
 namespace rr::app {
 namespace {
@@ -44,26 +47,68 @@ std::optional<std::string> Mismatch(const sim::RaceSession& session, std::size_t
     return std::nullopt;
 }
 
-TEST_CASE("HUD values match the race session on every tick") {
-    const sim::CheckpointGraph graph = test::Ring();
-    const test::PlaneWorld world = test::FlatGround();
-    const std::array<sim::RacerStart, 2> grid{
+struct TwoRacerRace {
+    sim::CheckpointGraph graph = test::Ring();
+    test::PlaneWorld world = test::FlatGround();
+    std::array<sim::RacerStart, 2> grid{
         sim::RacerStart{.position = {.x = -20.0F, .z = 0.2F}},
         sim::RacerStart{.position = {.x = -20.0F, .y = -10.0F, .z = 0.2F}}};
-    Result<sim::RaceSession> session = sim::RaceSession::Create(
-        {.racers = {{.chassis = kChassis, .isPlayer = true}, {.chassis = kChassis}}},
-        {.checkpoints = &graph, .grid = grid, .world = &world, .lowestTrackZ = -100.0F});
-    REQUIRE(session.has_value());
+
+    [[nodiscard]] sim::RaceSession Start() const {
+        Result<sim::RaceSession> session = sim::RaceSession::Create(
+            {.racers = {{.chassis = kChassis, .isPlayer = true}, {.chassis = kChassis}}},
+            {.checkpoints = &graph, .grid = grid, .world = &world, .lowestTrackZ = -100.0F});
+        REQUIRE(session.has_value());
+        return std::move(*session);
+    }
+};
+
+TEST_CASE("HUD values match the race session on every tick") {
+    const TwoRacerRace race;
+    sim::RaceSession session = race.Start();
     const std::vector<sim::RacerControls> controls{{.isThrottleHeld = true}, {}};
 
     for (int tick = 0; tick < kTicks; ++tick) {
-        session->Tick(kTick, controls);
+        session.Tick(kTick, controls);
         for (std::size_t racer = 0; racer < controls.size(); ++racer) {
-            if (const std::optional<std::string> mismatch = Mismatch(*session, racer)) {
+            if (const std::optional<std::string> mismatch = Mismatch(session, racer)) {
                 FAIL(std::format("tick {}, racer {}: {}", tick, racer, *mismatch));
             }
         }
     }
+}
+
+std::optional<std::size_t> RacerShownWrong(const sim::RenderSnapshot& snapshot,
+                                           const sim::RaceSession& session) {
+    for (std::size_t racer = 0; racer < snapshot.racers.size(); ++racer) {
+        const sim::PowerupInventory& held = session.Inventories()[racer];
+        const sim::RacerSnapshot& shown = snapshot.racers[racer];
+        if (shown.heldColour != held.Colour() || shown.whiteCount != held.WhiteCount()) {
+            return racer;
+        }
+    }
+    return std::nullopt;
+}
+
+TEST_CASE("the snapshot carries each racer's power-up on every tick") {
+    const TwoRacerRace race;
+    sim::RaceSession session = race.Start();
+    const std::vector<sim::RacerControls> controls{{.isThrottleHeld = true}, {}};
+    sim::RenderSnapshot snapshot;
+
+    for (int tick = 0; tick < kTicks; ++tick) {
+        if (tick == kTicks / 3) {
+            session.GivePowerup(0, assets::BrickColour::Blue, 2);
+            session.GivePowerup(1, assets::BrickColour::Green, 0);
+        }
+        session.Tick(kTick, controls);
+        SnapshotRace(session, snapshot);
+        if (const std::optional<std::size_t> racer = RacerShownWrong(snapshot, session)) {
+            FAIL(std::format("tick {}, racer {}: the snapshot's power-up differs", tick, *racer));
+        }
+    }
+    CHECK(snapshot.racers[0].heldColour == assets::BrickColour::Blue);
+    CHECK(snapshot.racers[0].whiteCount == 2);
 }
 
 }

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -10,8 +9,6 @@
 #include "assets/menu_styles.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
-#include "render/render_view.hpp"
-#include "render/renderer.hpp"
 
 namespace rr::app {
 
@@ -30,15 +27,6 @@ struct MenuFiles {
 
 /// `screen` is a base name from `MENUNAME.SRF`, such as `MAINMENU`.
 [[nodiscard]] Result<MenuFiles> ReadMenuFiles(const assets::Vfs& vfs, std::string_view screen);
-
-struct MenuImage {
-    render::TextureId texture{};
-    std::uint32_t widthPx = 0;
-    std::uint32_t heightPx = 0;
-};
-
-[[nodiscard]] Result<MenuImage> LoadMenuImage(render::Renderer& renderer, const assets::Vfs& vfs,
-                                              const assets::ImageListEntry& entry);
 
 [[nodiscard]] Result<std::vector<std::u16string>> ReadMenuText(const assets::Vfs& vfs,
                                                                std::string_view language);

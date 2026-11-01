@@ -47,6 +47,8 @@ struct RacerSnapshot {
     float forwardSpeed = 0.0F;
     float turnRadius = 0.0F;
     std::uint32_t hitReactions = 0;
+    std::optional<assets::BrickColour> heldColour;
+    std::uint8_t whiteCount = 0;
 
     friend bool operator==(const RacerSnapshot&, const RacerSnapshot&) = default;
 };

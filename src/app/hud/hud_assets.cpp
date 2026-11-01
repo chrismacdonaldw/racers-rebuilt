@@ -13,6 +13,7 @@ namespace {
 constexpr std::string_view kCommonFolder = "GAMEDATA/COMMON";
 constexpr std::string_view kGameStrings = "GAME.SRF";
 constexpr std::string_view kDriverNames = "DRIVERS.SRF";
+constexpr std::string_view kImageList = "LEGOIMGS.IDB";
 constexpr std::string_view kTextFont = "font_ths";
 constexpr std::string_view kNumberFont = "ignum";
 
@@ -49,6 +50,10 @@ Result<HudFonts> FindHudFonts(const UiFonts& fonts) {
                     std::format("the HUD needs the {} and {} fonts", kTextFont, kNumberFont));
     }
     return found;
+}
+
+Result<std::vector<UiImage>> LoadHudImages(render::Renderer& renderer, const assets::Vfs& vfs) {
+    return LoadUiImages(renderer, vfs, kCommonFolder, kImageList);
 }
 
 }

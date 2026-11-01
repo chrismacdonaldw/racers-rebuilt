@@ -34,8 +34,6 @@ public:
     /// A scene name for the application to open after this frame. Each request is taken once.
     [[nodiscard]] virtual std::optional<std::string> TakeNextScene() { return std::nullopt; }
 
-    [[nodiscard]] virtual std::string DeveloperStatus() const { return {}; }
-
     /// Only built while the overlay shows. Its actions take effect on the next `Tick`.
     [[nodiscard]] virtual overlay::RacerTools OverlayRacerTools() { return {}; }
 
