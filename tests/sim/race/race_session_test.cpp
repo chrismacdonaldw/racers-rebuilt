@@ -51,8 +51,11 @@ struct Fixture {
     }
 };
 
+constexpr PowerupHabits kNeverUses{.useChances = {}};
+
 RaceSetup TwoRacers(RespawnRule respawn = {}) {
-    return {.racers = {{.chassis = kChassis, .isPlayer = true}, {.chassis = kChassis}},
+    return {.racers = {{.chassis = kChassis, .isPlayer = true},
+                       {.chassis = kChassis, .habits = kNeverUses}},
             .respawn = respawn};
 }
 
@@ -323,6 +326,39 @@ TEST_CASE("pressing use fires the held power-up once racing has started") {
     CHECK(turbo.kind == PowerupKind::Turbo);
     CHECK(turbo.use.level == 1);
     CHECK(session.Inventories()[0] == PowerupInventory{});
+}
+
+TEST_CASE("a computer racer that rolls under its green chance starts with a level 0 turbo") {
+    const Fixture fixture;
+    RaceSetup setup = TwoRacers();
+    setup.racers[1].habits = {};
+    setup.effects = test::FakeEffects(Milliseconds{60'000});
+    RaceSession session = fixture.Start(setup);
+
+    RunUntilRacing(session);
+
+    REQUIRE(session.Powerups().Active().size() == 1);
+    const EffectSlot& boost = session.Powerups().Slots()[session.Powerups().Active()[0]];
+    CHECK(boost.kind == PowerupKind::Turbo);
+    CHECK(boost.use.racer == 1);
+    CHECK(boost.use.level == 0);
+}
+
+TEST_CASE("a computer racer uses the power-up it holds once racing starts") {
+    const Fixture fixture;
+    RaceSetup setup = TwoRacers();
+    setup.racers[1].habits = {.useChances = {kSureUseChance, kSureUseChance, 0, kSureUseChance}};
+    setup.effects = test::FakeEffects(Milliseconds{60'000});
+    RaceSession session = fixture.Start(setup);
+    session.GivePowerup(1, assets::BrickColour::Yellow, 0);
+    RunUntilRacing(session);
+    CHECK(session.Inventories()[1].Colour() == assets::BrickColour::Yellow);
+
+    Run(session, kTicksTo15Seconds / 10, {});
+
+    CHECK(session.Inventories()[1] == PowerupInventory{});
+    REQUIRE(session.Powerups().Active().size() == 1);
+    CHECK(session.Powerups().Slots()[session.Powerups().Active()[0]].use.racer == 1);
 }
 
 TEST_CASE("a warp sounds as it opens and as it lands") {

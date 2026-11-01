@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "core/bounding_sphere.hpp"
+#include "sim/ai/powerup_habits.hpp"
 #include "sim/physics/chassis.hpp"
 #include "sim/powerup/powerup_effect.hpp"
 #include "sim/race/respawn.hpp"
@@ -18,6 +19,7 @@ struct RacerEntry {
     ChassisSpec chassis;
     CarBuild build;
     BoundingSphere localBounds = kTypicalRacerBounds;
+    PowerupHabits habits;
     bool isPlayer = false;
 };
 

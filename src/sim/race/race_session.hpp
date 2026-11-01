@@ -11,6 +11,7 @@
 #include "core/duration.hpp"
 #include "core/result.hpp"
 #include "core/vector3.hpp"
+#include "sim/ai/ai_powerups.hpp"
 #include "sim/ai/route_choice.hpp"
 #include "sim/ai/rubber_band.hpp"
 #include "sim/physics/collision_query.hpp"
@@ -77,6 +78,9 @@ private:
     RaceSession(const RaceSetup& setup, const RaceCourse& course);
 
     void TickRacer(std::size_t racer, Milliseconds elapsed, const RacerControls& controls);
+    [[nodiscard]] bool WantsPowerup(std::size_t racer, Milliseconds elapsed,
+                                    const RacerControls& controls);
+    void StartBoosts();
     void ResolveContacts();
     void PaceRoutes(Milliseconds elapsed);
     void MeasureReaches();
@@ -101,6 +105,7 @@ private:
     BrickField bricks_;
     std::vector<PowerupInventory> inventories_;
     PowerupSystem powerups_;
+    std::vector<AiPowerupUser> aiPowerups_;
     WeaponEvents weapons_;
     Explosions explosions_;
     Explosions spikes_{kSpikeExplosion, kSpikeExplosionCount};
