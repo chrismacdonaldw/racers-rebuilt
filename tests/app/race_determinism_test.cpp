@@ -15,9 +15,12 @@
 #include <vector>
 
 #include "assets/archive_survey.hpp"
+#include "assets/hazard_list.hpp"
+#include "assets/race_route.hpp"
 #include "assets/track_loader.hpp"
 #include "frame_times.hpp"
 #include "race_drive.hpp"
+#include "sim/ai/route_choice.hpp"
 #include "sim/collision/world_list.hpp"
 #include "sim/powerup/every_effect.hpp"
 #include "sim/race/race_track.hpp"
@@ -32,8 +35,25 @@ constexpr Milliseconds kTestTrackRace{45'000};
 constexpr Milliseconds kRetailRace{150'000};
 constexpr std::uint64_t kRetailSeed = 11;
 
+bool IsVisualOnly(assets::HazardKind kind) {
+    using enum assets::HazardKind;
+    return kind == Snowfall || kind == SmokeVent || kind == WaterScroll;
+}
+
+bool IsStartedByShots(assets::HazardKind kind) {
+    return kind == assets::HazardKind::Sphinx || kind == assets::HazardKind::BreakableProp;
+}
+
 std::filesystem::path RecordedReplay() {
     return std::filesystem::path(RR_TEST_DATA_DIR) / "replays" / "test_track.replay";
+}
+
+auto ComputerUses(const test::DriveResult& run) {
+    return run.powerupUses | std::views::drop(1);
+}
+
+bool IsPositive(int uses) {
+    return uses > 0;
 }
 
 std::vector<Nanoseconds> FramesFor(int fps, Milliseconds duration) {
@@ -42,11 +62,11 @@ std::vector<Nanoseconds> FramesFor(int fps, Milliseconds duration) {
 
 void CheckEveryFramerate(const sim::Replay& replay, const std::vector<std::uint64_t>& expected,
                          const sim::RaceSetup& setup, const sim::RaceCourse& course,
-                         Milliseconds duration, std::span<const test::PowerupGift> gifts) {
+                         Milliseconds duration, const test::DriveScript& script) {
     for (const int fps : {30, 60, 144}) {
         CAPTURE(fps);
         const test::DriveResult run =
-            test::Drive(replay, expected, setup, course, FramesFor(fps, duration), gifts);
+            test::Drive(replay, expected, setup, course, FramesFor(fps, duration), script);
         CHECK(run.checkedTicks == expected.size());
         CHECK_FALSE(run.firstMismatch.has_value());
     }
@@ -77,24 +97,25 @@ TEST_CASE("a scripted race on the test track replays identically at every framer
     const sim::Replay replay = test::ScriptedReplay(kTestTrackRace);
     const sim::RaceSetup setup = test::TestTrack::Setup(replay.seed);
     const std::vector<test::PowerupGift> gifts = test::EveryPowerup();
+    const test::DriveScript script{.gifts = gifts};
 
     const test::DriveResult uncapped =
-        test::Drive(replay, {}, setup, track.Course(), FramesFor(0, kTestTrackRace), gifts);
+        test::Drive(replay, {}, setup, track.Course(), FramesFor(0, kTestTrackRace), script);
 
     REQUIRE(uncapped.hashes.size() == replay.racers.front().size());
     CHECK(uncapped.respawns > 0);
     CHECK(uncapped.mostLaps > 0);
     CHECK(uncapped.powerupUses.front() > std::ssize(gifts));
-    CHECK(std::ranges::all_of(uncapped.powerupUses | std::views::drop(1),
-                              [](int uses) { return uses > 0; }));
-    CheckEveryFramerate(replay, uncapped.hashes, setup, track.Course(), kTestTrackRace, gifts);
+    CHECK(std::ranges::all_of(ComputerUses(uncapped), IsPositive));
+    CHECK(uncapped.ranHazards == std::vector<bool>{true});
+    CheckEveryFramerate(replay, uncapped.hashes, setup, track.Course(), kTestTrackRace, script);
 }
 
 void RecordTestTrackRace(const test::TestTrack& track) {
     const sim::Replay replay = test::ScriptedReplay(kTestTrackRace);
     const test::DriveResult run =
         test::Drive(replay, {}, test::TestTrack::Setup(replay.seed), track.Course(),
-                    FramesFor(0, kTestTrackRace), test::EveryPowerup());
+                    FramesFor(0, kTestTrackRace), {.gifts = test::EveryPowerup()});
     WriteFile(RecordedReplay(), sim::EncodeReplay(replay));
     WriteFile(HashesPath(RecordedReplay()), sim::EncodeSnapshotHashes(run.hashes));
 }
@@ -111,9 +132,10 @@ Playback PlayRecordedRace(const test::TestTrack& track) {
     REQUIRE(replay.has_value());
     REQUIRE(hashes.has_value());
     CHECK(replay->scene == "test-track");
-    return {.run = test::Drive(*replay, *hashes, test::TestTrack::Setup(replay->seed),
-                               track.Course(), FramesFor(60, kTestTrackRace), test::EveryPowerup()),
-            .recordedTicks = hashes->size()};
+    return {
+        .run = test::Drive(*replay, *hashes, test::TestTrack::Setup(replay->seed), track.Course(),
+                           FramesFor(60, kTestTrackRace), {.gifts = test::EveryPowerup()}),
+        .recordedTicks = hashes->size()};
 }
 
 TEST_CASE("the recorded test track race still plays back tick for tick") {
@@ -129,6 +151,36 @@ TEST_CASE("the recorded test track race still plays back tick for tick") {
     CHECK_FALSE(playback.run.firstMismatch.has_value());
 }
 
+sim::RaceCourse RetailCourse(const sim::RaceTrack& track, const sim::WorldList& world) {
+    return {.checkpoints = &track.checkpoints,
+            .grid = track.grid,
+            .world = &world,
+            .lowestTrackZ = track.lowestTrackZ,
+            .routes = &track.routes,
+            .bricks = &track.bricks,
+            .targets = track.targets,
+            .events = &track.events,
+            .collision = &track.collision,
+            .entities = &track.entities,
+            .hazards = track.hazards};
+}
+
+const assets::RaceRoute& PilotRoute(const sim::GridRoutes& routes) {
+    const auto slot = std::ranges::find_if(
+        routes,
+        [](const std::vector<assets::RaceRoute>& slotRoutes) { return !slotRoutes.empty(); });
+    REQUIRE(slot != routes.end());
+    return slot->front();
+}
+
+void CheckHazardsRan(std::span<const assets::Hazard> hazards, const std::vector<bool>& ran) {
+    for (std::size_t i = 0; i < hazards.size(); ++i) {
+        const assets::HazardKind kind = hazards[i].kind;
+        CAPTURE(static_cast<int>(kind));
+        CHECK((ran[i] || IsVisualOnly(kind) || IsStartedByShots(kind)));
+    }
+}
+
 void CheckRetailTrack(const assets::Vfs& vfs, const std::string& name, const sim::Replay& replay) {
     CAPTURE(name);
     const Result<sim::RaceTrack> track = sim::LoadRaceTrack(vfs, name);
@@ -137,25 +189,19 @@ void CheckRetailTrack(const assets::Vfs& vfs, const std::string& name, const sim
     setup.racers.resize(track->grid.size());
     setup.racers.front().isPlayer = true;
     const sim::WorldList world(track->collision.Track());
-    const sim::RaceCourse course{.checkpoints = &track->checkpoints,
-                                 .grid = track->grid,
-                                 .world = &world,
-                                 .lowestTrackZ = track->lowestTrackZ,
-                                 .routes = &track->routes,
-                                 .bricks = &track->bricks,
-                                 .targets = track->targets,
-                                 .events = &track->events,
-                                 .collision = &track->collision,
-                                 .entities = &track->entities,
-                                 .hazards = track->hazards};
+    const sim::RaceCourse course = RetailCourse(*track, world);
+    const std::vector<test::PowerupGift> gifts = test::EveryPowerup();
+    const test::DriveScript script{.gifts = gifts, .pilot = &PilotRoute(track->routes)};
 
     const test::DriveResult uncapped =
-        test::Drive(replay, {}, setup, course, FramesFor(0, kRetailRace));
+        test::Drive(replay, {}, setup, course, FramesFor(0, kRetailRace), script);
 
     REQUIRE(uncapped.hashes.size() == replay.racers.front().size());
     CHECK(uncapped.mostLaps > 0);
-    CHECK(std::ranges::any_of(uncapped.powerupUses, [](int uses) { return uses > 0; }));
-    CheckEveryFramerate(replay, uncapped.hashes, setup, course, kRetailRace, {});
+    CHECK(uncapped.powerupUses.front() >= std::ssize(gifts));
+    CHECK(std::ranges::any_of(ComputerUses(uncapped), IsPositive));
+    CheckHazardsRan(track->hazards, uncapped.ranHazards);
+    CheckEveryFramerate(replay, uncapped.hashes, setup, course, kRetailRace, script);
 }
 
 TEST_CASE("a full grid races identically at every framerate on every retail track") {
