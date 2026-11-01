@@ -4,6 +4,7 @@
 #include "sim/physics/body_state.hpp"
 #include "sim/physics/chassis.hpp"
 #include "sim/physics/collision_query.hpp"
+#include "sim/physics/surface_touches.hpp"
 
 namespace rr::sim {
 
@@ -16,6 +17,6 @@ void SetDrive(BodyState& body, const BodyConstants& constants, float thrust, flo
 void SetTurnRadius(BodyState& body, float radius);
 
 void StepBody(BodyState& body, const BodyConstants& constants, int dtMs,
-              const CollisionQuery& world);
+              const CollisionQuery& world, SurfaceTouches* touches = nullptr);
 
 }

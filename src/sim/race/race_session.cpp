@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <format>
 
+#include "assets/game_path.hpp"
 #include "core/assert.hpp"
 #include "core/transform.hpp"
 #include "sim/physics/body_state.hpp"
@@ -12,6 +13,8 @@ namespace rr::sim {
 namespace {
 
 constexpr std::size_t kMostWeaponEventsPerEffect = 2;
+constexpr std::size_t kMostShotCastsPerEffect = 2;
+constexpr std::size_t kEventsPerShotCast = 2;
 
 BrickField BricksFor(const RaceCourse& course) {
     return course.bricks == nullptr ? BrickField() : BrickField(*course.bricks);
@@ -22,12 +25,21 @@ std::size_t BrickCount(const RaceCourse& course) {
                                     : course.bricks->coloured.size() + course.bricks->white.size();
 }
 
-std::size_t WeaponEventCount(const RaceSetup& setup) {
+std::size_t EffectSlots(const RaceSetup& setup) {
     std::size_t slots = 0;
     for (std::size_t kind = 0; kind < kPowerupKindCount; ++kind) {
         slots += setup.effects.at(kind) ? SpecFor(static_cast<PowerupKind>(kind)).poolSize : 0;
     }
-    return (slots * kMostWeaponEventsPerEffect) + (setup.racers.size() * kMaxLaunches);
+    return slots;
+}
+
+std::size_t WeaponEventCount(const RaceSetup& setup) {
+    return (EffectSlots(setup) * kMostWeaponEventsPerEffect) + (setup.racers.size() * kMaxLaunches);
+}
+
+std::size_t OutsideEventCount(const RaceSetup& setup) {
+    return (EffectSlots(setup) * kMostShotCastsPerEffect * kEventsPerShotCast) +
+           (setup.racers.size() * SurfaceEvents::MostEventsPerRacer());
 }
 
 bool AreBricksAudible(const RaceClock& clock) {
@@ -37,6 +49,33 @@ bool AreBricksAudible(const RaceClock& clock) {
 const TrackEventSources& EventSourcesFor(const RaceCourse& course) {
     static const TrackEventSources kNone;
     return course.events == nullptr ? kNone : *course.events;
+}
+
+TrackSurfaces SurfacesFor(const RaceCourse& course) {
+    return course.collision == nullptr ? TrackSurfaces()
+                                       : TrackSurfaces(course.collision->surfaces);
+}
+
+std::optional<std::size_t> FindWorld(std::span<const NamedWorld> worlds, std::string_view name) {
+    const std::string wanted = assets::ToUpperAscii(name);
+    const auto found = std::ranges::find_if(worlds, [&](const NamedWorld& world) {
+        return assets::ToUpperAscii(world.name) == wanted;
+    });
+    if (found == worlds.end()) {
+        return std::nullopt;
+    }
+    return static_cast<std::size_t>(found - worlds.begin());
+}
+
+std::vector<std::optional<std::size_t>> SphereWorldsFor(const RaceCourse& course) {
+    const std::vector<assets::TriggerSphere>& spheres = EventSourcesFor(course).racerSpheres;
+    std::vector<std::optional<std::size_t>> worlds(spheres.size());
+    for (std::size_t i = 0; course.collision != nullptr && i < spheres.size(); ++i) {
+        if (spheres[i].collisionWorld) {
+            worlds[i] = FindWorld(course.collision->worlds, *spheres[i].collisionWorld);
+        }
+    }
+    return worlds;
 }
 
 std::span<const assets::RaceRoute> RoutesFor(const RaceCourse& course, std::size_t slot) {
@@ -66,8 +105,13 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       progress_(setup.racers.size(), setup.lapCount),
       sounds_(setup.racers.size(), BrickCount(course), WeaponEventCount(setup)),
       random_(setup.seed),
-      triggers_(EventSourcesFor(course), setup.racers.size(), course.isMirrored, random_),
+      surfaces_(SurfacesFor(course)),
+      triggers_(EventSourcesFor(course), setup.racers.size(), course.isMirrored, random_,
+                OutsideEventCount(setup)),
       triggerRacers_(setup.racers.size()),
+      sphereWorlds_(SphereWorldsFor(course)),
+      switchedWorlds_(setup.racers.size()),
+      surfaceEvents_(setup.racers.size()),
       rubberBand_(course.isMirrored),
       paced_(setup.racers.size()),
       routeSpeeds_(setup.racers.size(), 1.0F),
@@ -78,6 +122,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       reaches_(setup.racers.size()),
       contactBodies_(setup.racers.size()) {
     racers_.reserve(setup.racers.size());
+    contactWorlds_.reserve(setup.racers.size());
     localBounds_.reserve(setup.racers.size());
     for (std::size_t i = 0; i < setup.racers.size(); ++i) {
         const RacerEntry& entry = setup.racers[i];
@@ -100,6 +145,9 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     powerups_.BeginTick();
     weapons_.Clear();
     triggers_.BeginTick();
+    for (TriggerWorlds& worlds : switchedWorlds_) {
+        worlds.Tick(elapsed);
+    }
     MeasureReaches();
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         TickRacer(i, elapsed, clock_.Phase() == RacePhase::Intro ? RacerControls{} : controls[i]);
@@ -108,6 +156,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     TickBricks(elapsed);
     MeasureReaches();
     TickTriggers(elapsed);
+    SwitchOnTriggerWorlds();
     PowerupContext effects = EffectContext();
     powerups_.Tick(elapsed, effects);
     explosions_.Tick(elapsed, racers_, reaches_);
@@ -163,8 +212,9 @@ void RaceSession::StartBoosts() {
 }
 
 void RaceSession::ResolveContacts() {
+    contactWorlds_.clear();
     for (std::size_t i = 0; i < racers_.size(); ++i) {
-        contactBodies_[i] = racers_[i].ForContacts(*course_.world);
+        contactBodies_[i] = racers_[i].ForContacts(contactWorlds_.emplace_back(WorldsOf(i)));
     }
     contacts_.Resolve(contactBodies_);
     for (const RacerContact& contact : contacts_.Contacts()) {
@@ -200,6 +250,22 @@ void RaceSession::TickTriggers(Milliseconds elapsed) {
     triggers_.Tick(elapsed, triggerRacers_, random_);
 }
 
+void RaceSession::SwitchOnTriggerWorlds() {
+    for (std::size_t sphere = 0; sphere < sphereWorlds_.size(); ++sphere) {
+        const std::optional<std::size_t> world = sphereWorlds_[sphere];
+        const std::uint8_t inside = triggers_.RacerSpheres().Inside(sphere);
+        for (std::size_t racer = 0; world && racer < switchedWorlds_.size(); ++racer) {
+            if ((inside >> racer & 1U) != 0) {
+                switchedWorlds_[racer].SwitchOn(*world);
+            }
+        }
+    }
+}
+
+RacerWorldView RaceSession::WorldsOf(std::size_t racer) const {
+    return {*course_.world, course_.collision, switchedWorlds_[racer], surfaces_};
+}
+
 void RaceSession::GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level) {
     PowerupInventory& inventory = inventories_.at(racer);
     bricks_.Spend(inventory);
@@ -218,7 +284,9 @@ PowerupContext RaceSession::EffectContext() {
             .inventories = inventories_,
             .explosions = &explosions_,
             .spikes = &spikes_,
-            .weapons = &weapons_};
+            .weapons = &weapons_,
+            .surfaces = &surfaces_,
+            .trackEvents = &triggers_};
 }
 
 void RaceSession::TickBricks(Milliseconds elapsed) {
@@ -231,7 +299,8 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     Racer& car = racers_[racer];
     const Vector3 from = positions_[racer];
     car.RollCurse(elapsed, random_);
-    car.Tick(elapsed, controls, *course_.world);
+    car.Tick(elapsed, controls, WorldsOf(racer));
+    surfaceEvents_.Hear(static_cast<std::uint8_t>(racer), car, surfaces_, triggers_);
     const BodyMotion& motion = car.Body().motion;
     wasRespawned_[racer] =
         !car.Route() && respawns_[racer].Update(respawn_, elapsed, IsGrounded(motion),

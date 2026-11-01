@@ -12,11 +12,11 @@ std::size_t MostEventsPerTick(const TrackEventSources& sources, std::size_t race
 }
 
 TrackEvents::TrackEvents(const TrackEventSources& sources, std::size_t racerCount, bool isMirrored,
-                         Random& random)
+                         Random& random, std::size_t mostFiredPerTick)
     : racerSpheres_(sources.racerSpheres, isMirrored),
       environmentSpheres_(sources.environmentSpheres, isMirrored),
       timers_(sources.timers, random),
-      queue_(MostEventsPerTick(sources, racerCount)) {}
+      queue_(MostEventsPerTick(sources, racerCount) + mostFiredPerTick) {}
 
 void TrackEvents::BeginTick() {
     queue_.Clear();

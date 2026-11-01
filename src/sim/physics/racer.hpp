@@ -17,6 +17,7 @@
 #include "sim/physics/racer_contacts.hpp"
 #include "sim/physics/racer_controls.hpp"
 #include "sim/physics/start_boost.hpp"
+#include "sim/physics/surface_touches.hpp"
 #include "sim/physics/turbo.hpp"
 #include "sim/race/random.hpp"
 
@@ -35,6 +36,7 @@ struct RacerEvents {
     bool hasDriftStarted = false;
     bool hasWarpEntered = false;
     bool hasWarpLanded = false;
+    SurfaceTouches touches;
 };
 
 struct ShieldStatus {

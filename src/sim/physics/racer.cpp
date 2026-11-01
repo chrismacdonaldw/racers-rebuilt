@@ -85,7 +85,7 @@ void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const Coll
     if (status_.shoveForce) {
         body_.steering = shoveSteering;
     }
-    StepBody(body_, constants_, dtMs, world);
+    StepBody(body_, constants_, dtMs, world, &events_.touches);
     KeepInWorldBounds();
     UpdateTurbo(dtMs);
 }

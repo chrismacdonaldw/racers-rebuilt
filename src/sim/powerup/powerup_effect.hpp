@@ -23,6 +23,8 @@ namespace rr::sim {
 class BrickField;
 class Explosions;
 class PowerupSystem;
+class TrackEvents;
+class TrackSurfaces;
 class WeaponEvents;
 
 /// Everything it points to outlives the call. `reaches` are the racers' bounding spheres.
@@ -39,6 +41,8 @@ struct PowerupContext {
     Explosions* explosions = nullptr;
     Explosions* spikes = nullptr;
     WeaponEvents* weapons = nullptr;
+    const TrackSurfaces* surfaces = nullptr;
+    TrackEvents* trackEvents = nullptr;
     std::span<const assets::TargetPoint> targets;
 };
 

@@ -7,6 +7,7 @@
 #include "sim/powerup/aim_cones.hpp"
 #include "sim/powerup/dropped_trap.hpp"
 #include "sim/powerup/explosions.hpp"
+#include "sim/powerup/shot_world.hpp"
 #include "sim/powerup/weapon_events.hpp"
 #include "sim/powerup/weapon_hits.hpp"
 
@@ -89,7 +90,7 @@ void DynamiteEffect::Launch(const PowerupContext& context) {
 }
 
 bool DynamiteEffect::HasLanded(Milliseconds elapsed, const PowerupContext& context) {
-    if (flight_.Step(elapsed, *context.world) != FlightState::Flying) {
+    if (flight_.Step(elapsed, ShotsOf(context)) != FlightState::Flying) {
         return true;
     }
     return FindTouchedRacer(context, {.centre = flight_.Position(), .radius = kShotTouchRadius},

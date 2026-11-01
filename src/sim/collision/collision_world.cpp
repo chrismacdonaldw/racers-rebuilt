@@ -23,6 +23,7 @@ MaterialBinding Bind(const assets::SurfaceEntry& entry, std::size_t index) {
                     .lateralGrip = entry.lateralGrip.value_or(defaults.lateralGrip),
                     .force = entry.force.value_or(defaults.force),
                     .soundId = entry.soundId,
+                    .touchEvent = entry.touchEvent,
                     .tableEntry = index},
         .isSolid = !entry.isNonSolid};
 }

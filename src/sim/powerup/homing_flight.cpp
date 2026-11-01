@@ -72,7 +72,7 @@ void HomingFlight::Steer(Milliseconds elapsed, std::span<const Racer> racers, st
 }
 
 FlightState HomingFlight::Step(Milliseconds elapsed, std::span<const Racer> racers,
-                               const CollisionQuery& world) {
+                               const CollisionQuery& ground, const CollisionQuery& shots) {
     age_ += elapsed;
     if (age_ >= lifetime_) {
         return FlightState::Expired;
@@ -90,9 +90,9 @@ FlightState HomingFlight::Step(Milliseconds elapsed, std::span<const Racer> race
             }
         }
     }
-    position_ = next ? *next : Cruise(seconds, world);
+    position_ = next ? *next : Cruise(seconds, ground);
     const Vector3 drawn = position_ + Spiral(seconds);
-    if (const std::optional<SegmentHit> hit = CastSolid(world, drawn_, drawn)) {
+    if (const std::optional<SegmentHit> hit = CastSolid(shots, drawn_, drawn)) {
         drawn_ = hit->point;
         hitNormal_ = hit->normal;
         return FlightState::HitWorld;
