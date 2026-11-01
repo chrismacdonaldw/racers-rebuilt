@@ -10,6 +10,7 @@ rr_add_module(assets
         checkpoints.cpp
         collision_mesh.cpp
         driver_database.cpp
+        emitter_library.cpp
         folder_layer.cpp
         font_list.cpp
         game_path.cpp
@@ -20,6 +21,7 @@ rr_add_module(assets
         jam_archive.cpp
         loader_pool.cpp
         lzss.cpp
+        material_animation.cpp
         material_library.cpp
         menu_layout.cpp
         menu_styles.cpp
