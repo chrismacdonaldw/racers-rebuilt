@@ -4,6 +4,7 @@
 #include <optional>
 #include <utility>
 
+#include "assets/event_table.hpp"
 #include "core/assert.hpp"
 #include "core/log.hpp"
 
@@ -11,6 +12,8 @@ namespace rr::app {
 namespace {
 
 constexpr std::string_view kEffectsBank = "GAMEDATA/COMMON/GENERAL.SBK";
+constexpr std::string_view kEventTable = "EVENT.EVB";
+constexpr std::uint64_t kAmbienceSeed = 0xA3B1E7C5D9F20468;
 constexpr std::size_t kCountdownBeep = 0;
 constexpr std::size_t kShieldAbsorb = 1;
 constexpr std::size_t kBrakeStart = 2;
@@ -61,7 +64,6 @@ constexpr std::size_t kOpponentEngine = 79;
 constexpr std::size_t kEffectCount = kOpponentEngine + 1;
 constexpr std::array kEngineLoopSounds{kIdleLoop, kDriveLoop, kCoastLoop};
 constexpr std::array kShieldLoops{kShieldLoop0, kShieldLoop1, kShieldLoop2, kShieldLoop3};
-constexpr std::int32_t kFirstAmbientId = 3000;
 constexpr float kWeakTurboEndVolume = 0.6F;
 constexpr float kStrongTurboEndVolume = 0.8F;
 constexpr SoundRange kOpponentRange{.min = 30.0F, .max = 200.0F};
@@ -132,6 +134,17 @@ std::span<const audio::SoundId> LoadOptionalBank(audio::Mixer& mixer, SoundBanks
     return *bank;
 }
 
+std::vector<assets::SoundResource> LoadAmbience(const assets::Vfs& vfs, std::string_view track) {
+    const std::string path = std::format("GAMEDATA/{}/{}", track, kEventTable);
+    Result<assets::EventTableAsset> table = vfs.Read(path).and_then(
+        [](const assets::FileData& data) { return assets::ParseEventTable(data.Bytes()); });
+    if (!table) {
+        log::Warn("{}: {}, racing without ambient sounds", path, table.error().message);
+        return {};
+    }
+    return std::move(table->sounds);
+}
+
 }
 
 Result<std::unique_ptr<RaceAudio>> RaceAudio::Load(audio::Mixer& mixer, SoundBanks& banks,
@@ -153,7 +166,8 @@ Result<std::unique_ptr<RaceAudio>> RaceAudio::Load(audio::Mixer& mixer, SoundBan
         mixer,
         RaceSoundSet{.effects = *effects,
                      .ambient = LoadOptionalBank(mixer, banks, vfs, AmbientBankPath(track)),
-                     .music = std::move(music).value_or(std::vector<std::string>{})},
+                     .music = std::move(music).value_or(std::vector<std::string>{}),
+                     .ambience = LoadAmbience(vfs, track)},
         setup);
 }
 
@@ -165,7 +179,8 @@ RaceAudio::RaceAudio(audio::Mixer& mixer, RaceSoundSet sounds, const RaceAudioSe
       music_(std::move(sounds_.music), variants_.Next()),
       surfaces_(setup.racerCount),
       surfaceLoops_(setup.racerCount),
-      shieldLoops_(setup.racerCount) {
+      shieldLoops_(setup.racerCount),
+      ambience_(sounds_.ambience, sounds_.ambient, sim::Random(setup.seed ^ kAmbienceSeed)) {
     RR_ASSERT(sounds_.effects.size() >= kEffectCount && setup.player < setup.racerCount);
 }
 
@@ -185,6 +200,7 @@ void RaceAudio::StopLoops() {
     }
     brakeLoop_.Stop(*mixer_);
     opponentLoop_.Stop(*mixer_);
+    ambience_.Silence(*mixer_);
 }
 
 void RaceAudio::Hear(const sim::RaceSession& session, const Transform& camera,
@@ -198,6 +214,7 @@ void RaceAudio::Hear(const sim::RaceSession& session, const Transform& camera,
     HearSurfaces(session, elapsed);
     HearShields(session);
     HearNearestOpponent(session);
+    ambience_.Hear(session.Triggers().Events(), listener_, elapsed, *mixer_);
 }
 
 void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent& event) {
@@ -344,8 +361,9 @@ void RaceAudio::HearSurfaces(const sim::RaceSession& session, Milliseconds elaps
     for (std::size_t i = 0; i < surfaces_.size(); ++i) {
         const sim::BodyState& body = session.Racers()[i].Body();
         const std::optional<SurfaceLoop> loop = surfaces_[i].Update(body, elapsed);
-        const std::optional<audio::SoundId> sound = loop.and_then(
-            [&](const SurfaceLoop& playing) { return AmbientSound(playing.soundId); });
+        const std::optional<audio::SoundId> sound = loop.and_then([&](const SurfaceLoop& playing) {
+            return AmbientSoundAt(sounds_.ambient, playing.soundId);
+        });
         if (loop && sound) {
             surfaceLoops_[i].Play(*mixer_, *sound,
                                   PlaceSound(listener_, body.motion.position, loop->mix));
@@ -368,14 +386,6 @@ void RaceAudio::HearShields(const sim::RaceSession& session) {
     }
 }
 
-std::optional<audio::SoundId> RaceAudio::AmbientSound(std::int32_t soundId) const {
-    const std::int32_t index = soundId - kFirstAmbientId;
-    if (index < 0 || std::cmp_greater_equal(index, sounds_.ambient.size())) {
-        return std::nullopt;
-    }
-    return sounds_.ambient[static_cast<std::size_t>(index)];
-}
-
 void RaceAudio::HearNearestOpponent(const sim::RaceSession& session) {
     const Vector3& player = session.Racers()[player_].Body().motion.position;
     const sim::BodyState* nearest = nullptr;
@@ -396,24 +406,6 @@ void RaceAudio::HearNearestOpponent(const sim::RaceSession& session) {
     opponentLoop_.Play(
         *mixer_, sounds_.effects[kOpponentEngine],
         PlaceSound(listener_, nearest->motion.position, {.pitch = pitch}, kOpponentRange));
-}
-
-void RaceAudio::LoopVoice::Play(audio::Mixer& mixer, audio::SoundId sound,
-                                const audio::VoiceMix& mix) {
-    if (voice_ && sound_.index == sound.index) {
-        mixer.Mix(*voice_, mix);
-        return;
-    }
-    Stop(mixer);
-    voice_ = mixer.Loop({.sound = sound, .mix = mix});
-    sound_ = sound;
-}
-
-void RaceAudio::LoopVoice::Stop(audio::Mixer& mixer) {
-    if (voice_) {
-        mixer.Stop(*voice_);
-        voice_.reset();
-    }
 }
 
 }

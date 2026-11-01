@@ -121,6 +121,7 @@ private:
     std::vector<render::QuadDraw> quads_;
     bool showsCheckpoints_ = false;
     bool showsCollision_ = false;
+    bool showsTriggers_ = false;
     std::optional<Nanoseconds> lastRender_;
     bool hasDrawn_ = false;
 };

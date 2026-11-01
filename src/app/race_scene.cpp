@@ -23,6 +23,7 @@
 #include "app/race_step.hpp"
 #include "app/track_model.hpp"
 #include "app/track_space.hpp"
+#include "app/trigger_spheres.hpp"
 #include "assets/circuit_database.hpp"
 #include "core/log.hpp"
 #include "platform/clock.hpp"
@@ -228,6 +229,7 @@ RaceScene::RaceScene(Parts parts)
 void RaceScene::ApplySettings(const settings::Registry& settings) {
     showsCheckpoints_ = settings.Get(kShowCheckpoints);
     showsCollision_ = settings.Get(kCollisionWireframe);
+    showsTriggers_ = settings.Get(kShowTriggerSpheres);
     hud_.SetLanguage(SelectedLanguage(settings));
 }
 
@@ -387,6 +389,9 @@ void RaceScene::DrawDebugLines() {
     }
     if (showsCollision_) {
         debugLines_.insert(debugLines_.end(), collisionLines_.begin(), collisionLines_.end());
+    }
+    if (showsTriggers_) {
+        DrawTriggerSpheres(parts_.session.Triggers(), debugLines_);
     }
 }
 
