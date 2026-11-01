@@ -401,7 +401,7 @@ std::uint64_t HashRaceSession(const RaceSession& session) {
         const Racer& racer = session.Racers()[i];
         hash.Add(HashRacerState(racer), racer.Route(), session.Progress().OfRacer(i),
                  session.WasRespawned(i), session.SwitchedWorlds()[i],
-                 session.SurfaceContacts().Under(i));
+                 session.SurfaceContacts().Under(i), session.Taunters()[i].Wait());
     }
     for (const std::size_t racer : session.Progress().Standings()) {
         hash.Add(static_cast<std::uint64_t>(racer));

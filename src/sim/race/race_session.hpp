@@ -87,6 +87,7 @@ public:
     [[nodiscard]] const TrackEntities& Entities() const { return entities_; }
     [[nodiscard]] const Hazards& TrackHazards() const { return hazards_; }
     [[nodiscard]] const EventResources& Resources() const { return resources_; }
+    [[nodiscard]] std::span<const AiTaunter> Taunters() const { return taunts_; }
 
     /// Replaces what `racer` holds, sending its white bricks home.
     void GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level);
