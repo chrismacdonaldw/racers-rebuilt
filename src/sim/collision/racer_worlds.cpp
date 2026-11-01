@@ -27,7 +27,8 @@ void TriggerWorlds::Tick(Milliseconds elapsed) {
 }
 
 RacerWorldView::RacerWorldView(const CollisionQuery& base, const TrackCollision* collision,
-                               const TriggerWorlds& switched, const TrackSurfaces& surfaces)
+                               const TriggerWorlds& switched, const TrackSurfaces& surfaces,
+                               std::span<const std::optional<Placement>> moved)
     : base_(&base), surfaces_(&surfaces) {
     if (collision == nullptr) {
         return;
@@ -36,6 +37,9 @@ RacerWorldView::RacerWorldView(const CollisionQuery& base, const TrackCollision*
         extras_.at(count_++) = &collision->worlds.at(*collision->checkpoints).world;
     }
     for (const TriggerWorld& slot : switched.Worlds()) {
+        if (slot.world < moved.size() && moved[slot.world]) {
+            placements_.at(count_) = &*moved[slot.world];
+        }
         extras_.at(count_++) = &collision->worlds.at(slot.world).world;
     }
 }
@@ -43,8 +47,14 @@ RacerWorldView::RacerWorldView(const CollisionQuery& base, const TrackCollision*
 std::optional<SegmentHit> RacerWorldView::CastSegment(std::size_t world, const Vector3& from,
                                                       const Vector3& to) const {
     RR_ASSERT(world < WorldCount());
-    std::optional<SegmentHit> hit = world < count_ ? extras_.at(world)->CastSegment(from, to)
-                                                   : base_->CastSegment(world - count_, from, to);
+    std::optional<SegmentHit> hit;
+    if (world >= count_) {
+        hit = base_->CastSegment(world - count_, from, to);
+    } else if (placements_.at(world) != nullptr) {
+        hit = extras_.at(world)->CastSegment(from, to, *placements_.at(world));
+    } else {
+        hit = extras_.at(world)->CastSegment(from, to);
+    }
     if (hit && hit->surface.tableEntry && *hit->surface.tableEntry < surfaces_->Count()) {
         hit->isSolid = surfaces_->IsSolid(*hit->surface.tableEntry);
     }

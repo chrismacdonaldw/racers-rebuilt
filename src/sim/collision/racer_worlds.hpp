@@ -36,11 +36,12 @@ private:
     std::size_t count_ = 0;
 };
 
-/// Tests the checkpoint world, the trigger worlds, then `base`; table surfaces set solidity.
+/// Tests checkpoint, trigger (at `moved` where set) and `base` worlds; surfaces set solidity.
 class RacerWorldView final : public CollisionQuery {
 public:
     RacerWorldView(const CollisionQuery& base, const TrackCollision* collision,
-                   const TriggerWorlds& switched, const TrackSurfaces& surfaces);
+                   const TriggerWorlds& switched, const TrackSurfaces& surfaces,
+                   std::span<const std::optional<Placement>> moved = {});
 
     [[nodiscard]] std::size_t WorldCount() const override { return count_ + base_->WorldCount(); }
     [[nodiscard]] std::optional<SegmentHit> CastSegment(std::size_t world, const Vector3& from,
@@ -50,6 +51,7 @@ private:
     const CollisionQuery* base_;
     const TrackSurfaces* surfaces_;
     std::array<const CollisionWorld*, kMaxTriggerWorlds + 1> extras_{};
+    std::array<const Placement*, kMaxTriggerWorlds + 1> placements_{};
     std::size_t count_ = 0;
 };
 

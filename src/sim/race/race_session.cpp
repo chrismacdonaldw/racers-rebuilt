@@ -37,11 +37,6 @@ std::size_t WeaponEventCount(const RaceSetup& setup) {
     return (EffectSlots(setup) * kMostWeaponEventsPerEffect) + (setup.racers.size() * kMaxLaunches);
 }
 
-std::size_t OutsideEventCount(const RaceSetup& setup) {
-    return (EffectSlots(setup) * kMostShotCastsPerEffect * kEventsPerShotCast) +
-           (setup.racers.size() * SurfaceEvents::MostEventsPerRacer());
-}
-
 bool AreBricksAudible(const RaceClock& clock) {
     return clock.Phase() != RacePhase::Intro && clock.Phase() != RacePhase::Countdown;
 }
@@ -49,6 +44,12 @@ bool AreBricksAudible(const RaceClock& clock) {
 const TrackEventSources& EventSourcesFor(const RaceCourse& course) {
     static const TrackEventSources kNone;
     return course.events == nullptr ? kNone : *course.events;
+}
+
+std::size_t OutsideEventCount(const RaceSetup& setup, const RaceCourse& course) {
+    return (EffectSlots(setup) * kMostShotCastsPerEffect * kEventsPerShotCast) +
+           (setup.racers.size() * SurfaceEvents::MostEventsPerRacer()) +
+           EventResources::MostFiredPerTick(EventSourcesFor(course).table);
 }
 
 TrackSurfaces SurfacesFor(const RaceCourse& course) {
@@ -112,8 +113,9 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       random_(setup.seed),
       surfaces_(SurfacesFor(course)),
       triggers_(EventSourcesFor(course), setup.racers.size(), course.isMirrored, random_,
-                OutsideEventCount(setup)),
+                OutsideEventCount(setup, course)),
       entities_(EntitySourcesFor(course)),
+      resources_(EventSourcesFor(course).table, EntitySourcesFor(course), course.collision),
       triggerRacers_(setup.racers.size()),
       sphereWorlds_(SphereWorldsFor(course)),
       switchedWorlds_(setup.racers.size()),
@@ -152,6 +154,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     powerups_.BeginTick();
     weapons_.Clear();
     triggers_.BeginTick();
+    resources_.BeginTick();
     for (TriggerWorlds& worlds : switchedWorlds_) {
         worlds.Tick(elapsed);
     }
@@ -189,6 +192,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
         sounds_.HearRacer(i, racers_[i], isPlayer_[i], clock_.IsRunning(), elapsed);
     }
     PaceRoutes(elapsed);
+    resources_.Dispatch(triggers_, entities_);
 }
 
 bool RaceSession::WantsPowerup(std::size_t racer, Milliseconds elapsed,
@@ -254,7 +258,11 @@ void RaceSession::TickTriggers(Milliseconds elapsed) {
                              .isPlayer = isPlayer_[i],
                              .completedLaps = progress_.OfRacer(i).laps.CompletedLaps()};
     }
-    triggers_.Tick(elapsed, triggerRacers_, random_);
+    triggers_.TestSpheres(triggerRacers_);
+    resources_.Dispatch(triggers_, entities_);
+    resources_.Update(elapsed, triggers_, entities_);
+    triggers_.TickTimers(elapsed, random_);
+    resources_.Dispatch(triggers_, entities_);
 }
 
 void RaceSession::SwitchOnTriggerWorlds() {
@@ -270,7 +278,8 @@ void RaceSession::SwitchOnTriggerWorlds() {
 }
 
 RacerWorldView RaceSession::WorldsOf(std::size_t racer) const {
-    return {*course_.world, course_.collision, switchedWorlds_[racer], surfaces_};
+    return {*course_.world, course_.collision, switchedWorlds_[racer], surfaces_,
+            resources_.MovedWorlds()};
 }
 
 void RaceSession::GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level) {

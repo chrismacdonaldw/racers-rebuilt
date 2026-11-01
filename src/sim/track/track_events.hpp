@@ -4,6 +4,7 @@
 #include <span>
 #include <vector>
 
+#include "assets/event_table.hpp"
 #include "assets/track_triggers.hpp"
 #include "core/duration.hpp"
 #include "sim/race/random.hpp"
@@ -17,6 +18,7 @@ struct TrackEventSources {
     std::vector<assets::TriggerSphere> racerSpheres;
     std::vector<assets::TriggerSphere> environmentSpheres;
     std::vector<assets::TrackTimer> timers;
+    assets::EventTableAsset table;
 };
 
 class TrackEvents {
@@ -27,8 +29,9 @@ public:
     /// Clears the last tick's events and ends those of the spheres left behind.
     void BeginTick();
 
-    /// Tests the spheres against where the racers ended up, then runs the timers.
-    void Tick(Milliseconds elapsed, std::span<const TriggerRacer> racers, Random& random);
+    void TestSpheres(std::span<const TriggerRacer> racers);
+
+    void TickTimers(Milliseconds elapsed, Random& random);
 
     void Fire(const TrackEvent& event) { queue_.Fire(event); }
 

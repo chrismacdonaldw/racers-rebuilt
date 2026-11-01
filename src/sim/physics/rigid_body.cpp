@@ -80,6 +80,12 @@ Quaternion ToQuaternion(const Basis& basis) {
             .z = root / 4.0F};
 }
 
+Basis ToBasis(const Quaternion& rotation) {
+    return {.forward = Rotate(rotation, {.x = 1.0F}),
+            .side = Rotate(rotation, {.y = 1.0F}),
+            .up = Rotate(rotation, {.z = 1.0F})};
+}
+
 Vector3 CentreOfMassWorld(const BodyMotion& motion, const BodyConstants& constants) {
     return motion.position + ToWorld(motion.basis, constants.centreOfMass);
 }

@@ -24,11 +24,19 @@ class TrackEntities {
 public:
     explicit TrackEntities(const TrackEntitySources& sources);
 
+    /// A queued part waits for the current part to reach its last frame, looping or not.
     void Tick(Milliseconds elapsed);
+
+    /// Replaces any part already queued. An entity without a clock starts `part` at once.
+    void Queue(std::size_t entity, std::size_t part, bool loops);
+
+    [[nodiscard]] std::optional<std::size_t> CurrentPart(std::size_t entity) const;
+    [[nodiscard]] bool HasQueued(std::size_t entity) const { return queued_[entity].has_value(); }
 
     [[nodiscard]] std::optional<std::size_t> Find(std::string_view name) const;
 
     [[nodiscard]] std::span<const EntityClock> Clocks() const { return clocks_; }
+    [[nodiscard]] std::span<const EntityClock> Queued() const { return queued_; }
 
     /// In game space.
     [[nodiscard]] Transform NodeWorld(std::size_t entity, std::size_t node) const;
@@ -36,6 +44,7 @@ public:
 private:
     const TrackEntitySources* sources_;
     std::vector<EntityClock> clocks_;
+    std::vector<EntityClock> queued_;
 };
 
 }

@@ -49,7 +49,8 @@ Fired DriveRoute(const RaceTrack& track, const assets::RaceRoute& route) {
             const std::array racers{
                 TriggerRacer{.reach = {.centre = at, .radius = kRacerReach}, .isPlayer = true}};
             events.BeginTick();
-            events.Tick(kTick, racers, random);
+            events.TestSpheres(racers);
+            events.TickTimers(kTick, random);
             Record(events, fired);
         }
         position += point.offset;

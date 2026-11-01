@@ -24,9 +24,12 @@ void TrackEvents::BeginTick() {
     environmentSpheres_.EndFrame(queue_);
 }
 
-void TrackEvents::Tick(Milliseconds elapsed, std::span<const TriggerRacer> racers, Random& random) {
+void TrackEvents::TestSpheres(std::span<const TriggerRacer> racers) {
     racerSpheres_.Test(racers, queue_);
     environmentSpheres_.Test(racers, queue_);
+}
+
+void TrackEvents::TickTimers(Milliseconds elapsed, Random& random) {
     timers_.Tick(elapsed, random, queue_);
 }
 

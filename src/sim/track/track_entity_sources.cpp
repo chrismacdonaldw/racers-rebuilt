@@ -28,8 +28,8 @@ auto ReadParsed(const assets::Vfs& vfs, const std::string& path, Parse parse) {
         });
 }
 
-Result<std::optional<std::size_t>> StartPart(const assets::WorldEntity& entity,
-                                             const assets::AnimationAsset& animation) {
+std::optional<std::size_t> StartPart(const assets::WorldEntity& entity,
+                                     const assets::AnimationAsset& animation) {
     if (!entity.startPart) {
         return std::nullopt;
     }
@@ -43,9 +43,7 @@ Result<std::optional<std::size_t>> StartPart(const assets::WorldEntity& entity,
     }
     const auto index = static_cast<std::size_t>(entity.startPart->index);
     if (entity.startPart->index < 0 || index >= animation.parts.size()) {
-        return Fail(ErrorCode::InvalidData,
-                    std::format("start part {} is past the animation's {} parts",
-                                entity.startPart->index, animation.parts.size()));
+        return std::nullopt;
     }
     return index;
 }
@@ -159,18 +157,16 @@ private:
             return Intern(nameAt(world.modelParts, lod.modelPart), ".ADB", animationIndices_,
                           sources_.animations, assets::ParseAnimations);
         });
-        Result<std::optional<std::size_t>> startPart = animation.and_then([&](std::size_t index) {
-            const assets::AnimationAsset& asset = sources_.animations[index];
-            return CheckPartTracks(asset, sources_.skeletons[*skeleton].nodes.size()).and_then([&] {
-                return StartPart(entity, asset);
-            });
+        Result<void> checked = animation.and_then([&](std::size_t index) {
+            return CheckPartTracks(sources_.animations[index],
+                                   sources_.skeletons[*skeleton].nodes.size());
         });
-        if (!startPart) {
-            return std::unexpected(std::move(startPart.error()));
+        if (!checked) {
+            return std::unexpected(std::move(checked.error()));
         }
         placed.skeleton = *skeleton;
         placed.animation = *animation;
-        placed.startPart = *startPart;
+        placed.startPart = StartPart(entity, sources_.animations[*animation]);
         placed.scale = *scale * entity.scale;
         sources_.entities.push_back(std::move(placed));
         return {};

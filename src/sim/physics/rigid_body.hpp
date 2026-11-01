@@ -15,6 +15,8 @@ namespace rr::sim {
 
 [[nodiscard]] Quaternion ToQuaternion(const Basis& basis);
 
+[[nodiscard]] Basis ToBasis(const Quaternion& rotation);
+
 [[nodiscard]] Vector3 CentreOfMassWorld(const BodyMotion& motion, const BodyConstants& constants);
 
 void ApplyForceAt(BodyState& body, const BodyConstants& constants, const Vector3& force,

@@ -270,11 +270,36 @@ public:
         }
     }
 
+    void Add(const EntityClock& clock) {
+        Add(clock.has_value());
+        if (clock) {
+            Add(static_cast<std::uint64_t>(clock->part), clock->frame, clock->loops);
+        }
+    }
+
     void Add(const TrackEntities& entities) {
-        for (const EntityClock& clock : entities.Clocks()) {
-            Add(clock.has_value());
-            if (clock) {
-                Add(static_cast<std::uint64_t>(clock->part), clock->frame, clock->loops);
+        for (std::size_t i = 0; i < entities.Clocks().size(); ++i) {
+            Add(entities.Clocks()[i], entities.Queued()[i]);
+        }
+    }
+
+    void Add(ResourcePhase phase) { Add(static_cast<std::uint64_t>(phase)); }
+
+    void Add(const EventResources& resources) {
+        const auto addAll = [this](const auto& items) {
+            for (const auto& item : items) {
+                Add(item);
+            }
+        };
+        addAll(resources.PartAnimations());
+        for (const TimerState& timer : resources.Timers()) {
+            Add(timer.phase, timer.left, timer.isHeld);
+        }
+        addAll(resources.NodeTransforms());
+        addAll(resources.ModelDistances());
+        for (const std::optional<Placement>& moved : resources.MovedWorlds()) {
+            if (moved) {
+                Add(moved->position, moved->basis.forward, moved->basis.up);
             }
         }
     }
@@ -326,7 +351,7 @@ std::uint64_t HashRaceSession(const RaceSession& session) {
         hash.Add(static_cast<std::uint64_t>(racer));
     }
     hash.Add(session.Powerups(), session.Blasts(), session.Spikes(), session.Triggers(),
-             session.Surfaces(), session.Entities());
+             session.Surfaces(), session.Entities(), session.Resources());
     if (!session.Bricks().IsEmpty()) {
         hash.Add(session.Bricks());
         for (const PowerupInventory& inventory : session.Inventories()) {
