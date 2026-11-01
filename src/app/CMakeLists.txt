@@ -43,6 +43,7 @@ rr_add_module(app
         positional_sound.cpp
         powerup/effect_trail.cpp
         powerup/powerup_models.cpp
+        powerup/powerup_particles.cpp
         powerup/powerup_quads.cpp
         powerup/powerup_visuals.cpp
         powerup_tools.cpp

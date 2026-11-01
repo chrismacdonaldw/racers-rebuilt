@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <numbers>
 
+#include "app/powerup/visual_random.hpp"
 #include "app/track_space.hpp"
 #include "sim/powerup/dropped_trap.hpp"
 #include "sim/powerup/grapple_effect.hpp"
@@ -70,17 +71,8 @@ float Grown(float base, float full, float growth) {
     return base + ((full - base) * growth);
 }
 
-std::uint32_t Scramble(std::uint32_t value) {
-    value ^= value << 13U;
-    value ^= value >> 17U;
-    value ^= value << 5U;
-    return value;
-}
-
-float Jitter(std::uint32_t& random) {
-    constexpr float kRandomRange = 4294967296.0F;
-    random = Scramble(random);
-    return (static_cast<float>(random) / kRandomRange) - 0.5F;
+float Jitter(VisualRandom& random) {
+    return random.Next() - 0.5F;
 }
 
 }
@@ -202,7 +194,7 @@ void PowerupQuads::AppendBeam(const sim::EffectSnapshot& effect, const Vector3& 
     }
     const Vector3 end = ToGame(effect.transform.position);
     const Vector3 side = Normalized(Cross(end - owner, kGameUp), kGameSide);
-    std::uint32_t random = Scramble(static_cast<std::uint32_t>(tick) + effect.slot + 1U);
+    VisualRandom random(static_cast<std::uint32_t>(tick) + effect.slot + 1U);
     path_.clear();
     for (std::size_t i = 0; i <= kBeamSegments; ++i) {
         const float share = static_cast<float>(i) / static_cast<float>(kBeamSegments);
