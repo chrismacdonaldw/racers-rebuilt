@@ -238,7 +238,8 @@ public:
                 static_cast<int>(event.racer.value_or(kNoOwner)));
         }
         for (std::size_t i = 0; i < triggers.RacerSpheres().Spheres().size(); ++i) {
-            Add(static_cast<int>(triggers.RacerSpheres().Inside(i)));
+            Add(static_cast<int>(triggers.RacerSpheres().Inside(i)),
+                triggers.RacerSpheres().IsActive(i));
         }
         for (std::size_t i = 0; i < triggers.EnvironmentSpheres().Spheres().size(); ++i) {
             Add(triggers.EnvironmentSpheres().IsActive(i));

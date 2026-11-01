@@ -5,7 +5,7 @@ namespace rr::sim {
 namespace {
 
 std::size_t MostEventsPerTick(const TrackEventSources& sources, std::size_t racerCount) {
-    return (sources.racerSpheres.size() * racerCount * 2) +
+    return (sources.racerSpheres.size() * (racerCount + 1) * 2) +
            (sources.environmentSpheres.size() * 2) + sources.timers.size();
 }
 
