@@ -175,6 +175,7 @@ void ParticleBank::UpdateSlot(Slot& slot, float elapsedMs) {
         slot.emitTimerMs -= intervalMs;
         Spawn(slot);
     }
+    slot.emitTimerMs = std::min(slot.emitTimerMs, intervalMs);
 }
 
 void ParticleBank::Spawn(Slot& slot) {

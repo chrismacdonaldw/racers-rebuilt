@@ -2,9 +2,12 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <limits>
 #include <numbers>
 #include <optional>
@@ -115,14 +118,16 @@ TEST_CASE("a chance too large for a whole number never skips") {
     }
 }
 
-TEST_CASE("one update spawns at most a slot's worth of particles") {
+TEST_CASE("one update spawns at most a slot's worth of particles and drops the backlog") {
     ParticleBank bank = Bank({Emitter("dust")});
     const std::optional<EmitterHandle> handle = bank.Start("dust", {});
     REQUIRE(handle.has_value());
 
     bank.Update(FloatMilliseconds{60'000.0F});
-
     CHECK(bank.SpawnCount(*handle) == kParticlesPerSlot);
+
+    bank.Update(FloatMilliseconds{1.0F});
+    CHECK(bank.SpawnCount(*handle) == kParticlesPerSlot + 1);
 }
 
 TEST_CASE("an emitter without a rate spawns once per update") {
@@ -277,5 +282,37 @@ TEST_CASE("quads face the camera with full edges of the particle's size") {
     CHECK(quad.uv.x == doctest::Approx(0.01F));
 }
 
+TEST_CASE("a full race budget updates and draws in well under half a millisecond") {
+    constexpr int kFrames = 1000;
+    constexpr std::size_t kCommonSlots = 10;
+    constexpr std::size_t kTrackSlots = 4;
+    assets::EmitterAsset dense = Emitter("dense");
+    dense.emitRate = 1000.0F;
+    std::array banks{Bank({dense}, kCommonSlots), Bank({dense}, kTrackSlots)};
+    for (ParticleBank& bank : banks) {
+        while (bank.Start("dense", {}).has_value()) {
+        }
+    }
+    std::vector<QuadDraw> quads;
+    quads.reserve((kCommonSlots + kTrackSlots) * kParticlesPerSlot);
+    for (ParticleBank& bank : banks) {
+        Run(bank, 4.0F, 100.0F);
+    }
+
+    const auto start = std::chrono::steady_clock::now();
+    for (int frame = 0; frame < kFrames; ++frame) {
+        quads.clear();
+        for (ParticleBank& bank : banks) {
+            bank.Update(FloatMilliseconds{4.0F});
+            bank.AppendQuads(kNearCamera, quads);
+        }
+    }
+    const std::chrono::duration<double, std::milli> elapsed =
+        std::chrono::steady_clock::now() - start;
+
+    CHECK(quads.size() == (kCommonSlots + kTrackSlots) * kParticlesPerSlot);
+    MESSAGE(std::format("{:.4f} ms per frame", elapsed.count() / kFrames));
+    CHECK(elapsed.count() / kFrames < 0.5);
+}
 }
 }

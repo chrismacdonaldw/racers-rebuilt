@@ -6,6 +6,7 @@
 #include <string_view>
 #include <vector>
 
+#include "assets/surface_table.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 #include "sim/collision/collision_world.hpp"
@@ -23,6 +24,7 @@ struct TrackCollision {
     std::vector<NamedWorld> worlds;
     std::size_t track = 0;
     std::optional<std::size_t> checkpoints;
+    std::vector<assets::SurfaceEntry> surfaces;
 
     [[nodiscard]] const CollisionWorld& Track() const { return worlds.at(track).world; }
 };

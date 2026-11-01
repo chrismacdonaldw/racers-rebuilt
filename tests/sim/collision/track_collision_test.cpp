@@ -7,6 +7,7 @@
 #include <format>
 #include <iterator>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -102,5 +103,26 @@ TEST_CASE("retail grass binds to its surface table entry") {
     CHECK(binding.isSolid);
 }
 
+std::optional<std::string> WheelParticle(const TrackCollision& collision, const Surface& surface) {
+    if (!surface.tableEntry || *surface.tableEntry >= collision.surfaces.size()) {
+        return std::nullopt;
+    }
+    return collision.surfaces[*surface.tableEntry].particle;
+}
+
+TEST_CASE("retail grass names its wheel particle through its surface table entry") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const Result<TrackCollision> collision = LoadTrackCollision(*vfs, "RACEC0R0");
+    REQUIRE(collision.has_value());
+
+    const std::span<const MaterialBinding> materials = collision->Track().Materials();
+
+    CHECK(std::ranges::any_of(materials, [&](const MaterialBinding& binding) {
+        return WheelParticle(*collision, binding.surface) == "grassemt";
+    }));
+}
 }
 }

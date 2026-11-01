@@ -13,7 +13,7 @@ bool IsGateName(std::string_view name) {
     return !name.empty() && std::isdigit(static_cast<unsigned char>(name.front())) != 0;
 }
 
-MaterialBinding Bind(const assets::SurfaceEntry& entry) {
+MaterialBinding Bind(const assets::SurfaceEntry& entry, std::size_t index) {
     const Surface defaults;
     return {
         .surface = {.rollingResistance =
@@ -22,7 +22,8 @@ MaterialBinding Bind(const assets::SurfaceEntry& entry) {
                     .friction = entry.friction.value_or(defaults.friction),
                     .lateralGrip = entry.lateralGrip.value_or(defaults.lateralGrip),
                     .force = entry.force.value_or(defaults.force),
-                    .soundId = entry.soundId},
+                    .soundId = entry.soundId,
+                    .tableEntry = index},
         .isSolid = !entry.isNonSolid};
 }
 
@@ -43,7 +44,9 @@ std::vector<MaterialBinding> BindMaterials(const assets::CollisionMeshAsset& mes
             continue;
         }
         const auto entry = std::ranges::find(surfaces, name, &assets::SurfaceEntry::name);
-        bindings.push_back(entry == surfaces.end() ? MaterialBinding{} : Bind(*entry));
+        bindings.push_back(entry == surfaces.end()
+                               ? MaterialBinding{}
+                               : Bind(*entry, static_cast<std::size_t>(entry - surfaces.begin())));
     }
     return bindings;
 }

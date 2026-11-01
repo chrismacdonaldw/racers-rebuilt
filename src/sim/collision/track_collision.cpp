@@ -104,11 +104,15 @@ Result<TrackCollision> LoadWorlds(const assets::Vfs& vfs, std::string_view folde
 Result<TrackCollision> LoadTrackCollision(const assets::Vfs& vfs, std::string_view folder) {
     return ReadParsed(vfs, std::format("GAMEDATA/{}/{}.TMB", folder, folder),
                       assets::ParseSurfaceTable)
-        .and_then([&](const std::vector<assets::SurfaceEntry>& surfaces) {
+        .and_then([&](std::vector<assets::SurfaceEntry> surfaces) {
             return ReadParsed(vfs, std::format("GAMEDATA/{}/COLLIDE.WDB", folder),
                               assets::ParseWorld)
                 .and_then([&](const assets::WorldAsset& wdb) {
                     return LoadWorlds(vfs, folder, wdb, surfaces);
+                })
+                .transform([&](TrackCollision collision) {
+                    collision.surfaces = std::move(surfaces);
+                    return collision;
                 });
         });
 }

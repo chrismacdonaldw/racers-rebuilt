@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -15,6 +16,7 @@
 #include "app/powerup/powerup_models.hpp"
 #include "app/powerup/powerup_visuals.hpp"
 #include "app/race_audio.hpp"
+#include "app/race_particles.hpp"
 #include "app/racer/racer_grid.hpp"
 #include "app/racer_effect_tools.hpp"
 #include "app/scene.hpp"
@@ -88,6 +90,7 @@ private:
         std::unique_ptr<sim::WorldList> world;
         sim::RaceSession session;
         std::unique_ptr<RaceAudio> audio;
+        std::optional<RaceParticles> particles;
         Nanoseconds started{};
     };
 
@@ -113,6 +116,7 @@ private:
     std::vector<render::MeshDraw> draws_;
     std::vector<render::DebugLine> collisionLines_;
     std::vector<render::DebugLine> debugLines_;
+    std::vector<render::QuadDraw> quads_;
     bool showsCheckpoints_ = false;
     bool showsCollision_ = false;
     std::optional<Nanoseconds> lastRender_;
