@@ -12,7 +12,6 @@ namespace rr::app {
 namespace {
 
 constexpr std::string_view kEffectsBank = "GAMEDATA/COMMON/GENERAL.SBK";
-constexpr std::string_view kEventTable = "EVENT.EVB";
 constexpr std::uint64_t kAmbienceSeed = 0xA3B1E7C5D9F20468;
 constexpr std::size_t kCountdownBeep = 0;
 constexpr std::size_t kShieldAbsorb = 1;
@@ -134,17 +133,6 @@ std::span<const audio::SoundId> LoadOptionalBank(audio::Mixer& mixer, SoundBanks
     return *bank;
 }
 
-std::vector<assets::SoundResource> LoadAmbience(const assets::Vfs& vfs, std::string_view track) {
-    const std::string path = std::format("GAMEDATA/{}/{}", track, kEventTable);
-    Result<assets::EventTableAsset> table = vfs.Read(path).and_then(
-        [](const assets::FileData& data) { return assets::ParseEventTable(data.Bytes()); });
-    if (!table) {
-        log::Warn("{}: {}, racing without ambient sounds", path, table.error().message);
-        return {};
-    }
-    return std::move(table->sounds);
-}
-
 }
 
 Result<std::unique_ptr<RaceAudio>> RaceAudio::Load(audio::Mixer& mixer, SoundBanks& banks,
@@ -167,7 +155,7 @@ Result<std::unique_ptr<RaceAudio>> RaceAudio::Load(audio::Mixer& mixer, SoundBan
         RaceSoundSet{.effects = *effects,
                      .ambient = LoadOptionalBank(mixer, banks, vfs, AmbientBankPath(track)),
                      .music = std::move(music).value_or(std::vector<std::string>{}),
-                     .ambience = LoadAmbience(vfs, track)},
+                     .ambience = {setup.ambience.begin(), setup.ambience.end()}},
         setup);
 }
 

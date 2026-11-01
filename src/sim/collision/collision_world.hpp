@@ -42,11 +42,18 @@ public:
     [[nodiscard]] std::optional<SegmentHit> CastSegment(const Vector3& from,
                                                         const Vector3& to) const;
 
+    /// As if the world stood at `placement` instead of its own.
+    [[nodiscard]] std::optional<SegmentHit> CastSegment(const Vector3& from, const Vector3& to,
+                                                        const Placement& placement) const;
+
     [[nodiscard]] const CollisionMesh& Mesh() const { return mesh_; }
     [[nodiscard]] std::span<const MaterialBinding> Materials() const { return materials_; }
     [[nodiscard]] const std::optional<Placement>& WorldPlacement() const { return placement_; }
 
 private:
+    [[nodiscard]] std::optional<SegmentHit> Cast(const Vector3& from, const Vector3& to,
+                                                 const std::optional<Placement>& placement) const;
+
     CollisionWorld(CollisionMesh mesh, std::vector<MaterialBinding> materials,
                    std::optional<Placement> placement);
 

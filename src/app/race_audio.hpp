@@ -40,6 +40,7 @@ struct RaceAudioSetup {
     std::size_t racerCount = 0;
     std::size_t player = 0;
     std::uint64_t seed = 0;
+    std::span<const assets::SoundResource> ambience;
 };
 
 /// Only reads the session, so it never changes a race's outcome.

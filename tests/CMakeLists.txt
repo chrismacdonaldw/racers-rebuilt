@@ -206,6 +206,7 @@ add_executable(racers-rebuilt-tests
     sim/replay_test.cpp
     sim/route_playback_test.cpp
     sim/snapshot_hash_test.cpp
+    sim/track/event_resources_test.cpp
     sim/track/surface_events_test.cpp
     sim/track/track_entities_test.cpp
     sim/track/track_events_test.cpp

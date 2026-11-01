@@ -12,8 +12,6 @@
 namespace rr::app {
 namespace {
 
-constexpr Milliseconds kTick{12};
-
 sim::TrackEventSources Sources() {
     return {.racerSpheres = {{.centre = {.x = 10.0F}, .radius = 5.0F, .event = 1}},
             .environmentSpheres = {{.centre = {.y = 40.0F}, .radius = 8.0F, .event = 2}}};
@@ -40,7 +38,7 @@ TEST_CASE("a trigger sphere lights up while a racer is inside") {
     const std::array racers{
         sim::TriggerRacer{.reach = {.centre = {.x = 10.0F}, .radius = 1.0F}, .isPlayer = true}};
     triggers.BeginTick();
-    triggers.Tick(kTick, racers, random);
+    triggers.TestSpheres(racers);
 
     rings.Light(triggers);
 

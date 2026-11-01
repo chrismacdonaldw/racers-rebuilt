@@ -106,6 +106,18 @@ bool ReadField(std::string_view field, RaceSceneSetup& setup,
     return false;
 }
 
+std::optional<RaceParticles> LoadParticles(render::Renderer& renderer, const assets::Vfs& vfs,
+                                           assets::TrackLoader& loader, std::string_view track,
+                                           std::span<const assets::SurfaceEntry> surfaces) {
+    Result<RaceParticles> particles =
+        RaceParticles::Load(renderer, vfs, loader, track, surfaces, kPlayerSlot);
+    if (!particles) {
+        log::Warn("{}, racing without particles", particles.error().message);
+        return std::nullopt;
+    }
+    return std::move(*particles);
+}
+
 sim::RaceCourse CourseOf(const sim::RaceTrack& track, const sim::WorldList& world) {
     return {.checkpoints = &track.checkpoints,
             .grid = track.grid,
@@ -175,25 +187,24 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     auto raceTrack = std::make_unique<sim::RaceTrack>(std::move(*loaded));
     auto world = std::make_unique<sim::WorldList>(raceTrack->collision.Track());
     TrackEntityDraws entityDraws(model->animatedModels, raceTrack->entities);
+    HiddenModels hiddenModels(raceTrack->events.table.modelDistances, model->entityDraws,
+                              raceTrack->entities);
     Result<sim::RaceSession> session = sim::RaceSession::Create(
         FullGrid(setup, *racers, seed, raceTrack->grid.size()), CourseOf(*raceTrack, *world));
     if (!session) {
         return std::unexpected(std::move(session.error()));
     }
-    Result<std::unique_ptr<RaceAudio>> audio = RaceAudio::Load(
-        *outputs.mixer, *outputs.banks, vfs, track,
-        {.racerCount = session->Racers().size(), .player = kPlayerSlot, .seed = seed});
+    Result<std::unique_ptr<RaceAudio>> audio =
+        RaceAudio::Load(*outputs.mixer, *outputs.banks, vfs, track,
+                        {.racerCount = session->Racers().size(),
+                         .player = kPlayerSlot,
+                         .seed = seed,
+                         .ambience = raceTrack->events.table.sounds});
     if (!audio) {
         log::Warn("{}, racing in silence", audio.error().message);
     }
-    Result<RaceParticles> loadedParticles = RaceParticles::Load(
-        renderer, vfs, loader, track, raceTrack->collision.surfaces, kPlayerSlot);
-    std::optional<RaceParticles> particles;
-    if (loadedParticles) {
-        particles.emplace(std::move(*loadedParticles));
-    } else {
-        log::Warn("{}, racing without particles", loadedParticles.error().message);
-    }
+    std::optional<RaceParticles> particles =
+        LoadParticles(renderer, vfs, loader, track, raceTrack->collision.surfaces);
     return std::unique_ptr<RaceScene>(
         new RaceScene({.renderer = &renderer,
                        .vfs = &vfs,
@@ -205,6 +216,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                        .camera = TrackCamera(model->bounds),
                        .raceTrack = std::move(raceTrack),
                        .entityDraws = std::move(entityDraws),
+                       .hiddenModels = std::move(hiddenModels),
                        .world = std::move(world),
                        .session = std::move(*session),
                        .audio = std::move(audio).value_or(nullptr),
@@ -324,6 +336,8 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     parts_.entityDraws.Update(interpolated.entityClocks);
     draws_.insert(draws_.end(), parts_.entityDraws.Draws().begin(),
                   parts_.entityDraws.Draws().end());
+    parts_.hiddenModels.Apply(interpolated.hiddenModels, parts_.trackDraws, parts_.entityDraws,
+                              parts_.trackDraws.size() + parts_.racers.Draws().size(), draws_);
     parts_.bricks.AppendDraws(interpolated.bricks, draws_);
     powerupVisuals_.Update(interpolated, elapsedMs);
     draws_.insert(draws_.end(), powerupVisuals_.Draws().begin(), powerupVisuals_.Draws().end());

@@ -69,10 +69,20 @@ CollisionWorld::CollisionWorld(CollisionMesh mesh, std::vector<MaterialBinding> 
 
 std::optional<SegmentHit> CollisionWorld::CastSegment(const Vector3& from,
                                                       const Vector3& to) const {
+    return Cast(from, to, placement_);
+}
+
+std::optional<SegmentHit> CollisionWorld::CastSegment(const Vector3& from, const Vector3& to,
+                                                      const Placement& placement) const {
+    return Cast(from, to, placement);
+}
+
+std::optional<SegmentHit> CollisionWorld::Cast(const Vector3& from, const Vector3& to,
+                                               const std::optional<Placement>& placement) const {
     const std::optional<MeshHit> hit =
-        placement_ ? mesh_.CastSegment(ToLocal(placement_->basis, from - placement_->position),
-                                       ToLocal(placement_->basis, to - placement_->position))
-                   : mesh_.CastSegment(from, to);
+        placement ? mesh_.CastSegment(ToLocal(placement->basis, from - placement->position),
+                                      ToLocal(placement->basis, to - placement->position))
+                  : mesh_.CastSegment(from, to);
     if (!hit) {
         return std::nullopt;
     }
@@ -82,10 +92,10 @@ std::optional<SegmentHit> CollisionWorld::CastSegment(const Vector3& from,
                       .fraction = hit->fraction,
                       .surface = material.surface,
                       .isSolid = material.isSolid,
-                      .isTrackWorld = !placement_};
-    if (placement_) {
-        result.point = placement_->position + ToWorld(placement_->basis, hit->point);
-        result.normal = ToWorld(placement_->basis, hit->normal);
+                      .isTrackWorld = !placement};
+    if (placement) {
+        result.point = placement->position + ToWorld(placement->basis, hit->point);
+        result.normal = ToWorld(placement->basis, hit->normal);
     }
     return result;
 }

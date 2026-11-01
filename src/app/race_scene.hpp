@@ -11,6 +11,7 @@
 
 #include "app/brick_models.hpp"
 #include "app/chase_camera.hpp"
+#include "app/hidden_models.hpp"
 #include "app/hud/race_hud_layer.hpp"
 #include "app/menu/pause_menu.hpp"
 #include "app/powerup/powerup_models.hpp"
@@ -91,6 +92,7 @@ private:
         render::Camera camera;
         std::unique_ptr<sim::RaceTrack> raceTrack;
         TrackEntityDraws entityDraws;
+        HiddenModels hiddenModels;
         std::unique_ptr<sim::WorldList> world;
         sim::RaceSession session;
         std::unique_ptr<RaceAudio> audio;

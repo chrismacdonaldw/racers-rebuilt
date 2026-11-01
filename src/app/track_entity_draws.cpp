@@ -7,15 +7,17 @@ namespace rr::app {
 
 TrackEntityDraws::TrackEntityDraws(const assets::NameMap<JointedModel>& models,
                                    const sim::TrackEntitySources& sources)
-    : sources_(&sources) {
+    : sources_(&sources), spans_(sources.entities.size()) {
     for (std::size_t entity = 0; entity < sources.entities.size(); ++entity) {
         const auto model = models.find(assets::ToUpperAscii(sources.entities[entity].model));
         if (model == models.end()) {
             continue;
         }
-        draws_.insert(draws_.end(), model->second.draws.begin(), model->second.draws.end());
-        for (const std::uint16_t joint : model->second.joints) {
-            parts_.push_back({.entity = entity, .joint = joint});
+        const JointedModel& jointed = model->second;
+        spans_[entity] = {.first = draws_.size(), .count = jointed.draws.size()};
+        for (std::size_t i = 0; i < jointed.draws.size(); ++i) {
+            draws_.push_back(jointed.draws[i]);
+            parts_.push_back({.entity = entity, .joint = jointed.joints[i]});
         }
     }
 }

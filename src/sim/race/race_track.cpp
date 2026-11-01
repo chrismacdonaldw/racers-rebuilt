@@ -8,6 +8,7 @@
 
 #include "assets/brick_layout.hpp"
 #include "assets/checkpoints.hpp"
+#include "assets/event_table.hpp"
 #include "assets/game_path.hpp"
 #include "assets/start_grid.hpp"
 #include "assets/target_points.hpp"
@@ -18,6 +19,7 @@ namespace {
 
 constexpr std::string_view kRacerTriggers = "MAINTRIG.TRB";
 constexpr std::string_view kRenamedRacerTriggers = "NEWTRIG.TRB";
+constexpr std::string_view kEventTable = "EVENT.EVB";
 
 template <typename Parse>
 auto ReadParsed(const assets::Vfs& vfs, std::string_view track, std::string_view file,
@@ -60,6 +62,15 @@ auto SphereParser(assets::TriggerList list) {
     };
 }
 
+Result<assets::EventTableAsset> LoadEventTable(const assets::Vfs& vfs, std::string_view track) {
+    return vfs.List(std::format("GAMEDATA/{}", track))
+        .and_then([&](const std::vector<assets::VfsEntry>& folder) {
+            return assets::HasFile(folder, kEventTable)
+                       ? ReadParsed(vfs, track, kEventTable, assets::ParseEventTable)
+                       : Result<assets::EventTableAsset>{};
+        });
+}
+
 Result<TrackEventSources> LoadEventSources(const assets::Vfs& vfs, std::string_view track) {
     Result<std::vector<assets::TriggerSphere>> racer =
         vfs.List(std::format("GAMEDATA/{}", track))
@@ -78,12 +89,15 @@ Result<TrackEventSources> LoadEventSources(const assets::Vfs& vfs, std::string_v
         environment.and_then([&](const std::vector<assets::TriggerSphere>&) {
             return ReadParsed(vfs, track, "TIMER.TIB", assets::ParseTrackTimers);
         });
-    if (!timers) {
-        return std::unexpected(std::move(timers.error()));
+    Result<assets::EventTableAsset> table = timers.and_then(
+        [&](const std::vector<assets::TrackTimer>&) { return LoadEventTable(vfs, track); });
+    if (!table) {
+        return std::unexpected(std::move(table.error()));
     }
     return TrackEventSources{.racerSpheres = std::move(*racer),
                              .environmentSpheres = std::move(*environment),
-                             .timers = std::move(*timers)};
+                             .timers = std::move(*timers),
+                             .table = std::move(*table)};
 }
 
 float LowestPoint(const CollisionWorld& world) {

@@ -34,6 +34,7 @@
 #include "sim/race/race_sounds.hpp"
 #include "sim/race/random.hpp"
 #include "sim/race/respawn.hpp"
+#include "sim/track/event_resources.hpp"
 #include "sim/track/surface_events.hpp"
 #include "sim/track/track_entities.hpp"
 #include "sim/track/track_events.hpp"
@@ -80,6 +81,7 @@ public:
     [[nodiscard]] std::span<const TriggerWorlds> SwitchedWorlds() const { return switchedWorlds_; }
     [[nodiscard]] const SurfaceEvents& SurfaceContacts() const { return surfaceEvents_; }
     [[nodiscard]] const TrackEntities& Entities() const { return entities_; }
+    [[nodiscard]] const EventResources& Resources() const { return resources_; }
 
     /// Replaces what `racer` holds, sending its white bricks home.
     void GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level);
@@ -121,6 +123,7 @@ private:
     TrackSurfaces surfaces_;
     TrackEvents triggers_;
     TrackEntities entities_;
+    EventResources resources_;
     std::vector<TriggerRacer> triggerRacers_;
     std::vector<std::optional<std::size_t>> sphereWorlds_;
     std::vector<TriggerWorlds> switchedWorlds_;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <string>
@@ -20,10 +21,21 @@ struct JointedModel {
     std::vector<std::uint16_t> joints;
 };
 
-/// `draws` leaves out the animated entities, whose models are in `animatedModels`.
+struct DrawSpan {
+    std::size_t first = 0;
+    std::size_t count = 0;
+};
+
+struct NamedDraws {
+    std::string entity;
+    DrawSpan span;
+};
+
+/// `draws` leaves out the animated entities, and `entityDraws` says which draws each entity owns.
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct TrackModel {
     std::vector<render::MeshDraw> draws;
+    std::vector<NamedDraws> entityDraws;
     assets::NameMap<JointedModel> animatedModels;
     Bounds bounds;
 };
