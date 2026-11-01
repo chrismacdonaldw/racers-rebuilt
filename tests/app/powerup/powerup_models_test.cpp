@@ -15,8 +15,8 @@
 namespace rr::app {
 namespace {
 
-constexpr std::array kAnimated{"SHIELD0", "SHLDIN3", "TURBOL2", "TURB0F1", "TURB2F2",
-                               "DMISSIL", "CURSE",   "MAGNET",  "MAGRING"};
+constexpr std::array kAnimated{"SHIELD0", "SHLDIN3", "TURBOL2", "TURB0F1", "TURB2F2", "DMISSIL",
+                               "CURSE",   "CGREEN",  "CGREEN2", "MAGNET",  "MAGRING"};
 constexpr std::array kStatic{"EXPLSN", "SPIKEXP", "BARREL", "GRAPPLE", "WARPPRT"};
 
 std::optional<EffectAssets> LoadRetail() {

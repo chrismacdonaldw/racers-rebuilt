@@ -51,9 +51,27 @@ JointedAssets OneNodeShifts(const std::vector<std::string>& parts) {
     return jointed;
 }
 
+JointedAssets SlidesNineAlongX() {
+    JointedAssets jointed{
+        .skeleton = {.nodes = {{.name = "root", .position = {}, .rotation = {}, .parent = {}}}},
+        .animations = {}};
+    jointed.animations.positionKeys = {{}, {.x = 9.0F * 64.0F}};
+    jointed.animations.keyFrames = {0, 9};
+    jointed.animations.tracks.push_back(
+        {.rotations = {}, .positions = {.firstValue = 0, .firstFrame = 0, .count = 2}});
+    jointed.animations.parts.push_back(Part("slide", 0));
+    return jointed;
+}
+
 EffectModel Static() {
     return {.draws = {.draws = std::vector<render::MeshDraw>(1), .joints = {0}, .scale = 1.0F},
             .jointed = nullptr};
+}
+
+EffectModel Scrolling(assets::TextureScroll scroll) {
+    EffectModel model = Static();
+    model.scroll = scroll;
+    return model;
 }
 
 EffectModel Jointed(const JointedAssets& jointed) {
@@ -81,6 +99,41 @@ TEST_CASE("a shield draws its outer and inner shells at its pose") {
     REQUIRE(visuals.Draws().size() == 2);
     CheckNear(GamePosition(visuals.Draws()[0]), kAt);
     CheckNear(GamePosition(visuals.Draws()[1]), kAt);
+}
+
+TEST_CASE("a curse floats over its glow, which lies on the ground") {
+    const EffectModels models{{"CURSE", Static()}, {"CGREEN", Static()}, {"CGREEN2", Static()}};
+    PowerupVisuals visuals(models);
+
+    visuals.Update(WithEffect(sim::PowerupKind::Curse, {.level = 3}), kFrameMs);
+
+    REQUIRE(visuals.Draws().size() == 3);
+    CheckNear(GamePosition(visuals.Draws()[0]), kAt);
+    CheckNear(GamePosition(visuals.Draws()[1]), kAt - Vector3{.z = 13.0F});
+    CheckNear(GamePosition(visuals.Draws()[2]), kAt - Vector3{.z = 13.0F});
+}
+
+TEST_CASE("a power-up model's animation runs on from frame to frame") {
+    const JointedAssets slide = SlidesNineAlongX();
+    const EffectModels models{{"SHIELD0", Jointed(slide)}};
+    PowerupVisuals visuals(models);
+
+    visuals.Update(WithEffect(sim::PowerupKind::Shield, {}), 100.0F);
+    visuals.Update(WithEffect(sim::PowerupKind::Shield, {}), 100.0F);
+
+    CheckNear(GamePosition(visuals.Draws()[0]), kAt + Vector3{.x = 6.0F});
+}
+
+TEST_CASE("a shield's texture scrolls from when it's raised") {
+    const EffectModels models{{"SHIELD0", Scrolling({.vPerSecond = 4.0F})},
+                              {"SHLDIN0", Scrolling({.uPerSecond = -0.5F})}};
+    PowerupVisuals visuals(models);
+
+    visuals.Update(WithEffect(sim::PowerupKind::Shield, {}), 125.0F);
+    visuals.Update(WithEffect(sim::PowerupKind::Shield, {}), 250.0F);
+
+    CHECK(visuals.Draws()[0].material.uvOffset.v == doctest::Approx(0.5F));
+    CHECK(visuals.Draws()[1].material.uvOffset.u == doctest::Approx(0.8125F));
 }
 
 TEST_CASE("a turbo's flames fire up, sustain and die out with its phases") {

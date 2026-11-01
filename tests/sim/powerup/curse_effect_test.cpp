@@ -23,6 +23,18 @@ TEST_CASE("a curse floats 13 above the ground under its owner") {
     CHECK(rig.EffectAt() == Vector3{.x = 5.0F, .z = 14.0F});
 }
 
+TEST_CASE("a curse faces across its owner's next gate") {
+    Rig rig;
+    rig.CrossFirstGate();
+    rig.Fire(BrickColour::Yellow, 3);
+
+    rig.TickFor(1);
+
+    const Vector3 forward = Rotate(rig.Effect().Pose().rotation, {.x = 1.0F});
+    CHECK(forward.x == doctest::Approx(0.0F));
+    CHECK(forward.y == doctest::Approx(-1.0F));
+}
+
 TEST_CASE("a curse lasts 15 s, then fades for 1 s") {
     Rig rig;
     rig.Fire(BrickColour::Yellow, 3);
@@ -73,6 +85,17 @@ TEST_CASE("a hazard's curse floats over its aim and curses any racer") {
 
     CHECK(rig.EffectAt() == Vector3{.x = 12.0F, .z = 14.0F});
     CHECK(rig.Car().Status().isCursed);
+}
+
+TEST_CASE("a hazard's curse faces across its aim") {
+    Rig rig;
+    rig.FireFromHazard(BrickColour::Yellow, 3,
+                       {.source = {.x = 12.0F}, .target = {.x = 12.0F}, .direction = {.x = 1.0F}});
+
+    const Vector3 forward = Rotate(rig.Effect().Pose().rotation, {.x = 1.0F});
+
+    CHECK(forward.x == doctest::Approx(0.0F));
+    CHECK(forward.y == doctest::Approx(-1.0F));
 }
 
 }

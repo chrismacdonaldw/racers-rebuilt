@@ -8,6 +8,7 @@
 #include "app/powerup/warp_start.hpp"
 #include "app/track_space.hpp"
 #include "sim/physics/turbo.hpp"
+#include "sim/powerup/curse_effect.hpp"
 #include "sim/powerup/magnet_effect.hpp"
 #include "sim/powerup/warp_effect.hpp"
 
@@ -49,7 +50,7 @@ ModelNames NamesFor(PowerupKind kind, std::uint8_t level) {
         case PowerupKind::Magnet:
             return {"MAGNET", "MAGRING"};
         case PowerupKind::Curse:
-            return {"CURSE"};
+            return {"CURSE", "CGREEN", "CGREEN2"};
         default:
             return {};
     }
@@ -105,6 +106,12 @@ void Fade(std::span<render::MeshDraw> draws, float alpha) {
     }
 }
 
+Transform OffsetOf(PowerupKind kind, std::size_t model) {
+    return kind == PowerupKind::Curse && model > 0
+               ? Transform{.position = {.z = -sim::kCurseModelHeight}}
+               : Transform{};
+}
+
 }
 
 PowerupVisuals::PowerupVisuals(const EffectModels& models) : models_(&models) {}
@@ -112,16 +119,17 @@ PowerupVisuals::PowerupVisuals(const EffectModels& models) : models_(&models) {}
 void PowerupVisuals::Update(const sim::RenderSnapshot& snapshot, float elapsedMs) {
     draws_.clear();
     for (Instance& instance : instances_) {
-        instance.isLive = false;
+        instance.wasLive = std::exchange(instance.isLive, false);
     }
     for (const sim::EffectSnapshot& effect : snapshot.effects) {
         Instance& instance = InstanceFor(effect);
+        instance.ageMs += elapsedMs;
         Animate(instance, effect.phase, elapsedMs);
         if (IsShown(effect, snapshot.racers)) {
             for (Posed& posed : instance.models) {
                 const Look look = LookOf(effect, posed.part);
                 const std::size_t first = draws_.size();
-                Place(posed, effect.transform, look.scale);
+                Place(posed, effect.transform, look.scale, instance.ageMs);
                 if (look.alpha < 1.0F) {
                     Fade(std::span(draws_).subspan(first), look.alpha);
                 }
@@ -138,8 +146,8 @@ PowerupVisuals::Instance& PowerupVisuals::InstanceFor(const sim::EffectSnapshot&
         instances_.resize(effect.slot + std::size_t{1});
     }
     Instance& instance = instances_[effect.slot];
-    const bool wasLive = std::exchange(instance.isLive, true);
-    if (!wasLive || instance.kind != effect.kind || !(instance.use == effect.use)) {
+    instance.isLive = true;
+    if (!instance.wasLive || instance.kind != effect.kind || !(instance.use == effect.use)) {
         Start(instance, effect);
     }
     return instance;
@@ -150,13 +158,15 @@ void PowerupVisuals::Start(Instance& instance, const sim::EffectSnapshot& effect
     instance.use = effect.use;
     instance.phase.reset();
     instance.models.clear();
+    instance.ageMs = 0.0F;
     const ModelNames names = NamesFor(effect.kind, effect.use.level);
     for (std::size_t part = 0; part < names.size(); ++part) {
         const auto found = names[part].empty() ? models_->end() : models_->find(names[part]);
         if (found == models_->end()) {
             continue;
         }
-        Posed& posed = instance.models.emplace_back(Posed{.model = &found->second, .part = part});
+        Posed& posed = instance.models.emplace_back(
+            Posed{.model = &found->second, .part = part, .offset = OffsetOf(effect.kind, part)});
         if (const JointedAssets* jointed = found->second.jointed) {
             Result<AnimationPlayer> player =
                 AnimationPlayer::Create(jointed->animations, jointed->skeleton.nodes.size());
@@ -187,9 +197,10 @@ void PowerupVisuals::Animate(Instance& instance, std::uint8_t phase, float elaps
     }
 }
 
-void PowerupVisuals::Place(Posed& posed, const Transform& engine, float scale) {
+void PowerupVisuals::Place(Posed& posed, const Transform& engine, float scale, float ageMs) {
     const ModelDraws& model = posed.model->draws;
-    const Transform game = TransformToGame(engine);
+    const render::UvOffset scrolled = ScrolledBy(posed.model->scroll, ageMs);
+    const Transform game = Compose(TransformToGame(engine), posed.offset);
     const std::span<const Transform> nodes =
         posed.pose ? posed.pose->Solve() : std::span<const Transform>{};
     for (std::size_t i = 0; i < model.draws.size(); ++i) {
@@ -200,9 +211,10 @@ void PowerupVisuals::Place(Posed& posed, const Transform& engine, float scale) {
             node.position = node.position * scale;
             draw.transform = TransformToEngine(Compose(game, node));
         } else {
-            draw.transform = engine;
+            draw.transform = TransformToEngine(game);
         }
         draw.scale *= scale;
+        draw.material.uvOffset = scrolled;
         draws_.push_back(draw);
     }
 }
@@ -215,7 +227,7 @@ void PowerupVisuals::PlaceExplosion(const sim::ExplosionSnapshot& explosion) {
         return;
     }
     Posed posed{.model = &found->second};
-    Place(posed, explosion.transform, explosion.growth);
+    Place(posed, explosion.transform, explosion.growth, 0.0F);
 }
 
 }
