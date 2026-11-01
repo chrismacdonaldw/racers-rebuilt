@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "sim/powerup/aim_cones.hpp"
 #include "sim/powerup/weapon_hits.hpp"
 
 namespace rr::sim {
@@ -12,6 +13,7 @@ constexpr Milliseconds kRetargetTime{1000};
 constexpr float kSnapDistanceSquared = 3600.0F;
 constexpr float kDirectHitDistanceSquared = 9.0F;
 constexpr float kPathReachSquared = 90'000.0F;
+constexpr float kGatePassMargin = 10.0F;
 constexpr Vector3 kGroundProbeAbove{.z = 2.0F};
 constexpr float kGroundClearance = 6.0F;
 constexpr float kDescentPerSecond = 6.0F;
@@ -110,7 +112,7 @@ void HomingFlight::FollowGates(const CheckpointGraph& checkpoints, const Collisi
     for (std::size_t step = 0;; ++step) {
         const assets::Checkpoint& current = gates[gate];
         if (Dot(current.position - position_, direction_) > 0.0F &&
-            SignedDistance(current, position_) >= 0.0F) {
+            SignedDistance(current, position_) >= kGatePassMargin) {
             break;
         }
         gate = current.links[0];

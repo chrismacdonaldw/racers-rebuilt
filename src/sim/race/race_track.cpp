@@ -8,7 +8,9 @@
 
 #include "assets/brick_layout.hpp"
 #include "assets/checkpoints.hpp"
+#include "assets/game_path.hpp"
 #include "assets/start_grid.hpp"
+#include "assets/target_points.hpp"
 
 namespace rr::sim {
 namespace {
@@ -33,6 +35,19 @@ std::vector<RacerStart> GridStarts(const assets::StartGridAsset& grid) {
                           .headingRadians = std::atan2(slot.forward.y, slot.forward.x)});
     }
     return starts;
+}
+
+Result<std::vector<assets::TargetPoint>> LoadTargetPoints(const assets::Vfs& vfs,
+                                                          std::string_view track) {
+    const std::string name = std::format("{}.TGB", assets::ToUpperAscii(track));
+    return vfs.List(std::format("GAMEDATA/{}", track))
+        .and_then([&](const std::vector<assets::VfsEntry>& folder)
+                      -> Result<std::vector<assets::TargetPoint>> {
+            if (!assets::HasFile(folder, name)) {
+                return {};
+            }
+            return ReadParsed(vfs, track, name, assets::ParseTgb);
+        });
 }
 
 float LowestPoint(const CollisionWorld& world) {
@@ -63,8 +78,10 @@ Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track) 
     });
     Result<assets::BrickLayout> bricks = routes.and_then(
         [&](const GridRoutes&) { return ReadParsed(vfs, track, "POWERUP.PWB", assets::ParsePwb); });
-    if (!bricks) {
-        return std::unexpected(std::move(bricks.error()));
+    Result<std::vector<assets::TargetPoint>> targets =
+        bricks.and_then([&](const assets::BrickLayout&) { return LoadTargetPoints(vfs, track); });
+    if (!targets) {
+        return std::unexpected(std::move(targets.error()));
     }
     const float lowestTrackZ = LowestPoint(collision->Track());
     return RaceTrack{.collision = std::move(*collision),
@@ -72,6 +89,7 @@ Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track) 
                      .grid = GridStarts(*grid),
                      .routes = std::move(*routes),
                      .bricks = std::move(*bricks),
+                     .targets = std::move(*targets),
                      .lowestTrackZ = lowestTrackZ};
 }
 

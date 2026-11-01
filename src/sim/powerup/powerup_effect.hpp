@@ -6,6 +6,7 @@
 #include <memory>
 #include <span>
 
+#include "assets/target_points.hpp"
 #include "core/bounding_sphere.hpp"
 #include "core/duration.hpp"
 #include "core/transform.hpp"
@@ -37,6 +38,7 @@ struct PowerupContext {
     std::span<PowerupInventory> inventories;
     Explosions* explosions = nullptr;
     WeaponEvents* weapons = nullptr;
+    std::span<const assets::TargetPoint> targets;
 };
 
 struct PowerupHit {

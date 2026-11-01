@@ -74,7 +74,6 @@ TEST_CASE("weapon events play their fire and hit sounds where they happened") {
         {.kind = WeaponEventKind::Landed,
          .weapon = PowerupKind::Cannonball,
          .position = {.x = 3.0F}},
-        {.kind = WeaponEventKind::Fired, .weapon = PowerupKind::GrapplingHook},
     };
 
     sounds.HearWeapons(events);
@@ -98,6 +97,29 @@ TEST_CASE("a scrape plays the sound it rolled") {
     REQUIRE(sounds.size() == 1);
     CHECK(sounds[0].sound == RaceSound::CarScrape);
     CHECK(sounds[0].variant == 1);
+}
+
+TEST_CASE("grappling hook and lightning events play their sounds") {
+    RaceSounds sounds{2, 0, 6};
+    sounds.BeginTick();
+    const std::vector<WeaponEvent> events{
+        {.kind = WeaponEventKind::Fired, .weapon = PowerupKind::GrapplingHook},
+        {.kind = WeaponEventKind::Struck, .weapon = PowerupKind::GrapplingHook, .racer = 1},
+        {.kind = WeaponEventKind::Ended, .weapon = PowerupKind::GrapplingHook},
+        {.kind = WeaponEventKind::Landed, .weapon = PowerupKind::GrapplingHook},
+        {.kind = WeaponEventKind::Struck, .weapon = PowerupKind::Lightning, .racer = 1},
+        {.kind = WeaponEventKind::Ended, .weapon = PowerupKind::Lightning},
+    };
+
+    sounds.HearWeapons(events);
+
+    std::vector<RaceSound> heard;
+    for (const SoundEvent& event : sounds.Events()) {
+        heard.push_back(event.sound);
+    }
+    CHECK(heard == std::vector{RaceSound::GrappleFire, RaceSound::GrappleHit,
+                               RaceSound::GrappleRelease, RaceSound::GrappleMiss,
+                               RaceSound::LightningStrike, RaceSound::LightningEnd});
 }
 
 }

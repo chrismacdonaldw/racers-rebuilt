@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -30,5 +31,8 @@ public:
 private:
     std::vector<std::unique_ptr<VfsLayer>> layers_;
 };
+
+/// `name` must be upper case.
+[[nodiscard]] bool HasFile(std::span<const VfsEntry> folder, std::string_view name);
 
 }

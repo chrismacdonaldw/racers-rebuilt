@@ -13,25 +13,10 @@
 
 namespace rr::sim {
 
-struct AimCone {
-    float minDistanceSquared = 0.0F;
-    float maxDistanceSquared = 0.0F;
-    float cosine = 0.0F;
-};
-
-inline constexpr AimCone kRacerAheadCone{
-    .minDistanceSquared = 100.0F, .maxDistanceSquared = 160'000.0F, .cosine = 0.9F};
-inline constexpr AimCone kMissileCone{
-    .minDistanceSquared = 100.0F, .maxDistanceSquared = 160'000.0F, .cosine = 0.7071F};
-
-/// Searches in racer order from `first` like the original, so the match isn't the nearest racer.
-[[nodiscard]] std::optional<std::size_t> FindRacerInCone(std::span<const Racer> racers,
-                                                         const Vector3& origin,
-                                                         const Vector3& direction,
-                                                         const AimCone& cone,
-                                                         std::size_t first = 0);
+inline constexpr float kShotTouchRadius = 2.5F;
 
 [[nodiscard]] bool Touches(const BoundingSphere& a, const BoundingSphere& b);
+[[nodiscard]] bool Touches(const Vector3& from, const Vector3& to, const BoundingSphere& sphere);
 
 /// Ghosts can't be touched.
 [[nodiscard]] std::optional<std::size_t> FindTouchedRacer(const PowerupContext& context,

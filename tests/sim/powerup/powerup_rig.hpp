@@ -12,6 +12,7 @@
 #include "../physics/plane_world.hpp"
 #include "assets/brick_layout.hpp"
 #include "assets/checkpoints.hpp"
+#include "assets/target_points.hpp"
 #include "core/bounding_sphere.hpp"
 #include "sim/powerup/brick_field.hpp"
 #include "sim/powerup/explosions.hpp"
@@ -81,6 +82,8 @@ public:
         positions_[racer] = racers_[racer].Body().motion.position;
         MeasureReaches();
     }
+
+    void AimAt(std::vector<assets::TargetPoint> targets) { targets_ = std::move(targets); }
 
     void GiveWhite(std::size_t racer) { REQUIRE(inventories_[racer].TakeWhite(0)); }
 
@@ -157,6 +160,10 @@ public:
     [[nodiscard]] const sim::Explosions& Blasts() const { return explosions_; }
     [[nodiscard]] std::span<const sim::WeaponEvent> Weapons() const { return weapons_.Events(); }
 
+    [[nodiscard]] Vector3 EffectAt(std::size_t active = 0) const {
+        return system_.Slots()[system_.Active()[active]].effect->Pose().position;
+    }
+
 private:
     sim::PowerupContext Context() {
         return {.racers = racers_,
@@ -169,7 +176,8 @@ private:
                 .bricks = &bricks_,
                 .inventories = inventories_,
                 .explosions = &explosions_,
-                .weapons = &weapons_};
+                .weapons = &weapons_,
+                .targets = targets_};
     }
 
     void MeasureReaches() {
@@ -190,6 +198,7 @@ private:
     sim::Explosions explosions_;
     sim::WeaponEvents weapons_{64};
     sim::Random random_{1};
+    std::vector<assets::TargetPoint> targets_;
 };
 
 inline sim::RouteEffects RouteEffectsOf(const sim::Racer& racer) {

@@ -1,5 +1,7 @@
 #include "sim/powerup/weapon_hits.hpp"
 
+#include <algorithm>
+
 #include "core/assert.hpp"
 #include "sim/powerup/brick_field.hpp"
 #include "sim/powerup/explosions.hpp"
@@ -10,30 +12,24 @@
 namespace rr::sim {
 namespace {
 
-constexpr float kShotTouchRadius = 2.5F;
 constexpr float kScarNormalZ = 0.7071F;
 
-}
-
-std::optional<std::size_t> FindRacerInCone(std::span<const Racer> racers, const Vector3& origin,
-                                           const Vector3& direction, const AimCone& cone,
-                                           std::size_t first) {
-    for (std::size_t i = first; i < racers.size(); ++i) {
-        const Vector3 delta = racers[i].Body().motion.position - origin;
-        const float distanceSquared = Dot(delta, delta);
-        if (distanceSquared >= cone.minDistanceSquared &&
-            distanceSquared <= cone.maxDistanceSquared &&
-            Dot(direction, Normalized(delta, {})) >= cone.cosine) {
-            return i;
-        }
-    }
-    return std::nullopt;
 }
 
 bool Touches(const BoundingSphere& a, const BoundingSphere& b) {
     const Vector3 delta = a.centre - b.centre;
     const float reach = a.radius + b.radius;
     return Dot(delta, delta) < reach * reach;
+}
+
+bool Touches(const Vector3& from, const Vector3& to, const BoundingSphere& sphere) {
+    const Vector3 segment = to - from;
+    const float lengthSquared = Dot(segment, segment);
+    const float along =
+        lengthSquared > 0.0F
+            ? std::clamp(Dot(sphere.centre - from, segment) / lengthSquared, 0.0F, 1.0F)
+            : 0.0F;
+    return Touches({.centre = from + (segment * along)}, sphere);
 }
 
 std::optional<std::size_t> FindTouchedRacer(const PowerupContext& context,

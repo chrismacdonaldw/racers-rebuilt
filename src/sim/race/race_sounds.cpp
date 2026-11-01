@@ -28,15 +28,56 @@ RaceSound BrickSound(BrickEventKind kind) {
     return RaceSound::BrickRespawn;
 }
 
-std::optional<RaceSound> WeaponSound(const WeaponEvent& event) {
-    const bool isFired = event.kind == WeaponEventKind::Fired;
-    if (event.weapon == PowerupKind::Cannonball) {
-        return isFired ? RaceSound::CannonFire : RaceSound::CannonHit;
-    }
-    if (event.weapon == PowerupKind::Missile) {
-        return isFired ? RaceSound::MissileFire : RaceSound::MissileHit;
-    }
-    return std::nullopt;
+struct WeaponSound {
+    PowerupKind weapon = PowerupKind::Cannonball;
+    WeaponEventKind kind = WeaponEventKind::Fired;
+    RaceSound sound = RaceSound::CannonFire;
+};
+
+constexpr std::array kWeaponSounds{
+    WeaponSound{.weapon = PowerupKind::Cannonball,
+                .kind = WeaponEventKind::Fired,
+                .sound = RaceSound::CannonFire},
+    WeaponSound{.weapon = PowerupKind::Cannonball,
+                .kind = WeaponEventKind::Struck,
+                .sound = RaceSound::CannonHit},
+    WeaponSound{.weapon = PowerupKind::Cannonball,
+                .kind = WeaponEventKind::Landed,
+                .sound = RaceSound::CannonHit},
+    WeaponSound{.weapon = PowerupKind::Missile,
+                .kind = WeaponEventKind::Fired,
+                .sound = RaceSound::MissileFire},
+    WeaponSound{.weapon = PowerupKind::Missile,
+                .kind = WeaponEventKind::Struck,
+                .sound = RaceSound::MissileHit},
+    WeaponSound{.weapon = PowerupKind::Missile,
+                .kind = WeaponEventKind::Landed,
+                .sound = RaceSound::MissileHit},
+    WeaponSound{.weapon = PowerupKind::GrapplingHook,
+                .kind = WeaponEventKind::Fired,
+                .sound = RaceSound::GrappleFire},
+    WeaponSound{.weapon = PowerupKind::GrapplingHook,
+                .kind = WeaponEventKind::Struck,
+                .sound = RaceSound::GrappleHit},
+    WeaponSound{.weapon = PowerupKind::GrapplingHook,
+                .kind = WeaponEventKind::Ended,
+                .sound = RaceSound::GrappleRelease},
+    WeaponSound{.weapon = PowerupKind::GrapplingHook,
+                .kind = WeaponEventKind::Landed,
+                .sound = RaceSound::GrappleMiss},
+    WeaponSound{.weapon = PowerupKind::Lightning,
+                .kind = WeaponEventKind::Struck,
+                .sound = RaceSound::LightningStrike},
+    WeaponSound{.weapon = PowerupKind::Lightning,
+                .kind = WeaponEventKind::Ended,
+                .sound = RaceSound::LightningEnd},
+};
+
+std::optional<RaceSound> SoundOf(const WeaponEvent& event) {
+    const auto found = std::ranges::find_if(kWeaponSounds, [&](const WeaponSound& entry) {
+        return entry.weapon == event.weapon && entry.kind == event.kind;
+    });
+    return found != kWeaponSounds.end() ? std::optional(found->sound) : std::nullopt;
 }
 
 bool HasCrossed(Milliseconds mark, const RaceClock& before, const RaceClock& after) {
@@ -125,7 +166,7 @@ void RaceSounds::HearBricks(std::span<const BrickEvent> events, bool areBricksAu
 
 void RaceSounds::HearWeapons(std::span<const WeaponEvent> events) {
     for (const WeaponEvent& event : events) {
-        if (const std::optional<RaceSound> sound = WeaponSound(event)) {
+        if (const std::optional<RaceSound> sound = SoundOf(event)) {
             Add({.sound = *sound, .racer = event.racer, .position = event.position});
         }
     }

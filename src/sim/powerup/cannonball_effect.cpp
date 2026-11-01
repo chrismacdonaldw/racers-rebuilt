@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "core/assert.hpp"
+#include "sim/powerup/aim_cones.hpp"
 #include "sim/powerup/weapon_events.hpp"
 #include "sim/powerup/weapon_hits.hpp"
 
@@ -24,11 +25,16 @@ void CannonballEffect::Start(const PowerupUse& use, PowerupContext& context) {
     const Vector3& position = owner.Body().motion.position;
     const Vector3& facing = owner.Body().motion.basis.forward;
     const Vector3 start = position + kLaunchHeight;
-    if (const std::optional<std::size_t> target =
-            FindRacerInCone(context.racers, position, facing, kRacerAheadCone)) {
+    const std::optional<Vector3> point =
+        FindNearestTargetPoint(context.targets, position, facing, kTargetPointCone);
+    const std::optional<std::size_t> target =
+        point ? std::nullopt
+              : FindNearestRacerInCone(context.racers, position, facing, kRacerAheadCone);
+    if (target) {
         flight_.LaunchAtRacer(kCannonball, owner, start, context.racers[*target]);
     } else {
-        flight_.LaunchAtPoint(kCannonball, owner, start, start + (facing * kRangeWithoutTarget));
+        flight_.LaunchAtPoint(kCannonball, owner, start,
+                              point.value_or(start + (facing * kRangeWithoutTarget)));
     }
     phase_ = ShotPhase::Flying;
     context.weapons->Add({.kind = WeaponEventKind::Fired,
