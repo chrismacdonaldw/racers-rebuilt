@@ -47,6 +47,7 @@ rr_add_module(sim
         powerup/curse_effect.cpp
         powerup/dropped_trap.cpp
         powerup/dynamite_effect.cpp
+        powerup/every_effect.cpp
         powerup/explosions.cpp
         powerup/grapple_effect.cpp
         powerup/green_effects.cpp

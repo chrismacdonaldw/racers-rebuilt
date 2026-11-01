@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iterator>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <string>
 #include <vector>
@@ -18,6 +19,7 @@
 #include "frame_times.hpp"
 #include "race_drive.hpp"
 #include "sim/collision/world_list.hpp"
+#include "sim/powerup/every_effect.hpp"
 #include "sim/race/race_track.hpp"
 #include "sim/replay/replay.hpp"
 #include "sim/replay/snapshot_hash.hpp"
@@ -26,7 +28,7 @@
 namespace rr::app {
 namespace {
 
-constexpr Milliseconds kTestTrackRace{40'000};
+constexpr Milliseconds kTestTrackRace{45'000};
 constexpr Milliseconds kRetailRace{150'000};
 constexpr std::uint64_t kRetailSeed = 11;
 
@@ -40,11 +42,11 @@ std::vector<Nanoseconds> FramesFor(int fps, Milliseconds duration) {
 
 void CheckEveryFramerate(const sim::Replay& replay, const std::vector<std::uint64_t>& expected,
                          const sim::RaceSetup& setup, const sim::RaceCourse& course,
-                         Milliseconds duration) {
+                         Milliseconds duration, std::span<const test::PowerupGift> gifts) {
     for (const int fps : {30, 60, 144}) {
         CAPTURE(fps);
         const test::DriveResult run =
-            test::Drive(replay, expected, setup, course, FramesFor(fps, duration));
+            test::Drive(replay, expected, setup, course, FramesFor(fps, duration), gifts);
         CHECK(run.checkedTicks == expected.size());
         CHECK_FALSE(run.firstMismatch.has_value());
     }
@@ -74,20 +76,25 @@ TEST_CASE("a scripted race on the test track replays identically at every framer
     const test::TestTrack track;
     const sim::Replay replay = test::ScriptedReplay(kTestTrackRace);
     const sim::RaceSetup setup = test::TestTrack::Setup(replay.seed);
+    const std::vector<test::PowerupGift> gifts = test::EveryPowerup();
 
     const test::DriveResult uncapped =
-        test::Drive(replay, {}, setup, track.Course(), FramesFor(0, kTestTrackRace));
+        test::Drive(replay, {}, setup, track.Course(), FramesFor(0, kTestTrackRace), gifts);
 
     REQUIRE(uncapped.hashes.size() == replay.racers.front().size());
     CHECK(uncapped.respawns > 0);
     CHECK(uncapped.mostLaps > 0);
-    CheckEveryFramerate(replay, uncapped.hashes, setup, track.Course(), kTestTrackRace);
+    CHECK(uncapped.powerupUses.front() > std::ssize(gifts));
+    CHECK(std::ranges::all_of(uncapped.powerupUses | std::views::drop(1),
+                              [](int uses) { return uses > 0; }));
+    CheckEveryFramerate(replay, uncapped.hashes, setup, track.Course(), kTestTrackRace, gifts);
 }
 
 void RecordTestTrackRace(const test::TestTrack& track) {
     const sim::Replay replay = test::ScriptedReplay(kTestTrackRace);
-    const test::DriveResult run = test::Drive(replay, {}, test::TestTrack::Setup(replay.seed),
-                                              track.Course(), FramesFor(0, kTestTrackRace));
+    const test::DriveResult run =
+        test::Drive(replay, {}, test::TestTrack::Setup(replay.seed), track.Course(),
+                    FramesFor(0, kTestTrackRace), test::EveryPowerup());
     WriteFile(RecordedReplay(), sim::EncodeReplay(replay));
     WriteFile(HashesPath(RecordedReplay()), sim::EncodeSnapshotHashes(run.hashes));
 }
@@ -105,7 +112,7 @@ Playback PlayRecordedRace(const test::TestTrack& track) {
     REQUIRE(hashes.has_value());
     CHECK(replay->scene == "test-track");
     return {.run = test::Drive(*replay, *hashes, test::TestTrack::Setup(replay->seed),
-                               track.Course(), FramesFor(60, kTestTrackRace)),
+                               track.Course(), FramesFor(60, kTestTrackRace), test::EveryPowerup()),
             .recordedTicks = hashes->size()};
 }
 
@@ -126,7 +133,7 @@ void CheckRetailTrack(const assets::Vfs& vfs, const std::string& name, const sim
     CAPTURE(name);
     const Result<sim::RaceTrack> track = sim::LoadRaceTrack(vfs, name);
     REQUIRE(track.has_value());
-    sim::RaceSetup setup{.track = name, .seed = kRetailSeed};
+    sim::RaceSetup setup{.track = name, .seed = kRetailSeed, .effects = sim::EveryEffect()};
     setup.racers.resize(track->grid.size());
     setup.racers.front().isPlayer = true;
     const sim::WorldList world(track->collision.Track());
@@ -135,6 +142,8 @@ void CheckRetailTrack(const assets::Vfs& vfs, const std::string& name, const sim
                                  .world = &world,
                                  .lowestTrackZ = track->lowestTrackZ,
                                  .routes = &track->routes,
+                                 .bricks = &track->bricks,
+                                 .targets = track->targets,
                                  .events = &track->events,
                                  .collision = &track->collision,
                                  .entities = &track->entities};
@@ -144,7 +153,8 @@ void CheckRetailTrack(const assets::Vfs& vfs, const std::string& name, const sim
 
     REQUIRE(uncapped.hashes.size() == replay.racers.front().size());
     CHECK(uncapped.mostLaps > 0);
-    CheckEveryFramerate(replay, uncapped.hashes, setup, course, kRetailRace);
+    CHECK(std::ranges::any_of(uncapped.powerupUses, [](int uses) { return uses > 0; }));
+    CheckEveryFramerate(replay, uncapped.hashes, setup, course, kRetailRace, {});
 }
 
 TEST_CASE("a full grid races identically at every framerate on every retail track") {

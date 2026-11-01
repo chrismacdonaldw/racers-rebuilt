@@ -11,10 +11,7 @@
 #include "assets/racer_catalog.hpp"
 #include "assets/track_loader.hpp"
 #include "sim/collision/world_list.hpp"
-#include "sim/powerup/green_effects.hpp"
-#include "sim/powerup/red_effects.hpp"
-#include "sim/powerup/shield_effect.hpp"
-#include "sim/powerup/yellow_effects.hpp"
+#include "sim/powerup/every_effect.hpp"
 #include "sim/race/race_session.hpp"
 #include "sim/race/race_track.hpp"
 
@@ -60,11 +57,7 @@ Result<RaceSetup> CircuitRace(const assets::Vfs& vfs, const std::string& track,
     if (!codes) {
         return std::unexpected(codes.error());
     }
-    RaceSetup setup{.racers = {{.chassis = kChassis, .isPlayer = true}}};
-    AddGreenEffects(setup.effects);
-    AddBlueEffects(setup.effects);
-    AddRedEffects(setup.effects);
-    AddYellowEffects(setup.effects);
+    RaceSetup setup{.racers = {{.chassis = kChassis, .isPlayer = true}}, .effects = EveryEffect()};
     for (std::size_t i = 1; i < slotCount; ++i) {
         Result<assets::RacerFiles> files = catalog->Find(codes->at(i));
         if (!files) {

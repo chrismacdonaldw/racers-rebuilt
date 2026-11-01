@@ -16,13 +16,10 @@
 #include "assets/target_points.hpp"
 #include "core/bounding_sphere.hpp"
 #include "sim/powerup/brick_field.hpp"
+#include "sim/powerup/every_effect.hpp"
 #include "sim/powerup/explosions.hpp"
-#include "sim/powerup/green_effects.hpp"
 #include "sim/powerup/powerup_system.hpp"
-#include "sim/powerup/red_effects.hpp"
-#include "sim/powerup/shield_effect.hpp"
 #include "sim/powerup/weapon_events.hpp"
-#include "sim/powerup/yellow_effects.hpp"
 
 namespace rr::test {
 
@@ -35,15 +32,6 @@ inline constexpr int kWarpTicks = kWarpStartTicks + 125;
 
 inline constexpr float kReachRadius = 4.0F;
 inline constexpr Vector3 kSpareWhite{.y = -1000.0F};
-
-inline sim::EffectFactories AllEffects() {
-    sim::EffectFactories factories;
-    sim::AddGreenEffects(factories);
-    sim::AddBlueEffects(factories);
-    sim::AddRedEffects(factories);
-    sim::AddYellowEffects(factories);
-    return factories;
-}
 
 inline sim::CheckpointGraph Line() {
     std::vector<assets::Checkpoint> gates;
@@ -68,7 +56,7 @@ public:
         : progress_(racerCount, 3),
           bricks_(assets::BrickLayout{.white = {kSpareWhite}}),
           inventories_(racerCount),
-          system_(AllEffects(), racerCount),
+          system_(sim::EveryEffect(), racerCount),
           reaches_(racerCount) {
         for (std::size_t i = 0; i < racerCount; ++i) {
             racers_.emplace_back(
