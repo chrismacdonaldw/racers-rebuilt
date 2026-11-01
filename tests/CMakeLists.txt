@@ -159,6 +159,8 @@ add_executable(racers-rebuilt-tests
     sim/hazard/breakable_test.cpp
     sim/hazard/code_puzzle_test.cpp
     sim/hazard/crane_test.cpp
+    sim/hazard/curse_drop_test.cpp
+    sim/hazard/dragon_cannonballs_test.cpp
     sim/hazard/falling_pillar_test.cpp
     sim/hazard/ghost_test.cpp
     sim/hazard/hammer_swish_test.cpp
@@ -166,10 +168,12 @@ add_executable(racers-rebuilt-tests
     sim/hazard/hazard_cannon_test.cpp
     sim/hazard/hazards_test.cpp
     sim/hazard/lava_blob_test.cpp
+    sim/hazard/lightning_cannon_test.cpp
     sim/hazard/rocket_pad_test.cpp
     sim/hazard/sphinx_test.cpp
     sim/hazard/swing_strike_test.cpp
     sim/hazard/ufo_grabber_test.cpp
+    sim/hazard/warp_pad_test.cpp
     sim/input_latch_test.cpp
     sim/interpolation_test.cpp
     sim/physics/body_effects_test.cpp

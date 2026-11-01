@@ -2,8 +2,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 #include "assets/brick_layout.hpp"
+#include "core/vector3.hpp"
 
 namespace rr::sim {
 
@@ -33,11 +35,22 @@ struct PowerupKindSpec {
     std::size_t launches = 1;
 };
 
+/// In game space. `direction` is a unit vector.
+struct HazardAim {
+    Vector3 source;
+    Vector3 target;
+    Vector3 direction;
+
+    friend bool operator==(const HazardAim&, const HazardAim&) = default;
+};
+
+/// A use with a `hazard` fires from that hazard's aim, and only a warp still has its `racer`.
 struct PowerupUse {
     std::uint8_t racer = 0;
     assets::BrickColour colour = assets::BrickColour::Red;
     std::uint8_t level = 0;
     std::uint8_t shot = 0;
+    std::optional<std::uint8_t> hazard;
 
     friend bool operator==(const PowerupUse&, const PowerupUse&) = default;
 };

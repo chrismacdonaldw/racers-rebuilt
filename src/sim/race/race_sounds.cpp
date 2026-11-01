@@ -185,7 +185,7 @@ void RaceSounds::HearBricks(std::span<const BrickEvent> events, bool areBricksAu
 void RaceSounds::HearWeapons(std::span<const WeaponEvent> events) {
     for (const WeaponEvent& event : events) {
         if (const std::optional<RaceSound> sound = SoundOf(event)) {
-            Add({.sound = *sound, .racer = event.racer, .position = event.position});
+            Add({.sound = *sound, .racer = event.racer.value_or(0), .position = event.position});
         }
     }
 }

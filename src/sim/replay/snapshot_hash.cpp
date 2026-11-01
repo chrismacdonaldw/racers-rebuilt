@@ -220,6 +220,9 @@ public:
                 static_cast<int>(effect.use.shot), static_cast<int>(progress.phase),
                 progress.phaseTime, pose.position, pose.rotation.w, pose.rotation.x,
                 pose.rotation.y, pose.rotation.z, effect.entities.to_ullong());
+            if (effect.use.hazard) {
+                Add(static_cast<int>(*effect.use.hazard));
+            }
         }
     }
 
@@ -321,6 +324,10 @@ public:
     }
     void Add(const LavaBlob& blob) { Add(blob.reach.centre, blob.eventWait); }
     void Add(const RocketPad& pad) { Add(pad.isOn, pad.hasShieldedRacer); }
+    void Add(const CurseDrop& /*drop*/) {}
+    void Add(const LightningCannon& cannon) { Add(cannon.sweepTime, cannon.cooldown); }
+    void Add(const DragonCannonballs& dragon) { Add(dragon.wait); }
+    void Add(const WarpPad& /*pad*/) {}
 
     void Add(const CodePuzzle& puzzle) {
         for (const assets::EventId gate : puzzle.code) {
@@ -337,6 +344,9 @@ public:
     void Add(const Hazards& hazards) {
         for (const bool isHidden : hazards.Models().Hidden()) {
             Add(isHidden);
+        }
+        for (const HazardAim& aim : hazards.Aims()) {
+            Add(aim.source, aim.target, aim.direction);
         }
         for (const HazardSlot& slot : hazards.Slots()) {
             Add(static_cast<int>(slot.phase));

@@ -11,6 +11,8 @@
 #include "sim/hazard/breakable.hpp"
 #include "sim/hazard/code_puzzle.hpp"
 #include "sim/hazard/crane.hpp"
+#include "sim/hazard/curse_drop.hpp"
+#include "sim/hazard/dragon_cannonballs.hpp"
 #include "sim/hazard/falling_pillar.hpp"
 #include "sim/hazard/ghost.hpp"
 #include "sim/hazard/hammer_swish.hpp"
@@ -18,9 +20,12 @@
 #include "sim/hazard/hazard_cannon.hpp"
 #include "sim/hazard/hazard_context.hpp"
 #include "sim/hazard/lava_blob.hpp"
+#include "sim/hazard/lightning_cannon.hpp"
 #include "sim/hazard/rocket_pad.hpp"
 #include "sim/hazard/sphinx.hpp"
 #include "sim/hazard/ufo_grabber.hpp"
+#include "sim/hazard/warp_pad.hpp"
+#include "sim/powerup/powerup_kind.hpp"
 #include "sim/race/random.hpp"
 #include "sim/track/model_switches.hpp"
 #include "sim/track/track_entities.hpp"
@@ -33,7 +38,8 @@ enum class HazardPhase : std::uint8_t { Loaded, Active };
 
 using HazardState =
     std::variant<std::monostate, FallingPillar, Sphinx, HammerSwish, Crane, HazardCannon, Breakable,
-                 HazardBox, Ghost, LavaBlob, CodePuzzle, RocketPad, UfoGrabber>;
+                 HazardBox, Ghost, LavaBlob, CodePuzzle, RocketPad, UfoGrabber, CurseDrop,
+                 LightningCannon, DragonCannonballs, WarpPad>;
 
 struct HazardSlot {
     assets::EventId trigger = assets::kNoEvent;
@@ -47,6 +53,8 @@ public:
 
     [[nodiscard]] static std::size_t MostEventsPerTick(std::span<const assets::Hazard> hazards,
                                                        std::size_t racerCount);
+    [[nodiscard]] static std::size_t MostUsesPerTick(std::span<const assets::Hazard> hazards,
+                                                     std::size_t racerCount);
 
     /// Also hears what hazards fire meanwhile when `heard` is `context.events`, up to a cap.
     void Hear(const TrackEvents& heard, HazardContext& context);
@@ -57,11 +65,15 @@ public:
     void Touch(HazardContext& context);
 
     [[nodiscard]] std::span<const HazardSlot> Slots() const { return slots_; }
+
+    /// One per slot, for the power-ups each hazard fires.
+    [[nodiscard]] std::span<const HazardAim> Aims() const { return aims_; }
     [[nodiscard]] const ModelSwitches& Models() const { return models_; }
     [[nodiscard]] ModelSwitches& Models() { return models_; }
 
 private:
     std::vector<HazardSlot> slots_;
+    std::vector<HazardAim> aims_;
     ModelSwitches models_;
 };
 

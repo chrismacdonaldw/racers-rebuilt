@@ -28,7 +28,7 @@ std::optional<EffectEntities> Claim(const EffectEntities& used, std::size_t coun
 
 }
 
-PowerupSystem::PowerupSystem(const EffectFactories& factories, std::size_t racerCount) {
+PowerupSystem::PowerupSystem(const EffectFactories& factories, std::size_t usesPerTick) {
     for (std::size_t kind = 0; kind < kPowerupKindCount; ++kind) {
         poolStarts_.at(kind) = slots_.size();
         if (!factories.at(kind)) {
@@ -42,7 +42,7 @@ PowerupSystem::PowerupSystem(const EffectFactories& factories, std::size_t racer
     poolStarts_.back() = slots_.size();
     active_.reserve(slots_.size());
     isDone_.resize(slots_.size());
-    events_.reserve(slots_.size() + (racerCount * kEventsPerUse));
+    events_.reserve(slots_.size() + (usesPerTick * kEventsPerUse));
 }
 
 void PowerupSystem::BeginTick() {
@@ -99,7 +99,7 @@ void PowerupSystem::Tick(Milliseconds elapsed, PowerupContext& context) {
 bool PowerupSystem::Hit(const PowerupHit& hit, PowerupContext& context) {
     return std::ranges::any_of(active_, [&](std::uint16_t slot) {
         const EffectSlot& owner = slots_[slot];
-        return owner.use.racer == hit.racer && owner.effect->Hit(hit, context);
+        return OwnerOf(owner.use) == hit.racer && owner.effect->Hit(hit, context);
     });
 }
 

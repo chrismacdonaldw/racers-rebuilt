@@ -15,11 +15,12 @@ constexpr float kModelHeight = 13.0F;
 
 void CurseEffect::Start(const PowerupUse& use, PowerupContext& context) {
     RR_ASSERT(context.world != nullptr);
-    owner_ = use.racer;
+    owner_ = OwnerOf(use);
     level_ = use.level;
     phase_ = TrapPhase::Dropping;
     remaining_ = Milliseconds{0};
-    position_ = context.racers[owner_].Body().motion.position;
+    position_ = use.hazard ? context.hazardAims[*use.hazard].target
+                           : context.racers[use.racer].Body().motion.position;
     modelPosition_ = position_;
 }
 
@@ -57,7 +58,8 @@ EffectProgress CurseEffect::Progress() const {
 }
 
 void CurseEffect::Drop(PowerupContext& context) {
-    const DropPoint drop = DropUnder(context.racers[owner_], *context.world);
+    const DropPoint drop = owner_ ? DropUnder(context.racers[*owner_], *context.world)
+                                  : DropPoint{.position = position_};
     position_ = drop.position;
     modelPosition_ = drop.position + (drop.normal * kModelHeight);
     phase_ = TrapPhase::Armed;

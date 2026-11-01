@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -94,6 +95,17 @@ public:
         system_.Fire({.racer = racer, .colour = colour, .level = level}, context);
     }
 
+    void FireFromHazard(assets::BrickColour colour, std::uint8_t level, const sim::HazardAim& aim,
+                        std::uint8_t racer = 0) {
+        aims_.at(0) = aim;
+        system_.BeginTick();
+        weapons_.Clear();
+        sim::PowerupContext context = Context();
+        system_.Fire({.racer = racer, .colour = colour, .level = level, .hazard = 0}, context);
+    }
+
+    void AimHazard(const sim::HazardAim& aim) { aims_.at(0) = aim; }
+
     void TickFor(int ticks, const sim::RacerControls& controls = {}) {
         for (int tick = 0; tick < ticks; ++tick) {
             Tick(controls);
@@ -181,7 +193,8 @@ private:
                 .explosions = &explosions_,
                 .spikes = &spikes_,
                 .weapons = &weapons_,
-                .targets = targets_};
+                .targets = targets_,
+                .hazardAims = aims_};
     }
 
     void MeasureReaches() {
@@ -204,6 +217,7 @@ private:
     sim::WeaponEvents weapons_{64};
     sim::Random random_{1};
     std::vector<assets::TargetPoint> targets_;
+    std::array<sim::HazardAim, 1> aims_{};
 };
 
 inline sim::RouteEffects RouteEffectsOf(const sim::Racer& racer) {

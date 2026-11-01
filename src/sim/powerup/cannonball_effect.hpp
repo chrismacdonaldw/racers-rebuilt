@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 
 #include "sim/powerup/ballistic_flight.hpp"
 #include "sim/powerup/powerup_effect.hpp"
@@ -18,7 +19,10 @@ public:
     [[nodiscard]] Transform Pose() const override { return {.position = flight_.Position()}; }
 
 private:
-    std::uint8_t owner_ = 0;
+    [[nodiscard]] Vector3 LaunchFrom(const Racer& owner, const PowerupContext& context);
+    [[nodiscard]] Vector3 LaunchFrom(const HazardAim& aim);
+
+    std::optional<std::uint8_t> owner_;
     ShotPhase phase_ = ShotPhase::Done;
     BallisticFlight flight_;
 };

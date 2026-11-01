@@ -48,7 +48,7 @@ struct PowerupEvent {
 /// Every effect is built up front, so using, ticking and ending effects never allocates.
 class PowerupSystem {
 public:
-    PowerupSystem(const EffectFactories& factories, std::size_t racerCount);
+    PowerupSystem(const EffectFactories& factories, std::size_t usesPerTick);
 
     void BeginTick();
 

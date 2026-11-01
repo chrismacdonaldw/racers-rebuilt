@@ -64,4 +64,15 @@ TEST_CASE("a shield absorbs a curse without using it up") {
 }
 
 }
+TEST_CASE("a hazard's curse floats over its aim and curses any racer") {
+    Rig rig;
+    rig.FireFromHazard(BrickColour::Yellow, 3,
+                       {.source = {.x = 12.0F, .z = 1.0F}, .target = {.x = 12.0F, .z = 1.0F}});
+
+    rig.TickFor(2);
+
+    CHECK(rig.EffectAt() == Vector3{.x = 12.0F, .z = 14.0F});
+    CHECK(rig.Car().Status().isCursed);
+}
+
 }
