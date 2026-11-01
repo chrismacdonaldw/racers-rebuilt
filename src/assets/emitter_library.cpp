@@ -96,7 +96,7 @@ bool HasDuplicateName(std::vector<std::string> names) {
 
 Result<std::vector<EmitterAsset>> ParseEmitterLibrary(std::span<const std::byte> bytes) {
     Result<std::vector<StoredEmitter>> stored =
-        ParseNamedLibrary<StoredEmitter>(bytes, kEmitterField, kEmitterFields);
+        ParseNamedLibrary<StoredEmitter>(bytes, kEmitterField, kEmitterFields, FieldRepeats::Fail);
     if (!stored) {
         return std::unexpected(std::move(stored.error()));
     }

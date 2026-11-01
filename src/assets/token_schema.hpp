@@ -164,11 +164,14 @@ template <typename Target>
     return rule->read(reader, target);
 }
 
+enum class FieldRepeats : std::uint8_t { Overwrite, Fail };
+
 /// Stops before `}` or the end of data. Unknown fields fail.
 template <typename Target>
 [[nodiscard]] Result<void> ReadFields(
     TokenReader& reader, std::type_identity_t<std::span<const FieldRule<Target>>> rules,
-    Target& target) {
+    Target& target, FieldRepeats repeats = FieldRepeats::Overwrite) {
+    std::vector<FieldId> seen;
     while (true) {
         Result<Token> token = reader.Peek();
         if (!token) {
@@ -176,6 +179,14 @@ template <typename Target>
         }
         if (token->kind == TokenKind::CloseBrace || token->kind == TokenKind::End) {
             return {};
+        }
+        if (repeats == FieldRepeats::Fail && token->kind == TokenKind::Field) {
+            if (std::ranges::contains(seen, token->field)) {
+                return Fail(ErrorCode::InvalidData,
+                            std::format("field 0x{:02X} repeats at offset {}", token->field,
+                                        token->offset));
+            }
+            seen.push_back(token->field);
         }
         Result<void> read = ReadField<Target>(reader, rules, target);
         if (!read) {
@@ -187,9 +198,10 @@ template <typename Target>
 template <typename Target>
 [[nodiscard]] Result<void> ReadBlock(TokenReader& reader,
                                      std::type_identity_t<std::span<const FieldRule<Target>>> rules,
-                                     Target& target) {
+                                     Target& target,
+                                     FieldRepeats repeats = FieldRepeats::Overwrite) {
     return reader.Expect(TokenKind::OpenBrace)
-        .and_then([&](const Token&) { return ReadFields<Target>(reader, rules, target); })
+        .and_then([&](const Token&) { return ReadFields<Target>(reader, rules, target, repeats); })
         .and_then([&] { return reader.Expect(TokenKind::CloseBrace); })
         .transform([](const Token&) {});
 }
@@ -198,7 +210,8 @@ template <typename Target>
 template <typename Entry>
 [[nodiscard]] Result<std::vector<Entry>> ParseNamedLibrary(
     std::span<const std::byte> bytes, FieldId field,
-    std::type_identity_t<std::span<const FieldRule<Entry>>> rules) {
+    std::type_identity_t<std::span<const FieldRule<Entry>>> rules,
+    FieldRepeats repeats = FieldRepeats::Overwrite) {
     TokenReader reader(bytes);
     std::vector<Entry> entries;
     const auto readEntry = [&] {
@@ -207,7 +220,7 @@ template <typename Entry>
             .and_then([&] { return reader.ReadString(); })
             .and_then([&](std::string_view name) {
                 entry.name = name;
-                return ReadBlock<Entry>(reader, rules, entry);
+                return ReadBlock<Entry>(reader, rules, entry, repeats);
             });
     };
     return ExpectField(reader, field)
