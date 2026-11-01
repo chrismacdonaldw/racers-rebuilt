@@ -54,6 +54,7 @@ rr_add_module(app
         powerup/powerup_models.cpp
         powerup/powerup_particles.cpp
         powerup/powerup_quads.cpp
+        powerup/powerup_sounds.cpp
         powerup/powerup_visuals.cpp
         powerup_tools.cpp
         quad_shapes.cpp

@@ -40,6 +40,8 @@ public:
     /// The slot driver's line in `DRIVERS.SRF`.
     [[nodiscard]] std::int32_t NameIndex(std::size_t slot) const;
 
+    [[nodiscard]] std::int32_t VoiceBank(std::size_t slot) const;
+
     /// `poses` and `motion` hold one engine-space entry per slot, in slot order.
     void Update(std::span<const sim::EntitySnapshot> poses,
                 std::span<const sim::RacerSnapshot> motion, float elapsedMs);

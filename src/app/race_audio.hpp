@@ -15,6 +15,7 @@
 #include "app/hazard/hazard_sounds.hpp"
 #include "app/loop_voice.hpp"
 #include "app/positional_sound.hpp"
+#include "app/powerup/powerup_sounds.hpp"
 #include "app/race_music.hpp"
 #include "app/scene.hpp"
 #include "app/sound_banks.hpp"
@@ -36,12 +37,13 @@ struct RaceSoundSet {
     std::vector<assets::SoundResource> ambience;
 };
 
-/// Only `player` gets engine and brake loops.
+/// Only `player` gets engine and brake loops. `voiceBanks` holds each racer's `DDB` voice bank.
 struct RaceAudioSetup {
     std::size_t racerCount = 0;
     std::size_t player = 0;
     std::uint64_t seed = 0;
     std::span<const assets::SoundResource> ambience;
+    std::span<const std::int32_t> voiceBanks;
 };
 
 /// Only reads the session, so it never changes a race's outcome.
@@ -97,6 +99,7 @@ private:
     LoopVoice opponentLoop_;
     AmbientSounds ambience_;
     HazardSounds hazards_;
+    PowerupSounds powerups_;
 };
 
 }
