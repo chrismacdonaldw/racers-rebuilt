@@ -75,6 +75,9 @@ rr_add_module(sim
         replay/replay_recorder.cpp
         replay/snapshot_hash.cpp
         route_playback.cpp
+        track/track_events.cpp
+        track/track_timers.cpp
+        track/trigger_lists.cpp
     DEPENDS
         rr::assets
         rr::core

@@ -110,6 +110,17 @@ bool ReadField(std::string_view field, RaceSceneSetup& setup,
     return false;
 }
 
+sim::RaceCourse CourseOf(const sim::RaceTrack& track, const sim::WorldList& world) {
+    return {.checkpoints = &track.checkpoints,
+            .grid = track.grid,
+            .world = &world,
+            .lowestTrackZ = track.lowestTrackZ,
+            .routes = &track.routes,
+            .bricks = &track.bricks,
+            .targets = track.targets,
+            .events = &track.events};
+}
+
 }
 
 std::string RaceSceneName(const RaceSceneSetup& setup) {
@@ -165,15 +176,8 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     }
     auto raceTrack = std::make_unique<sim::RaceTrack>(std::move(*loaded));
     auto world = std::make_unique<sim::WorldList>(raceTrack->collision.Track());
-    Result<sim::RaceSession> session =
-        sim::RaceSession::Create(FullGrid(setup, *racers, seed, raceTrack->grid.size()),
-                                 {.checkpoints = &raceTrack->checkpoints,
-                                  .grid = raceTrack->grid,
-                                  .world = world.get(),
-                                  .lowestTrackZ = raceTrack->lowestTrackZ,
-                                  .routes = &raceTrack->routes,
-                                  .bricks = &raceTrack->bricks,
-                                  .targets = raceTrack->targets});
+    Result<sim::RaceSession> session = sim::RaceSession::Create(
+        FullGrid(setup, *racers, seed, raceTrack->grid.size()), CourseOf(*raceTrack, *world));
     if (!session) {
         return std::unexpected(std::move(session.error()));
     }

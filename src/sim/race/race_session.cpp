@@ -34,6 +34,11 @@ bool AreBricksAudible(const RaceClock& clock) {
     return clock.Phase() != RacePhase::Intro && clock.Phase() != RacePhase::Countdown;
 }
 
+const TrackEventSources& EventSourcesFor(const RaceCourse& course) {
+    static const TrackEventSources kNone;
+    return course.events == nullptr ? kNone : *course.events;
+}
+
 std::span<const assets::RaceRoute> RoutesFor(const RaceCourse& course, std::size_t slot) {
     if (course.routes == nullptr || slot >= course.routes->size()) {
         return {};
@@ -61,6 +66,8 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       progress_(setup.racers.size(), setup.lapCount),
       sounds_(setup.racers.size(), BrickCount(course), WeaponEventCount(setup)),
       random_(setup.seed),
+      triggers_(EventSourcesFor(course), setup.racers.size(), course.isMirrored, random_),
+      triggerRacers_(setup.racers.size()),
       rubberBand_(course.isMirrored),
       paced_(setup.racers.size()),
       routeSpeeds_(setup.racers.size(), 1.0F),
@@ -92,6 +99,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     sounds_.BeginTick();
     powerups_.BeginTick();
     weapons_.Clear();
+    triggers_.BeginTick();
     MeasureReaches();
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         TickRacer(i, elapsed, clock_.Phase() == RacePhase::Intro ? RacerControls{} : controls[i]);
@@ -99,6 +107,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     ResolveContacts();
     TickBricks(elapsed);
     MeasureReaches();
+    TickTriggers(elapsed);
     PowerupContext effects = EffectContext();
     powerups_.Tick(elapsed, effects);
     explosions_.Tick(elapsed, racers_, reaches_);
@@ -180,6 +189,15 @@ void RaceSession::MeasureReaches() {
         reaches_[i] = {.centre = Apply(racers_[i].Pose(), localBounds_[i].centre),
                        .radius = localBounds_[i].radius};
     }
+}
+
+void RaceSession::TickTriggers(Milliseconds elapsed) {
+    for (std::size_t i = 0; i < racers_.size(); ++i) {
+        triggerRacers_[i] = {.reach = reaches_[i],
+                             .isPlayer = isPlayer_[i],
+                             .completedLaps = progress_.OfRacer(i).laps.CompletedLaps()};
+    }
+    triggers_.Tick(elapsed, triggerRacers_, random_);
 }
 
 void RaceSession::GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level) {

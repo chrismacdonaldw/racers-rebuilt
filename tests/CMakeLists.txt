@@ -197,6 +197,9 @@ add_executable(racers-rebuilt-tests
     sim/replay_test.cpp
     sim/route_playback_test.cpp
     sim/snapshot_hash_test.cpp
+    sim/track/track_events_test.cpp
+    sim/track/track_timers_test.cpp
+    sim/track/trigger_lists_test.cpp
 )
 set_source_files_properties(main.cpp PROPERTIES COMPILE_DEFINITIONS DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
 target_compile_definitions(racers-rebuilt-tests PRIVATE DOCTEST_CONFIG_USE_STD_HEADERS)

@@ -134,7 +134,8 @@ void CheckRetailTrack(const assets::Vfs& vfs, const std::string& name, const sim
                                  .grid = track->grid,
                                  .world = &world,
                                  .lowestTrackZ = track->lowestTrackZ,
-                                 .routes = &track->routes};
+                                 .routes = &track->routes,
+                                 .events = &track->events};
 
     const test::DriveResult uncapped =
         test::Drive(replay, {}, setup, course, FramesFor(0, kRetailRace));

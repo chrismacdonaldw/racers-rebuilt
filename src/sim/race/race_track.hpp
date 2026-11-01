@@ -11,6 +11,7 @@
 #include "sim/collision/track_collision.hpp"
 #include "sim/physics/racer.hpp"
 #include "sim/race/checkpoint_graph.hpp"
+#include "sim/track/track_events.hpp"
 
 namespace rr::sim {
 
@@ -21,6 +22,7 @@ struct RaceTrack {
     GridRoutes routes;
     assets::BrickLayout bricks;
     std::vector<assets::TargetPoint> targets;
+    TrackEventSources events;
     float lowestTrackZ = 0.0F;
 };
 

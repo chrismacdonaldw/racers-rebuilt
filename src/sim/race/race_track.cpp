@@ -11,9 +11,13 @@
 #include "assets/game_path.hpp"
 #include "assets/start_grid.hpp"
 #include "assets/target_points.hpp"
+#include "assets/track_triggers.hpp"
 
 namespace rr::sim {
 namespace {
+
+constexpr std::string_view kRacerTriggers = "MAINTRIG.TRB";
+constexpr std::string_view kRenamedRacerTriggers = "NEWTRIG.TRB";
 
 template <typename Parse>
 auto ReadParsed(const assets::Vfs& vfs, std::string_view track, std::string_view file,
@@ -50,6 +54,38 @@ Result<std::vector<assets::TargetPoint>> LoadTargetPoints(const assets::Vfs& vfs
         });
 }
 
+auto SphereParser(assets::TriggerList list) {
+    return [list](std::span<const std::byte> bytes) {
+        return assets::ParseTriggerSpheres(bytes, list);
+    };
+}
+
+Result<TrackEventSources> LoadEventSources(const assets::Vfs& vfs, std::string_view track) {
+    Result<std::vector<assets::TriggerSphere>> racer =
+        vfs.List(std::format("GAMEDATA/{}", track))
+            .and_then([&](const std::vector<assets::VfsEntry>& folder) {
+                const std::string_view name = assets::HasFile(folder, kRenamedRacerTriggers)
+                                                  ? kRenamedRacerTriggers
+                                                  : kRacerTriggers;
+                return ReadParsed(vfs, track, name, SphereParser(assets::TriggerList::Racer));
+            });
+    Result<std::vector<assets::TriggerSphere>> environment =
+        racer.and_then([&](const std::vector<assets::TriggerSphere>&) {
+            return ReadParsed(vfs, track, "ENVIRON.TRB",
+                              SphereParser(assets::TriggerList::Environment));
+        });
+    Result<std::vector<assets::TrackTimer>> timers =
+        environment.and_then([&](const std::vector<assets::TriggerSphere>&) {
+            return ReadParsed(vfs, track, "TIMER.TIB", assets::ParseTrackTimers);
+        });
+    if (!timers) {
+        return std::unexpected(std::move(timers.error()));
+    }
+    return TrackEventSources{.racerSpheres = std::move(*racer),
+                             .environmentSpheres = std::move(*environment),
+                             .timers = std::move(*timers)};
+}
+
 float LowestPoint(const CollisionWorld& world) {
     const std::vector<Vector3>& vertices = world.Mesh().Asset().vertices;
     return std::ranges::fold_left(
@@ -80,8 +116,10 @@ Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track) 
         [&](const GridRoutes&) { return ReadParsed(vfs, track, "POWERUP.PWB", assets::ParsePwb); });
     Result<std::vector<assets::TargetPoint>> targets =
         bricks.and_then([&](const assets::BrickLayout&) { return LoadTargetPoints(vfs, track); });
-    if (!targets) {
-        return std::unexpected(std::move(targets.error()));
+    Result<TrackEventSources> events = targets.and_then(
+        [&](const std::vector<assets::TargetPoint>&) { return LoadEventSources(vfs, track); });
+    if (!events) {
+        return std::unexpected(std::move(events.error()));
     }
     const float lowestTrackZ = LowestPoint(collision->Track());
     return RaceTrack{.collision = std::move(*collision),
@@ -90,6 +128,7 @@ Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track) 
                      .routes = std::move(*routes),
                      .bricks = std::move(*bricks),
                      .targets = std::move(*targets),
+                     .events = std::move(*events),
                      .lowestTrackZ = lowestTrackZ};
 }
 
