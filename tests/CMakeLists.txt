@@ -67,6 +67,7 @@ add_executable(racers-rebuilt-tests
     assets/collision_mesh_test.cpp
     assets/driver_database_test.cpp
     assets/emitter_library_test.cpp
+    assets/event_table_test.cpp
     assets/font_list_test.cpp
     assets/game_path_test.cpp
     assets/geometry_database_test.cpp
@@ -97,6 +98,7 @@ add_executable(racers-rebuilt-tests
     assets/token_survey_test.cpp
     assets/track_loader_test.cpp
     assets/track_survey_test.cpp
+    assets/track_triggers_test.cpp
     assets/vfs_test.cpp
     assets/world_database_test.cpp
     audio/alp_game_files_test.cpp

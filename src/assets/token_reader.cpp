@@ -129,7 +129,7 @@ Result<std::string_view> TokenReader::ReadString() {
     return Expect(TokenKind::String).transform([](const Token& token) { return token.text; });
 }
 
-Result<std::size_t> TokenReader::ReadListHeader() {
+Result<std::size_t> TokenReader::ReadListCount() {
     Result<Token> open = Expect(TokenKind::OpenBracket);
     Result<std::int32_t> count = open.and_then([this](const Token&) { return ReadInt(); });
     if (!count) {
@@ -139,9 +139,15 @@ Result<std::size_t> TokenReader::ReadListHeader() {
         return Fail(ErrorCode::InvalidData,
                     std::format("negative list count {} after offset {}", *count, open->offset));
     }
-    return Expect(TokenKind::CloseBracket)
-        .and_then([this](const Token&) { return Expect(TokenKind::OpenBrace); })
-        .transform([&count](const Token&) { return static_cast<std::size_t>(*count); });
+    return Expect(TokenKind::CloseBracket).transform([&count](const Token&) {
+        return static_cast<std::size_t>(*count);
+    });
+}
+
+Result<std::size_t> TokenReader::ReadListHeader() {
+    return ReadListCount().and_then([this](std::size_t count) {
+        return Expect(TokenKind::OpenBrace).transform([count](const Token&) { return count; });
+    });
 }
 
 Result<std::optional<TokenReader::Code>> TokenReader::NextCode() {

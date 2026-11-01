@@ -11,6 +11,7 @@ rr_add_module(assets
         collision_mesh.cpp
         driver_database.cpp
         emitter_library.cpp
+        event_table.cpp
         folder_layer.cpp
         font_list.cpp
         game_path.cpp
@@ -40,6 +41,7 @@ rr_add_module(assets
         token_reader.cpp
         token_schema.cpp
         track_loader.cpp
+        track_triggers.cpp
         vfs.cpp
         world_database.cpp
     DEPENDS

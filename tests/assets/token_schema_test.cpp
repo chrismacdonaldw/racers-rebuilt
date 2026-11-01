@@ -125,5 +125,38 @@ TEST_CASE("a list shorter than its count fails") {
     CHECK(ReadValue(reader, values).error().code == ErrorCode::InvalidData);
 }
 
+namespace {
+
+Result<void> ReadInts(TokenReader& reader, std::vector<std::int32_t>& values) {
+    return ReadEntryList(reader, [&] { return ReadValue(reader, values.emplace_back()); });
+}
+
+}
+
+TEST_CASE("an entry list reads its elements like a list") {
+    const std::vector bytes = Bytes({0x07, 0x0B, 0x02, 0x08, 0x05, 0x0B, 0x04, 0x0B, 0x05, 0x06});
+    TokenReader reader(bytes);
+    std::vector<std::int32_t> values;
+
+    REQUIRE(ReadInts(reader, values).has_value());
+    CHECK(values == std::vector<std::int32_t>{4, 5});
+}
+
+TEST_CASE("an empty entry list may end at its count") {
+    const std::vector bare = Bytes({0x07, 0x0B, 0x00, 0x08});
+    const std::vector braced = Bytes({0x07, 0x0B, 0x00, 0x08, 0x05, 0x06});
+    const std::vector unbraced = Bytes({0x07, 0x0B, 0x00, 0x08, 0x0B, 0x01});
+    std::vector<std::int32_t> values;
+
+    TokenReader bareReader(bare);
+    TokenReader bracedReader(braced);
+    TokenReader unbracedReader(unbraced);
+
+    CHECK(ReadInts(bareReader, values).has_value());
+    CHECK(ReadInts(bracedReader, values).has_value());
+    CHECK_FALSE(ReadInts(unbracedReader, values).has_value());
+    CHECK(values.empty());
+}
+
 }
 }
