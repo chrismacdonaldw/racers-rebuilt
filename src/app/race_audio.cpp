@@ -21,13 +21,16 @@ constexpr std::size_t kWallHit = 25;
 constexpr std::size_t kIdleLoop = 32;
 constexpr std::size_t kBrickCollect = 49;
 constexpr std::size_t kTurboStart = 36;
+constexpr std::size_t kWarpStart = 39;
 constexpr std::size_t kTurboEnd = 40;
+constexpr std::size_t kWarpLand = 41;
 constexpr std::size_t kWallScrape = 56;
 constexpr std::size_t kDriftStart = 57;
 constexpr std::size_t kCoastLoop = 61;
 constexpr std::size_t kBrickSwap = 72;
 constexpr std::size_t kEngineStart = 62;
 constexpr std::size_t kTurboWhoosh = 65;
+constexpr std::size_t kHoverTurboEnd = 75;
 constexpr std::size_t kOpponentEngine = 79;
 constexpr std::size_t kEffectCount = kOpponentEngine + 1;
 constexpr std::array kEngineLoopSounds{kIdleLoop, kDriveLoop, kCoastLoop};
@@ -36,6 +39,7 @@ constexpr float kWeakTurboEndVolume = 0.6F;
 constexpr float kStrongTurboEndVolume = 0.8F;
 constexpr SoundRange kOpponentRange{.min = 30.0F, .max = 200.0F};
 constexpr SoundRange kBrickRange{.min = 30.0F, .max = 150.0F};
+constexpr SoundRange kWarpRange{.min = 200.0F, .max = 600.0F};
 
 const Vector3& BrickAt(const sim::RaceSession& session, const sim::SoundEvent& event) {
     return session.Bricks().Coloured()[event.brick].brick.position;
@@ -116,7 +120,7 @@ void RaceAudio::Hear(const sim::RaceSession& session, const Transform& camera,
 
 void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent& event) {
     const Vector3& car = session.Racers()[event.racer].Body().motion.position;
-    const bool isStrong = event.level == sim::TurboLevel::Strong;
+    const auto turboLevel = static_cast<std::size_t>(event.level);
     switch (event.sound) {
         case sim::RaceSound::CountdownBeep:
             PlayFlat(kCountdownBeep);
@@ -131,12 +135,22 @@ void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent
             }
             break;
         case sim::RaceSound::TurboStart:
-            PlayAt(kTurboStart + (isStrong ? 1 : 0), car);
+            PlayAt(kTurboStart + turboLevel, car);
             PlayAt(kTurboWhoosh, car);
             break;
         case sim::RaceSound::TurboFade:
-            PlayAt(kTurboEnd, car,
-                   {.volume = isStrong ? kStrongTurboEndVolume : kWeakTurboEndVolume});
+            PlayTurboEnd(event.level, car);
+            break;
+        case sim::RaceSound::WarpEnter:
+            if (event.racer == player_) {
+                PlayFlat(kWarpStart);
+            }
+            PlayAt(kTurboWhoosh, car, {}, kWarpRange);
+            break;
+        case sim::RaceSound::WarpLand:
+            if (event.racer == player_) {
+                PlayFlat(kWarpLand);
+            }
             break;
         case sim::RaceSound::DriftStart:
             PlayAt(kDriftStart, car);
@@ -157,6 +171,20 @@ void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent
             break;
         case sim::RaceSound::WhiteBrickCollect:
             PlayAt(kWhiteBrickBeforeFirst + event.whiteCount, car);
+            break;
+    }
+}
+
+void RaceAudio::PlayTurboEnd(sim::TurboLevel level, const Vector3& car) {
+    switch (level) {
+        case sim::TurboLevel::Weak:
+            PlayAt(kTurboEnd, car, {.volume = kWeakTurboEndVolume});
+            break;
+        case sim::TurboLevel::Strong:
+            PlayAt(kTurboEnd, car, {.volume = kStrongTurboEndVolume});
+            break;
+        case sim::TurboLevel::Hover:
+            PlayAt(kHoverTurboEnd, car);
             break;
     }
 }

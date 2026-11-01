@@ -79,6 +79,7 @@ add_executable(racers-rebuilt-tests
     assets/start_grid_test.cpp
     assets/string_table_test.cpp
     assets/surface_table_test.cpp
+    assets/target_points_test.cpp
     assets/texture_database_test.cpp
     assets/tga_image_test.cpp
     assets/token_reader_test.cpp
@@ -148,6 +149,8 @@ add_executable(racers-rebuilt-tests
     sim/powerup/brick_field_test.cpp
     sim/powerup/powerup_inventory_test.cpp
     sim/powerup/powerup_system_test.cpp
+    sim/powerup/turbo_effect_test.cpp
+    sim/powerup/warp_effect_test.cpp
     sim/race/ai_race_test.cpp
     sim/race/checkpoint_graph_test.cpp
     sim/race/lap_tracker_test.cpp

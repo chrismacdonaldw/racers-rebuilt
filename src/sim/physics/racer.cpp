@@ -55,6 +55,7 @@ void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const Coll
         if (!startBoost_.State().isHeldAtStart) {
             route_->Tick(elapsed);
             TakeRoutePose(*route_);
+            UpdateTurbo(static_cast<int>(elapsed.count()));
         }
         return;
     }
@@ -106,11 +107,29 @@ void Racer::SetRouteSpeed(float speed) {
 }
 
 void Racer::StartTurbo(TurboLevel level) {
-    turbo_ = sim::StartTurbo(body_, constants_, stats_, level);
-    if (status_.isCursed) {
-        EndTurbo(body_, constants_, stats_);
+    if (turbo_) {
+        Resume();
     }
+    ++turboCount_;
     events_.turboStarted = level;
+    if (route_) {
+        route_->StartBoost();
+        turbo_ = Turbo{.level = level, .phaseMs = kTurboIgnitionMs};
+    } else {
+        turbo_ = sim::StartTurbo(body_, constants_, stats_, level);
+        if (status_.isCursed) {
+            EndTurbo(body_, constants_, stats_);
+        }
+    }
+    if (level == TurboLevel::Hover) {
+        Halt();
+    }
+}
+
+void Racer::CancelTurbo() {
+    if (turbo_) {
+        FinishTurbo();
+    }
 }
 
 DriveCommand Racer::AffectedDrive(DriveCommand command) {
@@ -138,11 +157,29 @@ void Racer::UpdateTurbo(int dtMs) {
     }
     const TurboPhase phase = turbo_->phase;
     if (!AdvanceTurbo(*turbo_, dtMs)) {
-        turbo_.reset();
-        EndTurbo(body_, constants_, stats_);
-    } else if (phase != TurboPhase::Fade && turbo_->phase == TurboPhase::Fade) {
+        FinishTurbo();
+        return;
+    }
+    if (HasHoverStalled()) {
+        FadeTurbo(*turbo_);
+    }
+    if (phase != TurboPhase::Fade && turbo_->phase == TurboPhase::Fade) {
         events_.turboFaded = turbo_->level;
     }
+}
+
+void Racer::FinishTurbo() {
+    turbo_.reset();
+    if (route_) {
+        route_->EndBoost();
+    } else {
+        EndTurbo(body_, constants_, stats_);
+    }
+    Resume();
+}
+
+bool Racer::HasHoverStalled() const {
+    return !route_ && status_.isHalted && body_.derived.isAtRest && CanFadeEarly(*turbo_);
 }
 
 Transform Racer::Pose() const {

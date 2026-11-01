@@ -1,5 +1,8 @@
 #include "sim/physics/turbo.hpp"
 
+#include <array>
+#include <cstddef>
+
 #include "sim/physics/car_body.hpp"
 #include "sim/physics/facing.hpp"
 #include "sim/physics/rigid_body.hpp"
@@ -14,10 +17,9 @@ constexpr float kWallTurboThrust = 216.0F;
 constexpr float kNoseLiftRatePerMs = -0.0025F;
 constexpr int kWeakNoseLiftMs = 125;
 constexpr int kStrongNoseLiftMs = 250;
-constexpr int kIgnitionMs = 400;
-constexpr int kWeakBoostMs = 1000;
-constexpr int kStrongBoostMs = 1500;
+constexpr std::array kBoostMs{1000, 1500, 5000};
 constexpr int kFadeMs = 700;
+constexpr int kEarlyFadeBelowMs = 4500;
 
 void SetMaxSpeed(BodyState& body, const BodyConstants& constants, float maxSpeed) {
     SetDrive(body, constants, body.thrust, maxSpeed);
@@ -27,14 +29,13 @@ void SetMaxSpeed(BodyState& body, const BodyConstants& constants, float maxSpeed
 
 Turbo StartTurbo(BodyState& body, const BodyConstants& constants, const StatMultipliers& stats,
                  TurboLevel level) {
-    const bool isWeak = level == TurboLevel::Weak;
     SetPitchImpulse(body, constants, kNoseLiftRatePerMs,
-                    isWeak ? kWeakNoseLiftMs : kStrongNoseLiftMs);
+                    level == TurboLevel::Weak ? kWeakNoseLiftMs : kStrongNoseLiftMs);
     body.facing = body.motion.basis.forward;
     UpdateDerivedMotion(body);
     body.gripScale = kTurboGripScale;
     SetMaxSpeed(body, constants, kTurboMaxSpeed * stats.topSpeed);
-    return {.level = level, .phaseMs = kIgnitionMs};
+    return {.level = level, .phaseMs = kTurboIgnitionMs};
 }
 
 void EndTurbo(BodyState& body, const BodyConstants& constants, const StatMultipliers& stats) {
@@ -50,16 +51,25 @@ bool AdvanceTurbo(Turbo& turbo, int dtMs) {
     switch (turbo.phase) {
         case TurboPhase::Ignition:
             turbo.phase = TurboPhase::Boost;
-            turbo.phaseMs = turbo.level == TurboLevel::Weak ? kWeakBoostMs : kStrongBoostMs;
+            turbo.phaseMs = kBoostMs.at(static_cast<std::size_t>(turbo.level));
             return true;
         case TurboPhase::Boost:
-            turbo.phase = TurboPhase::Fade;
-            turbo.phaseMs = kFadeMs;
+            FadeTurbo(turbo);
             return true;
         case TurboPhase::Fade:
             return false;
     }
     return false;
+}
+
+void FadeTurbo(Turbo& turbo) {
+    turbo.phase = TurboPhase::Fade;
+    turbo.phaseMs = kFadeMs;
+}
+
+bool CanFadeEarly(const Turbo& turbo) {
+    return turbo.level == TurboLevel::Hover && turbo.phase == TurboPhase::Boost &&
+           turbo.phaseMs < kEarlyFadeBelowMs;
 }
 
 float TurboThrust(const Turbo& turbo) {

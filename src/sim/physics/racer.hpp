@@ -32,12 +32,15 @@ struct RacerEvents {
     std::optional<TurboLevel> turboStarted;
     std::optional<TurboLevel> turboFaded;
     bool hasDriftStarted = false;
+    bool hasWarpEntered = false;
+    bool hasWarpLanded = false;
 };
 
 struct RacerStatus {
     bool isHalted = false;
     bool isMagnetHeld = false;
     bool isGhost = false;
+    bool isWarping = false;
     bool isCursed = false;
     int curseMs = 0;
     CurseJitter jitter;
@@ -55,8 +58,12 @@ public:
     void HoldAtStart();
     void Go();
 
-    /// Replaces any turbo already running.
+    /// Replaces any turbo already running. A hover turbo halts the racer until it ends.
     void StartTurbo(TurboLevel level);
+    void CancelTurbo();
+
+    /// Counts every `StartTurbo`, so an owner can tell its turbo from a later one.
+    [[nodiscard]] std::uint32_t TurboCount() const { return turboCount_; }
 
     /// Puts the racer at rest at `start`, as if it were built there.
     void Place(const RacerStart& start);
@@ -82,6 +89,17 @@ public:
     void EnterGhostMode();
     void LeaveGhostMode();
     void ReactToHit();
+
+    /// Fails while the racer is a ghost or already warping. Ends any magnet hold.
+    [[nodiscard]] bool BeginWarp();
+    void CancelWarp();
+    void EnterWarp();
+
+    /// Does nothing to a racer on a route, which keeps playing it.
+    void MoveWarp(const Vector3& position);
+
+    /// Off a route, sets the car down at `position` and launches it along `direction`.
+    void LandWarp(const Vector3& position, const Vector3& direction);
 
     /// Runs before each `Tick`, drawing from `random` while cursed.
     void RollCurse(Milliseconds elapsed, Random& random);
@@ -122,6 +140,8 @@ public:
 
 private:
     void UpdateTurbo(int dtMs);
+    void FinishTurbo();
+    [[nodiscard]] bool HasHoverStalled() const;
     void KeepInWorldBounds();
     void TakeRoutePose(const AiRacer& route);
     [[nodiscard]] DriveCommand AffectedDrive(DriveCommand command);
@@ -136,6 +156,7 @@ private:
     RacerEvents events_;
     RacerStatus status_;
     bool wasBrakeHeld_ = false;
+    std::uint32_t turboCount_ = 0;
 };
 
 }

@@ -11,6 +11,8 @@
 #include "sim/physics/collision_query.hpp"
 #include "sim/physics/racer.hpp"
 #include "sim/powerup/powerup_kind.hpp"
+#include "sim/race/checkpoint_graph.hpp"
+#include "sim/race/race_progress.hpp"
 #include "sim/race/random.hpp"
 
 namespace rr::sim {
@@ -20,6 +22,8 @@ struct PowerupContext {
     std::span<Racer> racers;
     const CollisionQuery* world = nullptr;
     Random* random = nullptr;
+    const CheckpointGraph* checkpoints = nullptr;
+    const RaceProgress* progress = nullptr;
 };
 
 struct PowerupHit {

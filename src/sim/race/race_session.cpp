@@ -130,7 +130,11 @@ void RaceSession::GivePowerup(std::size_t racer, assets::BrickColour colour, std
 }
 
 PowerupContext RaceSession::EffectContext() {
-    return {.racers = racers_, .world = course_.world, .random = &random_};
+    return {.racers = racers_,
+            .world = course_.world,
+            .random = &random_,
+            .checkpoints = course_.checkpoints,
+            .progress = &progress_};
 }
 
 void RaceSession::TickBricks(Milliseconds elapsed) {
@@ -141,12 +145,8 @@ void RaceSession::TickBricks(Milliseconds elapsed) {
 void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
                             const RacerControls& controls) {
     Racer& car = racers_[racer];
-    const Vector3 from = car.Body().motion.position;
+    const Vector3 from = positions_[racer];
     car.RollCurse(elapsed, random_);
-    if (controls.isUsePressed && clock_.IsRunning()) {
-        PowerupContext effects = EffectContext();
-        powerups_.Use(racer, inventories_[racer], bricks_, effects);
-    }
     car.Tick(elapsed, controls, *course_.world);
     const BodyMotion& motion = car.Body().motion;
     wasRespawned_[racer] =
@@ -165,6 +165,10 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
         }
     }
     positions_[racer] = car.Body().motion.position;
+    if (controls.isUsePressed && clock_.IsRunning()) {
+        PowerupContext effects = EffectContext();
+        powerups_.Use(racer, inventories_[racer], bricks_, effects);
+    }
 }
 
 bool RaceSession::HasPlayerFinished() const {

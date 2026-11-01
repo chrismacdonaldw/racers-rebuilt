@@ -33,6 +33,40 @@ void Drive(Racer& racer, const RacerControls& controls, int durationMs,
 TEST_CASE("each turbo phase lasts whole ticks, dropping the leftover ms") {
     CHECK(TicksToFinish(TurboLevel::Weak) == 34 + 84 + 59);
     CHECK(TicksToFinish(TurboLevel::Strong) == 34 + 125 + 59);
+    CHECK(TicksToFinish(TurboLevel::Hover) == 34 + 417 + 59);
+}
+
+TEST_CASE("a hover turbo can fade early once 500 ms of its boost have passed") {
+    Turbo turbo{.level = TurboLevel::Hover, .phase = TurboPhase::Boost, .phaseMs = 4500};
+    CHECK_FALSE(CanFadeEarly(turbo));
+    turbo.phaseMs = 4499;
+    CHECK(CanFadeEarly(turbo));
+    turbo.level = TurboLevel::Strong;
+    CHECK_FALSE(CanFadeEarly(turbo));
+
+    turbo.level = TurboLevel::Hover;
+    FadeTurbo(turbo);
+    CHECK(turbo.phase == TurboPhase::Fade);
+    CHECK(turbo.phaseMs == 700);
+}
+
+TEST_CASE("a hover turbo halts the racer until it ends, and a new turbo lets it go") {
+    const test::PlaneWorld world = test::FlatGround();
+    Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+
+    racer.StartTurbo(TurboLevel::Hover);
+    CHECK(racer.Status().isHalted);
+    CHECK(racer.Body().hover.isHovering);
+
+    racer.StartTurbo(TurboLevel::Weak);
+    CHECK_FALSE(racer.Status().isHalted);
+
+    racer.StartTurbo(TurboLevel::Hover);
+    Drive(racer, {.isThrottleHeld = true}, 509 * kTickMs, world);
+    CHECK(racer.Status().isHalted);
+    Drive(racer, {.isThrottleHeld = true}, kTickMs, world);
+    CHECK_FALSE(racer.ActiveTurbo().has_value());
+    CHECK_FALSE(racer.Status().isHalted);
 }
 
 TEST_CASE("a turbo raises the top speed and grip until it ends") {
