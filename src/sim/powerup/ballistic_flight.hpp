@@ -30,6 +30,8 @@ public:
     void LaunchAtPoint(const BallisticSpec& spec, const Racer& owner, const Vector3& start,
                        const Vector3& aim);
 
+    void LaunchAtPoint(const BallisticSpec& spec, const Vector3& start, const Vector3& aim);
+
     /// Relaunches from here at its speed, leading `target`, or back to the start without one.
     void TurnBack(const Racer* target);
 
@@ -45,6 +47,7 @@ public:
     [[nodiscard]] Milliseconds Remaining() const { return lifetime_ - age_; }
 
 private:
+    void Arm(const BallisticSpec& spec);
     void Aim(const Vector3& start, const Vector3& aim, float seconds);
 
     Vector3 start_;

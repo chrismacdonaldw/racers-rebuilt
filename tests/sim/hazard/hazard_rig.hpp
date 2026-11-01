@@ -20,6 +20,7 @@
 #include "sim/physics/racer.hpp"
 #include "sim/physics/racer_contacts.hpp"
 #include "sim/physics/racer_controls.hpp"
+#include "sim/powerup/explosions.hpp"
 #include "sim/race/race_session.hpp"
 #include "sim/race/race_track.hpp"
 #include "sim/race/random.hpp"
@@ -100,7 +101,10 @@ public:
     HazardRig& operator=(HazardRig&&) = delete;
     ~HazardRig() = default;
 
-    void Hear(assets::EventId id, sim::EventEdge edge) { Hear({.id = id, .edge = edge}); }
+    void Hear(assets::EventId id, sim::EventEdge edge,
+              std::optional<Vector3> position = std::nullopt) {
+        Hear({.id = id, .edge = edge, .position = position});
+    }
 
     void Hear(const sim::TrackEvent& event) {
         sim::HazardContext context = Context();
@@ -117,6 +121,13 @@ public:
         events_.BeginTick();
         sim::HazardContext context = Context();
         hazards_.Tick(context);
+    }
+
+    void Run(Milliseconds time) {
+        for (Milliseconds run{0}; run < time; run += kRigTick) {
+            entities_.Tick(kRigTick);
+            Tick();
+        }
     }
 
     void Touch() {
@@ -155,6 +166,8 @@ public:
     [[nodiscard]] std::span<const sim::TrackEvent> Events() const { return events_.Events(); }
     [[nodiscard]] const sim::Hazards& Hazards() const { return hazards_; }
     [[nodiscard]] const sim::TrackSurfaces& Surfaces() const { return surfaces_; }
+    [[nodiscard]] const sim::TrackEntities& Entities() const { return entities_; }
+    [[nodiscard]] const sim::Explosions& Blasts() const { return explosions_; }
     [[nodiscard]] sim::Racer& Car(std::size_t racer = 0) { return racers_[racer]; }
 
 private:
@@ -166,7 +179,9 @@ private:
                 .surfaces = &surfaces_,
                 .models = &hazards_.Models(),
                 .random = &random_,
-                .elapsed = kRigTick};
+                .elapsed = kRigTick,
+                .world = &world_,
+                .explosions = &explosions_};
     }
 
     void MeasureReaches() {
@@ -181,6 +196,7 @@ private:
     sim::Random random_{1};
     sim::Hazards hazards_;
     sim::TrackSurfaces surfaces_;
+    sim::Explosions explosions_;
     sim::TrackEvents events_;
     sim::TrackEvents heard_;
     PlaneWorld world_{{{}}};

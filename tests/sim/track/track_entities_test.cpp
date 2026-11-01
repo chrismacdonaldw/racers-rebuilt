@@ -83,6 +83,37 @@ TEST_CASE("entities are found by name") {
     CHECK_FALSE(entities.Find("hammer").has_value());
 }
 
+TEST_CASE("a frozen entity holds its frame until it plays again") {
+    const TrackEntitySources sources = Arm();
+    TrackEntities entities(sources);
+    entities.Tick(Milliseconds{50});
+
+    entities.Freeze(0);
+    entities.Tick(Milliseconds{100});
+    CHECK(entities.Frame(0) == doctest::Approx(5.0F));
+    entities.Play(0, 0, false);
+    entities.Tick(Milliseconds{100});
+
+    CHECK_FALSE(entities.IsFrozen(0));
+    CHECK(entities.Clocks()[0] == PartClock{.frame = 10.0F, .loops = false});
+}
+
+TEST_CASE("playing out runs the current part on to its last frame and holds it") {
+    const TrackEntitySources sources = Arm();
+    TrackEntities entities(sources);
+    entities.Freeze(0);
+    entities.Tick(Milliseconds{100});
+
+    entities.PlayOut(0);
+    entities.Tick(Milliseconds{100});
+    CHECK_FALSE(entities.IsHoldingLastFrame(0));
+    entities.Tick(Milliseconds{500});
+
+    CHECK(entities.IsHoldingLastFrame(0));
+    CHECK(entities.Frame(0) == doctest::Approx(20.0F));
+    CHECK(entities.IsHoldingLastFrame(1));
+}
+
 std::optional<RaceTrack> RetailTrack(std::string_view name) {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {

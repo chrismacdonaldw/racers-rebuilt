@@ -41,12 +41,13 @@ TrackEntities::TrackEntities(const TrackEntitySources& sources) : sources_(&sour
                                            : std::nullopt);
     }
     queued_.resize(clocks_.size());
+    isFrozen_.resize(clocks_.size());
 }
 
 void TrackEntities::Tick(Milliseconds elapsed) {
     const auto elapsedMs = static_cast<float>(elapsed.count());
     for (std::size_t i = 0; i < clocks_.size(); ++i) {
-        if (!clocks_[i]) {
+        if (!clocks_[i] || isFrozen_[i]) {
             continue;
         }
         const assets::AnimationAsset& animation =
@@ -59,7 +60,7 @@ void TrackEntities::Tick(Milliseconds elapsed) {
         PartClock once = clock;
         once.loops = false;
         AdvanceClock(animation, once, elapsedMs);
-        if (IsHoldingLastFrame(animation, once)) {
+        if (sim::IsHoldingLastFrame(animation, once)) {
             clocks_[i] = std::exchange(queued_[i], std::nullopt);
         } else {
             clock.frame = once.frame;
@@ -85,6 +86,29 @@ void TrackEntities::Queue(std::size_t entity, std::size_t part, bool loops) {
     } else {
         clocks_[entity] = clock;
     }
+}
+
+void TrackEntities::Freeze(std::size_t entity) {
+    isFrozen_.at(entity) = true;
+}
+
+void TrackEntities::Play(std::size_t entity, std::size_t part, bool loops) {
+    clocks_.at(entity) = PartClock{.part = part, .loops = loops};
+    queued_[entity].reset();
+    isFrozen_[entity] = false;
+}
+
+void TrackEntities::PlayOut(std::size_t entity) {
+    if (EntityClock& clock = clocks_.at(entity)) {
+        clock->loops = false;
+    }
+    isFrozen_[entity] = false;
+}
+
+bool TrackEntities::IsHoldingLastFrame(std::size_t entity) const {
+    const EntityClock& clock = clocks_.at(entity);
+    return !clock || sim::IsHoldingLastFrame(
+                         sources_->animations[sources_->entities[entity].animation], *clock);
 }
 
 std::optional<std::size_t> TrackEntities::CurrentPart(std::size_t entity) const {

@@ -33,8 +33,21 @@ public:
     /// Replaces any part already queued. An entity without a clock starts `part` at once.
     void Queue(std::size_t entity, std::size_t part, bool loops);
 
+    /// Stops the clock where it is until the entity plays again.
+    void Freeze(std::size_t entity);
+
+    /// Drops any queued part.
+    void Play(std::size_t entity, std::size_t part, bool loops);
+
+    /// Thaws the entity and runs its current part on to its last frame, without looping.
+    void PlayOut(std::size_t entity);
+
     [[nodiscard]] std::optional<std::size_t> CurrentPart(std::size_t entity) const;
     [[nodiscard]] bool HasQueued(std::size_t entity) const { return queued_[entity].has_value(); }
+    [[nodiscard]] bool IsFrozen(std::size_t entity) const { return isFrozen_[entity]; }
+
+    /// True for an entity without a clock.
+    [[nodiscard]] bool IsHoldingLastFrame(std::size_t entity) const;
 
     [[nodiscard]] std::optional<std::size_t> Find(std::string_view name) const;
 
@@ -58,6 +71,7 @@ private:
     const TrackEntitySources* sources_;
     std::vector<EntityClock> clocks_;
     std::vector<EntityClock> queued_;
+    std::vector<bool> isFrozen_;
 };
 
 }

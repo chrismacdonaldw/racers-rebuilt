@@ -1,9 +1,13 @@
 #include "sim/hazard/hazards.hpp"
 
+#include <concepts>
+#include <type_traits>
+
 namespace rr::sim {
 namespace {
 
 constexpr std::size_t kMostOwnEventsPerTick = 2;
+constexpr std::size_t kMostCannonEventsPerTick = 10;
 constexpr std::size_t kMostEventsPerRacerHit = 2;
 constexpr std::size_t kMostHeardFiresPerHazard = 8;
 
@@ -18,6 +22,23 @@ HazardSlot WithPayload(const assets::Hazard& hazard, Make make) {
 HazardSlot Load(const assets::Hazard& hazard, TrackEntities& entities, ModelSwitches& models,
                 Random& random) {
     switch (hazard.kind) {
+        case assets::HazardKind::FallingPillar:
+            return {.trigger = kFallingPillarTrigger, .state = LoadFallingPillar(entities)};
+        case assets::HazardKind::Sphinx:
+            return {.trigger = kSphinxTrigger, .state = LoadSphinx(entities, models)};
+        case assets::HazardKind::Cannon:
+            return WithPayload<assets::CannonShot>(hazard, [](const auto& payload) {
+                return HazardSlot{.state = LoadCannon(payload)};
+            });
+        case assets::HazardKind::BreakableProp:
+            return WithPayload<assets::BreakableProp>(hazard, [&](const auto& payload) {
+                return HazardSlot{.trigger = payload.trigger,
+                                  .state = LoadBreakable(payload, entities, models)};
+            });
+        case assets::HazardKind::ShipCannons:
+            return WithPayload<assets::ShipCannons>(hazard, [](const auto& payload) {
+                return HazardSlot{.state = LoadShipCannon(payload)};
+            });
         case assets::HazardKind::HammerSwish:
             return {.trigger = kHammerSwishTrigger, .state = LoadHammerSwish(entities)};
         case assets::HazardKind::Crane:
@@ -54,17 +75,40 @@ void RunActive(std::vector<HazardSlot>& slots, Run run) {
     }
 }
 
+bool StartsOn(const HazardState& state, const TrackEvent& event) {
+    return std::visit(
+        [&](const auto& hazard) {
+            if constexpr (requires { hazard.StartsOn(event); }) {
+                return hazard.StartsOn(event);
+            } else {
+                return false;
+            }
+        },
+        state);
+}
+
+bool IgnoresEnd(const HazardState& state) {
+    return std::visit(
+        [](const auto& hazard) {
+            return requires { std::remove_cvref_t<decltype(hazard)>::kIgnoresEnd; };
+        },
+        state);
+}
+
 void Switch(HazardSlot& slot, const TrackEvent& event, HazardContext& context) {
     if (event.edge == EventEdge::Start && slot.phase == HazardPhase::Loaded) {
         slot.phase = HazardPhase::Active;
         std::visit(
-            [](auto& hazard) {
-                if constexpr (requires { hazard.Activate(); }) {
+            [&](auto& hazard) {
+                if constexpr (requires { hazard.Activate(context); }) {
+                    hazard.Activate(context);
+                } else if constexpr (requires { hazard.Activate(); }) {
                     hazard.Activate();
                 }
             },
             slot.state);
-    } else if (event.edge == EventEdge::End && slot.phase == HazardPhase::Active) {
+    } else if (event.edge == EventEdge::End && slot.phase == HazardPhase::Active &&
+               !IgnoresEnd(slot.state)) {
         slot.phase = HazardPhase::Loaded;
         std::visit(
             [&](auto& hazard) {
@@ -89,9 +133,17 @@ std::size_t Hazards::MostEventsPerTick(std::span<const assets::Hazard> hazards,
                                        std::size_t racerCount) {
     std::size_t count = 0;
     for (const assets::Hazard& hazard : hazards) {
-        count += hazard.kind == assets::HazardKind::CodePuzzle
-                     ? CodePuzzle::MostEventsPerTick(racerCount)
-                     : kMostOwnEventsPerTick + (racerCount * kMostEventsPerRacerHit);
+        switch (hazard.kind) {
+            case assets::HazardKind::CodePuzzle:
+                count += CodePuzzle::MostEventsPerTick(racerCount);
+                break;
+            case assets::HazardKind::Cannon:
+            case assets::HazardKind::ShipCannons:
+                count += kMostCannonEventsPerTick;
+                break;
+            default:
+                count += kMostOwnEventsPerTick + (racerCount * kMostEventsPerRacerHit);
+        }
     }
     return count;
 }
@@ -101,7 +153,7 @@ void Hazards::Hear(const TrackEvents& heard, HazardContext& context) {
     for (std::size_t i = 0; i < heard.Events().size() && i < limit; ++i) {
         const TrackEvent event = heard.Events()[i];
         for (HazardSlot& slot : slots_) {
-            if (!event.racer && slot.trigger == event.id) {
+            if (!event.racer && (slot.trigger == event.id || StartsOn(slot.state, event))) {
                 Switch(slot, event, context);
             }
         }
@@ -114,11 +166,24 @@ void Hazards::Hear(const TrackEvents& heard, HazardContext& context) {
 }
 
 void Hazards::Tick(HazardContext& context) {
-    RunActive(slots_, [&](auto& hazard) {
-        if constexpr (requires { hazard.Tick(context); }) {
-            hazard.Tick(context);
+    for (HazardSlot& slot : slots_) {
+        if (slot.phase != HazardPhase::Active) {
+            continue;
         }
-    });
+        std::visit(
+            [&](auto& hazard) {
+                if constexpr (requires {
+                                  { hazard.Tick(context) } -> std::same_as<bool>;
+                              }) {
+                    if (!hazard.Tick(context)) {
+                        slot.phase = HazardPhase::Loaded;
+                    }
+                } else if constexpr (requires { hazard.Tick(context); }) {
+                    hazard.Tick(context);
+                }
+            },
+            slot.state);
+    }
 }
 
 void Hazards::Touch(HazardContext& context) {

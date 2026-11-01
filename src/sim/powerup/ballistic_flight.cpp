@@ -39,8 +39,7 @@ Vector3 AimPoint(const Racer& target) {
 
 void BallisticFlight::LaunchAtRacer(const BallisticSpec& spec, const Racer& owner,
                                     const Vector3& start, const Racer& target) {
-    gravity_ = spec.gravity;
-    lifetime_ = spec.lifetime;
+    Arm(spec);
     const Vector3 at = AimPoint(target);
     const float speed =
         std::max(spec.speed + std::abs(OwnerSpeedAlong(owner, start, at)), kMinSpeed);
@@ -54,10 +53,15 @@ void BallisticFlight::LaunchAtRacer(const BallisticSpec& spec, const Racer& owne
 
 void BallisticFlight::LaunchAtPoint(const BallisticSpec& spec, const Racer& owner,
                                     const Vector3& start, const Vector3& aim) {
-    gravity_ = spec.gravity;
-    lifetime_ = spec.lifetime;
+    Arm(spec);
     const float speed = spec.speed + std::max(OwnerSpeedAlong(owner, start, aim), 0.0F);
     Aim(start, aim, HorizontalDistance(start, aim) / speed);
+}
+
+void BallisticFlight::LaunchAtPoint(const BallisticSpec& spec, const Vector3& start,
+                                    const Vector3& aim) {
+    Arm(spec);
+    Aim(start, aim, HorizontalDistance(start, aim) / spec.speed);
 }
 
 void BallisticFlight::TurnBack(const Racer* target) {
@@ -87,6 +91,11 @@ FlightState BallisticFlight::Step(Milliseconds elapsed, const CollisionQuery& wo
 
 Vector3 BallisticFlight::Velocity() const {
     return velocity_ + Vector3{.z = gravity_ * Seconds(age_)};
+}
+
+void BallisticFlight::Arm(const BallisticSpec& spec) {
+    gravity_ = spec.gravity;
+    lifetime_ = spec.lifetime;
 }
 
 void BallisticFlight::Aim(const Vector3& start, const Vector3& aim, float seconds) {

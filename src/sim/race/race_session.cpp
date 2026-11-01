@@ -358,7 +358,9 @@ HazardContext RaceSession::HazardsContext(Milliseconds elapsed) {
             .surfaces = &surfaces_,
             .models = &hazards_.Models(),
             .random = &random_,
-            .elapsed = elapsed};
+            .elapsed = elapsed,
+            .world = course_.world,
+            .explosions = &explosions_};
 }
 
 bool RaceSession::HasPlayerFinished() const {

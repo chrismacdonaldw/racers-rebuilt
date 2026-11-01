@@ -8,14 +8,18 @@
 
 #include "assets/event_id.hpp"
 #include "assets/hazard_list.hpp"
+#include "sim/hazard/breakable.hpp"
 #include "sim/hazard/code_puzzle.hpp"
 #include "sim/hazard/crane.hpp"
+#include "sim/hazard/falling_pillar.hpp"
 #include "sim/hazard/ghost.hpp"
 #include "sim/hazard/hammer_swish.hpp"
 #include "sim/hazard/hazard_box.hpp"
+#include "sim/hazard/hazard_cannon.hpp"
 #include "sim/hazard/hazard_context.hpp"
 #include "sim/hazard/lava_blob.hpp"
 #include "sim/hazard/rocket_pad.hpp"
+#include "sim/hazard/sphinx.hpp"
 #include "sim/hazard/ufo_grabber.hpp"
 #include "sim/race/random.hpp"
 #include "sim/track/model_switches.hpp"
@@ -27,8 +31,9 @@ namespace rr::sim {
 
 enum class HazardPhase : std::uint8_t { Loaded, Active };
 
-using HazardState = std::variant<std::monostate, HammerSwish, Crane, HazardBox, Ghost, LavaBlob,
-                                 CodePuzzle, RocketPad, UfoGrabber>;
+using HazardState =
+    std::variant<std::monostate, FallingPillar, Sphinx, HammerSwish, Crane, HazardCannon, Breakable,
+                 HazardBox, Ghost, LavaBlob, CodePuzzle, RocketPad, UfoGrabber>;
 
 struct HazardSlot {
     assets::EventId trigger = assets::kNoEvent;

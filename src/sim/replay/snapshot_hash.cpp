@@ -282,7 +282,7 @@ public:
 
     void Add(const TrackEntities& entities) {
         for (std::size_t i = 0; i < entities.Clocks().size(); ++i) {
-            Add(entities.Clocks()[i], entities.Queued()[i]);
+            Add(entities.Clocks()[i], entities.Queued()[i], entities.IsFrozen(i));
         }
     }
 
@@ -311,6 +311,14 @@ public:
     void Add(const Crane& crane) { Add(crane.isArmed, crane.ball); }
     void Add(const HazardBox& box) { Add(box.box.centre, box.box.axes); }
     void Add(const Ghost& ghost) { Add(ghost.reach.centre); }
+    void Add(const FallingPillar& pillar) { Add(pillar.hasLanded); }
+    void Add(const Sphinx& sphinx) { Add(sphinx.isDestroyed, sphinx.blowUpLeft); }
+    void Add(const Breakable& prop) { Add(prop.isBroken); }
+
+    void Add(const HazardCannon& cannon) {
+        Add(cannon.isFlying, cannon.target.position, cannon.flight.Position(),
+            cannon.flight.Remaining());
+    }
     void Add(const LavaBlob& blob) { Add(blob.reach.centre, blob.eventWait); }
     void Add(const RocketPad& pad) { Add(pad.isOn, pad.hasShieldedRacer); }
 
