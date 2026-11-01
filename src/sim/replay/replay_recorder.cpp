@@ -7,10 +7,12 @@
 
 namespace rr::sim {
 
-ReplayRecorder::ReplayRecorder(std::string buildVersion, std::string scene, std::uint64_t seed)
+ReplayRecorder::ReplayRecorder(std::string buildVersion, std::string scene, std::uint64_t seed,
+                               std::vector<std::string> gameplay)
     : replay_{.buildVersion = std::move(buildVersion),
               .scene = std::move(scene),
               .seed = seed,
+              .gameplay = std::move(gameplay),
               .racers = {{}}} {}
 
 void ReplayRecorder::Record(const InputFrame& input, const RenderSnapshot& after) {

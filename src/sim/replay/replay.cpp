@@ -5,6 +5,7 @@
 #include <limits>
 #include <utility>
 
+#include "core/assert.hpp"
 #include "sim/replay/replay_bytes.hpp"
 
 namespace rr::sim {
@@ -107,19 +108,39 @@ Result<std::vector<InputFrame>> ReadStream(assets::ByteReader& reader, std::size
     return frames;
 }
 
+Result<std::vector<std::string>> ReadGameplay(assets::ByteReader& reader) {
+    Result<std::uint8_t> count = reader.ReadU8();
+    if (!count) {
+        return std::unexpected(std::move(count.error()));
+    }
+    std::vector<std::string> entries;
+    for (std::uint8_t i = 0; i < *count; ++i) {
+        Result<std::string> entry = ReadText(reader);
+        if (!entry) {
+            return std::unexpected(std::move(entry.error()));
+        }
+        entries.push_back(std::move(*entry));
+    }
+    return entries;
+}
+
 Result<Replay> ReadBody(assets::ByteReader& reader) {
     Replay replay;
     Result<std::string> buildVersion = ReadText(reader);
     Result<std::string> scene =
         buildVersion.and_then([&](const auto&) { return ReadText(reader); });
     Result<std::uint64_t> seed = scene.and_then([&](const auto&) { return ReadU64(reader); });
-    Result<std::uint8_t> racerCount = seed.and_then([&](auto) { return reader.ReadU8(); });
+    Result<std::vector<std::string>> gameplay =
+        seed.and_then([&](auto) { return ReadGameplay(reader); });
+    Result<std::uint8_t> racerCount =
+        gameplay.and_then([&](const auto&) { return reader.ReadU8(); });
     if (!racerCount) {
         return std::unexpected(std::move(racerCount.error()));
     }
     replay.buildVersion = std::move(*buildVersion);
     replay.scene = std::move(*scene);
     replay.seed = *seed;
+    replay.gameplay = std::move(*gameplay);
     std::size_t ticksLeft = kMaxTicks;
     for (std::uint8_t i = 0; i < *racerCount; ++i) {
         Result<std::vector<InputFrame>> stream = ReadStream(reader, ticksLeft);
@@ -139,6 +160,11 @@ std::vector<std::byte> EncodeReplay(const Replay& replay) {
     AppendText(out, replay.buildVersion);
     AppendText(out, replay.scene);
     AppendU64(out, replay.seed);
+    RR_VERIFY(replay.gameplay.size() <= kMaxGameplayEntries);
+    AppendU8(out, static_cast<std::uint8_t>(replay.gameplay.size()));
+    for (const std::string& entry : replay.gameplay) {
+        AppendText(out, entry);
+    }
     AppendU8(out, static_cast<std::uint8_t>(replay.racers.size()));
     for (const std::vector<InputFrame>& frames : replay.racers) {
         AppendStream(out, frames);

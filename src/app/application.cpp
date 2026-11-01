@@ -15,6 +15,7 @@
 #include "app/audio_settings.hpp"
 #include "app/audio_startup.hpp"
 #include "app/extensions.hpp"
+#include "app/gameplay_fingerprint.hpp"
 #include "app/input_bindings.hpp"
 #include "app/menu/main_menu_scene.hpp"
 #include "app/menu/menu_scenes.hpp"
@@ -194,7 +195,8 @@ Result<Application> Application::Create(GameBoot boot) {
 }
 
 Result<void> Application::Run() {
-    Result<ReplaySession> replay = ReplaySession::Start(recordFile_, replayFile_, scene_);
+    Result<ReplaySession> replay = ReplaySession::Start(
+        recordFile_, replayFile_, scene_, GameplayFingerprint(settings_, extensions_.mods));
     if (!replay) {
         return std::unexpected(std::move(replay.error()));
     }

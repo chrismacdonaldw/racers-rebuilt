@@ -10,6 +10,7 @@ rr_add_module(app
         checkpoint_gates.cpp
         collision_wireframe.cpp
         extensions.cpp
+        gameplay_fingerprint.cpp
         frame_loop.cpp
         free_camera.cpp
         game_boot.cpp

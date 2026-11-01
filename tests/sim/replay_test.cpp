@@ -41,6 +41,7 @@ Replay SampleReplay() {
     return {.buildVersion = "0.1.0",
             .scene = "RACEC0R0",
             .seed = 0x1234'5678'9ABC'DEF0ULL,
+            .gameplay = {"race.example=true", "mod:example@1.0.0"},
             .racers = {frames}};
 }
 
@@ -58,6 +59,7 @@ std::vector<std::byte> TwoLongStreams() {
     AppendText(bytes, "");
     AppendText(bytes, "");
     AppendU64(bytes, 0);
+    AppendU8(bytes, 0);
     AppendU8(bytes, kRacers);
     for (std::uint8_t racer = 0; racer < kRacers; ++racer) {
         AppendU32(bytes, 1);
