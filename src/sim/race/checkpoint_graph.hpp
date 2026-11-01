@@ -41,6 +41,9 @@ public:
     /// How far `position` is behind the nearest gate linked from `checkpoint`.
     [[nodiscard]] float DistanceToNextGate(std::size_t checkpoint, const Vector3& position) const;
 
+    /// Passes through each gate's centre in turn from `gate` by first links, for one pass at most.
+    [[nodiscard]] Vector3 WalkAhead(Vector3 position, float distance, std::size_t gate) const;
+
 private:
     CheckpointGraph(std::vector<assets::Checkpoint> checkpoints, std::vector<float> fractions)
         : checkpoints_(std::move(checkpoints)), fractions_(std::move(fractions)) {}

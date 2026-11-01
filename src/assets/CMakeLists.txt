@@ -32,6 +32,7 @@ rr_add_module(assets
         start_grid.cpp
         string_table.cpp
         surface_table.cpp
+        target_points.cpp
         texture_database.cpp
         tga_image.cpp
         token_reader.cpp

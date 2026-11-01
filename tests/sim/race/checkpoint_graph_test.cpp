@@ -5,6 +5,7 @@
 #include <optional>
 
 #include "checkpoint_ring.hpp"
+#include "core/vector3.hpp"
 
 namespace rr::sim {
 namespace {
@@ -74,6 +75,22 @@ TEST_CASE("the distance to the next gate takes the nearest linked gate") {
 
     CHECK(graph.DistanceToNextGate(0, {.x = 4.0F}) == 6.0F);
     CHECK(graph.DistanceToNextGate(1, {.x = 12.0F}) == 8.0F);
+}
+
+TEST_CASE("a walk follows first links through the gate centres") {
+    const CheckpointGraph graph = test::Ring();
+
+    CHECK(graph.WalkAhead({.x = 4.0F}, 3.0F, 1) == Vector3{.x = 7.0F});
+    CHECK(graph.WalkAhead({.x = 4.0F}, 16.0F, 1) == Vector3{.x = 20.0F});
+    CHECK(graph.WalkAhead({.x = 25.0F}, 10.0F, 3).x == doctest::Approx(25.0F));
+}
+
+TEST_CASE("a walk stops after one pass of a loop with no length") {
+    Result<CheckpointGraph> graph =
+        CheckpointGraph::Create({.checkpoints = {GateAt(0.0F, {0, kNo, kNo, kNo})}});
+    REQUIRE(graph.has_value());
+
+    CHECK(graph->WalkAhead({.x = -5.0F}, 100.0F, 0) == Vector3{});
 }
 
 }

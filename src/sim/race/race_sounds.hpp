@@ -19,6 +19,8 @@ enum class RaceSound : std::uint8_t {
     EngineStart,
     TurboStart,
     TurboFade,
+    WarpEnter,
+    WarpLand,
     DriftStart,
     WallHit,
     Finish,

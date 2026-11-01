@@ -26,6 +26,7 @@
 #include "assets/circuit_database.hpp"
 #include "core/log.hpp"
 #include "platform/clock.hpp"
+#include "sim/powerup/green_effects.hpp"
 
 namespace rr::app {
 namespace {
@@ -39,6 +40,7 @@ constexpr std::uint64_t kHashPrime = 1099511628211ULL;
 sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, std::uint64_t seed,
                         std::size_t slots) {
     sim::RaceSetup setup{.track = scene.track, .seed = seed, .respawn = scene.respawn};
+    sim::AddGreenEffects(setup.effects);
     setup.racers.resize(slots);
     for (std::size_t i = 0; i < slots; ++i) {
         setup.racers[i].chassis = racers.Chassis(i);

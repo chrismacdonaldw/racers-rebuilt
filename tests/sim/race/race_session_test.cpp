@@ -16,6 +16,7 @@
 #include "../physics/plane_world.hpp"
 #include "../powerup/fake_effect.hpp"
 #include "checkpoint_ring.hpp"
+#include "sim/powerup/green_effects.hpp"
 
 namespace rr::sim {
 namespace {
@@ -320,6 +321,25 @@ TEST_CASE("pressing use fires the held power-up once racing has started") {
     CHECK(turbo.kind == PowerupKind::Turbo);
     CHECK(turbo.use.level == 1);
     CHECK(session.Inventories()[0] == PowerupInventory{});
+}
+
+TEST_CASE("a warp sounds as it opens and as it lands") {
+    const Fixture fixture;
+    RaceSetup setup = TwoRacers();
+    AddGreenEffects(setup.effects);
+    RaceSession session = fixture.Start(setup);
+    RunUntilRacing(session);
+    session.GivePowerup(0, assets::BrickColour::Green, 3);
+
+    const std::vector<HeardSound> heard = Listen(session, 200, {.isUsePressed = true});
+
+    std::vector<HeardSound> warps;
+    std::ranges::copy_if(heard, std::back_inserter(warps), [](const HeardSound& sound) {
+        return sound.second.sound == RaceSound::WarpEnter ||
+               sound.second.sound == RaceSound::WarpLand;
+    });
+    CHECK(warps == std::vector<HeardSound>{{41, {.sound = RaceSound::WarpEnter}},
+                                           {166, {.sound = RaceSound::WarpLand}}});
 }
 
 }

@@ -1,7 +1,14 @@
 #include "sim/physics/body_effects.hpp"
+#include "sim/physics/facing.hpp"
 #include "sim/physics/racer.hpp"
+#include "sim/physics/rigid_body.hpp"
 
 namespace rr::sim {
+namespace {
+
+constexpr float kWarpLaunchImpulse = 700.0F;
+
+}
 
 void Racer::StartSpin(float turns, float ratePerMs, float align) {
     if (route_) {
@@ -127,6 +134,51 @@ void Racer::LeaveGhostMode() {
 
 void Racer::ReactToHit() {
     ++status_.hitReactions;
+}
+
+bool Racer::BeginWarp() {
+    if (status_.isGhost || status_.isWarping) {
+        return false;
+    }
+    if (status_.isMagnetHeld) {
+        EndMagnetHold();
+    }
+    status_.isWarping = true;
+    return true;
+}
+
+void Racer::CancelWarp() {
+    status_.isWarping = false;
+}
+
+void Racer::EnterWarp() {
+    status_.isWarping = false;
+    EnterGhostMode();
+    if (!route_) {
+        for (std::size_t slot = 0; slot < kExternalForceSlots; ++slot) {
+            sim::EndExternalForce(body_, slot);
+        }
+    }
+    events_.hasWarpEntered = true;
+}
+
+void Racer::MoveWarp(const Vector3& position) {
+    if (!route_) {
+        body_.motion.position = position;
+    }
+}
+
+void Racer::LandWarp(const Vector3& position, const Vector3& direction) {
+    if (!route_) {
+        BodyMotion& motion = body_.motion;
+        motion.position = position;
+        motion.basis = OrthonormalBasis(direction, {.z = 1.0F});
+        motion.velocity = direction * (kWarpLaunchImpulse / constants_.mass);
+        body_.facing = motion.basis.forward;
+        UpdateDerivedMotion(body_);
+    }
+    LeaveGhostMode();
+    events_.hasWarpLanded = true;
 }
 
 void Racer::RollCurse(Milliseconds elapsed, Random& random) {

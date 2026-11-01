@@ -19,6 +19,7 @@ constexpr float kSpinSpeed = 0.3F;
 constexpr float kSpinPushSwing = 0.1F;
 constexpr float kSpinOutSpeed = 0.1F;
 constexpr float kSpinOutHopSpeed = 50.0F;
+constexpr float kBoostSpeed = 1.7F;
 constexpr float kCurseSpeed = 0.5F;
 constexpr float kGhostSpeed = 4.5F;
 constexpr float kMaxSpeed = 2.75F;
@@ -134,6 +135,22 @@ void AiRacer::EndPush() {
         baseSpeed_ = 1.0F;
     }
     targetSpeed_ = baseSpeed_;
+}
+
+void AiRacer::StartBoost() {
+    if (effects_.isCurseSlowed || effects_.isGhost) {
+        return;
+    }
+    effects_.isBoosting = true;
+    playbackSpeed_ = kBoostSpeed;
+}
+
+void AiRacer::EndBoost() {
+    if (!effects_.isBoosting || effects_.isGhost) {
+        return;
+    }
+    effects_.isBoosting = false;
+    ReturnToFullSpeed();
 }
 
 void AiRacer::StartCurseSlow() {

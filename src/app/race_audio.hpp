@@ -76,6 +76,7 @@ private:
     };
 
     void PlayEvent(const sim::RaceSession& session, const sim::SoundEvent& event);
+    void PlayTurboEnd(sim::TurboLevel level, const Vector3& car);
     void PlayAt(std::size_t effect, const Vector3& source, const audio::VoiceMix& mix = {},
                 SoundRange range = {});
     void PlayFlat(std::size_t effect);

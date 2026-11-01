@@ -30,6 +30,8 @@ public:
     void StopHover();
     void StartPush(const Vector3& force);
     void EndPush();
+    void StartBoost();
+    void EndBoost();
     void StartCurseSlow();
     void EndCurseSlow();
     void StartGhost();

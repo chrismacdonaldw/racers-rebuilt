@@ -124,4 +124,20 @@ float CheckpointGraph::DistanceToNextGate(std::size_t checkpoint, const Vector3&
     return nearest;
 }
 
+Vector3 CheckpointGraph::WalkAhead(Vector3 position, float distance, std::size_t gate) const {
+    for (std::size_t step = 0; step < checkpoints_.size() && distance > 0.0F; ++step) {
+        const assets::Checkpoint& target = checkpoints_.at(gate);
+        const float toTarget = Length(target.position - position);
+        if (toTarget < distance) {
+            distance -= toTarget;
+            position = target.position;
+        } else {
+            position = position + ((target.position - position) * (distance / toTarget));
+            distance = 0.0F;
+        }
+        gate = target.links[0];
+    }
+    return position;
+}
+
 }
