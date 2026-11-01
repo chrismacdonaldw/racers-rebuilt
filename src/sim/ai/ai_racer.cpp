@@ -118,6 +118,10 @@ void AiRacer::StopHover() {
     effects_.lift.ratePerSecond = kHoverDropPerSecond;
 }
 
+void AiRacer::Tilt(float ratePerMs, int durationMs) {
+    StartRouteTilt(effects_.tilt, ratePerMs, durationMs);
+}
+
 void AiRacer::StartPush(const Vector3& force) {
     effects_.isPushed = true;
     const float along = Dot(Facing(), force);

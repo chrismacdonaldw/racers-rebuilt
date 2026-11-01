@@ -29,6 +29,7 @@
 #include "sim/powerup/green_effects.hpp"
 #include "sim/powerup/red_effects.hpp"
 #include "sim/powerup/shield_effect.hpp"
+#include "sim/powerup/yellow_effects.hpp"
 
 namespace rr::app {
 namespace {
@@ -45,6 +46,7 @@ sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, st
     sim::AddGreenEffects(setup.effects);
     sim::AddBlueEffects(setup.effects);
     sim::AddRedEffects(setup.effects);
+    sim::AddYellowEffects(setup.effects);
     setup.racers.resize(slots);
     for (std::size_t i = 0; i < slots; ++i) {
         setup.racers[i].chassis = racers.Chassis(i);

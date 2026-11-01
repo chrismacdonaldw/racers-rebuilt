@@ -1,6 +1,7 @@
 #include "app/race_audio.hpp"
 
 #include <format>
+#include <optional>
 #include <utility>
 
 #include "core/assert.hpp"
@@ -13,7 +14,7 @@ constexpr std::string_view kEffectsBank = "GAMEDATA/COMMON/GENERAL.SBK";
 constexpr std::size_t kCountdownBeep = 0;
 constexpr std::size_t kShieldAbsorb = 1;
 constexpr std::size_t kBrakeStart = 2;
-constexpr std::size_t kCannonHit = 5;
+constexpr std::size_t kBlast = 5;
 constexpr std::size_t kCannonFire = 6;
 constexpr std::size_t kBrakeLoop = 3;
 constexpr std::size_t kWhiteBrickBeforeFirst = 10;
@@ -25,6 +26,10 @@ constexpr std::size_t kBrickRespawn = 14;
 constexpr std::size_t kDriveLoop = 10;
 constexpr std::size_t kGo = 15;
 constexpr std::size_t kCarScrape = 24;
+constexpr std::size_t kMagnetDeploy = 33;
+constexpr std::size_t kMagnetGrab = 35;
+constexpr std::size_t kOilDrop = 46;
+constexpr std::size_t kOilSlip = 47;
 constexpr std::size_t kWallHit = 25;
 constexpr std::size_t kIdleLoop = 32;
 constexpr std::size_t kBrickCollect = 49;
@@ -47,6 +52,7 @@ constexpr std::size_t kGrappleRetract = 73;
 constexpr std::size_t kEngineStart = 62;
 constexpr std::size_t kTurboWhoosh = 65;
 constexpr std::size_t kShieldAbsorbAlternate = 70;
+constexpr std::size_t kMagnetFade = 74;
 constexpr std::size_t kHoverTurboEnd = 75;
 constexpr std::size_t kShieldLoop0 = 76;
 constexpr std::size_t kShieldLoop2 = 77;
@@ -66,6 +72,47 @@ constexpr SoundRange kShieldRange{.min = 200.0F, .max = 600.0F};
 constexpr SoundRange kWeaponFireRange{.min = 30.0F, .max = 300.0F};
 constexpr SoundRange kWeaponHitRange{.min = 200.0F, .max = 600.0F};
 constexpr Vector3 kShieldExpireOffset{.z = 5.0F};
+
+struct WeaponCue {
+    std::size_t effect = 0;
+    SoundRange range;
+};
+
+std::optional<WeaponCue> WeaponCueFor(sim::RaceSound sound) {
+    switch (sound) {
+        case sim::RaceSound::CannonFire:
+            return WeaponCue{.effect = kCannonFire, .range = kWeaponFireRange};
+        case sim::RaceSound::CannonHit:
+        case sim::RaceSound::DynamiteBlast:
+            return WeaponCue{.effect = kBlast, .range = kWeaponHitRange};
+        case sim::RaceSound::MissileFire:
+            return WeaponCue{.effect = kMissileFire, .range = kWeaponFireRange};
+        case sim::RaceSound::MissileHit:
+            return WeaponCue{.effect = kMissileHit, .range = kWeaponHitRange};
+        case sim::RaceSound::OilDrop:
+            return WeaponCue{.effect = kOilDrop, .range = kWeaponFireRange};
+        case sim::RaceSound::OilSlip:
+            return WeaponCue{.effect = kOilSlip, .range = kWeaponHitRange};
+        case sim::RaceSound::MagnetDeploy:
+            return WeaponCue{.effect = kMagnetDeploy, .range = kWeaponFireRange};
+        case sim::RaceSound::MagnetGrab:
+            return WeaponCue{.effect = kMagnetGrab, .range = kWeaponFireRange};
+        case sim::RaceSound::MagnetFade:
+            return WeaponCue{.effect = kMagnetFade, .range = kWeaponFireRange};
+        case sim::RaceSound::GrappleFire:
+            return WeaponCue{.effect = kGrappleFire, .range = kWeaponFireRange};
+        case sim::RaceSound::GrappleHit:
+            return WeaponCue{.effect = kGrappleHit, .range = kWeaponFireRange};
+        case sim::RaceSound::GrappleRelease:
+            return WeaponCue{.effect = kGrappleRelease, .range = kWeaponFireRange};
+        case sim::RaceSound::LightningStrike:
+            return WeaponCue{.effect = kLightningStrike, .range = kWeaponFireRange};
+        case sim::RaceSound::LightningEnd:
+            return WeaponCue{.effect = kLightningEnd, .range = kWeaponFireRange};
+        default:
+            return std::nullopt;
+    }
+}
 
 std::size_t ShieldAbsorbSound(std::uint8_t variant) {
     return variant == 0 ? kShieldAbsorb : kShieldAbsorbAlternate + variant - 1;
@@ -225,46 +272,14 @@ void RaceAudio::PlayPowerupEvent(const sim::SoundEvent& event, const Vector3& ca
         case sim::RaceSound::ShieldExpire:
             PlayAt(kShieldExpire, car + kShieldExpireOffset, {}, kShieldRange);
             break;
-        case sim::RaceSound::CannonFire:
-            PlayAt(kCannonFire, event.position, {}, kWeaponFireRange);
-            break;
-        case sim::RaceSound::CannonHit:
-            PlayAt(kCannonHit, event.position, {}, kWeaponHitRange);
-            break;
-        case sim::RaceSound::MissileFire:
-            PlayAt(kMissileFire, event.position, {}, kWeaponFireRange);
-            break;
-        case sim::RaceSound::MissileHit:
-            PlayAt(kMissileHit, event.position, {}, kWeaponHitRange);
-            break;
-        default:
-            PlayRedEvent(event);
-            break;
-    }
-}
-
-void RaceAudio::PlayRedEvent(const sim::SoundEvent& event) {
-    switch (event.sound) {
-        case sim::RaceSound::GrappleFire:
-            PlayAt(kGrappleFire, event.position, {}, kWeaponFireRange);
-            break;
-        case sim::RaceSound::GrappleHit:
-            PlayAt(kGrappleHit, event.position, {}, kWeaponFireRange);
-            break;
-        case sim::RaceSound::GrappleRelease:
-            PlayAt(kGrappleRelease, event.position, {}, kWeaponFireRange);
-            break;
         case sim::RaceSound::GrappleMiss:
             PlayAt(kGrappleMiss, event.position, {}, kWeaponFireRange);
             PlayAt(kGrappleRetract, event.position, {}, kWeaponFireRange);
             break;
-        case sim::RaceSound::LightningStrike:
-            PlayAt(kLightningStrike, event.position, {}, kWeaponFireRange);
-            break;
-        case sim::RaceSound::LightningEnd:
-            PlayAt(kLightningEnd, event.position, {}, kWeaponFireRange);
-            break;
         default:
+            if (const std::optional<WeaponCue> cue = WeaponCueFor(event.sound)) {
+                PlayAt(cue->effect, event.position, {}, cue->range);
+            }
             break;
     }
 }

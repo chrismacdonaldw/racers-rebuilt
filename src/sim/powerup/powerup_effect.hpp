@@ -37,6 +37,7 @@ struct PowerupContext {
     BrickField* bricks = nullptr;
     std::span<PowerupInventory> inventories;
     Explosions* explosions = nullptr;
+    Explosions* spikes = nullptr;
     WeaponEvents* weapons = nullptr;
     std::span<const assets::TargetPoint> targets;
 };

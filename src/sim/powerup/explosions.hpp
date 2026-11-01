@@ -20,6 +20,8 @@ struct ExplosionSpec {
 };
 
 inline constexpr std::size_t kExplosionCount = 6;
+inline constexpr ExplosionSpec kSpikeExplosion{.blastRadius = 10.0F};
+inline constexpr std::size_t kSpikeExplosionCount = 2;
 
 enum class ExplosionPhase : std::uint8_t { Idle, Exploding, ScarFading };
 

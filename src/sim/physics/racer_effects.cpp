@@ -48,6 +48,23 @@ void Racer::LaunchHit(float strength) {
     }
 }
 
+void Racer::KickPitch(float ratePerMs, Milliseconds duration) {
+    const auto durationMs = static_cast<int>(duration.count());
+    if (route_) {
+        route_->Tilt(ratePerMs, durationMs);
+    } else {
+        SetPitchImpulse(body_, constants_, ratePerMs, durationMs);
+    }
+}
+
+void Racer::Push(const Vector3& direction, float impulse) {
+    if (route_) {
+        route_->Bump(direction, impulse);
+    } else {
+        body_.motion.velocity += direction * (impulse / constants_.mass);
+    }
+}
+
 void Racer::Halt() {
     if (status_.isHalted) {
         return;

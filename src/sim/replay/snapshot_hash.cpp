@@ -277,7 +277,7 @@ std::uint64_t HashRaceSession(const RaceSession& session) {
     for (const std::size_t racer : session.Progress().Standings()) {
         hash.Add(static_cast<std::uint64_t>(racer));
     }
-    hash.Add(session.Powerups(), session.Blasts());
+    hash.Add(session.Powerups(), session.Blasts(), session.Spikes());
     if (!session.Bricks().IsEmpty()) {
         hash.Add(session.Bricks());
         for (const PowerupInventory& inventory : session.Inventories()) {

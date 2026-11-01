@@ -95,6 +95,12 @@ public:
     /// Spins out, and off a route throws the car forward and up. `strength` runs from 0 to 1.
     void LaunchHit(float strength);
 
+    /// `ratePerMs` is in radians per ms. Ignored while a tilt is already running.
+    void KickPitch(float ratePerMs, Milliseconds duration);
+
+    /// Off a route, adds `impulse` over the car's mass along `direction`; on one, bumps playback.
+    void Push(const Vector3& direction, float impulse);
+
     void Halt();
     void Resume();
     void AttachCurse(Milliseconds duration);

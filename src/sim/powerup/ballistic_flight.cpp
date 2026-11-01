@@ -45,7 +45,11 @@ void BallisticFlight::LaunchAtRacer(const BallisticSpec& spec, const Racer& owne
     const float speed =
         std::max(spec.speed + std::abs(OwnerSpeedAlong(owner, start, at)), kMinSpeed);
     const float seconds = HorizontalDistance(start, at) / speed;
-    Aim(start, at + (target.Body().motion.velocity * (seconds * kMsPerSecond)), seconds);
+    Vector3 lead = target.Body().motion.velocity * (seconds * kMsPerSecond);
+    if (spec.leadsOnlyBehind && Dot(owner.Body().motion.basis.forward, at + lead - start) >= 0.0F) {
+        lead = {};
+    }
+    Aim(start, at + lead, seconds);
 }
 
 void BallisticFlight::LaunchAtPoint(const BallisticSpec& spec, const Racer& owner,

@@ -28,6 +28,10 @@ public:
     void StartSpinOut();
     void StartHover();
     void StopHover();
+
+    /// `ratePerMs` is in radians per ms. Ignored while a tilt is already running.
+    void Tilt(float ratePerMs, int durationMs);
+
     void StartPush(const Vector3& force);
     void EndPush();
     void StartBoost();
