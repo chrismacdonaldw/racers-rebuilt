@@ -40,5 +40,23 @@ TEST_CASE("a beam span shades from its base colour toward the colour of its bulg
     CHECK(ToGame(straight[1].position).y == doctest::Approx(0.0F));
 }
 
+TEST_CASE("a span ending next to the path's last point adds nothing") {
+    std::vector<RibbonPoint> path;
+    AppendBeamSpan({}, kTo, kSide, 4.0F, kColours, path);
+
+    AppendBeamSpan(kTo, kTo + Vector3{.x = 0.1F}, kSide, 4.0F, kColours, path);
+    CHECK(path.size() == kBeamSpanSteps);
+    AppendBeamSpan(kTo, kTo + Vector3{.x = 0.2F}, kSide, 4.0F, kColours, path);
+    CHECK(path.size() == 2 * kBeamSpanSteps);
+}
+
+TEST_CASE("a short span still starts a path") {
+    std::vector<RibbonPoint> path{{.position = {}}};
+
+    AppendBeamSpan({}, {.x = 0.1F}, kSide, 0.0F, kColours, path);
+
+    CHECK(path.size() == 1 + kBeamSpanSteps);
+}
+
 }
 }

@@ -5,6 +5,8 @@
 namespace rr::app {
 namespace {
 
+constexpr float kShortestSpanSquared = 0.02F;
+
 render::Color Mix(const render::Color& from, const render::Color& to, float share) {
     return {.r = from.r + ((to.r - from.r) * share),
             .g = from.g + ((to.g - from.g) * share),
@@ -16,6 +18,12 @@ render::Color Mix(const render::Color& from, const render::Color& to, float shar
 
 void AppendBeamSpan(const Vector3& from, const Vector3& to, const Vector3& side, float bulge,
                     const BeamColours& colours, std::vector<RibbonPoint>& path) {
+    if (path.size() >= 2) {
+        const Vector3 step = ToEngine(to) - path.back().position;
+        if (Dot(step, step) < kShortestSpanSquared) {
+            return;
+        }
+    }
     const Vector3 control = Lerp(from, to, 0.5F) + (side * bulge);
     const render::Color& peak = bulge > 0.0F ? colours.outward : colours.inward;
     for (std::size_t step = 1; step <= kBeamSpanSteps; ++step) {
