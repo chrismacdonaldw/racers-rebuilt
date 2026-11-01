@@ -107,6 +107,18 @@ TEST_CASE("clocks run at the part's frame rate") {
     CHECK(clock.frame == doctest::Approx(3.0F));
 }
 
+TEST_CASE("rewinding a looping part wraps over its loop length, and a one-shot part holds") {
+    const assets::AnimationAsset animations = Slide();
+    PartClock looping{.frame = 1.0F};
+    PartClock once{.frame = 1.0F, .loops = false};
+
+    RewindClock(animations, looping, 100.0F);
+    RewindClock(animations, once, 100.0F);
+
+    CHECK(looping.frame == doctest::Approx(20.0F));
+    CHECK(once.frame == 0.0F);
+}
+
 TEST_CASE("animations with fewer tracks than the skeleton needs fail") {
     CHECK(CheckPartTracks(Slide(), 2).has_value());
     CHECK_FALSE(CheckPartTracks(Slide(), 3).has_value());

@@ -16,6 +16,12 @@ assets::Hazard GhostHazard() {
     return {.kind = assets::HazardKind::Ghost};
 }
 
+void TickFor(test::HazardRig& rig, int ticks) {
+    for (int tick = 0; tick < ticks; ++tick) {
+        rig.Tick();
+    }
+}
+
 TrackEntitySources GhostEntity() {
     TrackEntitySources sources = test::StillEntities({"ghostly"}, kGhost);
     sources.entities[0].radius = 2.0F;
@@ -47,6 +53,33 @@ TEST_CASE("the ghost spins out a moving racer and hops it up") {
     CHECK(rig.Car(0).Body().motion.velocity.z > 0.0F);
     CHECK(rig.Car(0).Status().hitReactions == 1);
     CHECK_FALSE(rig.Car(1).IsSpinning());
+    REQUIRE(rig.Hazards().Sounds().size() == 1);
+    CHECK(rig.Hazards().Sounds()[0].soundId == 3015);
+    CHECK(rig.Hazards().Sounds()[0].position == rig.Car(0).Body().motion.position);
+}
+
+TEST_CASE("the ghost moans every 4 s while a racer is within 60") {
+    test::HazardRig rig({GhostHazard()}, GhostEntity());
+    rig.Hear(kGhostTrigger, EventEdge::Start);
+    rig.Place(0, {.x = 85.0F});
+
+    TickFor(rig, 333);
+    CHECK(rig.Hazards().Sounds().empty());
+    rig.Tick();
+
+    REQUIRE(rig.Hazards().Sounds().size() == 1);
+    CHECK(rig.Hazards().Sounds()[0].soundId == 3013);
+    CHECK(rig.Hazards().Sounds()[0].position == kGhost);
+}
+
+TEST_CASE("the ghost stays silent with nobody within 60") {
+    test::HazardRig rig({GhostHazard()}, GhostEntity());
+    rig.Hear(kGhostTrigger, EventEdge::Start);
+    rig.Place(0, {.x = 95.0F});
+
+    TickFor(rig, 334);
+
+    CHECK(rig.Hazards().Sounds().empty());
 }
 
 TEST_CASE("the ghost passes through shielded, stopped and spinning racers") {

@@ -24,6 +24,7 @@
 #include "sim/hazard/rocket_pad.hpp"
 #include "sim/hazard/sphinx.hpp"
 #include "sim/hazard/ufo_grabber.hpp"
+#include "sim/hazard/visual_hazards.hpp"
 #include "sim/hazard/warp_pad.hpp"
 #include "sim/powerup/powerup_kind.hpp"
 #include "sim/race/random.hpp"
@@ -39,7 +40,7 @@ enum class HazardPhase : std::uint8_t { Loaded, Active };
 using HazardState =
     std::variant<std::monostate, FallingPillar, Sphinx, HammerSwish, Crane, HazardCannon, Breakable,
                  HazardBox, Ghost, LavaBlob, CodePuzzle, RocketPad, UfoGrabber, CurseDrop,
-                 LightningCannon, DragonCannonballs, WarpPad>;
+                 LightningCannon, DragonCannonballs, WarpPad, SmokeVent, Snowfall>;
 
 struct HazardSlot {
     assets::EventId trigger = assets::kNoEvent;
@@ -68,12 +69,15 @@ public:
 
     /// One per slot, for the power-ups each hazard fires.
     [[nodiscard]] std::span<const HazardAim> Aims() const { return aims_; }
+    /// What the hazards played since this tick's `Tick`.
+    [[nodiscard]] std::span<const HazardSound> Sounds() const { return sounds_; }
     [[nodiscard]] const ModelSwitches& Models() const { return models_; }
     [[nodiscard]] ModelSwitches& Models() { return models_; }
 
 private:
     std::vector<HazardSlot> slots_;
     std::vector<HazardAim> aims_;
+    std::vector<HazardSound> sounds_;
     ModelSwitches models_;
 };
 

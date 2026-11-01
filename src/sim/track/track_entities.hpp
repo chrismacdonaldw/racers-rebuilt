@@ -67,6 +67,10 @@ public:
     /// In game space.
     [[nodiscard]] Transform NodeWorld(std::size_t entity, std::size_t node) const;
 
+    /// Where the node was `ago` earlier on the current part, in game space.
+    [[nodiscard]] Transform NodeWorldBefore(std::size_t entity, std::size_t node,
+                                            Milliseconds ago) const;
+
 private:
     const TrackEntitySources* sources_;
     std::vector<EntityClock> clocks_;

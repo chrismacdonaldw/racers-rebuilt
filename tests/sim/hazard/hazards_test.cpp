@@ -53,7 +53,7 @@ TEST_CASE("racer-path events and other ids leave a hazard alone") {
 }
 
 TEST_CASE("kinds the race doesn't run yet never start") {
-    test::HazardRig rig({{.kind = assets::HazardKind::Snowfall}}, {});
+    test::HazardRig rig({{.kind = assets::HazardKind::WaterScroll}}, {});
 
     rig.Hear(10, Start);
 
@@ -133,7 +133,7 @@ TEST_CASE("every retail hazard this race runs finds its entity") {
     for (const std::string& name : assets::ListRaceTracks(*vfs)) {
         running += CountRunning(*vfs, name);
     }
-    CHECK(running == 19);
+    CHECK(running == 20);
 }
 
 }

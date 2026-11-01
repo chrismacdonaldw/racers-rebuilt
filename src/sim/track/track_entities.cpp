@@ -135,4 +135,14 @@ Transform TrackEntities::NodeWorld(std::size_t entity, std::size_t node) const {
     return sim::NodeWorld(*sources_, entity, clocks_[entity], node);
 }
 
+Transform TrackEntities::NodeWorldBefore(std::size_t entity, std::size_t node,
+                                         Milliseconds ago) const {
+    EntityClock clock = clocks_[entity];
+    if (clock) {
+        RewindClock(sources_->animations[Entity(entity).animation], *clock,
+                    static_cast<float>(ago.count()));
+    }
+    return sim::NodeWorld(*sources_, entity, clock, node);
+}
+
 }

@@ -26,6 +26,9 @@ void AdvanceFrames(const assets::AnimationAsset& animations, PartClock& clock, f
 
 void AdvanceClock(const assets::AnimationAsset& animations, PartClock& clock, float elapsedMs);
 
+/// Before the first frame, a looping part wraps over its loop length and a one-shot part holds.
+void RewindClock(const assets::AnimationAsset& animations, PartClock& clock, float elapsedMs);
+
 [[nodiscard]] bool IsHoldingLastFrame(const assets::AnimationAsset& animations,
                                       const PartClock& clock);
 

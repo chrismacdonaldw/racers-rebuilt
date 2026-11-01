@@ -35,9 +35,8 @@ constexpr Milliseconds kTestTrackRace{45'000};
 constexpr Milliseconds kRetailRace{150'000};
 constexpr std::uint64_t kRetailSeed = 11;
 
-bool IsVisualOnly(assets::HazardKind kind) {
-    using enum assets::HazardKind;
-    return kind == Snowfall || kind == SmokeVent || kind == WaterScroll;
+bool IsUnported(assets::HazardKind kind) {
+    return kind == assets::HazardKind::WaterScroll;
 }
 
 bool IsStartedByShots(assets::HazardKind kind) {
@@ -177,7 +176,7 @@ void CheckHazardsRan(std::span<const assets::Hazard> hazards, const std::vector<
     for (std::size_t i = 0; i < hazards.size(); ++i) {
         const assets::HazardKind kind = hazards[i].kind;
         CAPTURE(static_cast<int>(kind));
-        CHECK((ran[i] || IsVisualOnly(kind) || IsStartedByShots(kind)));
+        CHECK((ran[i] || IsUnported(kind) || IsStartedByShots(kind)));
     }
 }
 

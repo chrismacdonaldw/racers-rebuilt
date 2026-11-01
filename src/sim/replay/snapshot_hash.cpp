@@ -313,7 +313,7 @@ public:
     void Add(const HammerSwish& hammer) { Add(hammer.isArmed); }
     void Add(const Crane& crane) { Add(crane.isArmed, crane.ball); }
     void Add(const HazardBox& box) { Add(box.box.centre, box.box.axes); }
-    void Add(const Ghost& ghost) { Add(ghost.reach.centre); }
+    void Add(const Ghost& ghost) { Add(ghost.reach.centre, ghost.nearWait); }
     void Add(const FallingPillar& pillar) { Add(pillar.hasLanded); }
     void Add(const Sphinx& sphinx) { Add(sphinx.isDestroyed, sphinx.blowUpLeft); }
     void Add(const Breakable& prop) { Add(prop.isBroken); }
@@ -322,12 +322,14 @@ public:
         Add(cannon.isFlying, cannon.target.position, cannon.flight.Position(),
             cannon.flight.Remaining());
     }
-    void Add(const LavaBlob& blob) { Add(blob.reach.centre, blob.eventWait); }
+    void Add(const LavaBlob& blob) { Add(blob.reach.centre, blob.eventWait, blob.isBubbling); }
     void Add(const RocketPad& pad) { Add(pad.isOn, pad.hasShieldedRacer); }
     void Add(const CurseDrop& /*drop*/) {}
     void Add(const LightningCannon& cannon) { Add(cannon.sweepTime, cannon.cooldown); }
     void Add(const DragonCannonballs& dragon) { Add(dragon.wait); }
     void Add(const WarpPad& /*pad*/) {}
+    void Add(const SmokeVent& /*vent*/) {}
+    void Add(const Snowfall& /*snowfall*/) {}
 
     void Add(const CodePuzzle& puzzle) {
         for (const assets::EventId gate : puzzle.code) {

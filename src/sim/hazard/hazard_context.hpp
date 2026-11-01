@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <span>
+#include <vector>
 
 #include "core/bounding_sphere.hpp"
 #include "core/duration.hpp"
@@ -19,6 +20,12 @@
 
 namespace rr::sim {
 
+/// `soundId` counts from 3000, the first sound of the track's bank. `position` is in game space.
+struct HazardSound {
+    std::int32_t soundId = 0;
+    Vector3 position;
+};
+
 /// Rebuilt per use, as the session can move. `bodies` is for touches; `aim` is the hazard's own.
 struct HazardContext {
     std::span<Racer> racers;
@@ -34,6 +41,7 @@ struct HazardContext {
     Explosions* explosions = nullptr;
     PowerupContext* effects = nullptr;
     HazardAim* aim = nullptr;
+    std::vector<HazardSound>* sounds = nullptr;
     std::uint8_t slot = 0;
 };
 

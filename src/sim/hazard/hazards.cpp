@@ -10,6 +10,7 @@ constexpr std::size_t kMostOwnEventsPerTick = 2;
 constexpr std::size_t kMostCannonEventsPerTick = 10;
 constexpr std::size_t kMostEventsPerRacerHit = 2;
 constexpr std::size_t kMostHeardFiresPerHazard = 8;
+constexpr std::size_t kMostSoundsPerHazard = 8;
 
 template <typename Payload, typename Make>
 HazardSlot WithPayload(const assets::Hazard& hazard, Make make) {
@@ -17,6 +18,31 @@ HazardSlot WithPayload(const assets::Hazard& hazard, Make make) {
         return make(*payload);
     }
     return {};
+}
+
+HazardSlot LoadFiring(const assets::Hazard& hazard, TrackEntities& entities) {
+    switch (hazard.kind) {
+        case assets::HazardKind::CurseDrop:
+            return {.trigger = kCurseDropTrigger, .state = CurseDrop{}};
+        case assets::HazardKind::LightningCannon:
+            return WithPayload<assets::LightningCannon>(hazard, [&](const auto& payload) {
+                return HazardSlot{.trigger = payload.trigger,
+                                  .state = LoadLightningCannon(payload, entities)};
+            });
+        case assets::HazardKind::DragonCannonballs:
+            return WithPayload<assets::DragonCannonballs>(hazard, [&](const auto& payload) {
+                return HazardSlot{.trigger = payload.trigger,
+                                  .state = LoadDragonCannonballs(payload, entities)};
+            });
+        case assets::HazardKind::WarpPad:
+            return {.phase = HazardPhase::Active, .state = WarpPad{}};
+        case assets::HazardKind::SmokeVent:
+            return {.trigger = kSmokeVentTrigger, .state = SmokeVent{entities.Find("dp_def")}};
+        case assets::HazardKind::Snowfall:
+            return {.phase = HazardPhase::Active, .state = Snowfall{}};
+        default:
+            return {};
+    }
 }
 
 HazardSlot Load(const assets::Hazard& hazard, TrackEntities& entities, ModelSwitches& models,
@@ -61,22 +87,8 @@ HazardSlot Load(const assets::Hazard& hazard, TrackEntities& entities, ModelSwit
                 return HazardSlot{.trigger = payload.trigger,
                                   .state = LoadUfoGrabber(payload, entities)};
             });
-        case assets::HazardKind::CurseDrop:
-            return {.trigger = kCurseDropTrigger, .state = CurseDrop{}};
-        case assets::HazardKind::LightningCannon:
-            return WithPayload<assets::LightningCannon>(hazard, [&](const auto& payload) {
-                return HazardSlot{.trigger = payload.trigger,
-                                  .state = LoadLightningCannon(payload, entities)};
-            });
-        case assets::HazardKind::DragonCannonballs:
-            return WithPayload<assets::DragonCannonballs>(hazard, [&](const auto& payload) {
-                return HazardSlot{.trigger = payload.trigger,
-                                  .state = LoadDragonCannonballs(payload, entities)};
-            });
-        case assets::HazardKind::WarpPad:
-            return {.phase = HazardPhase::Active, .state = WarpPad{}};
         default:
-            return {};
+            return LoadFiring(hazard, entities);
     }
 }
 
@@ -149,6 +161,7 @@ Hazards::Hazards(std::span<const assets::Hazard> hazards, TrackEntities& entitie
         slots_.push_back(Load(hazard, entities, models_, random));
     }
     aims_.resize(slots_.size());
+    sounds_.reserve(slots_.size() * kMostSoundsPerHazard);
 }
 
 std::size_t Hazards::MostEventsPerTick(std::span<const assets::Hazard> hazards,
@@ -191,6 +204,7 @@ std::size_t Hazards::MostUsesPerTick(std::span<const assets::Hazard> hazards,
 }
 
 void Hazards::Hear(const TrackEvents& heard, HazardContext& context) {
+    context.sounds = &sounds_;
     const std::size_t limit = heard.Events().size() + (slots_.size() * kMostHeardFiresPerHazard);
     for (std::size_t i = 0; i < heard.Events().size() && i < limit; ++i) {
         const TrackEvent event = heard.Events()[i];
@@ -210,6 +224,8 @@ void Hazards::Hear(const TrackEvents& heard, HazardContext& context) {
 }
 
 void Hazards::Tick(HazardContext& context) {
+    sounds_.clear();
+    context.sounds = &sounds_;
     for (std::size_t i = 0; i < slots_.size(); ++i) {
         HazardSlot& slot = slots_[i];
         if (slot.phase != HazardPhase::Active) {
@@ -233,6 +249,7 @@ void Hazards::Tick(HazardContext& context) {
 }
 
 void Hazards::Touch(HazardContext& context) {
+    context.sounds = &sounds_;
     RunActive(slots_, aims_, context, [&](auto& hazard) {
         if constexpr (requires { hazard.Touch(context); }) {
             hazard.Touch(context);
