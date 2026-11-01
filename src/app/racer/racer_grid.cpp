@@ -8,7 +8,7 @@
 #include "app/racer/racer_bounds.hpp"
 #include "app/racer/racer_draws.hpp"
 #include "app/track_space.hpp"
-#include "assets/circuit_database.hpp"
+#include "assets/race_catalog.hpp"
 #include "assets/racer_catalog.hpp"
 #include "sim/physics/prebuilt_chassis.hpp"
 
@@ -34,18 +34,20 @@ void Dress(const Vector3& origin, const CarLook& look, std::span<render::MeshDra
 }
 
 Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs& vfs,
-                                  assets::TrackLoader& loader, std::string_view track,
-                                  std::size_t slots, std::size_t playerRacer) {
+                                  assets::TrackLoader& loader, const RaceSceneSetup& setup,
+                                  std::size_t slots) {
+    const std::size_t playerRacer = setup.racer;
     Result<assets::RacerCatalog> catalog = assets::RacerCatalog::Load(vfs);
-    Result<std::vector<std::string>> codes =
-        catalog.and_then([&](const assets::RacerCatalog&) { return assets::LoadGrid(vfs, track); });
+    Result<std::vector<std::string>> codes = catalog.and_then([&](const assets::RacerCatalog&) {
+        return assets::LoadGrid(vfs, setup.track, setup.circuit);
+    });
     if (!codes) {
         return std::unexpected(std::move(codes.error()));
     }
     slots = std::min(slots, codes->size());
     if (playerRacer >= slots) {
         return Fail(ErrorCode::InvalidData,
-                    std::format("{} has no grid slot {} for the player", track, playerRacer));
+                    std::format("{} has no grid slot {} for the player", setup.track, playerRacer));
     }
     std::swap(codes->front(), codes->at(playerRacer));
     std::vector<Slot> loaded;

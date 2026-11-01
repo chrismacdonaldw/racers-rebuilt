@@ -16,8 +16,10 @@ namespace {
 using sim::MenuAction;
 
 std::vector<TrackChoice> Tracks() {
-    return {{.track = "RACEC0R0", .racers = {{.code = "a"}, {.code = "b"}, {.code = "c"}}},
-            {.track = "RACEC0R1", .racers = {{.code = "d"}, {.code = "e"}}}};
+    return {{.track = "RACEC0R1",
+             .circuit = "c0",
+             .racers = {{.code = "a"}, {.code = "b"}, {.code = "c"}}},
+            {.track = "RACEC0R0", .circuit = "c1", .racers = {{.code = "d"}, {.code = "e"}}}};
 }
 
 std::optional<std::string> Press(SingleRaceMenu& menu, std::initializer_list<MenuAction> actions) {
@@ -38,7 +40,7 @@ TEST_CASE("single race setup builds the race scene name from its choices") {
                      MenuAction::Confirm});
 
     REQUIRE(next.has_value());
-    CHECK(*next == "race:RACEC0R1:respawn=3000:racer=1");
+    CHECK(*next == "race:RACEC0R0:respawn=3000:racer=1:circuit=c1");
 }
 
 TEST_CASE("changing track keeps the racer within its grid") {
@@ -47,7 +49,7 @@ TEST_CASE("changing track keeps the racer within its grid") {
     static_cast<void>(
         Press(menu, {MenuAction::Down, MenuAction::Left, MenuAction::Up, MenuAction::Right}));
 
-    CHECK(menu.Track().track == "RACEC0R1");
+    CHECK(menu.Track().track == "RACEC0R0");
     CHECK(menu.Racer() == 1);
 }
 
@@ -80,7 +82,15 @@ void CheckRacersNamed(const std::vector<TrackChoice>& tracks,
     }
 }
 
-TEST_CASE("every retail race track offers a full grid of named racers") {
+void CheckTracksNamed(const std::vector<TrackChoice>& tracks,
+                      const std::vector<std::u16string>& names) {
+    for (const TrackChoice& track : tracks) {
+        CHECK_MESSAGE(track.nameLine >= 0, track.track);
+        CHECK_MESSAGE(static_cast<std::size_t>(track.nameLine) < names.size(), track.track);
+    }
+}
+
+TEST_CASE("every unmirrored retail circuit race offers a full grid of named racers") {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
         return;
@@ -89,11 +99,28 @@ TEST_CASE("every retail race track offers a full grid of named racers") {
     const Result<std::vector<TrackChoice>> tracks = LoadTrackChoices(*vfs);
 
     const Result<std::vector<std::u16string>> names = ReadDriverNames(*vfs, "ENGLISH");
+    const Result<std::vector<std::u16string>> raceNames = ReadRaceNames(*vfs, "ENGLISH");
 
     REQUIRE(tracks.has_value());
     REQUIRE(names.has_value());
+    REQUIRE(raceNames.has_value());
     CHECK(tracks->size() == 13);
     CheckRacersNamed(*tracks, *names);
+    CheckTracksNamed(*tracks, *raceNames);
+}
+
+TEST_CASE("single race takes a track's grid from the circuit it's listed under") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+
+    const Result<std::vector<TrackChoice>> tracks = LoadTrackChoices(*vfs);
+
+    REQUIRE(tracks.has_value());
+    CHECK(tracks->front().track == "RACEC0R1");
+    CHECK(tracks->front().circuit == "c0");
+    CHECK(tracks->front().racers.at(1).code == "CR");
 }
 
 }

@@ -33,12 +33,12 @@ std::vector<std::byte> Grid(std::initializer_list<std::string_view> codes) {
     return Join({grid, Bytes({0x06})});
 }
 
-TEST_CASE("circuits read their grid drivers and the circuit they lead to") {
+TEST_CASE("circuits read their grid drivers, number, part set and the circuit they lead to") {
     const std::vector crb = NamedLibrary(
         0x27,
         {NamedEntry(0x27, "c0",
-                    Join({Bytes({0x29}), Ints({0}), Grid({"KK", "CR", "GB", "RH", "AD", "PH"}),
-                          Bytes({0x2A}), Ints({0}), Bytes({0x2B}), Text("c1")})),
+                    Join({Bytes({0x29}), Ints({3}), Grid({"KK", "CR", "GB", "RH", "AD", "PH"}),
+                          Bytes({0x2A}), Ints({5}), Bytes({0x2B}), Text("c1")})),
          NamedEntry(0x27, "c6", Grid({"RR", "RR", "BK", "AL", "GS", "NH"}))});
 
     const Result<std::vector<CircuitEntry>> circuits = ParseCircuits(crb);
@@ -47,7 +47,10 @@ TEST_CASE("circuits read their grid drivers and the circuit they lead to") {
     REQUIRE(circuits->size() == 2);
     CHECK(circuits->front().name == "c0");
     CHECK(circuits->front().grid == std::vector<std::string>{"KK", "CR", "GB", "RH", "AD", "PH"});
+    CHECK(circuits->front().number == 3);
+    CHECK(circuits->front().partSet == 5);
     CHECK(circuits->front().next == "c1");
+    CHECK_FALSE(circuits->back().partSet.has_value());
     CHECK_FALSE(circuits->back().next.has_value());
 }
 
@@ -89,19 +92,6 @@ TEST_CASE("every retail grid driver resolves to a racer") {
 
     CHECK(circuits->size() == 7);
     CHECK(UnknownDrivers(*catalog, *circuits).empty());
-}
-
-TEST_CASE("a track's grid comes from its circuit") {
-    const std::optional<Vfs> vfs = test::OpenRetailVfs();
-    if (!vfs) {
-        return;
-    }
-
-    const Result<std::vector<std::string>> grid = LoadGrid(*vfs, "racec4r2");
-
-    REQUIRE(grid.has_value());
-    CHECK(grid->at(1) == "BVB");
-    CHECK_FALSE(LoadGrid(*vfs, "MENUDATA").has_value());
 }
 
 }

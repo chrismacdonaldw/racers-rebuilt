@@ -28,6 +28,8 @@ rr_add_module(assets
         menu_layout.cpp
         menu_styles.cpp
         path_index.cpp
+        race_catalog.cpp
+        race_list.cpp
         race_route.cpp
         race_voices.cpp
         racer_catalog.cpp

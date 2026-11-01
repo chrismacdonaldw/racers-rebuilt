@@ -44,6 +44,17 @@ std::vector<std::vector<std::u16string>> RacerNames(const std::vector<TrackChoic
     return racerNames;
 }
 
+std::vector<std::u16string> TrackNames(const std::vector<TrackChoice>& tracks,
+                                       const std::vector<std::u16string>& names) {
+    std::vector<std::u16string> trackNames;
+    for (const TrackChoice& track : tracks) {
+        const auto index = static_cast<std::size_t>(track.nameLine);
+        trackNames.push_back(track.nameLine >= 0 && index < names.size() ? names[index]
+                                                                         : Widen(track.track));
+    }
+    return trackNames;
+}
+
 }
 
 Result<std::unique_ptr<SingleRaceScene>> SingleRaceScene::Create(render::Renderer& renderer,
@@ -72,6 +83,11 @@ void SingleRaceScene::ApplySettings(const settings::Registry& settings) {
         log::Warn("racers show their codes: {}", names.error().message);
     }
     racerNames_ = RacerNames(menu_.Tracks(), names.value_or(std::vector<std::u16string>{}));
+    const Result<std::vector<std::u16string>> races = ReadRaceNames(*vfs_, text_.Language());
+    if (!races) {
+        log::Warn("races show their folders: {}", races.error().message);
+    }
+    trackNames_ = TrackNames(menu_.Tracks(), races.value_or(std::vector<std::u16string>{}));
 }
 
 std::optional<std::string> SingleRaceScene::TakeNextScene() {
@@ -114,11 +130,8 @@ SingleRaceScene::SingleRaceScene(render::Renderer& renderer, const assets::Vfs& 
       vfs_(&vfs),
       pictures_(std::move(pictures)),
       states_(std::move(states)),
-      menu_(std::move(menu)) {
-    for (const TrackChoice& track : menu_.Tracks()) {
-        trackNames_.push_back(Widen(track.track));
-    }
-}
+      menu_(std::move(menu)),
+      trackNames_(TrackNames(menu_.Tracks(), {})) {}
 
 void SingleRaceScene::DrawRow(SingleRaceRow row, std::u16string_view label,
                               std::u16string_view value) {
