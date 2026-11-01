@@ -60,6 +60,7 @@ rr_add_module(app
         race_music.cpp
         race_particles.cpp
         race_scene.cpp
+        race_scene_name.cpp
         race_step.cpp
         racer_effect_tools.cpp
         racer/animation_player.cpp

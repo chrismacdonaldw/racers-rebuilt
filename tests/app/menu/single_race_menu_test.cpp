@@ -25,7 +25,7 @@ std::optional<std::string> Press(SingleRaceMenu& menu, std::initializer_list<Men
     for (const MenuAction action : actions) {
         sim::InputFrame frame;
         frame.menuPressed.set(sim::InputFrame::Index(action));
-        next = menu.Tick(frame, {.timeout = Milliseconds{3000}});
+        next = menu.Tick(frame, {.respawn = {.timeout = Milliseconds{3000}}});
     }
     return next;
 }

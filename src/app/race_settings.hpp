@@ -4,6 +4,7 @@
 
 #include "settings/registry.hpp"
 #include "settings/setting_spec.hpp"
+#include "sim/race/race_setup.hpp"
 #include "sim/race/respawn.hpp"
 
 namespace rr::app {
@@ -20,14 +21,25 @@ inline constexpr settings::SettingSpec<int> kRespawnSeconds{
     .label = "Seconds in the air before respawning",
     .category = "Race"};
 
+inline constexpr settings::SettingSpec<bool> kPhysicsAi{
+    .key = "race.physics_ai",
+    .defaultValue = false,
+    .label = "Computer racers drive with the car physics",
+    .category = "Race"};
+
 inline void DeclareRaceSettings(settings::Registry& registry) {
     registry.Declare(kRespawn);
     registry.Declare(kRespawnSeconds);
+    registry.Declare(kPhysicsAi);
 }
 
 [[nodiscard]] inline sim::RespawnRule RespawnRuleFrom(const settings::Registry& registry) {
     return {.isEnabled = registry.Get(kRespawn),
             .timeout = std::chrono::seconds{registry.Get(kRespawnSeconds)}};
+}
+
+[[nodiscard]] inline sim::AiDriving AiDrivingFrom(const settings::Registry& registry) {
+    return registry.Get(kPhysicsAi) ? sim::AiDriving::Physics : sim::AiDriving::Route;
 }
 
 }

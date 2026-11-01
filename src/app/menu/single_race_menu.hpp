@@ -7,10 +7,10 @@
 #include <string_view>
 #include <vector>
 
+#include "app/race_scene_name.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 #include "sim/input_frame.hpp"
-#include "sim/race/respawn.hpp"
 
 namespace rr::app {
 
@@ -39,9 +39,9 @@ public:
     /// `tracks` must not be empty, nor any track's racers.
     explicit SingleRaceMenu(std::vector<TrackChoice> tracks);
 
-    /// Returns the scene the input chose, if any.
+    /// The scene the input chose, if any. A chosen race keeps `rules` but for its track and racer.
     [[nodiscard]] std::optional<std::string> Tick(const sim::InputFrame& input,
-                                                  const sim::RespawnRule& respawn);
+                                                  const RaceSceneSetup& rules);
 
     [[nodiscard]] SingleRaceRow Focus() const { return focus_; }
     [[nodiscard]] const std::vector<TrackChoice>& Tracks() const { return tracks_; }
@@ -53,7 +53,7 @@ public:
 private:
     void MoveFocus(int step);
     void Change(int step);
-    [[nodiscard]] std::optional<std::string> Confirm(const sim::RespawnRule& respawn);
+    [[nodiscard]] std::optional<std::string> Confirm(const RaceSceneSetup& rules);
 
     std::vector<TrackChoice> tracks_;
     std::size_t track_ = 0;

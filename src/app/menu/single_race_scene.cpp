@@ -6,7 +6,6 @@
 #include <utility>
 
 #include "app/menu/menu_files.hpp"
-#include "app/race_scene.hpp"
 #include "app/race_settings.hpp"
 #include "core/log.hpp"
 
@@ -64,7 +63,7 @@ Result<std::unique_ptr<SingleRaceScene>> SingleRaceScene::Create(render::Rendere
 }
 
 void SingleRaceScene::ApplySettings(const settings::Registry& settings) {
-    respawn_ = RespawnRuleFrom(settings);
+    rules_ = {.respawn = RespawnRuleFrom(settings), .aiDriving = AiDrivingFrom(settings)};
     if (!text_.Apply(*renderer_, *vfs_, settings)) {
         return;
     }
@@ -80,7 +79,7 @@ std::optional<std::string> SingleRaceScene::TakeNextScene() {
 }
 
 void SingleRaceScene::Tick(const sim::InputFrame& input) {
-    if (std::optional<std::string> next = menu_.Tick(input, respawn_)) {
+    if (std::optional<std::string> next = menu_.Tick(input, rules_)) {
         next_ = std::move(next);
     }
 }

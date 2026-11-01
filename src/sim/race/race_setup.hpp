@@ -23,6 +23,9 @@ struct RacerEntry {
     bool isPlayer = false;
 };
 
+/// `Physics` computer racers drive the car along their route instead of playing it back.
+enum class AiDriving : std::uint8_t { Route, Physics };
+
 /// Racer `i` starts in grid slot `i`.
 struct RaceSetup {
     std::string track;
@@ -30,6 +33,7 @@ struct RaceSetup {
     std::uint64_t seed = 0;
     int lapCount = 3;
     RespawnRule respawn;
+    AiDriving aiDriving = AiDriving::Route;
     EffectFactories effects;
 };
 

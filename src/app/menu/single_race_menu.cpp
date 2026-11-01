@@ -5,7 +5,7 @@
 #include <utility>
 
 #include "app/menu/menu_scenes.hpp"
-#include "app/race_scene.hpp"
+#include "app/race_scene_name.hpp"
 #include "assets/circuit_database.hpp"
 #include "assets/racer_catalog.hpp"
 #include "assets/string_table.hpp"
@@ -70,7 +70,7 @@ SingleRaceMenu::SingleRaceMenu(std::vector<TrackChoice> tracks) : tracks_(std::m
 }
 
 std::optional<std::string> SingleRaceMenu::Tick(const sim::InputFrame& input,
-                                                const sim::RespawnRule& respawn) {
+                                                const RaceSceneSetup& rules) {
     if (input.WasPressed(sim::MenuAction::Back)) {
         return std::string(kMainMenuScene);
     }
@@ -86,7 +86,7 @@ std::optional<std::string> SingleRaceMenu::Tick(const sim::InputFrame& input,
     if (input.WasPressed(sim::MenuAction::Right)) {
         Change(1);
     }
-    return input.WasPressed(sim::MenuAction::Confirm) ? Confirm(respawn) : std::nullopt;
+    return input.WasPressed(sim::MenuAction::Confirm) ? Confirm(rules) : std::nullopt;
 }
 
 std::uint64_t SingleRaceMenu::StateHash() const {
@@ -112,10 +112,13 @@ void SingleRaceMenu::Change(int step) {
     }
 }
 
-std::optional<std::string> SingleRaceMenu::Confirm(const sim::RespawnRule& respawn) {
+std::optional<std::string> SingleRaceMenu::Confirm(const RaceSceneSetup& rules) {
+    RaceSceneSetup race = rules;
     switch (focus_) {
         case SingleRaceRow::Race:
-            return RaceSceneName({.track = Track().track, .respawn = respawn, .racer = racer_});
+            race.track = Track().track;
+            race.racer = racer_;
+            return RaceSceneName(race);
         case SingleRaceRow::Back:
             return std::string(kMainMenuScene);
         default:

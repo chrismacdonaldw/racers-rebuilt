@@ -228,6 +228,22 @@ TEST_CASE("a computer racer drives a route from its slot once racing starts") {
     CHECK(session.Progress().OfRacer(1).laps.LastCheckpoint() == 1);
 }
 
+TEST_CASE("a computer racer driving with physics steers its own car along its route") {
+    const Fixture fixture;
+    RaceSetup setup = TwoRacers();
+    setup.aiDriving = AiDriving::Physics;
+    RaceSession session = fixture.Start(setup);
+
+    RunUntilRacing(session);
+    Run(session, 300, {});
+
+    const Racer& computer = session.Racers()[1];
+    CHECK_FALSE(computer.Route().has_value());
+    CHECK(computer.Body().motion.position.x > 0.0F);
+    CHECK(computer.Body().motion.position.y == doctest::Approx(kRouteStart.y).epsilon(0.2));
+    CHECK(session.Racers()[0].Body().motion.position.x == doctest::Approx(-20.0F));
+}
+
 TEST_CASE("the session's seeded random picks each computer racer's route") {
     constexpr std::uint64_t kSeed = 7;
     Fixture fixture;

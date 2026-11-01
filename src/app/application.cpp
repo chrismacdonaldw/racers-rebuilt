@@ -21,6 +21,7 @@
 #include "app/menu/single_race_scene.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/race_scene.hpp"
+#include "app/race_scene_name.hpp"
 #include "app/race_settings.hpp"
 #include "app/replay_session.hpp"
 #include "app/sprite_test_scene.hpp"
@@ -121,7 +122,9 @@ void FollowSceneMusic(audio::MusicPlayer& music, const SceneMusic& wanted, std::
 }
 
 std::string RaceNamed(std::string track, const settings::Registry& settings) {
-    return RaceSceneName({.track = std::move(track), .respawn = RespawnRuleFrom(settings)});
+    return RaceSceneName({.track = std::move(track),
+                          .respawn = RespawnRuleFrom(settings),
+                          .aiDriving = AiDrivingFrom(settings)});
 }
 
 Result<std::optional<std::string>> StartupScene(const settings::CommandLine& commandLine,

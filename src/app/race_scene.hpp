@@ -21,6 +21,7 @@
 #include "app/powerup/powerup_visuals.hpp"
 #include "app/race_audio.hpp"
 #include "app/race_particles.hpp"
+#include "app/race_scene_name.hpp"
 #include "app/racer/racer_grid.hpp"
 #include "app/racer_effect_tools.hpp"
 #include "app/scene.hpp"
@@ -43,28 +44,12 @@
 
 namespace rr::app {
 
-/// The player drives grid slot `racer`'s prebuilt racer, which swaps places with slot 0.
-struct RaceSceneSetup {
-    std::string track;
-    sim::RespawnRule respawn;
-    std::size_t racer = 0;
-
-    friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
-};
-
 /// Where a race draws and plays. Each must outlive the scene.
 struct RaceOutputs {
     render::Renderer* renderer = nullptr;
     audio::Mixer* mixer = nullptr;
     SoundBanks* banks = nullptr;
 };
-
-/// The name replays record, such as `race:RACEC0R0:respawn=3000:racer=2`, with `respawn=off`
-/// when respawning is off. `racer` may be left out.
-[[nodiscard]] std::string RaceSceneName(const RaceSceneSetup& setup);
-
-[[nodiscard]] bool IsRaceScene(std::string_view scene);
-[[nodiscard]] Result<RaceSceneSetup> ParseRaceScene(std::string_view scene);
 
 /// A race on a full grid with the player in slot 0. Other racers idle until AI drivers arrive.
 class RaceScene final : public Scene {
