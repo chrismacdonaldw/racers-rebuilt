@@ -75,6 +75,8 @@ add_executable(racers-rebuilt-tests
     assets/font_list_test.cpp
     assets/game_path_test.cpp
     assets/geometry_database_test.cpp
+    assets/hazard_list_retail_test.cpp
+    assets/hazard_list_test.cpp
     assets/image_list_test.cpp
     assets/image_survey_test.cpp
     assets/install_test.cpp

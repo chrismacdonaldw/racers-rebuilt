@@ -118,6 +118,14 @@ template <auto... Members, typename Target>
     return read;
 }
 
+template <auto... Members, typename Target>
+[[nodiscard]] Result<void> ReadMemberBlock(TokenReader& reader, Target& target) {
+    return reader.Expect(TokenKind::OpenBrace)
+        .and_then([&](const Token&) { return ReadMembers<Members...>(reader, target); })
+        .and_then([&] { return reader.Expect(TokenKind::CloseBrace); })
+        .transform([](const Token&) {});
+}
+
 /// The members are read in order, each by the `ReadValue` overload for its type.
 template <auto Member, auto... More>
 [[nodiscard]] constexpr auto Field(FieldId id) {
