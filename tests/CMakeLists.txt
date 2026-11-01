@@ -117,6 +117,7 @@ add_executable(racers-rebuilt-tests
     platform/mapped_file_test.cpp
     render/asset_table_test.cpp
     render/camera_test.cpp
+    render/quad_batch_test.cpp
     render/sprite_batch_test.cpp
     render/ui_layout_test.cpp
     settings/command_line_test.cpp

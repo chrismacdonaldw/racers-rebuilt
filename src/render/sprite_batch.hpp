@@ -26,6 +26,8 @@ struct SpriteBatch {
     std::uint32_t spriteCount = 0;
 };
 
+void AddToBatches(std::vector<SpriteBatch>& batches, TextureId texture, BlendMode blend);
+
 /// Overwrites both outputs. Neighbours that share a texture and blend share a batch.
 void BatchSprites(std::span<const SpriteDraw> sprites, std::vector<SpriteVertex>& vertices,
                   std::vector<SpriteBatch>& batches);

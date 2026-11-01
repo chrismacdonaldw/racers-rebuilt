@@ -8,6 +8,7 @@
 
 #include "assets/geometry_asset.hpp"
 #include "render/gpu_error.hpp"
+#include "render/quad_batch.hpp"
 #include "render/shader_code.hpp"
 #include "render/sprite_batch.hpp"
 
@@ -66,6 +67,18 @@ constexpr std::array kSpriteAttributes{
     SDL_GPUVertexAttribute{.location = 2,
                            .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
                            .offset = offsetof(SpriteVertex, color)},
+};
+
+constexpr std::array kQuadAttributes{
+    SDL_GPUVertexAttribute{.location = 0,
+                           .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
+                           .offset = offsetof(QuadVertex, position)},
+    SDL_GPUVertexAttribute{.location = 1,
+                           .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
+                           .offset = offsetof(QuadVertex, u)},
+    SDL_GPUVertexAttribute{.location = 2,
+                           .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+                           .offset = offsetof(QuadVertex, color)},
 };
 
 SDL_GPUColorTargetBlendState BlendState(BlendMode mode) {
@@ -170,6 +183,21 @@ Result<GpuPipeline> CreateLinePipeline(SDL_GPUDevice* device, SDL_GPUTextureForm
          .attributes = kLineAttributes,
          .vertexPitch = sizeof(LineVertex),
          .primitive = SDL_GPU_PRIMITIVETYPE_LINELIST});
+}
+
+Result<GpuPipeline> CreateQuadPipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat colorFormat,
+                                       BlendMode blend) {
+    return CreatePipeline(
+        device, colorFormat,
+        {.vertexShader = {.code = shaders::kQuadVertex, .stage = SDL_GPU_SHADERSTAGE_VERTEX},
+         .fragmentShader = {.code = shaders::kSpriteFragment,
+                            .stage = SDL_GPU_SHADERSTAGE_FRAGMENT,
+                            .samplerCount = 1,
+                            .uniformBufferCount = 0},
+         .attributes = kQuadAttributes,
+         .vertexPitch = sizeof(QuadVertex),
+         .blend = BlendState(blend),
+         .writesDepth = false});
 }
 
 Result<GpuPipeline> CreateSpritePipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat colorFormat,
