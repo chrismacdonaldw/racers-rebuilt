@@ -163,6 +163,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
 RaceScene::RaceScene(Parts parts)
     : parts_(std::move(parts)),
       shadows_(parts_.racerFx, PerSlot(parts_.racers, parts_.racers.Count(), &RacerGrid::Chassis)),
+      skids_(parts_.racerFx, parts_.racers.Skids(kPlayerSlot)),
       powerupVisuals_(parts_.powerups.models),
       powerupQuads_(parts_.powerups.quadMaterials),
       chase_(PlayerCar()),
@@ -300,9 +301,11 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     DrawDebugLines();
     quads_.clear();
     shadows_.Append(interpolated.entities, interpolated.racers, carLooks_, *parts_.world, quads_);
+    const float simMs = pause_.IsOpen() ? 0.0F : elapsedMs;
+    skids_.Update(interpolated.entities[kPlayerSlot], interpolated.racers[kPlayerSlot], simMs);
+    skids_.Append(*parts_.world, quads_);
     if (parts_.particles) {
-        parts_.particles->Update(parts_.session,
-                                 render::FloatMilliseconds{pause_.IsOpen() ? 0.0F : elapsedMs});
+        parts_.particles->Update(parts_.session, render::FloatMilliseconds{simMs});
         parts_.particles->AppendQuads(camera.transform, quads_);
     }
     powerupQuads_.Update(interpolated, camera.transform, elapsedMs);

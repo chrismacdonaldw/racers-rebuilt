@@ -8,6 +8,7 @@
 #include "core/transform.hpp"
 #include "sim/animation/part_clock.hpp"
 #include "sim/physics/curse_source.hpp"
+#include "sim/physics/turbo.hpp"
 #include "sim/powerup/powerup_kind.hpp"
 
 namespace rr::sim {
@@ -42,6 +43,18 @@ struct CameraSnapshot {
     friend bool operator==(const CameraSnapshot&, const CameraSnapshot&) = default;
 };
 
+struct SkidSnapshot {
+    std::optional<TurboLevel> turbo;
+    std::uint32_t turboCount = 0;
+    float leftwardSpeed = 0.0F;
+    bool isDrifting = false;
+    bool isSpinning = false;
+    bool isMagnetHeld = false;
+    bool isHalted = false;
+
+    friend bool operator==(const SkidSnapshot&, const SkidSnapshot&) = default;
+};
+
 /// `turnRadius` is in world units, positive turning left and 0 when driving straight.
 /// `hitReactions` only ever counts up, so a change means the driver was hit since.
 /// `curseSource.trap` is in engine space.
@@ -56,6 +69,7 @@ struct RacerSnapshot {
     bool isCursed = false;
     CurseSource curseSource;
     std::optional<std::uint8_t> tint;
+    SkidSnapshot skid;
 
     friend bool operator==(const RacerSnapshot&, const RacerSnapshot&) = default;
 };

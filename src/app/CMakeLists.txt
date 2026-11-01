@@ -83,6 +83,8 @@ rr_add_module(app
         racer/racer_fx.cpp
         racer/racer_grid.cpp
         racer/racer_visuals.cpp
+        racer/skid_marks.cpp
+        racer/skid_trail.cpp
         replay_session.cpp
         scene_stack.cpp
         sound_banks.cpp
