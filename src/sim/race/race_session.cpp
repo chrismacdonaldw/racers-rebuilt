@@ -50,7 +50,8 @@ std::size_t OutsideEventCount(const RaceSetup& setup, const RaceCourse& course) 
     return (EffectSlots(setup) * kMostShotCastsPerEffect * kEventsPerShotCast) +
            (setup.racers.size() * SurfaceEvents::MostEventsPerRacer()) +
            EventResources::MostFiredPerTick(EventSourcesFor(course).table) +
-           Hazards::MostEventsPerTick(course.hazards, setup.racers.size());
+           Hazards::MostEventsPerTick(course.hazards, setup.racers.size()) +
+           (setup.racers.size() * kEventsPerTaunt);
 }
 
 TrackSurfaces SurfacesFor(const RaceCourse& course) {
@@ -145,6 +146,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
         isPlayer_.push_back(entry.isPlayer);
         localBounds_.push_back(entry.localBounds);
         aiPowerups_.emplace_back(entry.habits);
+        taunts_.emplace_back();
         positions_[i] = racer.Body().motion.position;
     }
 }
@@ -346,7 +348,15 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
         if (isPlayer_[racer]) {
             effects.targets = course_.targets;
         }
+        const bool isEmptyHanded = !inventories_[racer].Colour();
         powerups_.Use(racer, inventories_[racer], bricks_, effects);
+        if (isEmptyHanded) {
+            triggers_.FireStartAndEnd(kTauntEvent, positions_[racer]);
+        }
+    }
+    if (clock_.IsRunning() && !isPlayer_[racer] &&
+        taunts_[racer].Tick(elapsed, racers_, racer, random_)) {
+        triggers_.FireStartAndEnd(kTauntEvent, positions_[racer]);
     }
 }
 

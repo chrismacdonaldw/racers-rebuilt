@@ -2,6 +2,7 @@ rr_add_module(sim
     SOURCES
         ai/ai_powerups.cpp
         ai/ai_racer.cpp
+        ai/ai_taunts.cpp
         ai/powerup_habits.cpp
         ai/route_choice.cpp
         ai/route_driver.cpp
