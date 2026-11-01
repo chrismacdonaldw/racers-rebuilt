@@ -3,10 +3,21 @@
 #include <array>
 #include <optional>
 
+#include "sim/physics/rigid_body.hpp"
+
 namespace rr::sim {
 namespace {
 
 constexpr std::array kLevels{TurboLevel::Weak, TurboLevel::Strong, TurboLevel::Hover};
+constexpr float kFlameBehind = 2.0F;
+constexpr float kFlameAbove = 3.0F;
+
+Transform FlamePose(const Racer& racer) {
+    const BodyMotion& motion = racer.Body().motion;
+    const Basis& basis = motion.basis;
+    return {.position = motion.position - (basis.forward * kFlameBehind) + (basis.up * kFlameAbove),
+            .rotation = ToQuaternion(OrthonormalBasis(basis.side, basis.up))};
+}
 
 }
 
@@ -48,7 +59,7 @@ void TurboEffect::Follow(const Racer& racer) {
         progress_ = {.phase = static_cast<std::uint8_t>(turbo->phase),
                      .phaseTime = Milliseconds{turbo->phaseMs}};
     }
-    pose_ = racer.Pose();
+    pose_ = FlamePose(racer);
 }
 
 }
