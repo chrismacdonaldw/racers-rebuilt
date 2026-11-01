@@ -26,7 +26,6 @@ class PowerupSystem;
 class WeaponEvents;
 
 /// Everything it points to outlives the call. `reaches` are the racers' bounding spheres.
-/// `targets` are the track's aim points, given only while a player uses a power-up.
 struct PowerupContext {
     std::span<Racer> racers;
     const CollisionQuery* world = nullptr;
