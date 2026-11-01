@@ -15,6 +15,7 @@
 #include "render/gpu_error.hpp"
 #include "render/pipelines.hpp"
 
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
 namespace rr::render {
@@ -45,7 +46,8 @@ struct MaterialUniforms {
     glm::vec3 lightDirection;
     float alphaCutoff = 0.0F;
     float modulateWeight = 0.0F;
-    std::array<float, 3> padding{};
+    glm::vec2 uvOffset{};
+    float padding = 0.0F;
 };
 
 assets::ImageAsset WhitePixel() {
@@ -361,7 +363,8 @@ void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
         .ambient = draw.material.ambient,
         .lightDirection = glm::normalize(kLightDirection),
         .alphaCutoff = draw.material.alphaCutoff,
-        .modulateWeight = draw.material.modulates ? 1.0F : 0.0F};
+        .modulateWeight = draw.material.modulates ? 1.0F : 0.0F,
+        .uvOffset = {draw.material.uvOffset.u, draw.material.uvOffset.v}};
     SDL_PushGPUVertexUniformData(commands, 0, &drawUniforms, sizeof(drawUniforms));
     SDL_PushGPUFragmentUniformData(commands, 0, &materialUniforms, sizeof(materialUniforms));
 

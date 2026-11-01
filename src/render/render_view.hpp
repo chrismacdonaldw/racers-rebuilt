@@ -32,6 +32,14 @@ struct Color {
     }
 };
 
+/// In texture widths and heights, added to the mesh's own texture coordinates.
+struct UvOffset {
+    float u = 0.0F;
+    float v = 0.0F;
+
+    friend bool operator==(const UvOffset&, const UvOffset&) = default;
+};
+
 /// Lit like fixed-function Direct3D: `ambient` plus `tint` by the light, or the vertex color where
 /// a vertex has no normal. Without `modulates`, the texture is drawn unlit as is.
 struct Material {
@@ -41,6 +49,7 @@ struct Material {
     float alphaCutoff = 0.5F;
     BlendMode blend = BlendMode::Opaque;
     bool modulates = true;
+    UvOffset uvOffset;
 };
 
 struct MeshDraw {
