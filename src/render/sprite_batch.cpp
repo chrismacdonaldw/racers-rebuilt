@@ -5,6 +5,16 @@
 
 namespace rr::render {
 
+void AddToBatches(std::vector<SpriteBatch>& batches, TextureId texture, BlendMode blend) {
+    if (!batches.empty() && batches.back().texture == texture && batches.back().blend == blend) {
+        ++batches.back().spriteCount;
+        return;
+    }
+    const std::uint32_t first =
+        batches.empty() ? 0 : batches.back().firstSprite + batches.back().spriteCount;
+    batches.push_back({.texture = texture, .blend = blend, .firstSprite = first, .spriteCount = 1});
+}
+
 void BatchSprites(std::span<const SpriteDraw> sprites, std::vector<SpriteVertex>& vertices,
                   std::vector<SpriteBatch>& batches) {
     vertices.clear();
@@ -22,17 +32,7 @@ void BatchSprites(std::span<const SpriteDraw> sprites, std::vector<SpriteVertex>
              {.x = right, .y = at.y, .u = uvRight, .v = uv.y, .color = sprite.tint},
              {.x = at.x, .y = bottom, .u = uv.x, .v = uvBottom, .color = sprite.tint},
              {.x = right, .y = bottom, .u = uvRight, .v = uvBottom, .color = sprite.tint}});
-
-        if (!batches.empty() && batches.back().texture == sprite.texture &&
-            batches.back().blend == sprite.blend) {
-            ++batches.back().spriteCount;
-            continue;
-        }
-        const auto first = static_cast<std::uint32_t>(vertices.size() / kVerticesPerSprite) - 1;
-        batches.push_back({.texture = sprite.texture,
-                           .blend = sprite.blend,
-                           .firstSprite = first,
-                           .spriteCount = 1});
+        AddToBatches(batches, sprite.texture, sprite.blend);
     }
 }
 

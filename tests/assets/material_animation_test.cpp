@@ -90,6 +90,8 @@ TEST_CASE("a material animation rejects tracks that don't fit their keys") {
     CHECK_FALSE(ParseMaterialAnimation(Join({SmokeKeys(), Tracks({Track(2, 3, 32)})})).has_value());
     CHECK_FALSE(ParseMaterialAnimation(Join({SmokeKeys(), Tracks({Track(0, 4, 24)})})).has_value());
     CHECK_FALSE(
+        ParseMaterialAnimation(Join({SmokeKeys(), Tracks({Track(0, 4, 32, 0)})})).has_value());
+    CHECK_FALSE(
         ParseMaterialAnimation(Join({SmokeKeys(), Bytes({0x28}), test::ListHeader(1),
                                      Bytes({0x28, 0x05, 0x2B}), Ints({1}), Bytes({0x06, 0x06})}))
             .has_value());

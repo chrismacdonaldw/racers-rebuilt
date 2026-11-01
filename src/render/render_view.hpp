@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <limits>
 #include <span>
@@ -69,10 +70,20 @@ struct SpriteDraw {
     BlendMode blend = BlendMode::Alpha;
 };
 
-/// Sprites draw over the scene at full window resolution, in submission order.
+/// Corners go top left, top right, bottom left, bottom right, matching `uv`.
+struct QuadDraw {
+    TextureId texture = kWhiteTexture;
+    std::array<Vector3, 4> corners{};
+    Rect uv{.width = 1.0F, .height = 1.0F};
+    Color tint;
+    BlendMode blend = BlendMode::Alpha;
+};
+
+/// Quads draw after the meshes without writing depth, then sprites over the scene, each in order.
 struct RenderView {
     Camera camera;
     std::span<const MeshDraw> meshes;
+    std::span<const QuadDraw> quads;
     std::span<const DebugLine> lines;
     std::span<const SpriteDraw> sprites;
 };

@@ -55,7 +55,7 @@ std::optional<std::string> Problem(const StoredTrack& track, std::span<const Mat
             keys.size()) {
         return "its keys leave the key list";
     }
-    if (track.duration < 1 || track.framesPerSecond < 0) {
+    if (track.duration < 1 || track.framesPerSecond < 1) {
         return "its cycle or speed is not positive";
     }
     const std::span<const MaterialKey> own = keys.subspan(static_cast<std::size_t>(track.firstKey),

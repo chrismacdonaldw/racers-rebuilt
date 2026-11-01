@@ -128,6 +128,10 @@ TEST_CASE("an emitter library rejects what the original can't run") {
     CHECK_FALSE(
         Parse({test::NamedEntry(0x27, "dust", Join({OnePoint(), Bytes({0x28}), Ints({9})}))})
             .has_value());
+    CHECK_FALSE(Parse({test::NamedEntry(
+                          0x27, "dust",
+                          Join({OnePoint(), Bytes({0x2F}), Ints({1}), Bytes({0x2F}), Ints({2})}))})
+                    .has_value());
     CHECK_FALSE(Parse({test::NamedEntry(0x27, "dust", OnePoint()),
                        test::NamedEntry(0x27, "dust", OnePoint())})
                     .has_value());
