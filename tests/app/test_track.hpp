@@ -7,8 +7,10 @@
 
 #include "app/frame_loop.hpp"
 #include "assets/brick_layout.hpp"
+#include "assets/hazard_list.hpp"
 #include "core/duration.hpp"
 #include "race_drive.hpp"
+#include "sim/ai/ai_taunts.hpp"
 #include "sim/ai/route_choice.hpp"
 #include "sim/ai/straight_route.hpp"
 #include "sim/input_frame.hpp"
@@ -43,6 +45,7 @@ struct TestTrack {
     std::array<sim::RacerStart, kTestGridSlots> grid = Grid();
     sim::GridRoutes routes = Routes();
     assets::BrickLayout bricks = Bricks();
+    std::vector<assets::Hazard> hazards = TauntCannon();
 
     [[nodiscard]] sim::RaceCourse Course() const {
         return {.checkpoints = &graph,
@@ -50,7 +53,8 @@ struct TestTrack {
                 .world = &world,
                 .lowestTrackZ = -50.0F,
                 .routes = &routes,
-                .bricks = &bricks};
+                .bricks = &bricks,
+                .hazards = hazards};
     }
 
     [[nodiscard]] static sim::RaceSetup Setup(std::uint64_t seed) {
@@ -94,6 +98,15 @@ private:
             layout.white.push_back({.x = x + 5.0F, .y = -kLaneWidth - y, .z = 1.0F});
         }
         return layout;
+    }
+
+    static std::vector<assets::Hazard> TauntCannon() {
+        return {{.kind = assets::HazardKind::Cannon,
+                 .payload = assets::CannonShot{.launch = {.x = 40.0F, .y = 40.0F, .z = 20.0F},
+                                               .target = Vector3{.x = 40.0F, .y = -2.0F},
+                                               .triggerCentre = Vector3{},
+                                               .triggerRadius = 200.0F,
+                                               .event = sim::kTauntEvent}}};
     }
 };
 

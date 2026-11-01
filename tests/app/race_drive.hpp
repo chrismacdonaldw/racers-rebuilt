@@ -15,7 +15,10 @@
 #include "app/race_step.hpp"
 #include "app/scene.hpp"
 #include "assets/brick_layout.hpp"
+#include "assets/race_route.hpp"
 #include "core/duration.hpp"
+#include "sim/ai/route_driver.hpp"
+#include "sim/hazard/hazards.hpp"
 #include "sim/input_frame.hpp"
 #include "sim/physics/racer_controls.hpp"
 #include "sim/race/race_session.hpp"
@@ -30,15 +33,26 @@ struct PowerupGift {
     std::uint8_t level = 0;
 };
 
+/// A `pilot` route steers the player in place of the replay, which still presses use.
+struct DriveScript {
+    std::span<const PowerupGift> gifts;
+    const assets::RaceRoute* pilot = nullptr;
+};
+
 /// A race with the player in slot 0, without drawing anything.
 class RaceDriveScene final : public app::Scene {
 public:
     RaceDriveScene(const sim::RaceSetup& setup, const sim::RaceCourse& course,
-                   std::span<const PowerupGift> gifts)
+                   const DriveScript& script)
         : session_(Start(setup, course)),
           controls_(session_.Racers().size()),
-          gifts_(gifts.begin(), gifts.end()),
-          uses_(session_.Racers().size()) {}
+          gifts_(script.gifts.begin(), script.gifts.end()),
+          uses_(session_.Racers().size()),
+          ranHazards_(session_.TrackHazards().Slots().size()) {
+        if (script.pilot != nullptr) {
+            pilot_.emplace(*script.pilot);
+        }
+    }
 
     void Tick(const sim::InputFrame& input) override {
         for (const PowerupGift& gift : gifts_) {
@@ -50,7 +64,11 @@ public:
         for (std::size_t i = 0; i < controls_.size(); ++i) {
             held[i] = session_.Inventories()[i].Colour().has_value();
         }
-        app::StepRace(session_, input, controls_);
+        Step(input);
+        const std::span<const sim::HazardSlot> hazards = session_.TrackHazards().Slots();
+        for (std::size_t i = 0; i < hazards.size(); ++i) {
+            ranHazards_[i] = ranHazards_[i] || hazards[i].phase == sim::HazardPhase::Active;
+        }
         for (std::size_t i = 0; i < controls_.size(); ++i) {
             respawns_ += session_.WasRespawned(i) ? 1 : 0;
             mostLaps_ = std::max(mostLaps_, session_.Progress().OfRacer(i).laps.CompletedLaps());
@@ -66,8 +84,20 @@ public:
     [[nodiscard]] int Respawns() const { return respawns_; }
     [[nodiscard]] int MostLaps() const { return mostLaps_; }
     [[nodiscard]] const std::vector<int>& PowerupUses() const { return uses_; }
+    [[nodiscard]] const std::vector<bool>& RanHazards() const { return ranHazards_; }
 
 private:
+    void Step(const sim::InputFrame& input) {
+        if (!pilot_) {
+            app::StepRace(session_, input, controls_);
+            return;
+        }
+        sim::RacerControls& player = controls_[app::kPlayerSlot];
+        player = pilot_->Drive(session_.Racers()[app::kPlayerSlot]);
+        player.isUsePressed = sim::ControlsFrom(input).isUsePressed;
+        session_.Tick(app::kSimTick, controls_);
+    }
+
     static sim::RaceSession Start(const sim::RaceSetup& setup, const sim::RaceCourse& course) {
         Result<sim::RaceSession> session = sim::RaceSession::Create(setup, course);
         REQUIRE(session.has_value());
@@ -77,7 +107,9 @@ private:
     sim::RaceSession session_;
     std::vector<sim::RacerControls> controls_;
     std::vector<PowerupGift> gifts_;
+    std::optional<sim::RouteDriver> pilot_;
     std::vector<int> uses_;
+    std::vector<bool> ranHazards_;
     std::uint64_t ticks_ = 0;
     int respawns_ = 0;
     int mostLaps_ = 0;
@@ -119,6 +151,7 @@ struct DriveResult {
     int respawns = 0;
     int mostLaps = 0;
     std::vector<int> powerupUses;
+    std::vector<bool> ranHazards;
 };
 
 /// Plays `replay` through a frame loop that renders at `frameTimes`.
@@ -126,12 +159,12 @@ struct DriveResult {
                                        std::vector<std::uint64_t> expected,
                                        const sim::RaceSetup& setup, const sim::RaceCourse& course,
                                        std::span<const Nanoseconds> frameTimes,
-                                       std::span<const PowerupGift> gifts = {}) {
+                                       const DriveScript& script = {}) {
     sim::ReplayPlayer player(replay, std::move(expected));
     ReplayDriver driver(player);
     app::FrameLoop loop;
     loop.SetTickTap(&driver);
-    auto owned = std::make_unique<RaceDriveScene>(setup, course, gifts);
+    auto owned = std::make_unique<RaceDriveScene>(setup, course, script);
     const RaceDriveScene& scene = *owned;
     loop.Scenes().Push(std::move(owned));
     for (const Nanoseconds now : frameTimes) {
@@ -142,7 +175,8 @@ struct DriveResult {
             .firstMismatch = player.FirstMismatch(),
             .respawns = scene.Respawns(),
             .mostLaps = scene.MostLaps(),
-            .powerupUses = scene.PowerupUses()};
+            .powerupUses = scene.PowerupUses(),
+            .ranHazards = scene.RanHazards()};
 }
 
 }
