@@ -101,7 +101,10 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
                               .hitReactions = racer.Status().hitReactions,
                               .heldColour = inventory.Colour(),
                               .whiteCount = static_cast<std::uint8_t>(inventory.WhiteCount()),
-                              .isGhost = racer.Status().isGhost});
+                              .isGhost = racer.Status().isGhost,
+                              .tint = session.Tints().Of(i).transform([](std::size_t tint) {
+                                  return static_cast<std::uint8_t>(tint);
+                              })});
     }
     SnapshotBricks(session.Bricks(), out);
     SnapshotEffects(session.Powerups(), session.TrackHazards().Aims(), out);

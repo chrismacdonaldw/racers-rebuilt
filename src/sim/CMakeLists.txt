@@ -101,6 +101,7 @@ rr_add_module(sim
         replay/snapshot_hash.cpp
         route_playback.cpp
         track/event_resources.cpp
+        track/racer_tints.cpp
         track/model_switches.cpp
         track/surface_events.cpp
         track/track_entities.cpp

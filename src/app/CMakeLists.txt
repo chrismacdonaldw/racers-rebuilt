@@ -57,6 +57,7 @@ rr_add_module(app
         powerup/powerup_sounds.cpp
         powerup/powerup_visuals.cpp
         powerup/warp_start.cpp
+        racer/car_look.cpp
         powerup/warp_tube.cpp
         powerup_tools.cpp
         quad_shapes.cpp

@@ -125,6 +125,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       entities_(EntitySourcesFor(course)),
       hazards_(course.hazards, entities_, random_),
       resources_(EventSourcesFor(course).table, EntitySourcesFor(course), course.collision),
+      tints_(EventSourcesFor(course).table, setup.racers.size()),
       triggerRacers_(setup.racers.size()),
       sphereWorlds_(SphereWorldsFor(course)),
       switchedWorlds_(setup.racers.size()),
@@ -218,6 +219,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     PaceRoutes(elapsed);
     hazards_.Hear(triggers_, hazards);
     resources_.Dispatch(triggers_, entities_);
+    tints_.Apply(triggers_.Events());
 }
 
 RacerControls RaceSession::ControlsOf(std::size_t racer, std::span<const RacerControls> controls) {

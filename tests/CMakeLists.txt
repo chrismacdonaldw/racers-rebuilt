@@ -42,6 +42,7 @@ add_executable(racers-rebuilt-tests
     app/powerup/powerup_sounds_test.cpp
     app/powerup/powerup_visuals_test.cpp
     app/powerup/warp_start_test.cpp
+    app/racer/car_look_test.cpp
     app/powerup/warp_tube_test.cpp
     app/positional_sound_test.cpp
     app/quad_shapes_test.cpp
@@ -238,6 +239,7 @@ add_executable(racers-rebuilt-tests
     sim/route_playback_test.cpp
     sim/snapshot_hash_test.cpp
     sim/track/event_resources_test.cpp
+    sim/track/racer_tints_test.cpp
     sim/track/surface_events_test.cpp
     sim/track/track_entities_test.cpp
     sim/track/track_events_test.cpp

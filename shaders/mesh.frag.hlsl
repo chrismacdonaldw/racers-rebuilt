@@ -9,6 +9,8 @@ cbuffer MaterialUniforms : register(b0, space3)
     float alphaCutoff;
     float modulateWeight;
     float2 uvOffset;
+    float4 vertexScale;
+    float4 vertexOffset;
 };
 
 static const float kMinNormalLengthSquared = 1e-6;
@@ -18,7 +20,7 @@ float3 Shade(float3 normal, float4 vertexColor)
     float lengthSquared = dot(normal, normal);
     if (lengthSquared < kMinNormalLengthSquared)
     {
-        return vertexColor.rgb;
+        return min(1.0, (vertexColor.rgb * vertexScale.rgb) + vertexOffset.rgb);
     }
     float diffuse = saturate(dot(normal * rsqrt(lengthSquared), -lightDirection));
     return saturate(ambient.rgb + (tint.rgb * diffuse));

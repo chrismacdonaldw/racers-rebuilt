@@ -20,9 +20,6 @@ namespace rr::app {
 /// Shrinks the car with the closing portal over the start's last 250 ms.
 [[nodiscard]] float WarpCarScale(float leftMs);
 
-/// Sets each racer's slot in `scales`, 1 for a racer not starting a warp.
-void WarpCarScales(std::span<const sim::EffectSnapshot> effects, std::span<float> scales);
-
 /// Eases the field of view 30 degrees wider over the start.
 [[nodiscard]] render::Camera WarpStartCamera(render::Camera camera, float leftMs);
 

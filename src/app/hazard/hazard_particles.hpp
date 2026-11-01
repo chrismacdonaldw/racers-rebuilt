@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <optional>
 #include <string_view>
 #include <vector>
@@ -16,6 +17,8 @@ namespace rr::app {
 /// Tick it after every race tick, with the player's camera in engine space.
 class HazardParticles {
 public:
+    explicit HazardParticles(std::size_t player) : player_(player) {}
+
     void Tick(const sim::RaceSession& session, const Transform& camera, render::ParticleBank& bank,
               Milliseconds elapsed);
 
@@ -37,6 +40,7 @@ private:
                      const render::EmitterPlacement& placement, render::ParticleBank& bank);
     static void Stop(SlotEmitter& emitter, render::ParticleBank& bank);
 
+    std::size_t player_;
     std::vector<SlotEmitter> slots_;
     VisualRandom random_{1U};
 };

@@ -23,10 +23,11 @@ Result<std::unique_ptr<RacerAssets>> LoadSlot(const assets::Vfs& vfs, assets::Tr
     });
 }
 
-void ScaleAbout(const Vector3& origin, float scale, std::span<render::MeshDraw> draws) {
+void Dress(const Vector3& origin, const CarLook& look, std::span<render::MeshDraw> draws) {
     for (render::MeshDraw& draw : draws) {
-        draw.transform.position = origin + ((draw.transform.position - origin) * scale);
-        draw.scale *= scale;
+        draw.transform.position = origin + ((draw.transform.position - origin) * look.scale);
+        draw.scale *= look.scale;
+        draw.material.vertexColors = look.colors;
     }
 }
 
@@ -91,7 +92,7 @@ std::int32_t RacerGrid::VoiceBank(std::size_t slot) const {
 }
 
 void RacerGrid::Update(std::span<const sim::EntitySnapshot> poses,
-                       std::span<const sim::RacerSnapshot> motion, std::span<const float> scales,
+                       std::span<const sim::RacerSnapshot> motion, std::span<const CarLook> looks,
                        float elapsedMs) {
     auto next = draws_.begin();
     for (std::size_t i = 0; i < slots_.size() && i < poses.size() && i < motion.size(); ++i) {
@@ -101,8 +102,8 @@ void RacerGrid::Update(std::span<const sim::EntitySnapshot> poses,
         next = std::ranges::copy(visuals.Draws(), next).out;
         if (motion[i].isGhost) {
             std::ranges::for_each(first, next, [](render::MeshDraw& draw) { draw.indexCount = 0; });
-        } else if (i < scales.size() && scales[i] != 1.0F) {
-            ScaleAbout(poses[i].transform.position, scales[i], std::span(first, next));
+        } else if (i < looks.size()) {
+            Dress(poses[i].transform.position, looks[i], std::span(first, next));
         }
     }
 }

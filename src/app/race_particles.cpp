@@ -17,7 +17,8 @@ RaceParticles::RaceParticles(render::ParticleBankSetup common, render::ParticleB
                              std::span<const assets::SurfaceEntry> surfaces, std::size_t player)
     : banks_{render::ParticleBank(std::move(common)), render::ParticleBank(std::move(track))},
       surfaces_(surfaces),
-      player_(player) {}
+      player_(player),
+      hazards_(player) {}
 
 Result<RaceParticles> RaceParticles::Load(render::Renderer& renderer, const assets::Vfs& vfs,
                                           assets::TrackLoader& loader, std::string_view track,

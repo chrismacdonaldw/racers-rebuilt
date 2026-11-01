@@ -47,6 +47,8 @@ struct MaterialUniforms {
     float modulateWeight = 0.0F;
     glm::vec2 uvOffset{};
     float padding = 0.0F;
+    Color vertexScale;
+    Color vertexOffset;
 };
 
 assets::ImageAsset WhitePixel() {
@@ -364,7 +366,9 @@ void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
             glm::vec3(lighting.direction.x, lighting.direction.y, lighting.direction.z)),
         .alphaCutoff = draw.material.alphaCutoff,
         .modulateWeight = draw.material.modulates ? 1.0F : 0.0F,
-        .uvOffset = {draw.material.uvOffset.u, draw.material.uvOffset.v}};
+        .uvOffset = {draw.material.uvOffset.u, draw.material.uvOffset.v},
+        .vertexScale = draw.material.vertexColors.scale,
+        .vertexOffset = draw.material.vertexColors.offset};
     SDL_PushGPUVertexUniformData(commands, 0, &drawUniforms, sizeof(drawUniforms));
     SDL_PushGPUFragmentUniformData(commands, 0, &materialUniforms, sizeof(materialUniforms));
 

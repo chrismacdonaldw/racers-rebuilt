@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/racer/car_look.hpp"
 #include "app/racer/racer_assets.hpp"
 #include "app/racer/racer_visuals.hpp"
 #include "assets/track_loader.hpp"
@@ -44,7 +45,7 @@ public:
 
     /// Each span holds one entry per slot, poses in engine space. Ghosts are hidden.
     void Update(std::span<const sim::EntitySnapshot> poses,
-                std::span<const sim::RacerSnapshot> motion, std::span<const float> scales,
+                std::span<const sim::RacerSnapshot> motion, std::span<const CarLook> looks,
                 float elapsedMs);
 
     /// Every slot's draws, in slot order. The count never changes.

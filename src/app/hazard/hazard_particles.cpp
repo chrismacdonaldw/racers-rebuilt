@@ -69,7 +69,11 @@ void HazardParticles::Follow(const sim::RaceSession& session, const sim::HazardS
                vent != nullptr && vent->entity) {
         Smoke(entities, *vent->entity, emitter, bank);
     } else if (std::holds_alternative<sim::Snowfall>(state)) {
-        Snow(camera, emitter, bank);
+        if (session.Tints().Of(player_)) {
+            Stop(emitter, bank);
+        } else {
+            Snow(camera, emitter, bank);
+        }
     }
 }
 

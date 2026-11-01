@@ -51,6 +51,7 @@ struct RacerSnapshot {
     std::optional<assets::BrickColour> heldColour;
     std::uint8_t whiteCount = 0;
     bool isGhost = false;
+    std::optional<std::uint8_t> tint;
 
     friend bool operator==(const RacerSnapshot&, const RacerSnapshot&) = default;
 };

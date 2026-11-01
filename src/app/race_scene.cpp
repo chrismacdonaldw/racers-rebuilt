@@ -262,9 +262,9 @@ void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
 }
 
 void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float elapsedMs) {
-    carScales_.resize(parts_.racers.Count());
-    WarpCarScales(interpolated.effects, carScales_);
-    parts_.racers.Update(interpolated.entities, interpolated.racers, carScales_, elapsedMs);
+    carLooks_.resize(parts_.racers.Count());
+    LookCars(interpolated, parts_.raceTrack->events.table.colorTransforms, carLooks_);
+    parts_.racers.Update(interpolated.entities, interpolated.racers, carLooks_, elapsedMs);
     draws_.resize(parts_.trackDraws.size() + parts_.racers.Draws().size());
     std::ranges::copy(parts_.racers.Draws(),
                       draws_.begin() + static_cast<std::ptrdiff_t>(parts_.trackDraws.size()));
