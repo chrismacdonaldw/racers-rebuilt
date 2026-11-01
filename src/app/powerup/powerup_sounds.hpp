@@ -26,8 +26,8 @@ struct EffectLoop {
     friend bool operator==(const EffectLoop&, const EffectLoop&) = default;
 };
 
-/// `voiceBank` is the driver's `DDB` voice bank, unused for a player.
-[[nodiscard]] std::optional<std::size_t> TauntSound(bool isPlayer, std::int32_t voiceBank);
+/// `voice` is in the game's numbering, as from `DriverVoice`.
+[[nodiscard]] std::optional<std::size_t> TauntSound(std::int32_t voice);
 
 /// Lightning plays its loop at its source instead of its pose.
 [[nodiscard]] std::optional<EffectLoop> LoopOf(sim::PowerupKind kind,
