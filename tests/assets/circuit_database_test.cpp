@@ -51,10 +51,14 @@ TEST_CASE("circuits read their grid drivers and the circuit they lead to") {
     CHECK_FALSE(circuits->back().next.has_value());
 }
 
-TEST_CASE("a circuit that leaves a grid slot empty fails") {
-    CHECK_FALSE(
-        ParseCircuits(NamedLibrary(0x27, {NamedEntry(0x27, "c0", Grid({"KK", "CR", "GB"}))}))
-            .has_value());
+TEST_CASE("a circuit may leave grid slots empty but needs a driver and no more than 6") {
+    const auto parses = [](std::initializer_list<std::string_view> codes) {
+        return ParseCircuits(NamedLibrary(0x27, {NamedEntry(0x27, "c0", Grid(codes))})).has_value();
+    };
+
+    CHECK(parses({"KK", "CR", "GB"}));
+    CHECK_FALSE(parses({}));
+    CHECK_FALSE(parses({"KK", "CR", "GB", "RH", "AD", "PH", "RR"}));
 }
 
 std::vector<std::string> UnknownDrivers(const RacerCatalog& catalog,

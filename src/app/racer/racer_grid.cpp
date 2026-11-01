@@ -34,10 +34,7 @@ Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs&
     if (!codes) {
         return std::unexpected(std::move(codes.error()));
     }
-    if (codes->size() < slots) {
-        return Fail(ErrorCode::InvalidData, std::format("{} has {} grid drivers for {} slots",
-                                                        track, codes->size(), slots));
-    }
+    slots = std::min(slots, codes->size());
     if (playerRacer >= slots) {
         return Fail(ErrorCode::InvalidData,
                     std::format("{} has no grid slot {} for the player", track, playerRacer));
