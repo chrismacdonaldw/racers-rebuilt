@@ -40,15 +40,6 @@ float WarpCarScale(float leftMs) {
     return leftMs < kShrinkMs ? WarpPortalScale(leftMs) : 1.0F;
 }
 
-void WarpCarScales(std::span<const sim::EffectSnapshot> effects, std::span<float> scales) {
-    std::ranges::fill(scales, 1.0F);
-    for (const sim::EffectSnapshot& effect : effects) {
-        if (IsWarpIn(effect, sim::WarpPhase::Starting) && effect.use.racer < scales.size()) {
-            scales[effect.use.racer] = WarpCarScale(effect.phaseLeftMs);
-        }
-    }
-}
-
 render::Camera WarpStartCamera(render::Camera camera, float leftMs) {
     const float flown = (kStartMs - leftMs) / kStartMs;
     camera.verticalFovDegrees +=

@@ -40,6 +40,12 @@ struct UvOffset {
     friend bool operator==(const UvOffset&, const UvOffset&) = default;
 };
 
+/// Each vertex color channel becomes `min(1, color * scale + offset)`.
+struct VertexColorTransform {
+    Color scale;
+    Color offset{.r = 0.0F, .g = 0.0F, .b = 0.0F, .a = 0.0F};
+};
+
 /// Lit like fixed-function Direct3D: `ambient` plus `tint` by the light, or the vertex color where
 /// a vertex has no normal. Without `modulates`, the texture is drawn unlit as is.
 struct Material {
@@ -50,6 +56,7 @@ struct Material {
     BlendMode blend = BlendMode::Opaque;
     bool modulates = true;
     UvOffset uvOffset;
+    VertexColorTransform vertexColors;
 };
 
 struct MeshDraw {

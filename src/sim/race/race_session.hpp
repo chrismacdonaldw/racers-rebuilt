@@ -39,6 +39,7 @@
 #include "sim/race/random.hpp"
 #include "sim/race/respawn.hpp"
 #include "sim/track/event_resources.hpp"
+#include "sim/track/racer_tints.hpp"
 #include "sim/track/surface_events.hpp"
 #include "sim/track/track_entities.hpp"
 #include "sim/track/track_events.hpp"
@@ -88,6 +89,7 @@ public:
     [[nodiscard]] const TrackEntities& Entities() const { return entities_; }
     [[nodiscard]] const Hazards& TrackHazards() const { return hazards_; }
     [[nodiscard]] const EventResources& Resources() const { return resources_; }
+    [[nodiscard]] const RacerTints& Tints() const { return tints_; }
     [[nodiscard]] std::span<const AiTaunter> Taunters() const { return taunts_; }
     [[nodiscard]] const std::optional<RouteDriver>& DriverOf(std::size_t racer) const {
         return drivers_.at(racer);
@@ -142,6 +144,7 @@ private:
     TrackEntities entities_;
     Hazards hazards_;
     EventResources resources_;
+    RacerTints tints_;
     std::vector<TriggerRacer> triggerRacers_;
     std::vector<std::optional<std::size_t>> sphereWorlds_;
     std::vector<TriggerWorlds> switchedWorlds_;

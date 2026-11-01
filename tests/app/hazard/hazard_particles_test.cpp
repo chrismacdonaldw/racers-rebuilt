@@ -36,8 +36,8 @@ render::ParticleBankSetup Bank(const std::vector<std::string>& names) {
 
 class HazardRace {
 public:
-    explicit HazardRace(std::vector<assets::Hazard> hazards)
-        : hazards_(std::move(hazards)), session_(Start()) {}
+    explicit HazardRace(std::vector<assets::Hazard> hazards, sim::TrackEventSources events = {})
+        : events_(std::move(events)), hazards_(std::move(hazards)), session_(Start()) {}
 
     void Tick() {
         session_.Tick(kTick, controls_);
@@ -58,6 +58,7 @@ private:
                                                                             .grid = grid_,
                                                                             .world = &world_,
                                                                             .lowestTrackZ = -100,
+                                                                            .events = &events_,
                                                                             .entities = &entities_,
                                                                             .hazards = hazards_});
         REQUIRE(session.has_value());
@@ -68,10 +69,11 @@ private:
     test::PlaneWorld world_{{test::TestPlane{}}};
     std::vector<sim::RacerStart> grid_{{.position = {.z = 0.2F}}};
     sim::TrackEntitySources entities_ = test::StillEntities({"dp_def", "ghostly"}, {});
+    sim::TrackEventSources events_;
     std::vector<assets::Hazard> hazards_;
     sim::RaceSession session_;
     render::ParticleBank bank_{Bank({"snow", "smoke", "ghsttrl"})};
-    HazardParticles particles_;
+    HazardParticles particles_{0};
     std::vector<sim::RacerControls> controls_ = std::vector<sim::RacerControls>(1);
 };
 
@@ -95,6 +97,20 @@ TEST_CASE("snow falls 100 ahead of the camera, 40 below and up to 100 aside") {
     const std::vector<render::QuadDraw> quads = race.Quads();
     REQUIRE_FALSE(quads.empty());
     CHECK(std::ranges::all_of(quads, IsAheadOfTheCamera));
+}
+
+TEST_CASE("no snow falls while the player's car is tinted") {
+    sim::TrackEventSources indoors;
+    indoors.racerSpheres.push_back({.radius = 50.0F, .event = 4});
+    indoors.table.colorTransforms.push_back(
+        {.trigger = {.event = 4, .ignoresEnd = true}, .shifts = {1, 1, 1, 0}});
+    HazardRace race({{.kind = assets::HazardKind::Snowfall}}, std::move(indoors));
+
+    for (int tick = 0; tick < 5; ++tick) {
+        race.Tick();
+    }
+
+    CHECK(race.Quads().empty());
 }
 
 TEST_CASE("the smoke vent and the ghost trail wait for their trigger") {

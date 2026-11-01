@@ -113,7 +113,7 @@ private:
     std::vector<sim::RacerControls> controls_;
     std::size_t chosenRacer_ = 0;
     std::vector<std::function<void(sim::RaceSession&)>> chosenTools_;
-    std::vector<float> carScales_;
+    std::vector<CarLook> carLooks_;
     std::vector<render::MeshDraw> draws_;
     std::vector<render::DebugLine> collisionLines_;
     TriggerRings triggerRings_;

@@ -2,7 +2,6 @@
 
 #include <doctest/doctest.h>
 
-#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -34,19 +33,6 @@ TEST_CASE("the portal opens and closes over the start while the car shrinks only
     CHECK(WarpPortalScale(0.0F) == doctest::Approx(0.0F));
     CHECK(WarpCarScale(400.0F) == 1.0F);
     CHECK(WarpCarScale(125.0F) == doctest::Approx(0.7071F).epsilon(0.001));
-}
-
-TEST_CASE("only racers starting a warp get a car scale") {
-    const std::vector<sim::EffectSnapshot> effects{Warp(2, sim::WarpPhase::Starting, 125.0F),
-                                                   Warp(0, sim::WarpPhase::Active, 125.0F),
-                                                   Warp(7, sim::WarpPhase::Starting, 125.0F)};
-    std::array<float, 3> scales{0.5F, 0.5F, 0.5F};
-
-    WarpCarScales(effects, scales);
-
-    CHECK(scales[0] == 1.0F);
-    CHECK(scales[1] == 1.0F);
-    CHECK(scales[2] == doctest::Approx(0.7071F).epsilon(0.001));
 }
 
 TEST_CASE("the start eases the field of view 30 degrees wider") {
