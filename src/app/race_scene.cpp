@@ -183,6 +183,14 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     if (!audio) {
         log::Warn("{}, racing in silence", audio.error().message);
     }
+    Result<RaceParticles> loadedParticles = RaceParticles::Load(
+        renderer, vfs, loader, track, raceTrack->collision.surfaces, kPlayerSlot);
+    std::optional<RaceParticles> particles;
+    if (loadedParticles) {
+        particles.emplace(std::move(*loadedParticles));
+    } else {
+        log::Warn("{}, racing without particles", loadedParticles.error().message);
+    }
     return std::unique_ptr<RaceScene>(
         new RaceScene({.renderer = &renderer,
                        .vfs = &vfs,
@@ -196,6 +204,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                        .world = std::move(world),
                        .session = std::move(*session),
                        .audio = std::move(audio).value_or(nullptr),
+                       .particles = std::move(particles),
                        .started = started}));
 }
 
@@ -308,9 +317,16 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     render::Camera camera = parts_.camera;
     camera.transform = interpolated.camera.transform;
     DrawDebugLines();
+    quads_.clear();
+    if (parts_.particles) {
+        parts_.particles->Update(parts_.session,
+                                 render::FloatMilliseconds{pause_.IsOpen() ? 0.0F : elapsedMs});
+        parts_.particles->AppendQuads(camera.transform, quads_);
+    }
     Result<void> drawn = parts_.renderer->Draw(
         {.camera = camera,
          .meshes = draws_,
+         .quads = quads_,
          .lines = debugLines_,
          .sprites = hud_.Draw(parts_.session, interpolated.racers[kPlayerSlot], PauseFocus())});
     if (!drawn) {

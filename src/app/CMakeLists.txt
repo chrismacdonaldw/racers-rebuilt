@@ -46,6 +46,7 @@ rr_add_module(app
         powerup_tools.cpp
         race_audio.cpp
         race_music.cpp
+        race_particles.cpp
         race_scene.cpp
         race_step.cpp
         racer_effect_tools.cpp
