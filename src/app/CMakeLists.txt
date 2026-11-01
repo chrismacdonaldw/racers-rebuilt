@@ -13,6 +13,7 @@ rr_add_module(app
         extensions.cpp
         gameplay_fingerprint.cpp
         frame_loop.cpp
+        ground_decal.cpp
         free_camera.cpp
         game_boot.cpp
         game_extraction.cpp

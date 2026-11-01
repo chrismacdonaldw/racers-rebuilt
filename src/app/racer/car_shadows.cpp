@@ -3,22 +3,14 @@
 #include <cstddef>
 #include <format>
 
+#include "app/ground_decal.hpp"
 #include "app/track_space.hpp"
 #include "core/quaternion.hpp"
 
 namespace rr::app {
 namespace {
 
-constexpr Vector3 kGameUp{.z = 1.0F};
 constexpr Vector3 kGameForward{.x = 1.0F};
-constexpr float kCastAbove = 6.0F;
-constexpr float kCastDepth = 15.0F;
-constexpr float kSteepestGroundUp = 0.1F;
-
-Vector3 AlongGround(const Vector3& level, const Vector3& normal) {
-    return {
-        .x = level.x, .y = level.y, .z = -((normal.x * level.x) + (normal.y * level.y)) / normal.z};
-}
 
 }
 
@@ -47,20 +39,13 @@ void CarShadows::Append(std::span<const sim::EntitySnapshot> poses,
             continue;
         }
         const Transform car = TransformToGame(poses[slot].transform);
-        const Vector3 from = car.position + (kGameUp * kCastAbove);
-        const std::optional<sim::SegmentHit> hit =
-            sim::CastSolid(ground, from, from - (kGameUp * kCastDepth));
-        if (!hit || hit->normal.z < kSteepestGroundUp) {
-            continue;
-        }
-        const Vector3 heading = Rotate(car.rotation, kGameForward);
-        const Vector3 forward = Normalized({.x = heading.x, .y = heading.y}, kGameForward);
-        const float half = looks[slot].scale * 0.5F;
-        const Vector3 top = AlongGround(forward * (shadow->length * half), hit->normal);
-        const Vector3 right =
-            AlongGround(Cross(forward, kGameUp) * (shadow->width * half), hit->normal);
-        AppendGroundQuad(shadow->look, ToEngine(hit->point), ToEngine(hit->normal), ToEngine(top),
-                         ToEngine(right), out);
+        const float scale = looks[slot].scale;
+        AppendGroundDecal(shadow->look, ground,
+                          {.centre = car.position,
+                           .forward = Rotate(car.rotation, kGameForward),
+                           .length = shadow->length * scale,
+                           .width = shadow->width * scale},
+                          out);
     }
 }
 
