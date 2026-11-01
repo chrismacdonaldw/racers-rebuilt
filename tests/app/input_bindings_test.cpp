@@ -17,6 +17,7 @@ SDL_Event Key(SDL_EventType type, SDL_Keycode key, bool isRepeat = false) {
     SDL_Event event{};
     event.type = type;
     event.key.key = key;
+    event.key.down = type == SDL_EVENT_KEY_DOWN;
     event.key.repeat = isRepeat;
     return event;
 }
@@ -25,6 +26,7 @@ SDL_Event Button(SDL_EventType type, SDL_GamepadButton button) {
     SDL_Event event{};
     event.type = type;
     event.gbutton.button = static_cast<std::uint8_t>(button);
+    event.gbutton.down = type == SDL_EVENT_GAMEPAD_BUTTON_DOWN;
     return event;
 }
 
@@ -53,6 +55,41 @@ TEST_CASE("default keys drive and repeats are ignored") {
     CHECK(frame.WasPressed(sim::Action::SteerLeft));
     CHECK(frame.WasReleased(sim::Action::SteerLeft));
     CHECK(frame.held.count() == 2);
+}
+
+TEST_CASE("an action stays held while another of its inputs is still down") {
+    InputBindings bindings(DefaultRegistry());
+    sim::InputLatch latch;
+
+    bindings.Handle(Key(SDL_EVENT_KEY_DOWN, SDLK_UP), latch);
+    bindings.Handle(Axis(SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, 30000), latch);
+    bindings.Handle(Axis(SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, 100), latch);
+    bindings.Handle(Button(SDL_EVENT_GAMEPAD_BUTTON_DOWN, SDL_GAMEPAD_BUTTON_SOUTH), latch);
+    bindings.Handle(Button(SDL_EVENT_GAMEPAD_BUTTON_UP, SDL_GAMEPAD_BUTTON_SOUTH), latch);
+    bindings.Handle(Key(SDL_EVENT_KEY_DOWN, SDLK_W), latch);
+    bindings.Handle(Key(SDL_EVENT_KEY_UP, SDLK_W), latch);
+    const sim::InputFrame held = latch.TakeFrame();
+
+    CHECK(held.IsHeld(sim::Action::Accelerate));
+    CHECK_FALSE(held.WasReleased(sim::Action::Accelerate));
+
+    bindings.Handle(Key(SDL_EVENT_KEY_UP, SDLK_UP), latch);
+    CHECK(latch.TakeFrame().WasReleased(sim::Action::Accelerate));
+}
+
+TEST_CASE("disconnecting a gamepad releases its buttons") {
+    InputBindings bindings(DefaultRegistry());
+    sim::InputLatch latch;
+
+    bindings.Handle(Button(SDL_EVENT_GAMEPAD_BUTTON_DOWN, SDL_GAMEPAD_BUTTON_SOUTH), latch);
+    bindings.Handle(Axis(SDL_GAMEPAD_AXIS_LEFT_TRIGGER, 30000), latch);
+    SDL_Event removed{};
+    removed.type = SDL_EVENT_GAMEPAD_REMOVED;
+    bindings.Handle(removed, latch);
+    const sim::InputFrame frame = latch.TakeFrame();
+
+    CHECK_FALSE(frame.IsHeld(sim::Action::Accelerate));
+    CHECK_FALSE(frame.IsHeld(sim::Action::Brake));
 }
 
 TEST_CASE("keys come from the settings and unknown names are skipped") {

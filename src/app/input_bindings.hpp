@@ -70,6 +70,7 @@ inline constexpr std::array kMenuBindings{
 
 void DeclareInputSettings(settings::Registry& registry);
 
+/// An action stays held while any of its keys, buttons or triggers is down.
 class InputBindings {
 public:
     explicit InputBindings(const settings::Registry& registry);
@@ -94,10 +95,16 @@ private:
     static BoundInputs<Action> Bind(const settings::Registry& registry,
                                     std::span<const Binding<Action>> bindings);
 
+    void HandleKey(const SDL_KeyboardEvent& event, sim::InputLatch& latch);
+    void HandleButton(const SDL_GamepadButtonEvent& event, sim::InputLatch& latch);
     void HandleAxis(const SDL_GamepadAxisEvent& event, sim::InputLatch& latch);
+    void LatchHeldActions(sim::InputLatch& latch) const;
+    [[nodiscard]] bool IsHeld(sim::Action action) const;
 
     BoundInputs<sim::Action> race_;
     BoundInputs<sim::MenuAction> menu_;
+    std::vector<SDL_Keycode> heldKeys_;
+    std::vector<SDL_GamepadButton> heldButtons_;
     std::array<bool, SDL_GAMEPAD_AXIS_COUNT> isTriggerHeld_{};
 };
 
