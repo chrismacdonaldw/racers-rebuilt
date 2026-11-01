@@ -1,9 +1,11 @@
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstddef>
 #include <format>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "assets/archive_survey.hpp"
@@ -21,6 +23,7 @@ namespace {
 constexpr Milliseconds kTick{12};
 constexpr int kMaxTicks = 100000;
 constexpr std::size_t kMinPowerupUsers = 3;
+constexpr std::array<std::string_view, 3> kStallingTracks{"RACEC0R1", "RACEC0R3", "RACEC2R2"};
 constexpr ChassisSpec kChassis{.handling = 50, .topSpeed = 50, .acceleration = 50};
 
 struct PowerupTally {
@@ -101,23 +104,16 @@ std::optional<std::string> RunRace(RaceSession& session, const std::string& trac
 }
 
 std::optional<std::string> RaceProblem(const assets::Vfs& vfs, const std::string& track,
-                                       std::size_t& startBoosts) {
+                                       AiDriving driving, std::size_t& startBoosts) {
     Result<RaceTrack> loaded = LoadRaceTrack(vfs, track);
     Result<RaceSetup> setup = loaded.and_then(
         [&](const RaceTrack& race) { return CircuitRace(vfs, track, race.grid.size()); });
     if (!setup) {
         return std::format("{}: {}", track, setup.error().message);
     }
+    setup->aiDriving = driving;
     const WorldList world(loaded->collision.Track());
-    Result<RaceSession> session = RaceSession::Create(*setup, {.checkpoints = &loaded->checkpoints,
-                                                               .grid = loaded->grid,
-                                                               .world = &world,
-                                                               .lowestTrackZ = loaded->lowestTrackZ,
-                                                               .routes = &loaded->routes,
-                                                               .bricks = &loaded->bricks,
-                                                               .targets = loaded->targets,
-                                                               .events = &loaded->events,
-                                                               .entities = &loaded->entities});
+    Result<RaceSession> session = RaceSession::Create(*setup, CourseOf(*loaded, world));
     if (!session) {
         return std::format("{}: {}", track, session.error().message);
     }
@@ -132,11 +128,27 @@ TEST_CASE("on every retail track, most computer racers use power-ups and all fin
 
     std::size_t startBoosts = 0;
     for (const std::string& track : assets::ListRaceTracks(*vfs)) {
-        if (const std::optional<std::string> problem = RaceProblem(*vfs, track, startBoosts)) {
+        if (const std::optional<std::string> problem =
+                RaceProblem(*vfs, track, AiDriving::Route, startBoosts)) {
             FAIL_CHECK(*problem);
         }
     }
     CHECK(startBoosts > 0);
+}
+
+TEST_CASE("physics-driven computer racers finish three laps on tracks where they can stall") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+
+    std::size_t startBoosts = 0;
+    for (const std::string_view track : kStallingTracks) {
+        if (const std::optional<std::string> problem =
+                RaceProblem(*vfs, std::string(track), AiDriving::Physics, startBoosts)) {
+            FAIL_CHECK(*problem);
+        }
+    }
 }
 
 }

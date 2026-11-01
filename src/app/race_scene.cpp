@@ -77,20 +77,6 @@ std::optional<RaceParticles> LoadParticles(render::Renderer& renderer, const ass
     return std::move(*particles);
 }
 
-sim::RaceCourse CourseOf(const sim::RaceTrack& track, const sim::WorldList& world) {
-    return {.checkpoints = &track.checkpoints,
-            .grid = track.grid,
-            .world = &world,
-            .lowestTrackZ = track.lowestTrackZ,
-            .routes = &track.routes,
-            .bricks = &track.bricks,
-            .targets = track.targets,
-            .events = &track.events,
-            .collision = &track.collision,
-            .entities = &track.entities,
-            .hazards = track.hazards};
-}
-
 }
 
 Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
@@ -118,7 +104,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     auto world = std::make_unique<sim::WorldList>(raceTrack->collision.Track());
     TrackEntityDraws entityDraws(model->animatedModels, raceTrack->entities);
     Result<sim::RaceSession> session = sim::RaceSession::Create(
-        FullGrid(setup, *racers, seed, racers->Count()), CourseOf(*raceTrack, *world));
+        FullGrid(setup, *racers, seed, racers->Count()), sim::CourseOf(*raceTrack, *world));
     if (!session) {
         return std::unexpected(std::move(session.error()));
     }

@@ -2,6 +2,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -12,6 +13,7 @@
 #include <ranges>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "assets/archive_survey.hpp"
@@ -34,6 +36,7 @@ namespace {
 constexpr Milliseconds kTestTrackRace{45'000};
 constexpr Milliseconds kRetailRace{150'000};
 constexpr std::uint64_t kRetailSeed = 11;
+constexpr std::array<std::string_view, 2> kPhysicsAiTracks{"RACEC0R3", "RACEC2R2"};
 
 bool IsDrawnOnly(assets::HazardKind kind) {
     return kind == assets::HazardKind::WaterScroll;
@@ -150,20 +153,6 @@ TEST_CASE("the recorded test track race still plays back tick for tick") {
     CHECK_FALSE(playback.run.firstMismatch.has_value());
 }
 
-sim::RaceCourse RetailCourse(const sim::RaceTrack& track, const sim::WorldList& world) {
-    return {.checkpoints = &track.checkpoints,
-            .grid = track.grid,
-            .world = &world,
-            .lowestTrackZ = track.lowestTrackZ,
-            .routes = &track.routes,
-            .bricks = &track.bricks,
-            .targets = track.targets,
-            .events = &track.events,
-            .collision = &track.collision,
-            .entities = &track.entities,
-            .hazards = track.hazards};
-}
-
 const assets::RaceRoute& PilotRoute(const sim::GridRoutes& routes) {
     const auto slot = std::ranges::find_if(
         routes,
@@ -180,15 +169,18 @@ void CheckHazardsRan(std::span<const assets::Hazard> hazards, const std::vector<
     }
 }
 
-void CheckRetailTrack(const assets::Vfs& vfs, const std::string& name, const sim::Replay& replay) {
+void CheckRetailTrack(const assets::Vfs& vfs, const std::string& name, const sim::Replay& replay,
+                      sim::AiDriving driving) {
     CAPTURE(name);
+    CAPTURE(static_cast<int>(driving));
     const Result<sim::RaceTrack> track = sim::LoadRaceTrack(vfs, name);
     REQUIRE(track.has_value());
-    sim::RaceSetup setup{.track = name, .seed = kRetailSeed, .effects = sim::EveryEffect()};
+    sim::RaceSetup setup{
+        .track = name, .seed = kRetailSeed, .aiDriving = driving, .effects = sim::EveryEffect()};
     setup.racers.resize(track->grid.size());
     setup.racers.front().isPlayer = true;
     const sim::WorldList world(track->collision.Track());
-    const sim::RaceCourse course = RetailCourse(*track, world);
+    const sim::RaceCourse course = sim::CourseOf(*track, world);
     const std::vector<test::PowerupGift> gifts = test::EveryPowerup();
     const test::DriveScript script{.gifts = gifts, .pilot = &PilotRoute(track->routes)};
 
@@ -210,7 +202,10 @@ TEST_CASE("a full grid races identically at every framerate on every retail trac
     }
     const sim::Replay replay = test::ScriptedReplay(kRetailRace);
     for (const std::string& name : assets::ListRaceTracks(*vfs)) {
-        CheckRetailTrack(*vfs, name, replay);
+        CheckRetailTrack(*vfs, name, replay, sim::AiDriving::Route);
+    }
+    for (const std::string_view name : kPhysicsAiTracks) {
+        CheckRetailTrack(*vfs, std::string(name), replay, sim::AiDriving::Physics);
     }
 }
 

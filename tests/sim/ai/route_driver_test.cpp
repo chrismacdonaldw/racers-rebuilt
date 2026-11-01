@@ -56,6 +56,25 @@ TEST_CASE("a route driver holds a straight route at full throttle") {
     CHECK(body.derived.speed == doctest::Approx(0.12F).epsilon(0.01));
 }
 
+TEST_CASE("a route driver calls a car stalled after 3 s without headway and rejoins it ahead") {
+    const test::PlaneWorld world = test::FlatGround();
+    RouteDriver driver(test::StraightRoute({.z = 0.2F}, 3000));
+    Racer racer(kNeutralChassis, {}, {.position = {.y = 8.0F, .z = 0.2F}});
+    int stalledAt = 0;
+    for (int elapsed = 12; elapsed <= 4000 && stalledAt == 0; elapsed += 12) {
+        static_cast<void>(driver.Drive(racer));
+        racer.Tick(kTick, {}, world);
+        stalledAt = driver.IsStalled(kTick) ? elapsed : 0;
+    }
+
+    const RacerStart rejoin = driver.Rejoin();
+
+    CHECK(stalledAt == doctest::Approx(3000).epsilon(0.05));
+    CHECK(rejoin.position.x > 0.0F);
+    CHECK(rejoin.position.y == doctest::Approx(0.0F));
+    CHECK(rejoin.headingRadians == doctest::Approx(0.0F));
+}
+
 TEST_CASE("a route driver steers back onto a route it starts beside") {
     const test::PlaneWorld world = test::FlatGround();
     RouteDriver driver(test::StraightRoute({.z = 0.2F}, 3000));

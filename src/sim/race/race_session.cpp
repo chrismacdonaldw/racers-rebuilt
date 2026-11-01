@@ -347,12 +347,17 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     car.Tick(elapsed, controls, WorldsOf(racer));
     surfaceEvents_.Hear(static_cast<std::uint8_t>(racer), car, surfaces_, triggers_);
     const BodyMotion& motion = car.Body().motion;
-    wasRespawned_[racer] =
+    std::optional<RouteDriver>& driver = drivers_[racer];
+    const bool hasFallen =
         !car.Route() && respawns_[racer].Update(respawn_, elapsed, IsGrounded(motion),
                                                 motion.position.z, course_.lowestTrackZ);
+    const bool hasStalled = driver && clock_.IsRunning() && driver->IsStalled(elapsed);
+    wasRespawned_[racer] = hasFallen || hasStalled;
     if (wasRespawned_[racer]) {
-        car.Place(RespawnPoint(*course_.checkpoints, progress_.OfRacer(racer).laps.LastCheckpoint(),
-                               course_.grid[racer], *course_.world));
+        car.Place(driver ? driver->Rejoin()
+                         : RespawnPoint(*course_.checkpoints,
+                                        progress_.OfRacer(racer).laps.LastCheckpoint(),
+                                        course_.grid[racer], *course_.world));
     } else {
         const bool hadFinished = progress_.OfRacer(racer).finishPlace.has_value();
         progress_.Move(*course_.checkpoints, racer,
