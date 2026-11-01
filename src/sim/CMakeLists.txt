@@ -38,12 +38,17 @@ rr_add_module(sim
         powerup/ballistic_flight.cpp
         powerup/brick_field.cpp
         powerup/cannonball_effect.cpp
+        powerup/curse_effect.cpp
+        powerup/dropped_trap.cpp
+        powerup/dynamite_effect.cpp
         powerup/explosions.cpp
         powerup/grapple_effect.cpp
         powerup/green_effects.cpp
         powerup/homing_flight.cpp
         powerup/lightning_effect.cpp
+        powerup/magnet_effect.cpp
         powerup/missile_effect.cpp
+        powerup/oil_slick_effect.cpp
         powerup/powerup_inventory.cpp
         powerup/powerup_kind.cpp
         powerup/powerup_system.cpp
@@ -52,6 +57,7 @@ rr_add_module(sim
         powerup/turbo_effect.cpp
         powerup/warp_effect.cpp
         powerup/weapon_hits.cpp
+        powerup/yellow_effects.cpp
         race/checkpoint_graph.cpp
         race/lap_tracker.cpp
         race/race_clock.cpp

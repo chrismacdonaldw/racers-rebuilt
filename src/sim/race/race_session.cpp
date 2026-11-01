@@ -101,6 +101,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     PowerupContext effects = EffectContext();
     powerups_.Tick(elapsed, effects);
     explosions_.Tick(elapsed, racers_, reaches_);
+    spikes_.Tick(elapsed, racers_, reaches_);
     sounds_.HearWeapons(weapons_.Events());
     progress_.Rank(*course_.checkpoints, positions_);
     const RaceClock before = clock_;
@@ -169,6 +170,7 @@ PowerupContext RaceSession::EffectContext() {
             .bricks = &bricks_,
             .inventories = inventories_,
             .explosions = &explosions_,
+            .spikes = &spikes_,
             .weapons = &weapons_};
 }
 

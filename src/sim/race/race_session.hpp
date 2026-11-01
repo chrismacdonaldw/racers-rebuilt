@@ -62,6 +62,7 @@ public:
     [[nodiscard]] std::span<const PowerupInventory> Inventories() const { return inventories_; }
     [[nodiscard]] const PowerupSystem& Powerups() const { return powerups_; }
     [[nodiscard]] const Explosions& Blasts() const { return explosions_; }
+    [[nodiscard]] const Explosions& Spikes() const { return spikes_; }
 
     /// Replaces what `racer` holds, sending its white bricks home.
     void GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level);
@@ -102,6 +103,7 @@ private:
     PowerupSystem powerups_;
     WeaponEvents weapons_;
     Explosions explosions_;
+    Explosions spikes_{kSpikeExplosion, kSpikeExplosionCount};
     std::vector<BoundingSphere> localBounds_;
     std::vector<BoundingSphere> reaches_;
     std::vector<ContactBody> contactBodies_;

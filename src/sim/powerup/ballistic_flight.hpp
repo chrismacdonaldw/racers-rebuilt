@@ -14,6 +14,7 @@ struct BallisticSpec {
     float speed = 0.0F;
     float gravity = 0.0F;
     Milliseconds lifetime{0};
+    bool leadsOnlyBehind = false;
 };
 
 enum class FlightState : std::uint8_t { Flying, HitWorld, Expired, ReachedTarget };

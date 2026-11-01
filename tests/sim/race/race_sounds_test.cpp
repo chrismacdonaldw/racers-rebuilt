@@ -55,6 +55,31 @@ TEST_CASE("a shield that ends plays its expiry, but one replaced by another does
     CHECK(sounds[0].sound == RaceSound::ShieldExpire);
 }
 
+TEST_CASE("yellow traps play their drop, touch, blast and fade sounds") {
+    RaceSounds sounds{2, 0, 6};
+    sounds.BeginTick();
+    const std::vector<WeaponEvent> events{
+        {.kind = WeaponEventKind::Fired, .weapon = PowerupKind::OilSlick},
+        {.kind = WeaponEventKind::Struck, .weapon = PowerupKind::OilSlick, .racer = 1},
+        {.kind = WeaponEventKind::Landed, .weapon = PowerupKind::Dynamite},
+        {.kind = WeaponEventKind::Fired, .weapon = PowerupKind::Magnet},
+        {.kind = WeaponEventKind::Struck, .weapon = PowerupKind::Magnet, .racer = 1},
+        {.kind = WeaponEventKind::Ended, .weapon = PowerupKind::Magnet},
+    };
+
+    sounds.HearWeapons(events);
+
+    CHECK(std::vector(sounds.Events().begin(), sounds.Events().end()) ==
+          std::vector<SoundEvent>{
+              {.sound = RaceSound::OilDrop},
+              {.sound = RaceSound::OilSlip, .racer = 1},
+              {.sound = RaceSound::DynamiteBlast},
+              {.sound = RaceSound::MagnetDeploy},
+              {.sound = RaceSound::MagnetGrab, .racer = 1},
+              {.sound = RaceSound::MagnetFade},
+          });
+}
+
 TEST_CASE("weapon events play their fire and hit sounds where they happened") {
     RaceSounds sounds{3, 0, 6};
     sounds.BeginTick();

@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -21,6 +22,7 @@
 #include "sim/powerup/red_effects.hpp"
 #include "sim/powerup/shield_effect.hpp"
 #include "sim/powerup/weapon_events.hpp"
+#include "sim/powerup/yellow_effects.hpp"
 
 namespace rr::test {
 
@@ -39,6 +41,7 @@ inline sim::EffectFactories AllEffects() {
     sim::AddGreenEffects(factories);
     sim::AddBlueEffects(factories);
     sim::AddRedEffects(factories);
+    sim::AddYellowEffects(factories);
     return factories;
 }
 
@@ -125,6 +128,7 @@ public:
         sim::PowerupContext context = Context();
         system_.Tick(kTick, context);
         explosions_.Tick(kTick, racers_, reaches_);
+        spikes_.Tick(kTick, racers_, reaches_);
         for (sim::Racer& racer : racers_) {
             racer.UpdateTimers(kTick);
         }
@@ -151,6 +155,12 @@ public:
     }
 
     sim::Racer& Car(std::size_t racer = 0) { return racers_[racer]; }
+
+    [[nodiscard]] bool HasWeaponEvent(sim::WeaponEventKind kind) const {
+        return std::ranges::any_of(weapons_.Events(), [kind](const sim::WeaponEvent& event) {
+            return event.kind == kind;
+        });
+    }
     [[nodiscard]] const sim::PowerupSystem& System() const { return system_; }
     [[nodiscard]] const sim::RaceProgress& Progress() const { return progress_; }
     [[nodiscard]] const sim::BrickField& Bricks() const { return bricks_; }
@@ -158,6 +168,7 @@ public:
         return inventories_[racer];
     }
     [[nodiscard]] const sim::Explosions& Blasts() const { return explosions_; }
+    [[nodiscard]] const sim::Explosions& Spikes() const { return spikes_; }
     [[nodiscard]] std::span<const sim::WeaponEvent> Weapons() const { return weapons_.Events(); }
 
     [[nodiscard]] Vector3 EffectAt(std::size_t active = 0) const {
@@ -176,6 +187,7 @@ private:
                 .bricks = &bricks_,
                 .inventories = inventories_,
                 .explosions = &explosions_,
+                .spikes = &spikes_,
                 .weapons = &weapons_,
                 .targets = targets_};
     }
@@ -196,6 +208,7 @@ private:
     sim::PowerupSystem system_;
     std::vector<BoundingSphere> reaches_;
     sim::Explosions explosions_;
+    sim::Explosions spikes_{sim::kSpikeExplosion, sim::kSpikeExplosionCount};
     sim::WeaponEvents weapons_{64};
     sim::Random random_{1};
     std::vector<assets::TargetPoint> targets_;
