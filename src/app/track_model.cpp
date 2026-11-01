@@ -146,6 +146,9 @@ public:
     }
 
     [[nodiscard]] TrackModel Finish() && {
+        for (render::MeshDraw& draw : draws_) {
+            draw.isStatic = true;
+        }
         return {.draws = std::move(draws_),
                 .entityDraws = std::move(named_),
                 .animatedModels = std::move(animated_),

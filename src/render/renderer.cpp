@@ -22,7 +22,6 @@ namespace rr::render {
 namespace {
 
 constexpr SDL_FColor kClearColor{.r = 0.08F, .g = 0.09F, .b = 0.12F, .a = 1.0F};
-constexpr glm::vec3 kLightDirection{-0.36F, -0.86F, -0.36F};
 constexpr std::size_t kLineVertexBytes = kMaxDebugLines * 2 * sizeof(LineVertex);
 constexpr std::size_t kSpriteVertexBytes = kMaxSprites * kVerticesPerSprite * sizeof(SpriteVertex);
 constexpr std::size_t kQuadVertexBytes = kMaxQuads * kVerticesPerSprite * sizeof(QuadVertex);
@@ -276,7 +275,7 @@ void Renderer::DrawScene(SDL_GPUCommandBuffer* commands, const RenderView& view,
     const glm::mat4 viewProjection = ViewProjection(
         view.camera, static_cast<float>(sceneWidthPx_) / static_cast<float>(sceneHeightPx_));
     SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(commands, &color, 1, &depth);
-    DrawMeshes(commands, pass, view.meshes, viewProjection);
+    DrawMeshes(commands, pass, view, viewProjection);
     if (!quadBatches_.empty()) {
         SDL_PushGPUVertexUniformData(commands, 0, &viewProjection, sizeof(viewProjection));
         DrawBatches(pass, quadStream_, quadBatches_, quadPipelines_);
@@ -332,19 +331,19 @@ void Renderer::DrawOverlay(SDL_GPUCommandBuffer* commands, SDL_GPUTexture* swapc
 }
 
 void Renderer::DrawMeshes(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
-                          std::span<const MeshDraw> meshes, const glm::mat4& viewProjection) const {
+                          const RenderView& view, const glm::mat4& viewProjection) const {
     SDL_GPUGraphicsPipeline* bound = nullptr;
-    for (const MeshDraw& draw : meshes | std::views::filter(IsOpaque)) {
-        DrawMesh(commands, pass, draw, viewProjection, bound);
+    for (const MeshDraw& draw : view.meshes | std::views::filter(IsOpaque)) {
+        DrawMesh(commands, pass, draw, viewProjection, view.lighting, bound);
     }
-    for (const MeshDraw& draw : meshes | std::views::filter(std::not_fn(IsOpaque))) {
-        DrawMesh(commands, pass, draw, viewProjection, bound);
+    for (const MeshDraw& draw : view.meshes | std::views::filter(std::not_fn(IsOpaque))) {
+        DrawMesh(commands, pass, draw, viewProjection, view.lighting, bound);
     }
 }
 
 void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
                         const MeshDraw& draw, const glm::mat4& viewProjection,
-                        SDL_GPUGraphicsPipeline*& bound) const {
+                        const Lighting& lighting, SDL_GPUGraphicsPipeline*& bound) const {
     const Mesh& mesh = meshes_.Get(draw.mesh);
     RR_VERIFY(draw.firstIndex <= mesh.indexCount);
     const std::uint32_t indexCount = std::min(draw.indexCount, mesh.indexCount - draw.firstIndex);
@@ -360,8 +359,9 @@ void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
                                     .viewProjection = viewProjection};
     const MaterialUniforms materialUniforms{
         .tint = draw.material.tint,
-        .ambient = draw.material.ambient,
-        .lightDirection = glm::normalize(kLightDirection),
+        .ambient = draw.material.ambient * lighting.ambient,
+        .lightDirection = glm::normalize(
+            glm::vec3(lighting.direction.x, lighting.direction.y, lighting.direction.z)),
         .alphaCutoff = draw.material.alphaCutoff,
         .modulateWeight = draw.material.modulates ? 1.0F : 0.0F,
         .uvOffset = {draw.material.uvOffset.u, draw.material.uvOffset.v}};

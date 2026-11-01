@@ -109,10 +109,11 @@ private:
     void DrawBatches(SDL_GPURenderPass* pass, const StreamBuffer& stream,
                      std::span<const SpriteBatch> batches,
                      const std::array<GpuPipeline, kBlendModeCount>& pipelines) const;
-    void DrawMeshes(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
-                    std::span<const MeshDraw> meshes, const glm::mat4& viewProjection) const;
+    void DrawMeshes(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, const RenderView& view,
+                    const glm::mat4& viewProjection) const;
     void DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, const MeshDraw& draw,
-                  const glm::mat4& viewProjection, SDL_GPUGraphicsPipeline*& bound) const;
+                  const glm::mat4& viewProjection, const Lighting& lighting,
+                  SDL_GPUGraphicsPipeline*& bound) const;
     void DrawLines(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, std::size_t lineCount,
                    const glm::mat4& viewProjection) const;
 
