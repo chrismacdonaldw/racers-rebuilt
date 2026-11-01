@@ -15,14 +15,18 @@ rr_add_module(sim
         collision/track_collision.cpp
         collision/track_surfaces.cpp
         collision/world_list.cpp
+        hazard/breakable.cpp
         hazard/code_puzzle.cpp
         hazard/crane.cpp
+        hazard/falling_pillar.cpp
         hazard/ghost.cpp
         hazard/hammer_swish.cpp
         hazard/hazard_box.cpp
+        hazard/hazard_cannon.cpp
         hazard/hazards.cpp
         hazard/lava_blob.cpp
         hazard/rocket_pad.cpp
+        hazard/sphinx.cpp
         hazard/swing_strike.cpp
         hazard/ufo_grabber.cpp
         input_latch.cpp

@@ -53,7 +53,7 @@ TEST_CASE("racer-path events and other ids leave a hazard alone") {
 }
 
 TEST_CASE("kinds the race doesn't run yet never start") {
-    test::HazardRig rig({{.kind = assets::HazardKind::FallingPillar}}, {});
+    test::HazardRig rig({{.kind = assets::HazardKind::Snowfall}}, {});
 
     rig.Hear(10, Start);
 
@@ -91,6 +91,10 @@ std::optional<bool> FoundItsModel(const HazardState& state) {
                 return hazard.entity.has_value();
             } else if constexpr (requires { hazard.reach.has_value(); }) {
                 return hazard.reach.has_value();
+            } else if constexpr (requires { hazard.entities.empty(); }) {
+                return !hazard.entities.empty();
+            } else if constexpr (requires { hazard.targets.empty(); }) {
+                return !hazard.targets.empty();
             } else {
                 return std::nullopt;
             }
@@ -124,7 +128,7 @@ TEST_CASE("every retail hazard this race runs finds its entity") {
     for (const std::string& name : assets::ListRaceTracks(*vfs)) {
         running += CountRunning(*vfs, name);
     }
-    CHECK(running == 10);
+    CHECK(running == 17);
 }
 
 }
