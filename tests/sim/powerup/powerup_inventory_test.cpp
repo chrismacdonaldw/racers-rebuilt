@@ -58,4 +58,28 @@ TEST_CASE("spending empties the inventory and returns the white bricks held") {
 }
 
 }
+TEST_CASE("a grant holds white bricks that belong to no brick, up to the cap") {
+    PowerupInventory inventory;
+
+    inventory.Grant(BrickColour::Red, 2);
+
+    CHECK(inventory.Colour() == BrickColour::Red);
+    CHECK(inventory.WhiteCount() == 2);
+    CHECK(inventory.TakeWhite(9));
+    CHECK_FALSE(inventory.TakeWhite(10));
+    CHECK(inventory.WhiteCount() == 3);
+}
+
+TEST_CASE("a racer loses real white bricks before granted ones") {
+    PowerupInventory inventory;
+    inventory.Grant(BrickColour::Blue, 1);
+    CHECK(inventory.TakeWhite(4));
+
+    CHECK(inventory.LoseWhite() == 4);
+    CHECK_FALSE(inventory.LoseWhite().has_value());
+    CHECK(inventory.WhiteCount() == 0);
+    CHECK(inventory.Spend() == std::array<std::optional<std::size_t>, kMaxWhiteBricks>{});
+    CHECK(inventory == PowerupInventory{});
+}
+
 }

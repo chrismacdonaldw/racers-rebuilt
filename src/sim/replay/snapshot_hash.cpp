@@ -191,6 +191,20 @@ public:
         for (const std::optional<std::size_t> white : inventory.WhiteBricks()) {
             Add(static_cast<std::uint64_t>(white.value_or(kNoWhiteBrick)));
         }
+        Add(static_cast<std::uint64_t>(inventory.WhiteCount()));
+    }
+
+    void Add(const PowerupSystem& powerups) {
+        for (const std::uint16_t slot : powerups.Active()) {
+            const EffectSlot& effect = powerups.Slots()[slot];
+            const EffectProgress progress = effect.effect->Progress();
+            const Transform pose = effect.effect->Pose();
+            Add(static_cast<int>(slot), static_cast<int>(effect.kind),
+                static_cast<int>(effect.use.racer), static_cast<int>(effect.use.level),
+                static_cast<int>(effect.use.shot), static_cast<int>(progress.phase),
+                progress.phaseTime, pose.position, pose.rotation.w, pose.rotation.x,
+                pose.rotation.y, pose.rotation.z, effect.entities.to_ullong());
+        }
     }
 
     void Add(const RaceClock& clock) {
@@ -238,6 +252,7 @@ std::uint64_t HashRaceSession(const RaceSession& session) {
     for (const std::size_t racer : session.Progress().Standings()) {
         hash.Add(static_cast<std::uint64_t>(racer));
     }
+    hash.Add(session.Powerups());
     if (!session.Bricks().IsEmpty()) {
         hash.Add(session.Bricks());
         for (const PowerupInventory& inventory : session.Inventories()) {

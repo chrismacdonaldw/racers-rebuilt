@@ -10,6 +10,7 @@ struct RacerControls {
     bool isThrottleHeld = false;
     bool isBrakeHeld = false;
     bool isDriftHeld = false;
+    bool isUsePressed = false;
     float steerLeftAxis = 0.0F;
 
     friend constexpr bool operator==(const RacerControls&, const RacerControls&) = default;

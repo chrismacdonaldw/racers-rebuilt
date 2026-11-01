@@ -39,6 +39,7 @@ void Interpolate(const RenderSnapshot& previous, const RenderSnapshot& current, 
     }
     out.racers.assign(current.racers.begin(), current.racers.end());
     out.bricks.assign(current.bricks.begin(), current.bricks.end());
+    out.effects.assign(current.effects.begin(), current.effects.end());
     out.camera = current.camera;
     out.simStateHash = current.simStateHash;
     out.camera.transform =
