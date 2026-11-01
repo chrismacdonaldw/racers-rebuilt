@@ -27,6 +27,17 @@ private:
     Random random_{5};
 };
 
+TEST_CASE("a racer's first voice reaction since its last tick plays") {
+    Listener listener;
+    listener.Car().React(VoiceReaction::Negative);
+    listener.Car().React(VoiceReaction::Positive);
+
+    const std::vector<SoundEvent> sounds = listener.Hear();
+
+    REQUIRE(sounds.size() == 1);
+    CHECK(sounds[0].sound == RaceSound::NegativeReaction);
+}
+
 TEST_CASE("an absorbed hit plays the sound it rolled") {
     Listener listener;
     listener.Car().RaiseShield(1);

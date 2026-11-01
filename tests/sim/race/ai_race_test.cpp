@@ -30,6 +30,8 @@ struct PowerupTally {
     std::vector<bool> pickedUp;
     std::vector<bool> used;
     std::size_t startBoosts = 0;
+    std::size_t cheers = 0;
+    std::size_t groans = 0;
 
     explicit PowerupTally(std::size_t racers) : pickedUp(racers), used(racers) {}
 
@@ -40,6 +42,10 @@ struct PowerupTally {
         for (const PowerupEvent& event : session.Powerups().Events()) {
             used[event.use.racer] = used[event.use.racer] || event.kind == PowerupEventKind::Used;
             startBoosts += isStart && event.kind == PowerupEventKind::Started ? 1 : 0;
+        }
+        for (const SoundEvent& event : session.Sounds()) {
+            cheers += event.sound == RaceSound::PositiveReaction ? 1 : 0;
+            groans += event.sound == RaceSound::NegativeReaction ? 1 : 0;
         }
     }
 
@@ -96,6 +102,10 @@ std::optional<std::string> RunRace(RaceSession& session, const std::string& trac
     if (tally.ComputersThatUsedPowerups() < kMinPowerupUsers) {
         return std::format("{}: only {} computer racers picked up and used a power-up", track,
                            tally.ComputersThatUsedPowerups());
+    }
+    if (tally.cheers == 0 || tally.groans == 0) {
+        return std::format("{}: {} positive and {} negative voice reactions", track, tally.cheers,
+                           tally.groans);
     }
     startBoosts += tally.startBoosts;
     MESSAGE(std::format("{}: computer racers finished in {} s, {} with a start boost", track,

@@ -111,6 +111,7 @@ void MagnetEffect::Touch(Racer& racer, std::uint8_t index, PowerupContext& conte
     } else if (!held_) {
         held_ = index;
         racer.StartMagnetHold();
+        racer.React(VoiceReaction::Negative);
         pulled_.reset();
         context.weapons->Add({.kind = WeaponEventKind::Struck,
                               .weapon = PowerupKind::Magnet,

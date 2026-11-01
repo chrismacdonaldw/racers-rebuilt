@@ -187,6 +187,12 @@ void Racer::LeaveGhostMode() {
     }
 }
 
+void Racer::React(VoiceReaction reaction) {
+    if (!events_.reaction) {
+        events_.reaction = reaction;
+    }
+}
+
 void Racer::ReactToHit() {
     ++status_.hitReactions;
 }

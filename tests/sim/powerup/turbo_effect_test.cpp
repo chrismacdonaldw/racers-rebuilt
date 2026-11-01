@@ -31,6 +31,13 @@ TEST_CASE("each turbo level lasts the racer's turbo, at the boosted top speed") 
     CheckTurboLevel(2, 510);
 }
 
+TEST_CASE("a turbo cheers its racer") {
+    Rig rig;
+    rig.Fire(BrickColour::Green, 0);
+
+    CHECK(rig.Car().Events().reaction == VoiceReaction::Positive);
+}
+
 TEST_CASE("a level 2 turbo halts the racer until its effect ends") {
     Rig rig;
     rig.Fire(BrickColour::Green, 2);

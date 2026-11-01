@@ -48,6 +48,7 @@ TEST_CASE("a magnet grabs a stopped racer near it and halts it") {
     CHECK(rig.Car(1).Status().isMagnetHeld);
     CHECK(rig.Car(1).Status().isHalted);
     CHECK(rig.HasWeaponEvent(WeaponEventKind::Struck));
+    CHECK(rig.Car(1).Events().reaction == VoiceReaction::Negative);
 }
 
 TEST_CASE("a magnet cuts its hold to 1 s once its racer halts, and lets go as it fades") {

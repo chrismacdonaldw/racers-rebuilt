@@ -46,6 +46,7 @@ void LavaBlob::Touch(HazardContext& context) const {
         if (Touches(reach, context.reaches[i]) && !racer.IsSpinning() && !racer.IsStopped()) {
             racer.StartSpin(kSpinTurns, kSpinRatePerMs);
             racer.ReactToHit();
+            racer.React(VoiceReaction::Negative);
         }
     }
 }

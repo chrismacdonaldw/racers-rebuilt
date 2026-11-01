@@ -70,6 +70,14 @@ TEST_CASE("a cannonball that hits the racer ahead blows it up") {
     CHECK(rig.Car(0).Status().hitReactions == 0);
 }
 
+TEST_CASE("a cannonball hit cheers its owner and dismays its victim") {
+    Rig rig(2);
+    HitRacerAhead(rig);
+
+    CHECK(rig.Car(0).Events().reaction == VoiceReaction::Positive);
+    CHECK(rig.Car(1).Events().reaction == VoiceReaction::Negative);
+}
+
 TEST_CASE("a racer hit by a cannonball drops a white brick") {
     Rig rig(2);
     HitRacerAhead(rig);
@@ -87,6 +95,16 @@ TEST_CASE("a level 0 or 1 shield absorbs a cannonball, which still explodes") {
     CHECK(rig.Car(1).Status().shield.absorbs == 1);
     CHECK(rig.Car(1).Status().hitReactions == 0);
     CHECK(rig.Car(1).Body().motion.velocity.z == doctest::Approx(0.0F));
+}
+
+TEST_CASE("a shield that absorbs a cannonball cheers only its racer") {
+    Rig rig(2);
+    ShieldRacerAhead(rig, 1);
+
+    REQUIRE(rig.TicksUntil([&] { return IsExploding(rig); }) > 0);
+
+    CHECK(rig.Car(1).Events().reaction == VoiceReaction::Positive);
+    CHECK_FALSE(rig.Car(0).Events().reaction);
 }
 
 TEST_CASE("a level 2 shield turns a cannonball back without exploding") {

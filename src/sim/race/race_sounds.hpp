@@ -50,6 +50,8 @@ enum class RaceSound : std::uint8_t {
     MagnetGrab,
     MagnetFade,
     Taunt,
+    PositiveReaction,
+    NegativeReaction,
 };
 
 /// `racer` means nothing for countdown sounds, and the rest only for the sounds that use them.

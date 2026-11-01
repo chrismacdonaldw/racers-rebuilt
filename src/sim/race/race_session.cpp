@@ -115,6 +115,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       respawns_(setup.racers.size()),
       wasRespawned_(setup.racers.size()),
       positions_(setup.racers.size()),
+      places_(setup.racers.size()),
       progress_(setup.racers.size(), setup.lapCount),
       sounds_(setup.racers.size(), BrickCount(course), WeaponEventCount(setup, course)),
       random_(setup.seed),
@@ -195,6 +196,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     spikes_.Tick(elapsed, racers_, reaches_);
     sounds_.HearWeapons(weapons_.Events());
     progress_.Rank(*course_.checkpoints, positions_);
+    ReactToPlaces();
     const RaceClock before = clock_;
     clock_.Advance(elapsed, HasPlayerFinished());
     sounds_.HearClock(before, clock_, isPlayer_);
@@ -337,6 +339,23 @@ PowerupContext RaceSession::EffectContext() {
 void RaceSession::TickBricks(Milliseconds elapsed) {
     bricks_.Tick(elapsed, reaches_, inventories_);
     sounds_.HearBricks(bricks_.Events(), AreBricksAudible(clock_));
+    for (const BrickEvent& event : bricks_.Events()) {
+        if (event.kind == BrickEventKind::WhiteCollected && event.whiteCount == kMaxPowerupLevel) {
+            racers_[event.racer].React(VoiceReaction::Positive);
+        }
+    }
+}
+
+void RaceSession::ReactToPlaces() {
+    const std::span<const std::size_t> standings = progress_.Standings();
+    for (std::size_t place = 0; place < standings.size(); ++place) {
+        std::size_t& last = places_[standings[place]];
+        if (clock_.IsRunning() && place != last) {
+            racers_[standings[place]].React(place < last ? VoiceReaction::Positive
+                                                         : VoiceReaction::Negative);
+        }
+        last = place;
+    }
 }
 
 void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
@@ -373,7 +392,11 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
         if (isPlayer_[racer]) {
             effects.targets = course_.targets;
         }
-        const bool isEmptyHanded = !inventories_[racer].Colour();
+        const std::optional<assets::BrickColour> colour = inventories_[racer].Colour();
+        if (colour == assets::BrickColour::Yellow || colour == assets::BrickColour::Blue) {
+            car.React(VoiceReaction::Positive);
+        }
+        const bool isEmptyHanded = !colour;
         powerups_.Use(racer, inventories_[racer], bricks_, effects);
         if (isEmptyHanded) {
             Taunt(racer);

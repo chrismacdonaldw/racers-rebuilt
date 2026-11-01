@@ -116,6 +116,7 @@ private:
     void PaceRoutes(Milliseconds elapsed);
     void MeasureReaches();
     void TickBricks(Milliseconds elapsed);
+    void ReactToPlaces();
     void TickTriggers(Milliseconds elapsed);
     void SwitchOnTriggerWorlds();
     [[nodiscard]] RacerWorldView WorldsOf(std::size_t racer) const;
@@ -131,6 +132,7 @@ private:
     std::vector<RespawnWatch> respawns_;
     std::vector<bool> wasRespawned_;
     std::vector<Vector3> positions_;
+    std::vector<std::size_t> places_;
     RaceProgress progress_;
     RaceClock clock_;
     RaceSounds sounds_;
