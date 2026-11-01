@@ -29,7 +29,7 @@ private:
     float scale_ = 1.0F;
 };
 
-/// Starts each newly cursed car's curse at the curse that caught it.
+/// Starts each newly cursed car's curse at the trap or car it came from.
 class CursedCars {
 public:
     void Update(const sim::RenderSnapshot& snapshot, float elapsedMs);
@@ -39,6 +39,7 @@ public:
 
 private:
     std::vector<std::optional<CurseOrbit>> orbits_;
+    std::vector<std::optional<Vector3>> dropped_;
 };
 
 }

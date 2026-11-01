@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
-#include <utility>
 
 #include "app/track_space.hpp"
 #include "sim/physics/rigid_body.hpp"
@@ -23,22 +22,14 @@ Vector3 CarAt(const sim::RenderSnapshot& snapshot, std::size_t racer) {
     return TransformToGame(snapshot.entities.at(racer).transform).position;
 }
 
-Vector3 StartFor(const sim::RenderSnapshot& snapshot, const Vector3& car,
-                 const std::optional<Vector3>& dropped) {
-    if (dropped) {
-        return *dropped;
-    }
-    std::optional<Vector3> nearest;
-    for (const sim::EffectSnapshot& effect : snapshot.effects) {
-        if (effect.kind != sim::PowerupKind::Curse) {
-            continue;
-        }
-        const Vector3 curse = TransformToGame(effect.transform).position;
-        if (!nearest || Length(curse - car) < Length(*nearest - car)) {
-            nearest = curse;
+Vector3 StartFor(const sim::CurseSource& source, const Vector3& car,
+                 std::span<const std::optional<Vector3>> dropped) {
+    if (source.giver && *source.giver < dropped.size()) {
+        if (const std::optional<Vector3>& given = dropped[*source.giver]) {
+            return *given;
         }
     }
-    return nearest.value_or(car + (kUp * kHoverHeight));
+    return source.trap ? ToGame(*source.trap) : car + (kUp * kHoverHeight);
 }
 
 }
@@ -62,11 +53,11 @@ void CurseOrbit::Follow(const Vector3& car, float speed, float elapsedMs) {
 void CursedCars::Update(const sim::RenderSnapshot& snapshot, float elapsedMs) {
     const std::size_t count = std::min(snapshot.racers.size(), snapshot.entities.size());
     orbits_.resize(count);
-    std::optional<Vector3> dropped;
+    dropped_.assign(count, std::nullopt);
     for (std::size_t i = 0; i < count; ++i) {
         std::optional<CurseOrbit>& orbit = orbits_[i];
         if (!snapshot.racers[i].isCursed && orbit) {
-            dropped = orbit->Pose().position;
+            dropped_[i] = orbit->Pose().position;
             orbit.reset();
         }
     }
@@ -77,8 +68,7 @@ void CursedCars::Update(const sim::RenderSnapshot& snapshot, float elapsedMs) {
         const Vector3 car = CarAt(snapshot, i);
         std::optional<CurseOrbit>& orbit = orbits_[i];
         CurseOrbit& follower =
-            orbit ? *orbit
-                  : orbit.emplace(StartFor(snapshot, car, std::exchange(dropped, std::nullopt)));
+            orbit ? *orbit : orbit.emplace(StartFor(snapshot.racers[i].curseSource, car, dropped_));
         follower.Follow(car, snapshot.racers[i].forwardSpeed, elapsedMs);
     }
 }

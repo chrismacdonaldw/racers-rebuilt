@@ -261,8 +261,7 @@ void RaceSession::ResolveContacts() {
     }
     contacts_.Resolve(contactBodies_);
     for (const RacerContact& contact : contacts_.Contacts()) {
-        ApplyContactEffects(racers_[contact.first], racers_[contact.second], contact.point,
-                            random_);
+        ApplyContactEffects(racers_, contact, random_);
     }
 }
 

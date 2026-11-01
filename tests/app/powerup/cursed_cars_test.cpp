@@ -2,14 +2,24 @@
 
 #include <doctest/doctest.h>
 
+#include <cstdint>
 #include <optional>
+#include <utility>
+#include <vector>
 
+#include "../../sim/physics/plane_world.hpp"
+#include "../../sim/race/checkpoint_ring.hpp"
+#include "app/race_step.hpp"
 #include "app/track_space.hpp"
+#include "sim/physics/racer_controls.hpp"
+#include "sim/powerup/yellow_effects.hpp"
+#include "sim/race/race_session.hpp"
 
 namespace rr::app {
 namespace {
 
 constexpr float kFrameMs = 16.0F;
+constexpr Milliseconds kTick{12};
 constexpr Vector3 kCar{.x = 100.0F, .y = 50.0F};
 
 sim::RenderSnapshot OneCar() {
@@ -23,6 +33,61 @@ std::optional<Vector3> CurseAt(const CursedCars& cars, std::size_t racer) {
     const std::optional<CurseOrbit>& orbit = cars.Orbits()[racer];
     return orbit ? std::optional(orbit->Pose().position) : std::nullopt;
 }
+
+sim::RenderSnapshot TwoCars() {
+    sim::RenderSnapshot snapshot = OneCar();
+    snapshot.entities.push_back({.transform = TransformToEngine({.position = {}})});
+    snapshot.racers.push_back({});
+    return snapshot;
+}
+
+std::optional<Vector3> CurseTrapAt(const sim::RenderSnapshot& snapshot) {
+    for (const sim::EffectSnapshot& effect : snapshot.effects) {
+        if (effect.kind == sim::PowerupKind::Curse) {
+            return TransformToGame(effect.transform).position;
+        }
+    }
+    return std::nullopt;
+}
+
+/// The player drops curses beside a parked computer racer.
+class CurseRace {
+public:
+    CurseRace() : session_(Start()) {
+        while (session_.Clock().Phase() != sim::RacePhase::Racing) {
+            Tick();
+        }
+    }
+
+    void Use(assets::BrickColour colour, std::uint8_t level) {
+        session_.GivePowerup(0, colour, level);
+        controls_[0].isUsePressed = true;
+        Tick();
+        controls_[0].isUsePressed = false;
+    }
+
+    void Tick() { session_.Tick(kTick, controls_); }
+
+    [[nodiscard]] const sim::RaceSession& Session() const { return session_; }
+
+private:
+    sim::RaceSession Start() {
+        sim::RaceSetup setup{.racers = std::vector<sim::RacerEntry>(grid_.size())};
+        setup.racers[0].isPlayer = true;
+        sim::AddYellowEffects(setup.effects);
+        Result<sim::RaceSession> session = sim::RaceSession::Create(
+            setup, {.checkpoints = &graph_, .grid = grid_, .world = &world_, .lowestTrackZ = -100});
+        REQUIRE(session.has_value());
+        return std::move(*session);
+    }
+
+    sim::CheckpointGraph graph_ = test::Ring();
+    test::PlaneWorld world_{{test::TestPlane{}}};
+    std::vector<sim::RacerStart> grid_{{.position = {.x = -20.0F, .z = 0.2F}},
+                                       {.position = {.x = -20.0F, .y = 8.0F, .z = 0.2F}}};
+    sim::RaceSession session_;
+    std::vector<sim::RacerControls> controls_ = std::vector<sim::RacerControls>(2);
+};
 
 TEST_CASE("the curse circles above the car once a second, facing it") {
     CurseOrbit orbit(kCar + Vector3{.y = 6.0F, .z = 9.0F});
@@ -59,12 +124,11 @@ TEST_CASE("the curse shrinks to two thirds") {
     CHECK(orbit.Scale() == doctest::Approx(0.666F));
 }
 
-TEST_CASE("a newly cursed car takes the curse from the nearest curse power-up") {
+TEST_CASE("a car cursed by a trap takes the curse from that trap") {
     CursedCars cars;
     sim::RenderSnapshot snapshot = OneCar();
     const Vector3 trap = kCar + Vector3{.x = 50.0F, .z = 13.0F};
-    snapshot.effects.push_back(
-        {.kind = sim::PowerupKind::Curse, .transform = TransformToEngine({.position = trap})});
+    snapshot.racers[0].curseSource.trap = ToEngine(trap);
 
     cars.Update(snapshot, 0.0F);
 
@@ -74,19 +138,50 @@ TEST_CASE("a newly cursed car takes the curse from the nearest curse power-up") 
 
 TEST_CASE("a curse passed between cars flies from the car that lost it") {
     CursedCars cars;
-    sim::RenderSnapshot snapshot = OneCar();
-    snapshot.entities.push_back({.transform = TransformToEngine({.position = {}})});
-    snapshot.racers.push_back({});
+    sim::RenderSnapshot snapshot = TwoCars();
     cars.Update(snapshot, kFrameMs);
     const std::optional<Vector3> held = CurseAt(cars, 0);
     REQUIRE(held.has_value());
 
     snapshot.racers[0].isCursed = false;
     snapshot.racers[1].isCursed = true;
+    snapshot.racers[1].curseSource.giver = 0;
     cars.Update(snapshot, 0.0F);
 
     CHECK_FALSE(CurseAt(cars, 0).has_value());
     CHECK(CurseAt(cars, 1) == held);
+}
+
+TEST_CASE("a curse that runs out doesn't fly to a car a trap caught in the same frame") {
+    CursedCars cars;
+    sim::RenderSnapshot snapshot = TwoCars();
+    cars.Update(snapshot, kFrameMs);
+    const Vector3 trap{.x = -40.0F, .z = 13.0F};
+
+    snapshot.racers[0].isCursed = false;
+    snapshot.racers[1].isCursed = true;
+    snapshot.racers[1].curseSource.trap = ToEngine(trap);
+    cars.Update(snapshot, 0.0F);
+
+    CHECK(CurseAt(cars, 1) == trap);
+}
+
+TEST_CASE("a car a dropped curse catches in a race starts its curse at that curse") {
+    CurseRace race;
+    race.Use(assets::BrickColour::Yellow, 3);
+    for (int tick = 0; tick < 50 && !race.Session().Racers()[1].Status().isCursed; ++tick) {
+        race.Tick();
+    }
+    REQUIRE(race.Session().Racers()[1].Status().isCursed);
+    sim::RenderSnapshot snapshot;
+    SnapshotRace(race.Session(), snapshot);
+    const std::optional<Vector3> trap = CurseTrapAt(snapshot);
+    REQUIRE(trap.has_value());
+
+    CursedCars cars;
+    cars.Update(snapshot, 0.0F);
+
+    CHECK(CurseAt(cars, 1) == trap);
 }
 
 }

@@ -52,6 +52,7 @@ TEST_CASE("a curse curses every other racer that touches it, once") {
     rig.TickFor(1);
     CHECK(rig.Car(1).Status().isCursed);
     CHECK(rig.Car(1).Status().curseMs == kCurseMs - 12);
+    CHECK(rig.Car(1).Status().curseSource.trap == rig.EffectAt());
     CHECK_FALSE(rig.Car(0).Status().isCursed);
 
     rig.Place(2, kInField);

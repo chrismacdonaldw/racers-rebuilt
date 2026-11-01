@@ -7,6 +7,7 @@
 #include "assets/brick_layout.hpp"
 #include "core/transform.hpp"
 #include "sim/animation/part_clock.hpp"
+#include "sim/physics/curse_source.hpp"
 #include "sim/powerup/powerup_kind.hpp"
 
 namespace rr::sim {
@@ -43,6 +44,7 @@ struct CameraSnapshot {
 
 /// `turnRadius` is in world units, positive turning left and 0 when driving straight.
 /// `hitReactions` only ever counts up, so a change means the driver was hit since.
+/// `curseSource.trap` is in engine space.
 struct RacerSnapshot {
     EntityId id{};
     float forwardSpeed = 0.0F;
@@ -52,6 +54,7 @@ struct RacerSnapshot {
     std::uint8_t whiteCount = 0;
     bool isGhost = false;
     bool isCursed = false;
+    CurseSource curseSource;
     std::optional<std::uint8_t> tint;
 
     friend bool operator==(const RacerSnapshot&, const RacerSnapshot&) = default;
