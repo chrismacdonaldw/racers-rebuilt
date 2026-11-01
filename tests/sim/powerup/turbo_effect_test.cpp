@@ -38,6 +38,19 @@ TEST_CASE("a turbo cheers its racer") {
     CHECK(rig.Car().Events().reaction == VoiceReaction::Positive);
 }
 
+TEST_CASE("a turbo's flames sit 2 behind and 3 above the car, turned to face its side") {
+    Rig rig;
+    rig.Fire(BrickColour::Green, 1);
+
+    const BodyMotion& motion = rig.Car().Body().motion;
+    const Transform flames = rig.Effect().Pose();
+    const Vector3 expected =
+        motion.position - (motion.basis.forward * 2.0F) + (motion.basis.up * 3.0F);
+    CHECK(Length(flames.position - expected) < 0.001F);
+    CHECK(Length(Rotate(flames.rotation, {.x = 1.0F}) - motion.basis.side) < 0.001F);
+    CHECK(Length(Rotate(flames.rotation, {.z = 1.0F}) - motion.basis.up) < 0.001F);
+}
+
 TEST_CASE("a level 2 turbo halts the racer until its effect ends") {
     Rig rig;
     rig.Fire(BrickColour::Green, 2);
