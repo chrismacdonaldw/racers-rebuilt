@@ -70,10 +70,12 @@ rr_add_module(app
         race_step.cpp
         racer_effect_tools.cpp
         racer/animation_player.cpp
+        racer/car_shadows.cpp
         racer/body_lean.cpp
         racer/racer_assets.cpp
         racer/racer_bounds.cpp
         racer/racer_draws.cpp
+        racer/racer_fx.cpp
         racer/racer_grid.cpp
         racer/racer_visuals.cpp
         replay_session.cpp

@@ -22,6 +22,10 @@ struct QuadLook {
 void AppendBillboard(const QuadLook& look, const Vector3& centre, float width, float height,
                      const Transform& camera, std::vector<render::QuadDraw>& out);
 
+/// In engine space. `top` and `right` run from the centre to the texture's top and right edges.
+void AppendGroundQuad(const QuadLook& look, const Vector3& centre, const Vector3& normal,
+                      const Vector3& top, const Vector3& right, std::vector<render::QuadDraw>& out);
+
 /// A level square in engine space, lifted clear of the ground it lies on.
 void AppendDecal(const QuadLook& look, const Vector3& centre, float size,
                  std::vector<render::QuadDraw>& out);

@@ -34,16 +34,21 @@ void AppendBillboard(const QuadLook& look, const Vector3& centre, float width, f
                    .blend = look.blend});
 }
 
-void AppendDecal(const QuadLook& look, const Vector3& centre, float size,
-                 std::vector<render::QuadDraw>& out) {
-    const Vector3 lifted = centre + (kEngineUp * kDecalLift);
-    const Vector3 across = kEngineAcross * (size * 0.5F);
-    const Vector3 along = kEngineAlong * (size * 0.5F);
+void AppendGroundQuad(const QuadLook& look, const Vector3& centre, const Vector3& normal,
+                      const Vector3& top, const Vector3& right,
+                      std::vector<render::QuadDraw>& out) {
+    const Vector3 lifted = centre + (normal * kDecalLift);
     out.push_back({.texture = look.texture,
-                   .corners = {lifted - along - across, lifted - along + across,
-                               lifted + along - across, lifted + along + across},
+                   .corners = {lifted + top - right, lifted + top + right, lifted - top - right,
+                               lifted - top + right},
                    .tint = look.tint,
                    .blend = look.blend});
+}
+
+void AppendDecal(const QuadLook& look, const Vector3& centre, float size,
+                 std::vector<render::QuadDraw>& out) {
+    const float half = size * 0.5F;
+    AppendGroundQuad(look, centre, kEngineUp, kEngineAlong * -half, kEngineAcross * half, out);
 }
 
 void AppendRibbon(const QuadLook& look, std::span<const RibbonPoint> points, float width,

@@ -21,6 +21,7 @@
 #include "app/menu/menu_scenes.hpp"
 #include "app/powerup_tools.hpp"
 #include "app/race_step.hpp"
+#include "app/racer/racer_fx.hpp"
 #include "app/track_model.hpp"
 #include "app/track_space.hpp"
 #include "assets/circuit_database.hpp"
@@ -57,6 +58,14 @@ std::vector<std::int32_t> PerSlot(const RacerGrid& racers, std::size_t slots,
         values[i] = (racers.*value)(i);
     }
     return values;
+}
+
+std::vector<sim::ChassisSpec> ChassisPerSlot(const RacerGrid& racers) {
+    std::vector<sim::ChassisSpec> chassis(racers.Count());
+    for (std::size_t i = 0; i < chassis.size(); ++i) {
+        chassis[i] = racers.Chassis(i);
+    }
+    return chassis;
 }
 
 std::unique_ptr<RaceAudio> LoadAudio(const RaceOutputs& outputs, const assets::Vfs& vfs,
@@ -125,14 +134,13 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                               raceTrack->entities);
     GhostTrail ghostTrail(model->draws, model->entityDraws, raceTrack->entities);
     WaterScroll waterScroll(raceTrack->hazards, model->entityDraws);
-    const std::vector<std::int32_t> voiceBanks =
-        PerSlot(*racers, session->Racers().size(), &RacerGrid::VoiceBank);
-    std::unique_ptr<RaceAudio> audio = LoadAudio(outputs, vfs, track,
-                                                 {.racerCount = session->Racers().size(),
-                                                  .player = kPlayerSlot,
-                                                  .seed = seed,
-                                                  .ambience = raceTrack->events.table.sounds,
-                                                  .voiceBanks = voiceBanks});
+    std::unique_ptr<RaceAudio> audio = LoadAudio(
+        outputs, vfs, track,
+        {.racerCount = session->Racers().size(),
+         .player = kPlayerSlot,
+         .seed = seed,
+         .ambience = raceTrack->events.table.sounds,
+         .voiceBanks = PerSlot(*racers, session->Racers().size(), &RacerGrid::VoiceBank)});
     std::optional<RaceParticles> particles =
         LoadParticles(renderer, vfs, loader, track, raceTrack->collision.surfaces);
     return std::unique_ptr<RaceScene>(
@@ -141,6 +149,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                        .setup = setup,
                        .trackDraws = std::move(model->draws),
                        .racers = std::move(*racers),
+                       .racerFx = LoadRacerFxMaterials(renderer, loader),
                        .bricks = std::move(*bricks),
                        .powerups = LoadPowerupModels(renderer, vfs, loader),
                        .warpTube = WarpTube::Load(renderer, vfs, loader),
@@ -159,6 +168,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
 
 RaceScene::RaceScene(Parts parts)
     : parts_(std::move(parts)),
+      shadows_(parts_.racerFx, ChassisPerSlot(parts_.racers)),
       powerupVisuals_(parts_.powerups.models),
       powerupQuads_(parts_.powerups.quadMaterials),
       chase_(PlayerCar()),
@@ -292,6 +302,7 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     }
     DrawDebugLines();
     quads_.clear();
+    shadows_.Append(interpolated.entities, interpolated.racers, carLooks_, *parts_.world, quads_);
     if (parts_.particles) {
         parts_.particles->Update(parts_.session,
                                  render::FloatMilliseconds{pause_.IsOpen() ? 0.0F : elapsedMs});

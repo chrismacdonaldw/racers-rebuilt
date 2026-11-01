@@ -53,6 +53,7 @@ add_executable(racers-rebuilt-tests
     app/race_particles_test.cpp
     app/race_scene_name_test.cpp
     app/racer/animation_player_test.cpp
+    app/racer/car_shadows_test.cpp
     app/racer/body_lean_test.cpp
     app/racer/racer_assets_test.cpp
     app/racer/racer_bounds_test.cpp

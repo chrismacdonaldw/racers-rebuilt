@@ -24,6 +24,7 @@
 #include "app/race_audio.hpp"
 #include "app/race_particles.hpp"
 #include "app/race_scene_name.hpp"
+#include "app/racer/car_shadows.hpp"
 #include "app/racer/racer_grid.hpp"
 #include "app/racer_effect_tools.hpp"
 #include "app/scene.hpp"
@@ -76,6 +77,7 @@ private:
         RaceSceneSetup setup;
         std::vector<render::MeshDraw> trackDraws;
         RacerGrid racers;
+        assets::NameMap<render::Material> racerFx;
         BrickModels bricks;
         PowerupModelSet powerups;
         std::optional<WarpTube> warpTube;
@@ -104,6 +106,7 @@ private:
     void DrawDebugLines();
 
     Parts parts_;
+    CarShadows shadows_;
     PowerupVisuals powerupVisuals_;
     PowerupQuads powerupQuads_;
     ChaseCamera chase_;
