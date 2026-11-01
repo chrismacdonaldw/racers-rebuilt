@@ -23,6 +23,8 @@ constexpr std::size_t kGo = 15;
 constexpr std::size_t kWallHit = 25;
 constexpr std::size_t kIdleLoop = 32;
 constexpr std::size_t kBrickCollect = 49;
+constexpr std::size_t kMissileHit = 50;
+constexpr std::size_t kMissileFire = 51;
 constexpr std::size_t kTurboStart = 36;
 constexpr std::size_t kWarpStart = 39;
 constexpr std::size_t kTurboEnd = 40;
@@ -170,6 +172,8 @@ void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent
         case sim::RaceSound::ShieldExpire:
         case sim::RaceSound::CannonFire:
         case sim::RaceSound::CannonHit:
+        case sim::RaceSound::MissileFire:
+        case sim::RaceSound::MissileHit:
             PlayPowerupEvent(event, car);
             break;
         case sim::RaceSound::DriftStart:
@@ -220,6 +224,12 @@ void RaceAudio::PlayPowerupEvent(const sim::SoundEvent& event, const Vector3& ca
             break;
         case sim::RaceSound::CannonHit:
             PlayAt(kCannonHit, event.position, {}, kWeaponHitRange);
+            break;
+        case sim::RaceSound::MissileFire:
+            PlayAt(kMissileFire, event.position, {}, kWeaponFireRange);
+            break;
+        case sim::RaceSound::MissileHit:
+            PlayAt(kMissileHit, event.position, {}, kWeaponHitRange);
             break;
         default:
             break;

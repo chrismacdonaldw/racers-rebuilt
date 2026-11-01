@@ -64,7 +64,7 @@ HitOutcome HitRacer(PowerupContext& context, const PowerupHit& hit) {
 
 ShotOutcome ResolveShot(PowerupContext& context, const ShotStep& shot) {
     RR_ASSERT(context.explosions != nullptr);
-    if (shot.state != FlightState::Flying) {
+    if (shot.state == FlightState::HitWorld || shot.state == FlightState::Expired) {
         context.weapons->Add(
             {.kind = WeaponEventKind::Landed, .weapon = shot.weapon, .position = shot.position});
         context.explosions->Spawn(
@@ -72,8 +72,11 @@ ShotOutcome ResolveShot(PowerupContext& context, const ShotStep& shot) {
             shot.owner);
         return {.isOver = true};
     }
-    const std::optional<std::size_t> touched = FindTouchedRacer(
-        context, {.centre = shot.position, .radius = kShotTouchRadius}, shot.owner);
+    const std::optional<std::size_t> touched =
+        shot.state == FlightState::ReachedTarget
+            ? shot.target
+            : FindTouchedRacer(context, {.centre = shot.position, .radius = kShotTouchRadius},
+                               shot.owner);
     if (!touched) {
         return {};
     }

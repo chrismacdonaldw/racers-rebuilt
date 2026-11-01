@@ -34,6 +34,8 @@ enum class RaceSound : std::uint8_t {
     ShieldExpire,
     CannonFire,
     CannonHit,
+    MissileFire,
+    MissileHit,
 };
 
 /// `racer` means nothing for countdown sounds, and the rest only for the sounds that use them.

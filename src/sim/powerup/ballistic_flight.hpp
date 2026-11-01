@@ -16,7 +16,7 @@ struct BallisticSpec {
     Milliseconds lifetime{0};
 };
 
-enum class FlightState : std::uint8_t { Flying, HitWorld, Expired };
+enum class FlightState : std::uint8_t { Flying, HitWorld, Expired, ReachedTarget };
 
 /// Keeps falling past its aim point until it hits something or runs out.
 class BallisticFlight {

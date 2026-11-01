@@ -62,6 +62,13 @@ constexpr Vector3& operator-=(Vector3& a, const Vector3& b) {
     return length > 0.0F ? v * (1.0F / length) : fallback;
 }
 
+/// `axis` is unit length.
+[[nodiscard]] inline Vector3 RotateAbout(const Vector3& v, const Vector3& axis, float radians) {
+    const float cos = std::cos(radians);
+    return (v * cos) + (Cross(axis, v) * std::sin(radians)) +
+           (axis * (Dot(axis, v) * (1.0F - cos)));
+}
+
 [[nodiscard]] constexpr Vector3 Lerp(const Vector3& from, const Vector3& to, float alpha) {
     return {.x = from.x + ((to.x - from.x) * alpha),
             .y = from.y + ((to.y - from.y) * alpha),
