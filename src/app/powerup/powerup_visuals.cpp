@@ -119,7 +119,7 @@ PowerupVisuals::PowerupVisuals(const EffectModels& models) : models_(&models) {}
 void PowerupVisuals::Update(const sim::RenderSnapshot& snapshot, float elapsedMs) {
     draws_.clear();
     for (Instance& instance : instances_) {
-        instance.isLive = false;
+        instance.wasLive = std::exchange(instance.isLive, false);
     }
     for (const sim::EffectSnapshot& effect : snapshot.effects) {
         Instance& instance = InstanceFor(effect);
@@ -145,8 +145,8 @@ PowerupVisuals::Instance& PowerupVisuals::InstanceFor(const sim::EffectSnapshot&
         instances_.resize(effect.slot + std::size_t{1});
     }
     Instance& instance = instances_[effect.slot];
-    const bool wasLive = std::exchange(instance.isLive, true);
-    if (!wasLive || instance.kind != effect.kind || !(instance.use == effect.use)) {
+    instance.isLive = true;
+    if (!instance.wasLive || instance.kind != effect.kind || !(instance.use == effect.use)) {
         Start(instance, effect);
     }
     return instance;

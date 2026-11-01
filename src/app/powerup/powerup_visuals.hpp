@@ -40,6 +40,7 @@ private:
         std::optional<std::uint8_t> phase;
         std::vector<Posed> models;
         bool isLive = false;
+        bool wasLive = false;
     };
 
     [[nodiscard]] Instance& InstanceFor(const sim::EffectSnapshot& effect);

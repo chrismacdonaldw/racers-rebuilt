@@ -51,6 +51,18 @@ JointedAssets OneNodeShifts(const std::vector<std::string>& parts) {
     return jointed;
 }
 
+JointedAssets SlidesNineAlongX() {
+    JointedAssets jointed{
+        .skeleton = {.nodes = {{.name = "root", .position = {}, .rotation = {}, .parent = {}}}},
+        .animations = {}};
+    jointed.animations.positionKeys = {{}, {.x = 9.0F * 64.0F}};
+    jointed.animations.keyFrames = {0, 9};
+    jointed.animations.tracks.push_back(
+        {.rotations = {}, .positions = {.firstValue = 0, .firstFrame = 0, .count = 2}});
+    jointed.animations.parts.push_back(Part("slide", 0));
+    return jointed;
+}
+
 EffectModel Static() {
     return {.draws = {.draws = std::vector<render::MeshDraw>(1), .joints = {0}, .scale = 1.0F},
             .jointed = nullptr};
@@ -93,6 +105,17 @@ TEST_CASE("a curse floats over its glow, which lies on the ground") {
     CheckNear(GamePosition(visuals.Draws()[0]), kAt);
     CheckNear(GamePosition(visuals.Draws()[1]), kAt - Vector3{.z = 13.0F});
     CheckNear(GamePosition(visuals.Draws()[2]), kAt - Vector3{.z = 13.0F});
+}
+
+TEST_CASE("a power-up model's animation runs on from frame to frame") {
+    const JointedAssets slide = SlidesNineAlongX();
+    const EffectModels models{{"SHIELD0", Jointed(slide)}};
+    PowerupVisuals visuals(models);
+
+    visuals.Update(WithEffect(sim::PowerupKind::Shield, {}), 100.0F);
+    visuals.Update(WithEffect(sim::PowerupKind::Shield, {}), 100.0F);
+
+    CheckNear(GamePosition(visuals.Draws()[0]), kAt + Vector3{.x = 6.0F});
 }
 
 TEST_CASE("a turbo's flames fire up, sustain and die out with its phases") {
