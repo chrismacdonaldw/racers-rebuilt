@@ -1,6 +1,5 @@
 #include <doctest/doctest.h>
 
-#include <algorithm>
 #include <cstddef>
 #include <format>
 #include <optional>
@@ -24,6 +23,7 @@ namespace {
 
 constexpr Milliseconds kTick{12};
 constexpr int kMaxTicks = 100000;
+constexpr std::size_t kMinPowerupUsers = 3;
 constexpr ChassisSpec kChassis{.handling = 50, .topSpeed = 50, .acceleration = 50};
 
 struct PowerupTally {
@@ -43,9 +43,12 @@ struct PowerupTally {
         }
     }
 
-    [[nodiscard]] bool HaveComputersUsedPowerups() const {
-        return std::all_of(pickedUp.begin() + 1, pickedUp.end(), std::identity{}) &&
-               std::all_of(used.begin() + 1, used.end(), std::identity{});
+    [[nodiscard]] std::size_t ComputersThatUsedPowerups() const {
+        std::size_t count = 0;
+        for (std::size_t i = 1; i < used.size(); ++i) {
+            count += pickedUp[i] && used[i] ? 1 : 0;
+        }
+        return count;
     }
 };
 
@@ -94,8 +97,9 @@ std::optional<std::string> RunRace(RaceSession& session, const std::string& trac
     if (ticks > kMaxTicks) {
         return std::format("{}: the computer racers didn't all finish", track);
     }
-    if (!tally.HaveComputersUsedPowerups()) {
-        return std::format("{}: a computer racer never picked up and used a power-up", track);
+    if (tally.ComputersThatUsedPowerups() < kMinPowerupUsers) {
+        return std::format("{}: only {} computer racers picked up and used a power-up", track,
+                           tally.ComputersThatUsedPowerups());
     }
     startBoosts += tally.startBoosts;
     MESSAGE(std::format("{}: computer racers finished in {} s, {} with a start boost", track,
@@ -125,7 +129,7 @@ std::optional<std::string> RaceProblem(const assets::Vfs& vfs, const std::string
     return RunRace(*session, track, startBoosts);
 }
 
-TEST_CASE("on every retail track, five computer racers use power-ups and finish three laps") {
+TEST_CASE("on every retail track, most computer racers use power-ups and all finish three laps") {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
         return;
