@@ -75,7 +75,7 @@ HazardSlot Load(const assets::Hazard& hazard, TrackEntities& entities, ModelSwit
                                   .state = LoadHazardBox(payload, entities)};
             });
         case assets::HazardKind::Ghost:
-            return {.trigger = kGhostTrigger, .state = LoadGhost(entities)};
+            return {.trigger = kGhostTrigger, .state = LoadGhost(entities, models)};
         case assets::HazardKind::LavaBlob:
             return {.trigger = kLavaBlobTrigger, .state = LoadLavaBlob(entities)};
         case assets::HazardKind::CodePuzzle:

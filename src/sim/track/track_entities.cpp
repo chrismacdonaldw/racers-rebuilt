@@ -19,6 +19,15 @@ Transform LocalAt(const TrackEntitySources& sources, const TrackEntity& entity,
 
 }
 
+Transform NodeWorldBefore(const TrackEntitySources& sources, std::size_t entity, EntityClock clock,
+                          std::size_t node, Milliseconds ago) {
+    if (clock) {
+        RewindClock(sources.animations[sources.entities[entity].animation], *clock,
+                    static_cast<float>(ago.count()));
+    }
+    return NodeWorld(sources, entity, clock, node);
+}
+
 Transform NodeWorld(const TrackEntitySources& sources, std::size_t entity, const EntityClock& clock,
                     std::size_t node) {
     const TrackEntity& placed = sources.entities[entity];
@@ -137,12 +146,7 @@ Transform TrackEntities::NodeWorld(std::size_t entity, std::size_t node) const {
 
 Transform TrackEntities::NodeWorldBefore(std::size_t entity, std::size_t node,
                                          Milliseconds ago) const {
-    EntityClock clock = clocks_[entity];
-    if (clock) {
-        RewindClock(sources_->animations[Entity(entity).animation], *clock,
-                    static_cast<float>(ago.count()));
-    }
-    return sim::NodeWorld(*sources_, entity, clock, node);
+    return sim::NodeWorldBefore(*sources_, entity, clocks_[entity], node, ago);
 }
 
 }

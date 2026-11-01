@@ -61,7 +61,8 @@ void Ghost::Touch(HazardContext& context) const {
     }
 }
 
-Ghost LoadGhost(const TrackEntities& entities) {
+Ghost LoadGhost(const TrackEntities& entities, ModelSwitches& models) {
+    models.SetHidden(models.Add("gtrail"), true);
     Ghost ghost{.entity = entities.Find("ghostly")};
     if (ghost.entity) {
         ghost.reach.radius = entities.Entity(*ghost.entity).radius + kExtraReach;

@@ -7,6 +7,7 @@
 #include "core/bounding_sphere.hpp"
 #include "core/duration.hpp"
 #include "sim/hazard/hazard_context.hpp"
+#include "sim/track/model_switches.hpp"
 #include "sim/track/track_entities.hpp"
 
 namespace rr::sim {
@@ -23,6 +24,7 @@ struct Ghost {
     void Touch(HazardContext& context) const;
 };
 
-[[nodiscard]] Ghost LoadGhost(const TrackEntities& entities);
+/// Hides the static `gtrail` model, which the app draws as the ghost's trail.
+[[nodiscard]] Ghost LoadGhost(const TrackEntities& entities, ModelSwitches& models);
 
 }

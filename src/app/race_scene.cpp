@@ -196,6 +196,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     HiddenModels hiddenModels(raceTrack->events.table.modelDistances,
                               session->TrackHazards().Models().Names(), model->entityDraws,
                               raceTrack->entities);
+    GhostTrail ghostTrail(model->draws, model->entityDraws, raceTrack->entities);
     Result<std::unique_ptr<RaceAudio>> audio =
         RaceAudio::Load(*outputs.mixer, *outputs.banks, vfs, track,
                         {.racerCount = session->Racers().size(),
@@ -219,6 +220,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                        .raceTrack = std::move(raceTrack),
                        .entityDraws = std::move(entityDraws),
                        .hiddenModels = std::move(hiddenModels),
+                       .ghostTrail = std::move(ghostTrail),
                        .world = std::move(world),
                        .session = std::move(*session),
                        .audio = std::move(audio).value_or(nullptr),
@@ -340,6 +342,7 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
                   parts_.entityDraws.Draws().end());
     parts_.hiddenModels.Apply(interpolated.hiddenModels, parts_.trackDraws, parts_.entityDraws,
                               parts_.trackDraws.size() + parts_.racers.Draws().size(), draws_);
+    parts_.ghostTrail.Append(parts_.session.TrackHazards(), interpolated.entityClocks, draws_);
     parts_.bricks.AppendDraws(interpolated.bricks, draws_);
     powerupVisuals_.Update(interpolated, elapsedMs);
     draws_.insert(draws_.end(), powerupVisuals_.Draws().begin(), powerupVisuals_.Draws().end());

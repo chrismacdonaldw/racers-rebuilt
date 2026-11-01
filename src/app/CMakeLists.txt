@@ -14,6 +14,7 @@ rr_add_module(app
         free_camera.cpp
         game_boot.cpp
         game_extraction.cpp
+        hazard/ghost_trail.cpp
         hazard/hazard_particles.cpp
         hazard/hazard_sounds.cpp
         hidden_models.cpp

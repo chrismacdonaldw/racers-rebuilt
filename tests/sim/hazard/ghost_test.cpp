@@ -38,6 +38,14 @@ TEST_CASE("the ghost reaches its model's radius plus 8 from its body") {
     CHECK(ghost.reach.radius == doctest::Approx(10.0F));
 }
 
+TEST_CASE("the ghost hides the static trail model, which the app draws behind it") {
+    const test::HazardRig rig({GhostHazard()}, GhostEntity());
+
+    REQUIRE(rig.Hazards().Models().Names().size() == 1);
+    CHECK(rig.Hazards().Models().Names()[0] == "gtrail");
+    CHECK(rig.Hazards().Models().Hidden()[0]);
+}
+
 TEST_CASE("the ghost spins out a moving racer and hops it up") {
     test::HazardRig rig({GhostHazard()}, GhostEntity(), 2);
     rig.Hear(kGhostTrigger, EventEdge::Start);
