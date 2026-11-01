@@ -102,6 +102,10 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
     SnapshotExplosions(session.Spikes(), sim::ExplosionKind::Spike, out);
     const std::span<const sim::EntityClock> clocks = session.Entities().Clocks();
     out.entityClocks.assign(clocks.begin(), clocks.end());
+    out.hiddenModels.resize(session.Resources().ModelDistances().size());
+    for (std::size_t i = 0; i < out.hiddenModels.size(); ++i) {
+        out.hiddenModels[i] = session.Resources().IsModelHidden(i);
+    }
     out.simStateHash = sim::HashRaceSession(session);
 }
 

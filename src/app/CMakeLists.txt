@@ -14,6 +14,7 @@ rr_add_module(app
         free_camera.cpp
         game_boot.cpp
         game_extraction.cpp
+        hidden_models.cpp
         hud/hud_assets.cpp
         hud/hud_strings.cpp
         hud/hud_text.cpp

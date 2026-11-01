@@ -95,6 +95,7 @@ struct RenderSnapshot {
     std::vector<EffectSnapshot> effects;
     std::vector<ExplosionSnapshot> explosions;
     std::vector<std::optional<PartClock>> entityClocks;
+    std::vector<bool> hiddenModels;
     CameraSnapshot camera;
     std::uint64_t simStateHash = 0;
 

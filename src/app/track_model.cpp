@@ -121,7 +121,10 @@ public:
             return;
         }
         const Transform transform = PlacementToEngine(entity.position, entity.forward, entity.up);
+        const std::size_t first = draws_.size();
         AppendDraws(draws_, model->second, materials_, transform);
+        named_.push_back(
+            {.entity = entity.name, .span = {.first = first, .count = draws_.size() - first}});
         AddBounds(model->second, transform, isSurface ? surface_ : everything_);
     }
 
@@ -144,6 +147,7 @@ public:
 
     [[nodiscard]] TrackModel Finish() && {
         return {.draws = std::move(draws_),
+                .entityDraws = std::move(named_),
                 .animatedModels = std::move(animated_),
                 .bounds = surface_.isEmpty ? everything_ : surface_};
     }
@@ -168,6 +172,7 @@ private:
     const NameMap<UploadedModel>* models_;
     NameMap<render::Material> materials_;
     std::vector<render::MeshDraw> draws_;
+    std::vector<NamedDraws> named_;
     NameMap<JointedModel> animated_;
     Bounds surface_;
     Bounds everything_;
