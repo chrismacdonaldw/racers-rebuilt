@@ -12,13 +12,20 @@
 
 namespace rr::sim {
 
+class AiRacer;
+
+/// A body with a `route` takes contacts through it, and its `body` only mirrors the route's pose.
 struct ContactBody {
     BodyState* body = nullptr;
     const BodyConstants* constants = nullptr;
     const CollisionQuery* world = nullptr;
+    AiRacer* route = nullptr;
+    bool isSolid = true;
+    float boxScale = 1.0F;
 };
 
-[[nodiscard]] ContactBox BoxOf(const BodyState& body, const BodyConstants& constants);
+[[nodiscard]] ContactBox BoxOf(const BodyState& body, const BodyConstants& constants,
+                               float scale = 1.0F);
 
 /// Pushes only `first` out of the overlap, unless that would put a body point through a wall, then
 /// exchanges a linear impulse.

@@ -3,6 +3,7 @@
 #include <numeric>
 #include <optional>
 
+#include "sim/ai/ai_racer.hpp"
 #include "sim/physics/rigid_body.hpp"
 #include "sim/physics/wall_sweep.hpp"
 
@@ -20,6 +21,10 @@ float MaxX(const ContactBody& entry) {
     return entry.body->motion.position.x + entry.constants->boundsRadius;
 }
 
+bool CanTouch(const ContactBody& a, const ContactBody& b) {
+    return a.isSolid && b.isSolid && a.boxScale > 0.0F && b.boxScale > 0.0F;
+}
+
 bool SpheresOverlap(const ContactBody& a, const ContactBody& b) {
     const Vector3 offset = a.body->motion.position - b.body->motion.position;
     const float reach = a.constants->boundsRadius + b.constants->boundsRadius;
@@ -34,7 +39,12 @@ Vector3 InverseInertia(const ContactBody& entry, const Vector3& v) {
                    {.x = local.x / inertia.x, .y = local.y / inertia.y, .z = local.z / inertia.z});
 }
 
-void PushClearOfWalls(const ContactBody& entry, const Vector3& offset) {
+void MoveOutOfContact(const ContactBody& entry, const Vector3& offset) {
+    if (entry.route != nullptr) {
+        entry.route->Shift(offset);
+        entry.body->motion.position = entry.route->Pose().position;
+        return;
+    }
     BodyState moved = *entry.body;
     moved.saved = entry.body->motion;
     moved.motion.position += offset;
@@ -49,18 +59,26 @@ float AngularTerm(const ContactBody& entry, const Vector3& point, const Vector3&
     return Dot(normal, Cross(InverseInertia(entry, Cross(lever, normal)), lever));
 }
 
+void ApplyImpulse(const ContactBody& entry, const Vector3& normal, float impulse) {
+    if (entry.route != nullptr) {
+        entry.route->Bump(normal, impulse);
+    } else {
+        entry.body->motion.velocity += normal * (impulse / entry.constants->mass);
+    }
 }
 
-ContactBox BoxOf(const BodyState& body, const BodyConstants& constants) {
+}
+
+ContactBox BoxOf(const BodyState& body, const BodyConstants& constants, float scale) {
     return {.centre = CentreOfMassWorld(body.motion, constants),
             .axes = body.motion.basis,
-            .halfSize = kBoxHalfSize};
+            .halfSize = kBoxHalfSize * scale};
 }
 
 void RespondToContact(const ContactBody& first, const ContactBody& second,
                       const BoxContact& contact) {
     const Vector3& normal = contact.normal;
-    PushClearOfWalls(first, normal * contact.penetration);
+    MoveOutOfContact(first, normal * contact.penetration);
     const float firstMass = first.constants->mass;
     const float secondMass = second.constants->mass;
     const float resistance = (1.0F / firstMass) + (1.0F / secondMass) +
@@ -68,8 +86,8 @@ void RespondToContact(const ContactBody& first, const ContactBody& second,
                              AngularTerm(second, contact.point, normal);
     const Vector3 closing = first.body->motion.velocity - second.body->motion.velocity;
     const float impulse = -(1.0F + kRestitution) * Dot(closing, normal) / resistance;
-    first.body->motion.velocity += normal * (impulse / firstMass);
-    second.body->motion.velocity -= normal * (impulse / secondMass);
+    ApplyImpulse(first, normal, impulse);
+    ApplyImpulse(second, normal, -impulse);
 }
 
 void RacerContacts::Resolve(std::span<const ContactBody> bodies) {
@@ -82,11 +100,12 @@ void RacerContacts::Resolve(std::span<const ContactBody> bodies) {
             if (MaxX(first) < MinX(second)) {
                 break;
             }
-            if (!SpheresOverlap(first, second)) {
+            if (!CanTouch(first, second) || !SpheresOverlap(first, second)) {
                 continue;
             }
-            const std::optional<BoxContact> contact = TestBoxes(
-                BoxOf(*first.body, *first.constants), BoxOf(*second.body, *second.constants));
+            const std::optional<BoxContact> contact =
+                TestBoxes(BoxOf(*first.body, *first.constants, first.boxScale),
+                          BoxOf(*second.body, *second.constants, second.boxScale));
             if (contact) {
                 RespondToContact(first, second, *contact);
                 contacts_.push_back(

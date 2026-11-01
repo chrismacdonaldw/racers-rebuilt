@@ -25,6 +25,7 @@ enum class RaceSound : std::uint8_t {
     WarpLand,
     DriftStart,
     WallHit,
+    CarScrape,
     Finish,
     BrickRespawn,
     BrickCollect,

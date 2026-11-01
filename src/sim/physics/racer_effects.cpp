@@ -254,6 +254,7 @@ void Racer::UpdateTimers(Milliseconds elapsed) {
     } else if (status_.isCursed) {
         RemoveCurse();
     }
+    UpdateContactTimers(elapsedMs);
 }
 
 bool Racer::IsSpinning() const {

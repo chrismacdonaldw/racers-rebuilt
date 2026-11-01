@@ -20,6 +20,7 @@ constexpr std::size_t kWhiteBrickBeforeFirst = 10;
 constexpr std::size_t kBrickRespawn = 14;
 constexpr std::size_t kDriveLoop = 10;
 constexpr std::size_t kGo = 15;
+constexpr std::size_t kCarScrape = 24;
 constexpr std::size_t kWallHit = 25;
 constexpr std::size_t kIdleLoop = 32;
 constexpr std::size_t kBrickCollect = 49;
@@ -30,6 +31,7 @@ constexpr std::size_t kWarpStart = 39;
 constexpr std::size_t kTurboEnd = 40;
 constexpr std::size_t kWarpLand = 41;
 constexpr std::size_t kShieldLoop1 = 53;
+constexpr std::size_t kCarScrapeAlternate = 55;
 constexpr std::size_t kWallScrape = 56;
 constexpr std::size_t kDriftStart = 57;
 constexpr std::size_t kShieldExpire = 59;
@@ -51,6 +53,7 @@ constexpr float kWeakTurboEndVolume = 0.6F;
 constexpr float kStrongTurboEndVolume = 0.8F;
 constexpr SoundRange kOpponentRange{.min = 30.0F, .max = 200.0F};
 constexpr SoundRange kBrickRange{.min = 30.0F, .max = 150.0F};
+constexpr SoundRange kScrapeRange{.min = 30.0F, .max = 300.0F};
 constexpr SoundRange kWarpRange{.min = 200.0F, .max = 600.0F};
 constexpr SoundRange kShieldRange{.min = 200.0F, .max = 600.0F};
 constexpr SoundRange kWeaponFireRange{.min = 30.0F, .max = 300.0F};
@@ -181,6 +184,9 @@ void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent
             break;
         case sim::RaceSound::WallHit:
             PlayAt(variants_.Below(2) == 0 ? kWallHit : kWallScrape, car);
+            break;
+        case sim::RaceSound::CarScrape:
+            PlayAt(event.variant == 0 ? kCarScrape : kCarScrapeAlternate, car, {}, kScrapeRange);
             break;
         case sim::RaceSound::Finish:
             break;

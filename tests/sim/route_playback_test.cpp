@@ -75,6 +75,19 @@ TEST_CASE("route playback scales time by its speed and keeps the fraction") {
     CHECK(playback.Pose().position.x == doctest::Approx(10.25F));
 }
 
+TEST_CASE("route playback runs backward across segments and stops at the start") {
+    RoutePlayback playback(ThreePointRoute());
+    playback.Advance(Milliseconds{130});
+    CHECK(playback.Pose().position.x == doctest::Approx(12.5F));
+
+    playback.Advance(Milliseconds{40}, -1.0F);
+    CHECK(playback.Pose().position.x == doctest::Approx(10.9F));
+    CHECK(playback.ContactCount() == 2);
+
+    playback.Advance(Milliseconds{200}, -1.0F);
+    CHECK(playback.Pose().position.x == 10.0F);
+}
+
 TEST_CASE("route playback reports the wheels down at the point it approaches, all at the start") {
     RoutePlayback playback(ThreePointRoute());
     CHECK(playback.ContactCount() == 4);
@@ -84,6 +97,19 @@ TEST_CASE("route playback reports the wheels down at the point it approaches, al
 
     playback.Advance(Milliseconds{40});
     CHECK(playback.ContactCount() == 4);
+}
+
+TEST_CASE("route playback seeks by a move's length along the segment, either way") {
+    RoutePlayback playback(ThreePointRoute());
+
+    playback.Seek({.x = 0.5F, .y = 3.0F});
+    CHECK(playback.Pose().position.x == doctest::Approx(10.5F));
+
+    playback.Seek({.x = -0.4F});
+    CHECK(playback.Pose().position.x == doctest::Approx(10.1F));
+
+    playback.Seek({.x = -5.0F});
+    CHECK(playback.Pose().position.x == 10.0F);
 }
 
 }

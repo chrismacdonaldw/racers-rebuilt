@@ -39,7 +39,14 @@ public:
     void Hold();
     void Release();
 
+    /// Takes a contact's push as a seek along the route and a side offset within its width.
+    void Shift(const Vector3& move);
+
+    /// Takes a contact's impulse of `impulse` along `direction` as a change of playback speed.
+    void Bump(const Vector3& direction, float impulse);
+
     [[nodiscard]] float PlaybackSpeed() const { return playbackSpeed_; }
+    [[nodiscard]] float SideOffset() const { return sideOffset_; }
     [[nodiscard]] float TargetSpeed() const { return targetSpeed_; }
     [[nodiscard]] const RouteEffects& Effects() const { return effects_; }
 
@@ -59,6 +66,7 @@ private:
     void AimBank();
     [[nodiscard]] bool HoldsSpeed() const;
     void ReturnToFullSpeed();
+    void Place(int dtMs);
 
     RoutePlayback route_;
     Vector3 wheelAnchor_;
@@ -66,6 +74,7 @@ private:
     float playbackSpeed_ = 1.0F;
     float targetSpeed_ = 1.0F;
     float baseSpeed_ = 1.0F;
+    float sideOffset_ = 0.0F;
     Vector3 velocity_;
     RouteEffects effects_;
 };

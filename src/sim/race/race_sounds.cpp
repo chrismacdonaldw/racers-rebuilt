@@ -9,7 +9,7 @@
 namespace rr::sim {
 namespace {
 
-constexpr std::size_t kMostSoundsPerRacer = 10;
+constexpr std::size_t kMostSoundsPerRacer = 11;
 constexpr std::size_t kMostRaceWideSounds = 2;
 constexpr std::array kLaterBeeps{Milliseconds{1000}, Milliseconds{2000}};
 constexpr Milliseconds kWallCooldown{250};
@@ -89,6 +89,11 @@ void RaceSounds::HearRacer(std::size_t racer, const Racer& car, bool isPlayer, b
     }
     if (events.hasWarpLanded) {
         Add(RaceSound::WarpLand, racer);
+    }
+    if (events.scrapeSound) {
+        Add({.sound = RaceSound::CarScrape,
+             .racer = static_cast<std::uint8_t>(racer),
+             .variant = *events.scrapeSound});
     }
     if (isPlayer && events.hasDriftStarted) {
         Add(RaceSound::DriftStart, racer);

@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "core/assert.hpp"
+#include "core/quaternion.hpp"
 
 namespace rr::sim {
 namespace {
@@ -23,8 +24,16 @@ RoutePlayback::RoutePlayback(assets::RaceRoute route) : route_(std::move(route))
 }
 
 void RoutePlayback::Advance(Milliseconds elapsed, float speed) {
-    RR_ASSERT(speed >= 0.0F);
     Move(cursor_, speed * static_cast<float>(elapsed.count()));
+}
+
+void RoutePlayback::Seek(const Vector3& move) {
+    const Vector3 segment = cursor_.to.position - cursor_.from.position;
+    const float length = Length(segment);
+    if (length > 0.0F) {
+        const auto durationMs = static_cast<float>(route_.points[cursor_.target].durationMs);
+        Move(cursor_, Dot(move, segment) * durationMs / (length * length));
+    }
 }
 
 Transform RoutePlayback::PoseAhead(float routeMs) const {
@@ -36,6 +45,10 @@ Transform RoutePlayback::PoseAhead(float routeMs) const {
 
 void RoutePlayback::Move(Cursor& cursor, float routeMs) const {
     cursor.timeMs += routeMs;
+    if (routeMs < 0.0F) {
+        MoveBack(cursor);
+        return;
+    }
     auto at = static_cast<std::int32_t>(cursor.timeMs);
     while (at >= SegmentEndMs(cursor)) {
         const std::int32_t endMs = SegmentEndMs(cursor);
@@ -48,6 +61,22 @@ void RoutePlayback::Move(Cursor& cursor, float routeMs) const {
         StartSegment(cursor, route_.loopPoint + 1,
                      {.position = route_.loopPosition, .rotation = route_.loopRotation},
                      route_.loopTimeMs);
+    }
+}
+
+void RoutePlayback::MoveBack(Cursor& cursor) const {
+    while (static_cast<std::int32_t>(cursor.timeMs) < cursor.segmentStartMs) {
+        if (cursor.target == 0) {
+            cursor.timeMs = 0.0F;
+            return;
+        }
+        const std::size_t target = cursor.target - 1;
+        const assets::RoutePoint& point = route_.points[target];
+        const Quaternion rotation =
+            target == 0 ? route_.startRotation : route_.points[target - 1].rotation;
+        StartSegment(cursor, target,
+                     {.position = cursor.from.position - point.offset, .rotation = rotation},
+                     cursor.segmentStartMs - point.durationMs);
     }
 }
 

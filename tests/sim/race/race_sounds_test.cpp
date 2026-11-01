@@ -89,5 +89,16 @@ TEST_CASE("weapon events play their fire and hit sounds where they happened") {
           });
 }
 
+TEST_CASE("a scrape plays the sound it rolled") {
+    Listener listener;
+    listener.Car().Scrape(1);
+
+    const std::vector<SoundEvent> sounds = listener.Hear();
+
+    REQUIRE(sounds.size() == 1);
+    CHECK(sounds[0].sound == RaceSound::CarScrape);
+    CHECK(sounds[0].variant == 1);
+}
+
 }
 }
