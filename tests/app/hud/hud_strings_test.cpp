@@ -34,6 +34,7 @@ TEST_CASE("HUD labels come from their game string slots") {
     CHECK(strings->go == game[0x29]);
     CHECK(strings->finished == game[0x2A]);
     CHECK(strings->stillRacing == game[0x2B]);
+    CHECK(strings->circuit == game[0x2D]);
 }
 
 TEST_CASE("pause labels come from their game string slots") {
@@ -49,7 +50,7 @@ TEST_CASE("pause labels come from their game string slots") {
 }
 
 TEST_CASE("a game string table without every HUD label fails") {
-    CHECK_FALSE(ReadHudStrings(NumberedStrings(0x2B)).has_value());
+    CHECK_FALSE(ReadHudStrings(NumberedStrings(0x2D)).has_value());
 }
 
 }

@@ -24,6 +24,9 @@ constexpr float kGapRow = 21.0F / 8.0F;
 constexpr float kPauseTitleY = 160.0F;
 constexpr float kPauseFirstRowY = 216.0F;
 constexpr float kPauseRowHeight = 32.0F;
+constexpr float kCircuitTitleY = 60.0F;
+constexpr Milliseconds kBlinkPeriod{400};
+constexpr Milliseconds kBlinkLit{250};
 constexpr render::Color kCountdownTint{.r = 1.0F, .g = 1.0F, .b = 0.0F};
 constexpr render::Color kFocusTint = kCountdownTint;
 
@@ -48,7 +51,7 @@ void RaceHud::Tick(const sim::RaceClock& clock, const sim::RaceProgress& progres
 
 void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progress,
                      std::size_t racer, std::span<const std::u16string> names,
-                     std::vector<HudText>& out) {
+                     std::span<const std::int32_t> circuitPoints, std::vector<HudText>& out) {
     out.clear();
     pool_.Clear();
     const HudValues values = ReadHudValues(clock, progress, racer);
@@ -61,11 +64,27 @@ void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progr
         AddBanner(*values.banner, out);
     }
     if (ShowsResults(clock)) {
-        ReadResults(progress, results_);
-        LayoutResults(results_, names,
-                      {.finished = strings_.finished, .stillRacing = strings_.stillRacing}, pool_,
-                      out);
+        AddResults(clock, progress, racer, names, circuitPoints, out);
     }
+}
+
+void RaceHud::AddResults(const sim::RaceClock& clock, const sim::RaceProgress& progress,
+                         std::size_t racer, std::span<const std::u16string> names,
+                         std::span<const std::int32_t> circuitPoints, std::vector<HudText>& out) {
+    const ResultLabels labels{.finished = strings_.finished, .stillRacing = strings_.stillRacing};
+    if (circuitPoints.empty()) {
+        ReadResults(progress, results_);
+        LayoutResults(results_, names, labels, std::nullopt, pool_, out);
+        return;
+    }
+    const bool isLit = clock.PhaseTime() % kBlinkPeriod < kBlinkLit;
+    if (clock.Phase() == sim::RacePhase::Results) {
+        out.push_back(Centered(strings_.circuit, kCircuitTitleY, {}));
+        ReadCircuitTotals(progress, circuitPoints, results_);
+    } else {
+        ReadCircuitRace(progress, results_);
+    }
+    LayoutResults(results_, names, labels, isLit ? std::nullopt : std::optional(racer), pool_, out);
 }
 
 void RaceHud::LayoutPause(std::size_t focus, std::vector<HudText>& out) const {

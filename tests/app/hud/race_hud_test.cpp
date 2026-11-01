@@ -45,6 +45,7 @@ HudStrings EnglishStrings() {
             .go = u"GO",
             .finished = u"FINISHED",
             .stillRacing = u"STILL RACING",
+            .circuit = u"CIRCUIT",
             .paused = u"GAME PAUSED",
             .resume = u"CONTINUE",
             .restart = u"RESTART RACE",
@@ -104,7 +105,7 @@ TEST_CASE("the lap counter and lap time sit top right, right of their labels") {
     const auto names = Names();
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 0, names, texts);
+    hud.Layout(race.clock, race.progress, 0, names, {}, texts);
 
     const float lapTimeX = 640.0F - (11.0F / 8.0F * 70.0F);
     CHECK(XOf(texts, u"0:00:00") == doctest::Approx(lapTimeX));
@@ -124,7 +125,7 @@ TEST_CASE("the place digit ends where its suffix starts, top left") {
     const auto names = Names();
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 0, names, texts);
+    hud.Layout(race.clock, race.progress, 0, names, {}, texts);
 
     const auto digit = std::ranges::find_if(
         texts, [](const HudText& item) { return item.font == HudFont::Numbers; });
@@ -143,7 +144,7 @@ TEST_CASE("the countdown is centred, yellow and in the number font") {
     const auto names = Names();
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 0, names, texts);
+    hud.Layout(race.clock, race.progress, 0, names, {}, texts);
 
     const HudText one = LastNumbers(texts);
     const float scale = 0.9F;
@@ -172,7 +173,7 @@ TEST_CASE("the results table lists each racer with its gap to the winner") {
     const auto names = Names();
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 1, names, texts);
+    hud.Layout(race.clock, race.progress, 1, names, {}, texts);
 
     CHECK(YOf(texts, u"ANN DROID") == doctest::Approx(132.0F));
     CHECK(XOf(texts, u"ANN DROID") == doctest::Approx(50.0F));
@@ -181,6 +182,71 @@ TEST_CASE("the results table lists each racer with its gap to the winner") {
     CHECK(XOf(texts, u"0:02:00") == doctest::Approx(520.0F));
     CHECK(YOf(texts, u"STILL RACING") == doctest::Approx(196.0F));
     CHECK_FALSE(Find(texts, u"FINISH").has_value());
+}
+
+test::RingRace FinishedCircuitRace() {
+    test::RingRace race(3, 1);
+    race.StartRacing();
+    race.DriveLap(1);
+    race.DriveLap(1);
+    race.DriveLap(0);
+    race.DriveLap(0);
+    race.clock.Advance(Milliseconds{12}, true);
+    race.clock.Advance(Milliseconds{5001}, false);
+    const std::array<Vector3, 3> positions{};
+    race.progress.Rank(race.graph, positions);
+    return race;
+}
+
+TEST_CASE("a circuit race's results add each racer's points for its place") {
+    const Fonts fonts;
+    RaceHud hud(EnglishStrings(), fonts.Hud());
+    const test::RingRace race = FinishedCircuitRace();
+    const auto names = Names();
+    const std::array<std::int32_t, 3> before{40, 0, 5};
+    std::vector<HudText> texts;
+
+    hud.Layout(race.clock, race.progress, 0, names, before, texts);
+
+    CHECK(YOf(texts, u"ANN DROID") == doctest::Approx(132.0F));
+    CHECK(XOf(texts, u"30") == doctest::Approx(450.0F));
+    CHECK(YOf(texts, u"20") == doctest::Approx(164.0F));
+    CHECK(YOf(texts, u"ISLANDER") == doctest::Approx(196.0F));
+    CHECK_FALSE(Find(texts, u"CIRCUIT").has_value());
+}
+
+TEST_CASE("the player's results row blinks off for 150 ms of every 400") {
+    const Fonts fonts;
+    RaceHud hud(EnglishStrings(), fonts.Hud());
+    test::RingRace race = FinishedCircuitRace();
+    const auto names = Names();
+    const std::array<std::int32_t, 3> before{};
+    std::vector<HudText> texts;
+
+    race.clock.Advance(Milliseconds{100}, false);
+    hud.Layout(race.clock, race.progress, 0, names, before, texts);
+
+    CHECK_FALSE(Find(texts, u"ROCKET RACER").has_value());
+    CHECK(Find(texts, u"ANN DROID").has_value());
+}
+
+TEST_CASE("after the race view, the circuit view ranks racers on their new totals") {
+    const Fonts fonts;
+    RaceHud hud(EnglishStrings(), fonts.Hud());
+    test::RingRace race = FinishedCircuitRace();
+    race.clock.Advance(Milliseconds{5000}, false);
+    const auto names = Names();
+    const std::array<std::int32_t, 3> before{40, 0, 5};
+    std::vector<HudText> texts;
+
+    hud.Layout(race.clock, race.progress, 0, names, before, texts);
+
+    CHECK(YOf(texts, u"CIRCUIT") == doctest::Approx(60.0F));
+    CHECK(YOf(texts, u"ROCKET RACER") == doctest::Approx(132.0F));
+    CHECK(YOf(texts, u"60") == doctest::Approx(132.0F));
+    CHECK(YOf(texts, u"ANN DROID") == doctest::Approx(164.0F));
+    CHECK(YOf(texts, u"ISLANDER") == doctest::Approx(196.0F));
+    CHECK_FALSE(Find(texts, u"FINISHED").has_value());
 }
 
 }

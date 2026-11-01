@@ -87,6 +87,7 @@ rr_add_module(sim
         powerup/yellow_effects.cpp
         race/checkpoint_graph.cpp
         race/lap_tracker.cpp
+        race/circuit_run.cpp
         race/race_clock.cpp
         race/race_progress.cpp
         race/race_session.cpp

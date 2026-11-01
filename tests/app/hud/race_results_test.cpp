@@ -3,6 +3,8 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -60,8 +62,8 @@ struct Table {
     std::vector<HudText> texts;
 
     explicit Table(std::span<const ResultRow> rows) {
-        LayoutResults(rows, names, {.finished = u"FINISHED", .stillRacing = u"STILL RACING"}, pool,
-                      texts);
+        LayoutResults(rows, names, {.finished = u"FINISHED", .stillRacing = u"STILL RACING"},
+                      std::nullopt, pool, texts);
     }
 };
 
@@ -81,6 +83,61 @@ TEST_CASE("the results table puts rank, name and status on rows 32 apart from y 
     CHECK(texts[5].text == u"+");
     CHECK(texts[6].text == u"0:01:25");
     CHECK(texts[6].x == 520.0F);
+}
+
+TEST_CASE("circuit rows add their points, and a hidden racer's row is left out") {
+    const std::array<ResultRow, 2> rows{
+        ResultRow{.racer = 1, .status = ResultStatus::None, .points = 30},
+        ResultRow{.racer = 0, .status = ResultStatus::None, .points = 20}};
+    TextPool pool;
+    std::vector<HudText> texts;
+    const std::vector<std::u16string> names{u"A", u"B"};
+
+    LayoutResults(rows, names, {}, 0, pool, texts);
+
+    REQUIRE(texts.size() == 3);
+    CHECK(texts[1].text == u"B");
+    CHECK(texts[2].text == u"30");
+    CHECK(texts[2].x == 450.0F);
+}
+
+TEST_CASE("circuit race rows run by points for each place, unfinished racers last") {
+    test::RingRace race(3, 1);
+    race.StartRacing();
+    race.DriveLap(2);
+    race.DriveLap(2);
+    const std::array<Vector3, 3> positions{};
+    race.progress.Rank(race.graph, positions);
+    std::vector<ResultRow> rows;
+
+    ReadCircuitRace(race.progress, rows);
+
+    REQUIRE(rows.size() == 3);
+    CHECK(rows[0].racer == 2);
+    CHECK(rows[0].points == 30);
+    CHECK(rows[1].racer == 1);
+    CHECK(rows[1].points == 0);
+    CHECK(rows[2].racer == 0);
+}
+
+TEST_CASE("circuit totals add this race's points and keep earlier racers first on ties") {
+    test::RingRace race(3, 1);
+    race.StartRacing();
+    race.DriveLap(2);
+    race.DriveLap(2);
+    const std::array<Vector3, 3> positions{};
+    race.progress.Rank(race.graph, positions);
+    const std::array<std::int32_t, 3> before{30, 30, 0};
+    std::vector<ResultRow> rows;
+
+    ReadCircuitTotals(race.progress, before, rows);
+
+    REQUIRE(rows.size() == 3);
+    CHECK(rows[0].racer == 0);
+    CHECK(rows[1].racer == 1);
+    CHECK(rows[2].racer == 2);
+    CHECK(rows[2].points == 30);
+    CHECK(rows[2].status == ResultStatus::None);
 }
 
 TEST_CASE("the results table shows six rows at most") {

@@ -67,7 +67,7 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(const sim::RaceSession& s
                                                        std::optional<std::size_t> pauseFocus) {
     sprites_.clear();
     if (hud_) {
-        hud_->Layout(session.Clock(), session.Progress(), racer_, names_, texts_);
+        hud_->Layout(session.Clock(), session.Progress(), racer_, names_, {}, texts_);
         DrawHudText(texts_, hud_->Fonts(), sprites_);
         LayoutPowerupPanel(racer, images_, sprites_);
     }
