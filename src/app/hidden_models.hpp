@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <span>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "app/track_entity_draws.hpp"
@@ -12,10 +14,12 @@
 
 namespace rr::app {
 
+/// Targets the model distances, then the hazards' model switches, in snapshot order.
 class HiddenModels {
 public:
     HiddenModels(std::span<const assets::ModelDistanceResource> distances,
-                 std::span<const NamedDraws> trackDraws, const sim::TrackEntitySources& sources);
+                 std::span<const std::string> switches, std::span<const NamedDraws> trackDraws,
+                 const sim::TrackEntitySources& sources);
 
     /// `draws` starts with the `track` draws and holds the `entities` draws from `entityOffset`.
     void Apply(const std::vector<bool>& hidden, std::span<const render::MeshDraw> track,
@@ -27,6 +31,9 @@ private:
         std::vector<DrawSpan> track;
         std::vector<std::size_t> entities;
     };
+
+    void Add(std::string_view entity, std::span<const NamedDraws> trackDraws,
+             const sim::TrackEntitySources& sources);
 
     std::vector<Target> targets_;
 };

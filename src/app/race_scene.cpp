@@ -188,13 +188,14 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     auto raceTrack = std::make_unique<sim::RaceTrack>(std::move(*loaded));
     auto world = std::make_unique<sim::WorldList>(raceTrack->collision.Track());
     TrackEntityDraws entityDraws(model->animatedModels, raceTrack->entities);
-    HiddenModels hiddenModels(raceTrack->events.table.modelDistances, model->entityDraws,
-                              raceTrack->entities);
     Result<sim::RaceSession> session = sim::RaceSession::Create(
         FullGrid(setup, *racers, seed, raceTrack->grid.size()), CourseOf(*raceTrack, *world));
     if (!session) {
         return std::unexpected(std::move(session.error()));
     }
+    HiddenModels hiddenModels(raceTrack->events.table.modelDistances,
+                              session->TrackHazards().Models().Names(), model->entityDraws,
+                              raceTrack->entities);
     Result<std::unique_ptr<RaceAudio>> audio =
         RaceAudio::Load(*outputs.mixer, *outputs.banks, vfs, track,
                         {.racerCount = session->Racers().size(),

@@ -69,6 +69,7 @@ struct EffectSnapshot {
     std::uint8_t phase = 0;
     bool isHoldingRacer = false;
     Transform transform;
+    std::optional<Vector3> hazardSource;
     SnapshotFlags flags = SnapshotFlags::None;
 
     friend bool operator==(const EffectSnapshot&, const EffectSnapshot&) = default;
