@@ -43,10 +43,12 @@ void SnapshotEffects(const sim::PowerupSystem& powerups, sim::RenderSnapshot& ou
     out.effects.clear();
     for (const std::uint16_t slot : powerups.Active()) {
         const sim::EffectSlot& effect = powerups.Slots()[slot];
+        const sim::EffectProgress progress = effect.effect->Progress();
         out.effects.push_back({.slot = slot,
                                .kind = effect.kind,
                                .use = effect.use,
-                               .phase = effect.effect->Progress().phase,
+                               .phase = progress.phase,
+                               .isHoldingRacer = progress.isHoldingRacer,
                                .transform = TransformToEngine(effect.effect->Pose()),
                                .flags = HasStarted(powerups, slot) ? sim::SnapshotFlags::Teleported
                                                                    : sim::SnapshotFlags::None});

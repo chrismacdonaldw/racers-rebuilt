@@ -66,6 +66,7 @@ struct EffectSnapshot {
     PowerupKind kind = PowerupKind::Cannonball;
     PowerupUse use;
     std::uint8_t phase = 0;
+    bool isHoldingRacer = false;
     Transform transform;
     SnapshotFlags flags = SnapshotFlags::None;
 

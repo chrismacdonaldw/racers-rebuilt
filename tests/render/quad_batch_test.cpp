@@ -38,5 +38,21 @@ TEST_CASE("quads batch like sprites and keep their corners in order") {
     CHECK(batches[1].blend == BlendMode::Additive);
 }
 
+TEST_CASE("a quad's corner tints scale its tint at each corner") {
+    const std::vector<QuadDraw> quads{
+        {.tint = {.r = 0.5F},
+         .cornerTints = {Color{}, Color{.r = 0.5F}, Color{}, Color{.b = 0.0F}}}};
+    std::vector<QuadVertex> vertices;
+    std::vector<SpriteBatch> batches;
+
+    BatchQuads(quads, vertices, batches);
+
+    REQUIRE(vertices.size() == kVerticesPerSprite);
+    CHECK(vertices[0].color.r == doctest::Approx(0.5F));
+    CHECK(vertices[1].color.r == doctest::Approx(0.25F));
+    CHECK(vertices[3].color.b == doctest::Approx(0.0F));
+    CHECK(vertices[3].color.r == doctest::Approx(0.5F));
+}
+
 }
 }

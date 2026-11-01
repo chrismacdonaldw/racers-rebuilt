@@ -55,7 +55,9 @@ TEST_CASE("lightning holds its victim for a second before it can strike again") 
     Rig rig(2);
     rig.Place(1, kAhead);
     rig.Fire(BrickColour::Red, 2);
+    CHECK_FALSE(rig.Effect().Progress().isHoldingRacer);
     REQUIRE(TicksUntilStruck(rig) > 0);
+    CHECK(rig.Effect().Progress().isHoldingRacer);
     rig.Place(1, kAhead);
 
     CHECK(TicksUntilStruck(rig, 200) == 84);
@@ -71,6 +73,7 @@ TEST_CASE("a shield absorbs lightning without being held") {
 
     CHECK(rig.Car(1).Status().hitReactions == 0);
     CHECK(rig.Car(1).Body().motion.velocity.z < 0.01F);
+    CHECK_FALSE(rig.Effect(1).Progress().isHoldingRacer);
 }
 
 TEST_CASE("lightning can't reach a racer past the end of the bolt") {
