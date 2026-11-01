@@ -463,7 +463,13 @@ std::optional<Vector3> TauntAt(const RaceSession& session) {
     return taunt == session.Triggers().Events().end() ? std::nullopt : taunt->position;
 }
 
-TEST_CASE("a computer racer close behind another racer fires the taunt event where it is") {
+bool HasTauntSound(const RaceSession& session, std::uint8_t racer) {
+    return std::ranges::any_of(session.Sounds(), [&](const SoundEvent& event) {
+        return event.sound == RaceSound::Taunt && event.racer == racer;
+    });
+}
+
+TEST_CASE("a computer racer close behind another racer taunts where it is") {
     const Fixture fixture;
     RaceSession session = fixture.Start(TwoRacers());
     RunUntilRacing(session);
@@ -480,9 +486,11 @@ TEST_CASE("a computer racer close behind another racer fires the taunt event whe
 
     REQUIRE(taunt);
     CHECK(Length(*taunt - computer) < 0.001F);
+    CHECK(HasTauntSound(session, 1));
+    CHECK_FALSE(HasTauntSound(session, 0));
 }
 
-TEST_CASE("a player pressing use with nothing held fires the taunt event where it is") {
+TEST_CASE("a player pressing use with nothing held taunts where it is") {
     const Fixture fixture;
     RaceSession session = fixture.Start(TwoRacers());
     RunUntilRacing(session);
@@ -492,6 +500,7 @@ TEST_CASE("a player pressing use with nothing held fires the taunt event where i
     const std::optional<Vector3> taunt = TauntAt(session);
     REQUIRE(taunt);
     CHECK(Length(*taunt - session.Racers()[0].Body().motion.position) < 0.001F);
+    CHECK(HasTauntSound(session, 0));
 }
 
 }
