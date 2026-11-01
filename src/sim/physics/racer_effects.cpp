@@ -12,6 +12,8 @@ namespace rr::sim {
 namespace {
 
 constexpr float kWarpLaunchImpulse = 700.0F;
+constexpr std::size_t kGrabForce = 1;
+constexpr float kGrabbedRouteSpeed = -0.4F;
 constexpr std::uint32_t kAbsorbSounds = 3;
 constexpr int kShieldCooldownMs = 500;
 constexpr int kShoveMs = 750;
@@ -62,6 +64,12 @@ void Racer::Push(const Vector3& direction, float impulse) {
         route_->Bump(direction, impulse);
     } else {
         body_.motion.velocity += direction * (impulse / constants_.mass);
+    }
+}
+
+void Racer::Stop() {
+    if (!route_) {
+        body_.motion.velocity = {};
     }
 }
 
@@ -129,7 +137,7 @@ void Racer::EndExternalForce(std::size_t slot) {
 void Racer::StartMagnetHold() {
     status_.isMagnetHeld = true;
     if (route_) {
-        route_->Hold();
+        route_->HoldAt(0.0F);
     }
     Resume();
 }
@@ -140,6 +148,22 @@ void Racer::EndMagnetHold() {
         route_->Release();
     }
     Resume();
+}
+
+void Racer::StartGrab(const Vector3& pull) {
+    if (route_) {
+        route_->HoldAt(kGrabbedRouteSpeed);
+    } else {
+        sim::StartExternalForce(body_, constants_, kGrabForce, pull);
+    }
+}
+
+void Racer::EndGrab() {
+    if (route_) {
+        route_->Release();
+    } else {
+        sim::EndExternalForce(body_, kGrabForce);
+    }
 }
 
 void Racer::EnterGhostMode() {

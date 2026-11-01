@@ -310,8 +310,26 @@ public:
     void Add(const HammerSwish& hammer) { Add(hammer.isArmed); }
     void Add(const Crane& crane) { Add(crane.isArmed, crane.ball); }
     void Add(const HazardBox& box) { Add(box.box.centre, box.box.axes); }
+    void Add(const Ghost& ghost) { Add(ghost.reach.centre); }
+    void Add(const LavaBlob& blob) { Add(blob.reach.centre, blob.eventWait); }
+    void Add(const RocketPad& pad) { Add(pad.isOn, pad.hasShieldedRacer); }
+
+    void Add(const CodePuzzle& puzzle) {
+        for (const assets::EventId gate : puzzle.code) {
+            Add(static_cast<int>(gate));
+        }
+        Add(static_cast<int>(puzzle.progress), puzzle.revealLeft);
+    }
+
+    void Add(const UfoGrabber& ufo) {
+        Add(ufo.reach.centre, static_cast<int>(ufo.phase), ufo.held ? int{*ufo.held} : -1,
+            ufo.phaseLeft, ufo.watchdog);
+    }
 
     void Add(const Hazards& hazards) {
+        for (const bool isHidden : hazards.Models().Hidden()) {
+            Add(isHidden);
+        }
         for (const HazardSlot& slot : hazards.Slots()) {
             Add(static_cast<int>(slot.phase));
             std::visit(

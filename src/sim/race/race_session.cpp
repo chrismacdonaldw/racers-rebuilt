@@ -50,7 +50,7 @@ std::size_t OutsideEventCount(const RaceSetup& setup, const RaceCourse& course) 
     return (EffectSlots(setup) * kMostShotCastsPerEffect * kEventsPerShotCast) +
            (setup.racers.size() * SurfaceEvents::MostEventsPerRacer()) +
            EventResources::MostFiredPerTick(EventSourcesFor(course).table) +
-           Hazards::MostEventsPerTick(course.hazards.size(), setup.racers.size());
+           Hazards::MostEventsPerTick(course.hazards, setup.racers.size());
 }
 
 TrackSurfaces SurfacesFor(const RaceCourse& course) {
@@ -116,7 +116,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       triggers_(EventSourcesFor(course), setup.racers.size(), course.isMirrored, random_,
                 OutsideEventCount(setup, course)),
       entities_(EntitySourcesFor(course)),
-      hazards_(course.hazards, entities_),
+      hazards_(course.hazards, entities_, random_),
       resources_(EventSourcesFor(course).table, EntitySourcesFor(course), course.collision),
       triggerRacers_(setup.racers.size()),
       sphereWorlds_(SphereWorldsFor(course)),
@@ -160,7 +160,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     for (TriggerWorlds& worlds : switchedWorlds_) {
         worlds.Tick(elapsed);
     }
-    HazardContext hazards = HazardsContext();
+    HazardContext hazards = HazardsContext(elapsed);
     hazards_.Tick(hazards);
     MeasureReaches();
     for (std::size_t i = 0; i < racers_.size(); ++i) {
@@ -198,8 +198,8 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
         sounds_.HearRacer(i, racers_[i], isPlayer_[i], clock_.IsRunning(), elapsed);
     }
     PaceRoutes(elapsed);
+    hazards_.Hear(triggers_, hazards);
     resources_.Dispatch(triggers_, entities_);
-    hazards_.Hear(triggers_.Events());
 }
 
 bool RaceSession::WantsPowerup(std::size_t racer, Milliseconds elapsed,
@@ -350,8 +350,15 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     }
 }
 
-HazardContext RaceSession::HazardsContext() {
-    return {.racers = racers_, .reaches = reaches_, .entities = &entities_, .events = &triggers_};
+HazardContext RaceSession::HazardsContext(Milliseconds elapsed) {
+    return {.racers = racers_,
+            .reaches = reaches_,
+            .entities = &entities_,
+            .events = &triggers_,
+            .surfaces = &surfaces_,
+            .models = &hazards_.Models(),
+            .random = &random_,
+            .elapsed = elapsed};
 }
 
 bool RaceSession::HasPlayerFinished() const {

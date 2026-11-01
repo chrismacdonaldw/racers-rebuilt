@@ -103,6 +103,8 @@ public:
     /// Off a route, adds `impulse` over the car's mass along `direction`; on one, bumps playback.
     void Push(const Vector3& direction, float impulse);
 
+    /// Does nothing to a racer on a route.
+    void Stop();
     void Halt();
     void Resume();
     void AttachCurse(Milliseconds duration);
@@ -111,6 +113,10 @@ public:
     /// `force` is in units per s² for the base mass.
     void StartExternalForce(std::size_t slot, const Vector3& force);
     void EndExternalForce(std::size_t slot);
+
+    /// `pull` is in units per s² for the base mass. On a route, plays it backward instead.
+    void StartGrab(const Vector3& pull);
+    void EndGrab();
 
     void StartMagnetHold();
     void EndMagnetHold();

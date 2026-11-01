@@ -185,6 +185,22 @@ TEST_CASE("a magnet stops an ai racer and pacing can't restart it until released
     CHECK(racer.Route().transform(&AiRacer::TargetSpeed) == 1.0F);
 }
 
+TEST_CASE("a grabbed ai racer backs down its route until let go") {
+    const test::PlaneWorld world = test::FlatGround();
+    Racer racer(kNeutralChassis, {}, {});
+    racer.FollowRoute(test::StraightRoute({}));
+
+    racer.StartGrab({.x = 800.0F});
+    for (int tick = 0; tick < 100; ++tick) {
+        racer.Tick(kTick, {}, world);
+    }
+    CHECK(racer.Route().transform(&AiRacer::PlaybackSpeed) == doctest::Approx(-0.4F));
+    CHECK_FALSE(racer.Body().externalForces[1].has_value());
+    racer.EndGrab();
+
+    CHECK(racer.Route().transform(&AiRacer::TargetSpeed) == 1.0F);
+}
+
 TEST_CASE("a cursed racer on a route is slowed until the tick its curse runs out") {
     const test::PlaneWorld world = test::FlatGround();
     Racer racer(kNeutralChassis, {}, {});

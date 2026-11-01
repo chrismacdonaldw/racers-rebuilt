@@ -8,18 +8,27 @@
 
 #include "assets/event_id.hpp"
 #include "assets/hazard_list.hpp"
+#include "sim/hazard/code_puzzle.hpp"
 #include "sim/hazard/crane.hpp"
+#include "sim/hazard/ghost.hpp"
 #include "sim/hazard/hammer_swish.hpp"
 #include "sim/hazard/hazard_box.hpp"
 #include "sim/hazard/hazard_context.hpp"
+#include "sim/hazard/lava_blob.hpp"
+#include "sim/hazard/rocket_pad.hpp"
+#include "sim/hazard/ufo_grabber.hpp"
+#include "sim/race/random.hpp"
+#include "sim/track/model_switches.hpp"
 #include "sim/track/track_entities.hpp"
 #include "sim/track/track_event.hpp"
+#include "sim/track/track_events.hpp"
 
 namespace rr::sim {
 
 enum class HazardPhase : std::uint8_t { Loaded, Active };
 
-using HazardState = std::variant<std::monostate, HammerSwish, Crane, HazardBox>;
+using HazardState = std::variant<std::monostate, HammerSwish, Crane, HazardBox, Ghost, LavaBlob,
+                                 CodePuzzle, RocketPad, UfoGrabber>;
 
 struct HazardSlot {
     assets::EventId trigger = assets::kNoEvent;
@@ -29,13 +38,13 @@ struct HazardSlot {
 
 class Hazards {
 public:
-    Hazards(std::span<const assets::Hazard> hazards, TrackEntities& entities);
+    Hazards(std::span<const assets::Hazard> hazards, TrackEntities& entities, Random& random);
 
-    [[nodiscard]] static std::size_t MostEventsPerTick(std::size_t hazardCount,
+    [[nodiscard]] static std::size_t MostEventsPerTick(std::span<const assets::Hazard> hazards,
                                                        std::size_t racerCount);
 
-    /// Starts and ends the hazards that position-path events name by trigger id.
-    void Hear(std::span<const TrackEvent> events);
+    /// Also hears what hazards fire meanwhile when `heard` is `context.events`, up to a cap.
+    void Hear(const TrackEvents& heard, HazardContext& context);
 
     void Tick(HazardContext& context);
 
@@ -43,9 +52,12 @@ public:
     void Touch(HazardContext& context);
 
     [[nodiscard]] std::span<const HazardSlot> Slots() const { return slots_; }
+    [[nodiscard]] const ModelSwitches& Models() const { return models_; }
+    [[nodiscard]] ModelSwitches& Models() { return models_; }
 
 private:
     std::vector<HazardSlot> slots_;
+    ModelSwitches models_;
 };
 
 }

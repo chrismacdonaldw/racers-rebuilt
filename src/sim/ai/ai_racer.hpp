@@ -40,7 +40,7 @@ public:
     void EndCurseSlow();
     void StartGhost();
     void EndGhost();
-    void Hold();
+    void HoldAt(float speed);
     void Release();
 
     /// Takes a contact's push as a seek along the route and a side offset within its width.

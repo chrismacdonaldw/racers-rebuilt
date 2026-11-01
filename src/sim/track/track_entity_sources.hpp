@@ -14,7 +14,7 @@
 
 namespace rr::sim {
 
-/// `placement` is in game space. `scale` multiplies the skeleton's positions.
+/// `placement` is in game space, `scale` multiplies skeleton positions, `radius` bounds vertices.
 struct TrackEntity {
     std::string name;
     std::string model;
@@ -23,12 +23,20 @@ struct TrackEntity {
     std::optional<std::size_t> startPart;
     Transform placement;
     float scale = 1.0F;
+    float radius = 0.0F;
+};
+
+/// `placement` is in game space.
+struct StaticEntity {
+    std::string name;
+    Transform placement;
 };
 
 struct TrackEntitySources {
     std::vector<assets::SkeletonAsset> skeletons;
     std::vector<assets::AnimationAsset> animations;
     std::vector<TrackEntity> entities;
+    std::vector<StaticEntity> statics;
 };
 
 /// Looks files up in the track folder, then in `GAMEDATA/COMMON`.
