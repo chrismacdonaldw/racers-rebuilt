@@ -7,7 +7,6 @@
 namespace rr::sim {
 namespace {
 
-constexpr std::size_t kMaxLaunches = 3;
 constexpr std::size_t kEventsPerUse = 1 + (2 * kMaxLaunches);
 
 bool OutranksForReclaim(const EffectProgress& candidate, const EffectProgress& best) {

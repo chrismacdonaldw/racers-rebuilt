@@ -16,8 +16,10 @@
 #include "sim/physics/racer.hpp"
 #include "sim/physics/racer_controls.hpp"
 #include "sim/powerup/brick_field.hpp"
+#include "sim/powerup/explosions.hpp"
 #include "sim/powerup/powerup_inventory.hpp"
 #include "sim/powerup/powerup_system.hpp"
+#include "sim/powerup/weapon_events.hpp"
 #include "sim/race/checkpoint_graph.hpp"
 #include "sim/race/race_clock.hpp"
 #include "sim/race/race_progress.hpp"
@@ -56,6 +58,7 @@ public:
     [[nodiscard]] const BrickField& Bricks() const { return bricks_; }
     [[nodiscard]] std::span<const PowerupInventory> Inventories() const { return inventories_; }
     [[nodiscard]] const PowerupSystem& Powerups() const { return powerups_; }
+    [[nodiscard]] const Explosions& Blasts() const { return explosions_; }
 
     /// Replaces what `racer` holds, sending its white bricks home.
     void GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level);
@@ -93,6 +96,8 @@ private:
     BrickField bricks_;
     std::vector<PowerupInventory> inventories_;
     PowerupSystem powerups_;
+    WeaponEvents weapons_;
+    Explosions explosions_;
     std::vector<BoundingSphere> localBounds_;
     std::vector<BoundingSphere> reaches_;
 };

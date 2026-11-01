@@ -3,7 +3,7 @@
 #include <doctest/doctest.h>
 
 #include "../ai/straight_route.hpp"
-#include "green_rig.hpp"
+#include "powerup_rig.hpp"
 
 namespace rr::sim {
 namespace {

@@ -5,13 +5,21 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <utility>
 #include <vector>
 
 #include "../physics/plane_world.hpp"
+#include "assets/brick_layout.hpp"
 #include "assets/checkpoints.hpp"
+#include "core/bounding_sphere.hpp"
+#include "sim/powerup/brick_field.hpp"
+#include "sim/powerup/explosions.hpp"
 #include "sim/powerup/green_effects.hpp"
 #include "sim/powerup/powerup_system.hpp"
+#include "sim/powerup/red_effects.hpp"
+#include "sim/powerup/shield_effect.hpp"
+#include "sim/powerup/weapon_events.hpp"
 
 namespace rr::test {
 
@@ -22,9 +30,14 @@ inline constexpr float kGateSpacing = 400.0F;
 inline constexpr int kWarpStartTicks = 42;
 inline constexpr int kWarpTicks = kWarpStartTicks + 125;
 
-inline sim::EffectFactories GreenEffects() {
+inline constexpr float kReachRadius = 4.0F;
+inline constexpr Vector3 kSpareWhite{.y = -1000.0F};
+
+inline sim::EffectFactories AllEffects() {
     sim::EffectFactories factories;
     sim::AddGreenEffects(factories);
+    sim::AddBlueEffects(factories);
+    sim::AddRedEffects(factories);
     return factories;
 }
 
@@ -44,11 +57,15 @@ inline sim::CheckpointGraph Line() {
     return std::move(*graph);
 }
 
-/// A line of racers on flat ground, with gates every 400 units along +X.
+/// A line of racers on flat ground, with gates every 400 units along +X and one spare white brick.
 class Rig {
 public:
     explicit Rig(std::size_t racerCount = 1)
-        : progress_(racerCount, 3), system_(GreenEffects(), racerCount) {
+        : progress_(racerCount, 3),
+          bricks_(assets::BrickLayout{.white = {kSpareWhite}}),
+          inventories_(racerCount),
+          system_(AllEffects(), racerCount),
+          reaches_(racerCount) {
         for (std::size_t i = 0; i < racerCount; ++i) {
             racers_.emplace_back(
                 kChassis, sim::CarBuild{},
@@ -56,7 +73,16 @@ public:
                     .position = {.x = 5.0F, .y = static_cast<float>(i) * 20.0F, .z = 0.2F}});
         }
         positions_.resize(racerCount);
+        MeasureReaches();
     }
+
+    void Place(std::size_t racer, const Vector3& position) {
+        racers_[racer].Place({.position = position});
+        positions_[racer] = racers_[racer].Body().motion.position;
+        MeasureReaches();
+    }
+
+    void GiveWhite(std::size_t racer) { REQUIRE(inventories_[racer].TakeWhite(0)); }
 
     void CrossFirstGate() {
         for (std::size_t i = 0; i < racers_.size(); ++i) {
@@ -69,6 +95,7 @@ public:
 
     void Fire(assets::BrickColour colour, std::uint8_t level, std::uint8_t racer = 0) {
         system_.BeginTick();
+        weapons_.Clear();
         sim::PowerupContext context = Context();
         system_.Fire({.racer = racer, .colour = colour, .level = level}, context);
     }
@@ -90,8 +117,14 @@ public:
             positions_[i] = body.motion.position;
         }
         system_.BeginTick();
+        weapons_.Clear();
+        MeasureReaches();
         sim::PowerupContext context = Context();
         system_.Tick(kTick, context);
+        explosions_.Tick(kTick, racers_, reaches_);
+        for (sim::Racer& racer : racers_) {
+            racer.UpdateTimers(kTick);
+        }
     }
 
     int TicksUntilIdle() {
@@ -103,9 +136,26 @@ public:
         return ticks;
     }
 
+    template <typename Done>
+    int TicksUntil(Done done, const sim::RacerControls& controls = {}, int limit = 1000) {
+        for (int ticks = 1; ticks <= limit; ++ticks) {
+            Tick(controls);
+            if (done()) {
+                return ticks;
+            }
+        }
+        return -1;
+    }
+
     sim::Racer& Car(std::size_t racer = 0) { return racers_[racer]; }
     [[nodiscard]] const sim::PowerupSystem& System() const { return system_; }
     [[nodiscard]] const sim::RaceProgress& Progress() const { return progress_; }
+    [[nodiscard]] const sim::BrickField& Bricks() const { return bricks_; }
+    [[nodiscard]] const sim::PowerupInventory& Inventory(std::size_t racer) const {
+        return inventories_[racer];
+    }
+    [[nodiscard]] const sim::Explosions& Blasts() const { return explosions_; }
+    [[nodiscard]] std::span<const sim::WeaponEvent> Weapons() const { return weapons_.Events(); }
 
 private:
     sim::PowerupContext Context() {
@@ -113,7 +163,19 @@ private:
                 .world = &world_,
                 .random = &random_,
                 .checkpoints = &graph_,
-                .progress = &progress_};
+                .progress = &progress_,
+                .reaches = reaches_,
+                .powerups = &system_,
+                .bricks = &bricks_,
+                .inventories = inventories_,
+                .explosions = &explosions_,
+                .weapons = &weapons_};
+    }
+
+    void MeasureReaches() {
+        for (std::size_t i = 0; i < racers_.size(); ++i) {
+            reaches_[i] = {.centre = racers_[i].Body().motion.position, .radius = kReachRadius};
+        }
     }
 
     sim::CheckpointGraph graph_ = Line();
@@ -121,7 +183,12 @@ private:
     std::vector<sim::Racer> racers_;
     std::vector<Vector3> positions_;
     sim::RaceProgress progress_;
+    sim::BrickField bricks_;
+    std::vector<sim::PowerupInventory> inventories_;
     sim::PowerupSystem system_;
+    std::vector<BoundingSphere> reaches_;
+    sim::Explosions explosions_;
+    sim::WeaponEvents weapons_{64};
     sim::Random random_{1};
 };
 

@@ -129,6 +129,9 @@ public:
     void UpdateTimers(Milliseconds elapsed);
 
     [[nodiscard]] bool IsSpinning() const;
+
+    /// Off a route this lasts only until `UpdateTimers`.
+    [[nodiscard]] bool IsSpunOut() const;
     [[nodiscard]] bool IsShielded() const { return status_.shield.level.has_value(); }
     [[nodiscard]] const RacerStatus& Status() const { return status_; }
 

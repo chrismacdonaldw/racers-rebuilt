@@ -33,14 +33,19 @@ rr_add_module(sim
         physics/start_boost.cpp
         physics/turbo.cpp
         physics/wall_sweep.cpp
+        powerup/ballistic_flight.cpp
         powerup/brick_field.cpp
+        powerup/cannonball_effect.cpp
+        powerup/explosions.cpp
         powerup/green_effects.cpp
         powerup/powerup_inventory.cpp
         powerup/powerup_kind.cpp
         powerup/powerup_system.cpp
+        powerup/red_effects.cpp
+        powerup/shield_effect.cpp
         powerup/turbo_effect.cpp
         powerup/warp_effect.cpp
-        powerup/shield_effect.cpp
+        powerup/weapon_hits.cpp
         race/checkpoint_graph.cpp
         race/lap_tracker.cpp
         race/race_clock.cpp

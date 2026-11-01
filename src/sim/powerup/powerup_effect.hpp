@@ -6,10 +6,12 @@
 #include <memory>
 #include <span>
 
+#include "core/bounding_sphere.hpp"
 #include "core/duration.hpp"
 #include "core/transform.hpp"
 #include "sim/physics/collision_query.hpp"
 #include "sim/physics/racer.hpp"
+#include "sim/powerup/powerup_inventory.hpp"
 #include "sim/powerup/powerup_kind.hpp"
 #include "sim/race/checkpoint_graph.hpp"
 #include "sim/race/race_progress.hpp"
@@ -17,13 +19,24 @@
 
 namespace rr::sim {
 
-/// Everything it points to outlives the call.
+class BrickField;
+class Explosions;
+class PowerupSystem;
+class WeaponEvents;
+
+/// Everything it points to outlives the call. `reaches` are the racers' bounding spheres.
 struct PowerupContext {
     std::span<Racer> racers;
     const CollisionQuery* world = nullptr;
     Random* random = nullptr;
     const CheckpointGraph* checkpoints = nullptr;
     const RaceProgress* progress = nullptr;
+    std::span<const BoundingSphere> reaches;
+    PowerupSystem* powerups = nullptr;
+    BrickField* bricks = nullptr;
+    std::span<PowerupInventory> inventories;
+    Explosions* explosions = nullptr;
+    WeaponEvents* weapons = nullptr;
 };
 
 struct PowerupHit {

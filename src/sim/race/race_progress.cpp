@@ -73,6 +73,12 @@ void RaceProgress::FinishRemaining() {
     }
 }
 
+std::optional<std::size_t> RaceProgress::NextGate(const CheckpointGraph& graph,
+                                                  std::size_t racer) const {
+    return OfRacer(racer).laps.LastCheckpoint().transform(
+        [&](std::size_t last) -> std::size_t { return graph.Checkpoints()[last].links[0]; });
+}
+
 void RaceProgress::TakeNextPlace(RacerProgress& racer) {
     racer.finishPlace = ++finishedCount_;
 }

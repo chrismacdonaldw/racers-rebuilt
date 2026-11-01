@@ -55,5 +55,32 @@ TEST_CASE("a shield that ends plays its expiry, but one replaced by another does
     CHECK(sounds[0].sound == RaceSound::ShieldExpire);
 }
 
+TEST_CASE("weapon events play their fire and hit sounds where they happened") {
+    RaceSounds sounds{2, 0, 4};
+    sounds.BeginTick();
+    const std::vector<WeaponEvent> events{
+        {.kind = WeaponEventKind::Fired,
+         .weapon = PowerupKind::Cannonball,
+         .position = {.x = 1.0F}},
+        {.kind = WeaponEventKind::Struck,
+         .weapon = PowerupKind::Cannonball,
+         .racer = 1,
+         .position = {.x = 2.0F}},
+        {.kind = WeaponEventKind::Landed,
+         .weapon = PowerupKind::Cannonball,
+         .position = {.x = 3.0F}},
+        {.kind = WeaponEventKind::Fired, .weapon = PowerupKind::GrapplingHook},
+    };
+
+    sounds.HearWeapons(events);
+
+    CHECK(std::vector(sounds.Events().begin(), sounds.Events().end()) ==
+          std::vector<SoundEvent>{
+              {.sound = RaceSound::CannonFire, .position = {.x = 1.0F}},
+              {.sound = RaceSound::CannonHit, .racer = 1, .position = {.x = 2.0F}},
+              {.sound = RaceSound::CannonHit, .position = {.x = 3.0F}},
+          });
+}
+
 }
 }

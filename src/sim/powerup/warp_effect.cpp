@@ -91,10 +91,7 @@ void WarpEffect::Land(PowerupContext& context) {
 }
 
 std::optional<std::size_t> WarpEffect::NextGate(const PowerupContext& context) const {
-    return context.progress->OfRacer(racer_).laps.LastCheckpoint().transform(
-        [&](std::size_t last) -> std::size_t {
-            return context.checkpoints->Checkpoints()[last].links[0];
-        });
+    return context.progress->NextGate(*context.checkpoints, racer_);
 }
 
 }
