@@ -55,6 +55,7 @@ public:
         value_ = Mix(value_, static_cast<std::uint64_t>(value.count()));
     }
     void Add(const Vector3& v) { Add(v.x, v.y, v.z); }
+    void Add(const Transform& transform) { value_ = MixTransform(value_, transform); }
     void Add(const Basis& basis) { Add(basis.forward, basis.side, basis.up); }
 
     void Add(const Surface& surface) {
@@ -161,6 +162,16 @@ public:
         if (route) {
             Add(route->PlaybackSpeed(), route->TargetSpeed(), route->SideOffset(),
                 route->Velocity(), route->ContactCount(), route->Effects());
+        }
+    }
+
+    void Add(const RoutePlayback& playback) { Add(playback.Pose(), playback.ContactCount()); }
+
+    void Add(const std::optional<RouteDriver>& driver) {
+        Add(driver.has_value());
+        if (driver) {
+            Add(driver->Nearest(), driver->Reference(), driver->Ahead(), driver->ReferenceLead(),
+                driver->AheadLead(), driver->StalledFor(), driver->HasHeadway());
         }
     }
 
@@ -403,7 +414,8 @@ std::uint64_t HashRaceSession(const RaceSession& session) {
         const Racer& racer = session.Racers()[i];
         hash.Add(HashRacerState(racer), racer.Route(), session.Progress().OfRacer(i),
                  session.WasRespawned(i), session.SwitchedWorlds()[i],
-                 session.SurfaceContacts().Under(i), session.Taunters()[i].Wait());
+                 session.SurfaceContacts().Under(i), session.Taunters()[i].Wait(),
+                 session.DriverOf(i));
     }
     for (const std::size_t racer : session.Progress().Standings()) {
         hash.Add(static_cast<std::uint64_t>(racer));

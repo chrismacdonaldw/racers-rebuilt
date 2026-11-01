@@ -21,6 +21,14 @@ public:
     /// On the route a little ahead of where the driver last followed it, facing along it.
     [[nodiscard]] RacerStart Rejoin() const;
 
+    [[nodiscard]] const RoutePlayback& Nearest() const { return nearest_; }
+    [[nodiscard]] const RoutePlayback& Reference() const { return reference_; }
+    [[nodiscard]] const RoutePlayback& Ahead() const { return ahead_; }
+    [[nodiscard]] Milliseconds ReferenceLead() const { return referenceLead_; }
+    [[nodiscard]] Milliseconds AheadLead() const { return aheadLead_; }
+    [[nodiscard]] Milliseconds StalledFor() const { return stalled_; }
+    [[nodiscard]] bool HasHeadway() const { return hasHeadway_; }
+
 private:
     void Follow(const Vector3& position);
 

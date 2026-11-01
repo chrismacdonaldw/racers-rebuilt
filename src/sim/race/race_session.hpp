@@ -89,6 +89,9 @@ public:
     [[nodiscard]] const Hazards& TrackHazards() const { return hazards_; }
     [[nodiscard]] const EventResources& Resources() const { return resources_; }
     [[nodiscard]] std::span<const AiTaunter> Taunters() const { return taunts_; }
+    [[nodiscard]] const std::optional<RouteDriver>& DriverOf(std::size_t racer) const {
+        return drivers_.at(racer);
+    }
 
     /// Replaces what `racer` holds, sending its white bricks home.
     void GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level);
