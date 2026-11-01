@@ -292,6 +292,9 @@ void RaceScene::Tick(const sim::InputFrame& input) {
     if (parts_.audio) {
         parts_.audio->Hear(parts_.session, chase_.Pose(PlayerCar()), kSimTick);
     }
+    if (parts_.particles) {
+        parts_.particles->Tick(parts_.session, kSimTick);
+    }
 }
 
 SceneMusic RaceScene::Music() const {

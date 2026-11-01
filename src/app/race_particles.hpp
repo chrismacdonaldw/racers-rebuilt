@@ -8,9 +8,11 @@
 #include <string_view>
 #include <vector>
 
+#include "app/powerup/powerup_particles.hpp"
 #include "assets/surface_table.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
+#include "core/duration.hpp"
 #include "core/result.hpp"
 #include "core/transform.hpp"
 #include "render/particle_bank.hpp"
@@ -37,6 +39,7 @@ public:
         render::Renderer& renderer, const assets::Vfs& vfs, assets::TrackLoader& loader,
         std::string_view track, std::span<const assets::SurfaceEntry> surfaces, std::size_t player);
 
+    void Tick(const sim::RaceSession& session, Milliseconds elapsed);
     void Update(const sim::RaceSession& session, render::FloatMilliseconds elapsed);
     void AppendQuads(const Transform& camera, std::vector<render::QuadDraw>& out) const;
 
@@ -58,6 +61,7 @@ private:
     std::span<const assets::SurfaceEntry> surfaces_;
     std::size_t player_;
     std::array<WheelEmitter, sim::kWheelCount> wheels_{};
+    PowerupParticles powerups_;
 };
 
 }

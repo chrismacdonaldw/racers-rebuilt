@@ -30,6 +30,7 @@ add_executable(racers-rebuilt-tests
     app/particle_assets_test.cpp
     app/powerup/effect_trail_test.cpp
     app/powerup/powerup_models_test.cpp
+    app/powerup/powerup_particles_test.cpp
     app/powerup/powerup_quads_test.cpp
     app/powerup/powerup_visuals_test.cpp
     app/positional_sound_test.cpp
