@@ -20,7 +20,6 @@ struct RacerChoice {
     std::int32_t nameIndex = -1;
 };
 
-/// `nameLine` is a `CIRCUIT.SRF` line, or -1.
 struct TrackChoice {
     std::string track;
     std::string circuit;

@@ -13,7 +13,6 @@ namespace rr::assets {
 
 inline constexpr std::size_t kCircuitRaces = 4;
 
-/// `nameLine` is a line of the language's `CIRCUIT.SRF`.
 struct RaceEntry {
     std::string name;
     std::string folder;

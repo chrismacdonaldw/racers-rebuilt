@@ -21,9 +21,7 @@ struct RaceSceneSetup {
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
 };
 
-/// The name replays record, such as `race:RACEC0R0:respawn=3000:racer=2`, with `respawn=off`
-/// when respawning is off. `racer` may be left out, and `circuit=c1` and `ai=physics` are added
-/// only when set.
+/// Such as `race:RACEC0R0:respawn=3000:racer=2`. Unset `circuit` and route `ai` are left out.
 [[nodiscard]] std::string RaceSceneName(const RaceSceneSetup& setup);
 
 [[nodiscard]] bool IsRaceScene(std::string_view scene);
