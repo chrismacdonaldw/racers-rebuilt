@@ -178,6 +178,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     }
     auto raceTrack = std::make_unique<sim::RaceTrack>(std::move(*loaded));
     auto world = std::make_unique<sim::WorldList>(raceTrack->collision.Track());
+    TrackEntityDraws entityDraws(model->animatedModels, raceTrack->entities);
     Result<sim::RaceSession> session = sim::RaceSession::Create(
         FullGrid(setup, *racers, seed, raceTrack->grid.size()), CourseOf(*raceTrack, *world));
     if (!session) {
@@ -207,6 +208,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                        .powerups = LoadPowerupModels(renderer, vfs, loader),
                        .camera = TrackCamera(model->bounds),
                        .raceTrack = std::move(raceTrack),
+                       .entityDraws = std::move(entityDraws),
                        .world = std::move(world),
                        .session = std::move(*session),
                        .audio = std::move(audio).value_or(nullptr),
@@ -323,6 +325,9 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     draws_.resize(parts_.trackDraws.size() + parts_.racers.Draws().size());
     std::ranges::copy(parts_.racers.Draws(),
                       draws_.begin() + static_cast<std::ptrdiff_t>(parts_.trackDraws.size()));
+    parts_.entityDraws.Update(interpolated.entityClocks);
+    draws_.insert(draws_.end(), parts_.entityDraws.Draws().begin(),
+                  parts_.entityDraws.Draws().end());
     parts_.bricks.AppendDraws(interpolated.bricks, draws_);
     powerupVisuals_.Update(interpolated, elapsedMs);
     draws_.insert(draws_.end(), powerupVisuals_.Draws().begin(), powerupVisuals_.Draws().end());

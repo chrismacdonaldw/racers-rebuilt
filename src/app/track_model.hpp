@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <span>
 #include <string>
 #include <string_view>
@@ -13,8 +14,17 @@
 
 namespace rr::app {
 
+/// Draws at the model's origin. Draw `i` hangs from skeleton node `joints[i]`.
+struct JointedModel {
+    std::vector<render::MeshDraw> draws;
+    std::vector<std::uint16_t> joints;
+};
+
+/// `draws` leaves out the animated entities, whose models are in `animatedModels`.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 struct TrackModel {
     std::vector<render::MeshDraw> draws;
+    assets::NameMap<JointedModel> animatedModels;
     Bounds bounds;
 };
 

@@ -116,31 +116,59 @@ public:
         : models_(&models), materials_(std::move(materials)) {}
 
     void Place(const assets::WorldAsset& world, const assets::WorldEntity& entity, bool isSurface) {
-        if (entity.lods.empty() || entity.lods.front().model == assets::kNoIndex) {
-            return;
-        }
-        const std::string& name =
-            world.models.at(static_cast<std::size_t>(entity.lods.front().model));
-        const auto model = models_->find(assets::ToUpperAscii(name));
+        const auto model = ModelOf(world, entity);
         if (model == models_->end()) {
             return;
         }
         const Transform transform = PlacementToEngine(entity.position, entity.forward, entity.up);
         AppendDraws(draws_, model->second, materials_, transform);
-        Bounds& bounds = isSurface ? surface_ : everything_;
-        for (const assets::GeometryVertex& vertex : model->second.geometry->vertices) {
-            bounds.Add(Apply(transform, ToEngine(vertex.position)));
+        AddBounds(model->second, transform, isSurface ? surface_ : everything_);
+    }
+
+    void Keep(const assets::WorldAsset& world, const assets::WorldEntity& entity) {
+        const auto model = ModelOf(world, entity);
+        if (model == models_->end()) {
+            return;
+        }
+        AddBounds(model->second, PlacementToEngine(entity.position, entity.forward, entity.up),
+                  everything_);
+        if (animated_.contains(model->first)) {
+            return;
+        }
+        JointedModel& kept = animated_[model->first];
+        AppendDraws(kept.draws, model->second, materials_, {});
+        for (const assets::GeometryRange& range : model->second.geometry->ranges) {
+            kept.joints.push_back(range.joint);
         }
     }
 
     [[nodiscard]] TrackModel Finish() && {
-        return {.draws = std::move(draws_), .bounds = surface_.isEmpty ? everything_ : surface_};
+        return {.draws = std::move(draws_),
+                .animatedModels = std::move(animated_),
+                .bounds = surface_.isEmpty ? everything_ : surface_};
     }
 
 private:
+    [[nodiscard]] NameMap<UploadedModel>::const_iterator ModelOf(
+        const assets::WorldAsset& world, const assets::WorldEntity& entity) const {
+        if (entity.lods.empty() || entity.lods.front().model == assets::kNoIndex) {
+            return models_->end();
+        }
+        const std::string& name =
+            world.models.at(static_cast<std::size_t>(entity.lods.front().model));
+        return models_->find(assets::ToUpperAscii(name));
+    }
+
+    static void AddBounds(const UploadedModel& model, const Transform& transform, Bounds& bounds) {
+        for (const assets::GeometryVertex& vertex : model.geometry->vertices) {
+            bounds.Add(Apply(transform, ToEngine(vertex.position)));
+        }
+    }
+
     const NameMap<UploadedModel>* models_;
     NameMap<render::Material> materials_;
     std::vector<render::MeshDraw> draws_;
+    NameMap<JointedModel> animated_;
     Bounds surface_;
     Bounds everything_;
 };
@@ -190,7 +218,7 @@ Result<TrackModel> UploadTrack(render::Renderer& renderer, const assets::TrackAs
             builder.Place(*world, entity, false);
         }
         for (const assets::WorldEntity& entity : world->animatedEntities) {
-            builder.Place(*world, entity, false);
+            builder.Keep(*world, entity);
         }
         for (const assets::WorldEntity& entity : world->collidableEntities) {
             builder.Place(*world, entity, true);

@@ -71,6 +71,7 @@ rr_add_module(app
         startup_settings.cpp
         startup_timer.cpp
         test_scene.cpp
+        track_entity_draws.cpp
         track_model.cpp
         track_space.cpp
         track_viewer_scene.cpp
