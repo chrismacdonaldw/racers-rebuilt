@@ -13,6 +13,7 @@ namespace {
 
 constexpr std::string_view kEffectsBank = "GAMEDATA/COMMON/GENERAL.SBK";
 constexpr std::uint64_t kAmbienceSeed = 0xA3B1E7C5D9F20468;
+constexpr std::uint64_t kHazardSeed = 0x5C2E9B71F04D8A36;
 constexpr std::size_t kCountdownBeep = 0;
 constexpr std::size_t kShieldAbsorb = 1;
 constexpr std::size_t kBrakeStart = 2;
@@ -168,7 +169,8 @@ RaceAudio::RaceAudio(audio::Mixer& mixer, RaceSoundSet sounds, const RaceAudioSe
       surfaces_(setup.racerCount),
       surfaceLoops_(setup.racerCount),
       shieldLoops_(setup.racerCount),
-      ambience_(sounds_.ambience, sounds_.ambient, sim::Random(setup.seed ^ kAmbienceSeed)) {
+      ambience_(sounds_.ambience, sounds_.ambient, sim::Random(setup.seed ^ kAmbienceSeed)),
+      hazards_(sounds_.ambient, sim::Random(setup.seed ^ kHazardSeed)) {
     RR_ASSERT(sounds_.effects.size() >= kEffectCount && setup.player < setup.racerCount);
 }
 
@@ -189,6 +191,7 @@ void RaceAudio::StopLoops() {
     brakeLoop_.Stop(*mixer_);
     opponentLoop_.Stop(*mixer_);
     ambience_.Silence(*mixer_);
+    hazards_.Silence(*mixer_);
 }
 
 void RaceAudio::Hear(const sim::RaceSession& session, const Transform& camera,
@@ -203,6 +206,7 @@ void RaceAudio::Hear(const sim::RaceSession& session, const Transform& camera,
     HearShields(session);
     HearNearestOpponent(session);
     ambience_.Hear(session.Triggers().Events(), listener_, elapsed, *mixer_);
+    hazards_.Hear(session, listener_, elapsed, *mixer_);
 }
 
 void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent& event) {

@@ -12,8 +12,10 @@ namespace {
 
 constexpr std::uint32_t kIndices = 12;
 
-const std::vector<NamedDraws> kTrackDraws{{.entity = "PILLAR", .span = {.first = 0, .count = 2}},
-                                          {.entity = "sphinx", .span = {.first = 2, .count = 1}}};
+std::vector<NamedDraws> TrackDraws() {
+    return {{.entity = "PILLAR", .span = {.first = 0, .count = 2}},
+            {.entity = "sphinx", .span = {.first = 2, .count = 1}}};
+}
 
 std::array<render::MeshDraw, 3> Draws() {
     std::array<render::MeshDraw, 3> draws{};
@@ -35,7 +37,7 @@ TEST_CASE("hidden models target the distances, then the hazard switches, by enti
     const std::vector<assets::ModelDistanceResource> distances{
         {.entity = assets::EntityRef{.name = "pillar"}}, {}};
     const std::vector<std::string> switches{"SPHINX"};
-    const HiddenModels models(distances, switches, kTrackDraws, sources);
+    const HiddenModels models(distances, switches, TrackDraws(), sources);
     const std::array<render::MeshDraw, 3> track = Draws();
     std::array<render::MeshDraw, 3> draws = Draws();
 

@@ -37,8 +37,10 @@ Result<RaceParticles> RaceParticles::Load(render::Renderer& renderer, const asse
     return RaceParticles(std::move(*common), std::move(*trackBank), surfaces, player);
 }
 
-void RaceParticles::Tick(const sim::RaceSession& session, Milliseconds elapsed) {
+void RaceParticles::Tick(const sim::RaceSession& session, const Transform& camera,
+                         Milliseconds elapsed) {
     powerups_.Tick(session, Bank(ParticleFile::Common), elapsed);
+    hazards_.Tick(session, camera, Bank(ParticleFile::Track), elapsed);
 }
 
 void RaceParticles::Update(const sim::RaceSession& session, render::FloatMilliseconds elapsed) {
