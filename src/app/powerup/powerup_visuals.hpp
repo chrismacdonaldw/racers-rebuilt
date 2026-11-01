@@ -29,6 +29,7 @@ private:
     struct Posed {
         const EffectModel* model = nullptr;
         std::size_t part = 0;
+        Transform offset;
         std::optional<sim::SkeletonPose> pose;
         std::optional<AnimationPlayer> player;
     };

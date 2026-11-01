@@ -8,6 +8,7 @@
 #include "app/powerup/warp_start.hpp"
 #include "app/track_space.hpp"
 #include "sim/physics/turbo.hpp"
+#include "sim/powerup/curse_effect.hpp"
 #include "sim/powerup/magnet_effect.hpp"
 #include "sim/powerup/warp_effect.hpp"
 
@@ -49,7 +50,7 @@ ModelNames NamesFor(PowerupKind kind, std::uint8_t level) {
         case PowerupKind::Magnet:
             return {"MAGNET", "MAGRING"};
         case PowerupKind::Curse:
-            return {"CURSE"};
+            return {"CURSE", "CGREEN", "CGREEN2"};
         default:
             return {};
     }
@@ -105,6 +106,12 @@ void Fade(std::span<render::MeshDraw> draws, float alpha) {
     }
 }
 
+Transform OffsetOf(PowerupKind kind, std::size_t model) {
+    return kind == PowerupKind::Curse && model > 0
+               ? Transform{.position = {.z = -sim::kCurseModelHeight}}
+               : Transform{};
+}
+
 }
 
 PowerupVisuals::PowerupVisuals(const EffectModels& models) : models_(&models) {}
@@ -156,7 +163,8 @@ void PowerupVisuals::Start(Instance& instance, const sim::EffectSnapshot& effect
         if (found == models_->end()) {
             continue;
         }
-        Posed& posed = instance.models.emplace_back(Posed{.model = &found->second, .part = part});
+        Posed& posed = instance.models.emplace_back(
+            Posed{.model = &found->second, .part = part, .offset = OffsetOf(effect.kind, part)});
         if (const JointedAssets* jointed = found->second.jointed) {
             Result<AnimationPlayer> player =
                 AnimationPlayer::Create(jointed->animations, jointed->skeleton.nodes.size());
@@ -189,7 +197,7 @@ void PowerupVisuals::Animate(Instance& instance, std::uint8_t phase, float elaps
 
 void PowerupVisuals::Place(Posed& posed, const Transform& engine, float scale) {
     const ModelDraws& model = posed.model->draws;
-    const Transform game = TransformToGame(engine);
+    const Transform game = Compose(TransformToGame(engine), posed.offset);
     const std::span<const Transform> nodes =
         posed.pose ? posed.pose->Solve() : std::span<const Transform>{};
     for (std::size_t i = 0; i < model.draws.size(); ++i) {
@@ -200,7 +208,7 @@ void PowerupVisuals::Place(Posed& posed, const Transform& engine, float scale) {
             node.position = node.position * scale;
             draw.transform = TransformToEngine(Compose(game, node));
         } else {
-            draw.transform = engine;
+            draw.transform = TransformToEngine(game);
         }
         draw.scale *= scale;
         draws_.push_back(draw);

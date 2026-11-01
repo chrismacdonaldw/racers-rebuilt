@@ -3,11 +3,14 @@
 #include <cstdint>
 #include <optional>
 
+#include "core/quaternion.hpp"
 #include "core/vector3.hpp"
 #include "sim/powerup/dropped_trap.hpp"
 #include "sim/powerup/powerup_effect.hpp"
 
 namespace rr::sim {
+
+inline constexpr float kCurseModelHeight = 13.0F;
 
 class CurseEffect final : public PowerupEffect {
 public:
@@ -16,7 +19,9 @@ public:
     [[nodiscard]] bool Hit(const PowerupHit& hit, PowerupContext& context) override;
     void End(PowerupContext& context) override;
     [[nodiscard]] EffectProgress Progress() const override;
-    [[nodiscard]] Transform Pose() const override { return {.position = modelPosition_}; }
+    [[nodiscard]] Transform Pose() const override {
+        return {.position = modelPosition_, .rotation = rotation_};
+    }
 
 private:
     void Drop(PowerupContext& context);
@@ -28,6 +33,7 @@ private:
     Milliseconds remaining_{0};
     Vector3 position_;
     Vector3 modelPosition_;
+    Quaternion rotation_;
 };
 
 }

@@ -1,6 +1,7 @@
 #include "sim/powerup/curse_effect.hpp"
 
 #include "core/assert.hpp"
+#include "sim/physics/rigid_body.hpp"
 
 namespace rr::sim {
 namespace {
@@ -9,7 +10,12 @@ constexpr float kTriggerRadius = 10.0F;
 constexpr Milliseconds kActive{15'000};
 constexpr Milliseconds kFade{1000};
 constexpr Milliseconds kCurse{10'000};
-constexpr float kModelHeight = 13.0F;
+constexpr Vector3 kGroundUp{.z = 1.0F};
+constexpr Vector3 kFacingWithoutGate{.x = 1.0F};
+
+Quaternion FacingAcross(const Vector3& direction, const Vector3& up) {
+    return ToQuaternion(OrthonormalBasis(Cross(up, direction), up));
+}
 
 }
 
@@ -19,8 +25,13 @@ void CurseEffect::Start(const PowerupUse& use, PowerupContext& context) {
     level_ = use.level;
     phase_ = TrapPhase::Dropping;
     remaining_ = Milliseconds{0};
-    position_ = use.hazard ? context.hazardAims[*use.hazard].target
-                           : context.racers[use.racer].Body().motion.position;
+    if (use.hazard) {
+        const HazardAim& aim = context.hazardAims[*use.hazard];
+        position_ = aim.target;
+        rotation_ = FacingAcross(-aim.direction, kGroundUp);
+    } else {
+        position_ = context.racers[use.racer].Body().motion.position;
+    }
     modelPosition_ = position_;
 }
 
@@ -60,8 +71,15 @@ EffectProgress CurseEffect::Progress() const {
 void CurseEffect::Drop(PowerupContext& context) {
     const DropPoint drop = owner_ ? DropUnder(context.racers[*owner_], *context.world)
                                   : DropPoint{.position = position_};
+    if (owner_) {
+        const std::optional<std::size_t> gate =
+            context.progress->NextGate(*context.checkpoints, *owner_);
+        rotation_ = FacingAcross(
+            gate ? context.checkpoints->Checkpoints()[*gate].normal : kFacingWithoutGate,
+            drop.normal);
+    }
     position_ = drop.position;
-    modelPosition_ = drop.position + (drop.normal * kModelHeight);
+    modelPosition_ = drop.position + (drop.normal * kCurseModelHeight);
     phase_ = TrapPhase::Armed;
     remaining_ = kActive;
 }

@@ -83,6 +83,18 @@ TEST_CASE("a shield draws its outer and inner shells at its pose") {
     CheckNear(GamePosition(visuals.Draws()[1]), kAt);
 }
 
+TEST_CASE("a curse floats over its glow, which lies on the ground") {
+    const EffectModels models{{"CURSE", Static()}, {"CGREEN", Static()}, {"CGREEN2", Static()}};
+    PowerupVisuals visuals(models);
+
+    visuals.Update(WithEffect(sim::PowerupKind::Curse, {.level = 3}), kFrameMs);
+
+    REQUIRE(visuals.Draws().size() == 3);
+    CheckNear(GamePosition(visuals.Draws()[0]), kAt);
+    CheckNear(GamePosition(visuals.Draws()[1]), kAt - Vector3{.z = 13.0F});
+    CheckNear(GamePosition(visuals.Draws()[2]), kAt - Vector3{.z = 13.0F});
+}
+
 TEST_CASE("a turbo's flames fire up, sustain and die out with its phases") {
     const JointedAssets flames = OneNodeShifts({"fireup", "sustain", "dieout"});
     const EffectModels models{{"TURBOL0", Jointed(flames)}};
