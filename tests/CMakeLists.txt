@@ -59,6 +59,7 @@ add_executable(racers-rebuilt-tests
     assets/checkpoints_test.cpp
     assets/collision_mesh_test.cpp
     assets/driver_database_test.cpp
+    assets/emitter_library_test.cpp
     assets/font_list_test.cpp
     assets/game_path_test.cpp
     assets/geometry_database_test.cpp
@@ -69,6 +70,7 @@ add_executable(racers-rebuilt-tests
     assets/jam_test.cpp
     assets/loader_pool_test.cpp
     assets/lzss_test.cpp
+    assets/material_animation_test.cpp
     assets/material_library_test.cpp
     assets/menu_layout_test.cpp
     assets/menu_styles_test.cpp
