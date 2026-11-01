@@ -49,12 +49,12 @@ TEST_CASE("the retail hammer swishes twice a swing") {
         return;
     }
     TrackEntities entities(track->entities);
-    Hazards hazards(track->hazards, entities);
     Random random(1);
-    TrackEvents events({}, 1, false, random, Hazards::MostEventsPerTick(track->hazards.size(), 1));
-    const TrackEvent start{.id = kHammerSwishTrigger};
-    hazards.Hear(std::span(&start, 1));
+    Hazards hazards(track->hazards, entities, random);
+    TrackEvents events({}, 1, false, random, Hazards::MostEventsPerTick(track->hazards, 1));
     HazardContext context{.entities = &entities, .events = &events};
+    events.Fire({.id = kHammerSwishTrigger});
+    hazards.Hear(events, context);
 
     std::size_t swishes = 0;
     for (int tick = 0; tick < 3367 / 12; ++tick) {

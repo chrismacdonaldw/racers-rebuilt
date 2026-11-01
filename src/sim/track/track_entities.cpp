@@ -23,6 +23,9 @@ Transform NodeWorld(const TrackEntitySources& sources, std::size_t entity, const
                     std::size_t node) {
     const TrackEntity& placed = sources.entities[entity];
     const std::vector<assets::SkeletonNode>& nodes = sources.skeletons[placed.skeleton].nodes;
+    if (node >= nodes.size()) {
+        return placed.placement;
+    }
     Transform pose = LocalAt(sources, placed, clock, node);
     for (std::optional<std::size_t> parent = nodes[node].parent; parent;
          parent = nodes[*parent].parent) {
@@ -94,6 +97,14 @@ std::optional<std::size_t> TrackEntities::Find(std::string_view name) const {
         return std::nullopt;
     }
     return static_cast<std::size_t>(entity - sources_->entities.begin());
+}
+
+std::optional<Transform> TrackEntities::FindStatic(std::string_view name) const {
+    const auto entity = std::ranges::find(sources_->statics, name, &StaticEntity::name);
+    if (entity == sources_->statics.end()) {
+        return std::nullopt;
+    }
+    return entity->placement;
 }
 
 Transform TrackEntities::NodeWorld(std::size_t entity, std::size_t node) const {

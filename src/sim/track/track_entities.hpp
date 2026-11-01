@@ -15,7 +15,7 @@ namespace rr::sim {
 
 using EntityClock = std::optional<PartClock>;
 
-/// In game space. An entity without a clock stands in its rest pose.
+/// In game space, in the rest pose without a clock, and at the placement for a missing node.
 [[nodiscard]] Transform NodeWorld(const TrackEntitySources& sources, std::size_t entity,
                                   const EntityClock& clock, std::size_t node);
 
@@ -37,6 +37,13 @@ public:
     [[nodiscard]] bool HasQueued(std::size_t entity) const { return queued_[entity].has_value(); }
 
     [[nodiscard]] std::optional<std::size_t> Find(std::string_view name) const;
+
+    /// In game space.
+    [[nodiscard]] std::optional<Transform> FindStatic(std::string_view name) const;
+
+    [[nodiscard]] const TrackEntity& Entity(std::size_t entity) const {
+        return sources_->entities[entity];
+    }
 
     [[nodiscard]] std::span<const EntityClock> Clocks() const { return clocks_; }
     [[nodiscard]] std::span<const EntityClock> Queued() const { return queued_; }

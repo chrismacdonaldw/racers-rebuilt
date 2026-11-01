@@ -48,6 +48,16 @@ std::optional<std::size_t> StartPart(const assets::WorldEntity& entity,
     return index;
 }
 
+struct ModelBounds {
+    float scale = 1.0F;
+    float radius = 0.0F;
+};
+
+Transform PlacementOf(const assets::WorldEntity& entity) {
+    return {.position = entity.position,
+            .rotation = ToQuaternion(OrthonormalBasis(entity.forward, entity.up))};
+}
+
 class EntityLoader {
 public:
     EntityLoader(const assets::Vfs& vfs, std::string folder, std::vector<assets::VfsEntry> local,
@@ -73,6 +83,9 @@ public:
         Result<assets::WorldAsset> world = ReadParsed(*vfs_, path, assets::ParseWorld);
         if (!world) {
             return std::unexpected(std::move(world.error()));
+        }
+        for (const assets::WorldEntity& entity : world->modelEntities) {
+            sources_.statics.push_back({.name = entity.name, .placement = PlacementOf(entity)});
         }
         for (const assets::WorldEntity& entity : world->animatedEntities) {
             if (Result<void> added = Add(*world, entity); !added) {
@@ -116,11 +129,11 @@ private:
             });
     }
 
-    Result<float> ModelScale(const std::string& model) {
+    Result<ModelBounds> Bounds(const std::string& model) {
         if (model.empty()) {
-            return 1.0F;
+            return ModelBounds{};
         }
-        if (const auto found = modelScales_.find(model); found != modelScales_.end()) {
+        if (const auto found = modelBounds_.find(model); found != modelBounds_.end()) {
             return found->second;
         }
         return Resolve(model, ".GDB")
@@ -128,8 +141,12 @@ private:
                 return ReadParsed(*vfs_, path, assets::ParseGeometry);
             })
             .transform([&](const assets::GeometryAsset& geometry) {
-                modelScales_.emplace(model, geometry.scale);
-                return geometry.scale;
+                ModelBounds bounds{.scale = geometry.scale};
+                for (const assets::GeometryVertex& vertex : geometry.vertices) {
+                    bounds.radius = std::max(bounds.radius, Length(vertex.position));
+                }
+                modelBounds_.emplace(model, bounds);
+                return bounds;
             });
     }
 
@@ -143,13 +160,11 @@ private:
             return index == assets::kNoIndex ? std::string{}
                                              : names.at(static_cast<std::size_t>(index));
         };
-        TrackEntity placed{
-            .name = entity.name,
-            .model = nameAt(world.models, lod.model),
-            .placement = {.position = entity.position,
-                          .rotation = ToQuaternion(OrthonormalBasis(entity.forward, entity.up))}};
-        Result<float> scale = ModelScale(placed.model);
-        Result<std::size_t> skeleton = scale.and_then([&](float) {
+        TrackEntity placed{.name = entity.name,
+                           .model = nameAt(world.models, lod.model),
+                           .placement = PlacementOf(entity)};
+        Result<ModelBounds> bounds = Bounds(placed.model);
+        Result<std::size_t> skeleton = bounds.and_then([&](const ModelBounds&) {
             return Intern(nameAt(world.sceneNodes, lod.sceneNode), ".SDB", skeletonIndices_,
                           sources_.skeletons, assets::ParseSkeleton);
         });
@@ -167,7 +182,8 @@ private:
         placed.skeleton = *skeleton;
         placed.animation = *animation;
         placed.startPart = StartPart(entity, sources_.animations[*animation]);
-        placed.scale = *scale * entity.scale;
+        placed.scale = bounds->scale * entity.scale;
+        placed.radius = bounds->radius * entity.scale;
         sources_.entities.push_back(std::move(placed));
         return {};
     }
@@ -178,7 +194,7 @@ private:
     std::vector<assets::VfsEntry> common_;
     std::map<std::string, std::size_t> skeletonIndices_;
     std::map<std::string, std::size_t> animationIndices_;
-    std::map<std::string, float> modelScales_;
+    std::map<std::string, ModelBounds> modelBounds_;
     TrackEntitySources sources_;
 };
 

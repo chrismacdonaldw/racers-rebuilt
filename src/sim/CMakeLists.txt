@@ -15,11 +15,16 @@ rr_add_module(sim
         collision/track_collision.cpp
         collision/track_surfaces.cpp
         collision/world_list.cpp
+        hazard/code_puzzle.cpp
         hazard/crane.cpp
+        hazard/ghost.cpp
         hazard/hammer_swish.cpp
         hazard/hazard_box.cpp
         hazard/hazards.cpp
+        hazard/lava_blob.cpp
+        hazard/rocket_pad.cpp
         hazard/swing_strike.cpp
+        hazard/ufo_grabber.cpp
         input_latch.cpp
         interpolation.cpp
         physics/body_effects.cpp
@@ -87,6 +92,7 @@ rr_add_module(sim
         replay/snapshot_hash.cpp
         route_playback.cpp
         track/event_resources.cpp
+        track/model_switches.cpp
         track/surface_events.cpp
         track/track_entities.cpp
         track/track_entity_sources.cpp

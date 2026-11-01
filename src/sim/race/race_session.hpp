@@ -111,7 +111,7 @@ private:
     void SwitchOnTriggerWorlds();
     [[nodiscard]] RacerWorldView WorldsOf(std::size_t racer) const;
     [[nodiscard]] PowerupContext EffectContext();
-    [[nodiscard]] HazardContext HazardsContext();
+    [[nodiscard]] HazardContext HazardsContext(Milliseconds elapsed);
     [[nodiscard]] bool HasPlayerFinished() const;
 
     RaceCourse course_;

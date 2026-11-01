@@ -198,10 +198,10 @@ void AiRacer::EndGhost() {
     effects_.isGhost = false;
 }
 
-void AiRacer::Hold() {
-    baseSpeed_ = 0.0F;
+void AiRacer::HoldAt(float speed) {
+    baseSpeed_ = speed;
     if (!effects_.isPushed) {
-        targetSpeed_ = 0.0F;
+        targetSpeed_ = speed;
     }
 }
 

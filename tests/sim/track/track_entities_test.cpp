@@ -68,6 +68,13 @@ TEST_CASE("an entity without a start part has no clock and stands in its rest po
     CheckNear(entities.NodeWorld(1, 1).position, {.x = 10.0F, .y = 50.0F});
 }
 
+TEST_CASE("a node the skeleton lacks stands at the entity's placement") {
+    const TrackEntitySources sources = Arm();
+    const TrackEntities entities(sources);
+
+    CheckNear(entities.NodeWorld(0, 9).position, sources.entities[0].placement.position);
+}
+
 TEST_CASE("entities are found by name") {
     const TrackEntitySources sources = Arm();
     const TrackEntities entities(sources);

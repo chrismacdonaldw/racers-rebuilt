@@ -40,11 +40,14 @@ TEST_CASE("racer-path events and other ids leave a hazard alone") {
     const TrackEntitySources sources = test::StillEntities({"rkhamm02"}, {});
     TrackEntities entities(sources);
     const std::vector<assets::Hazard> list{{.kind = assets::HazardKind::HammerSwish}};
-    Hazards hazards(list, entities);
-    const std::vector<TrackEvent> events{{.id = kHammerSwishTrigger, .racer = 0},
-                                         {.id = kHammerSwishTrigger + 1}};
+    Random random(1);
+    Hazards hazards(list, entities, random);
+    TrackEvents heard({}, 1, false, random, 2);
+    heard.Fire({.id = kHammerSwishTrigger, .racer = 0});
+    heard.Fire({.id = kHammerSwishTrigger + 1});
+    HazardContext context;
 
-    hazards.Hear(events);
+    hazards.Hear(heard, context);
 
     CHECK(hazards.Slots()[0].phase == HazardPhase::Loaded);
 }
@@ -64,14 +67,7 @@ TEST_CASE("a racer in the hammer's sphere starts the hammer, and leaving stops i
         return;
     }
     const WorldList world(track->collision.Track());
-    const RaceSetup setup{.racers = {{.isPlayer = true}}};
-    Result<RaceSession> session = RaceSession::Create(setup, {.checkpoints = &track->checkpoints,
-                                                              .grid = track->grid,
-                                                              .world = &world,
-                                                              .lowestTrackZ = track->lowestTrackZ,
-                                                              .events = &track->events,
-                                                              .entities = &track->entities,
-                                                              .hazards = track->hazards});
+    Result<RaceSession> session = test::PlayerSession(*track, world);
     REQUIRE(session.has_value());
     const auto hammer = std::ranges::find_if(session->TrackHazards().Slots(), [](const auto& slot) {
         return std::holds_alternative<HammerSwish>(slot.state);
@@ -88,22 +84,33 @@ TEST_CASE("a racer in the hammer's sphere starts the hammer, and leaving stops i
     CHECK(hammer->phase == HazardPhase::Loaded);
 }
 
+std::optional<bool> FoundItsModel(const HazardState& state) {
+    return std::visit(
+        [](const auto& hazard) -> std::optional<bool> {
+            if constexpr (requires { hazard.entity.has_value(); }) {
+                return hazard.entity.has_value();
+            } else if constexpr (requires { hazard.reach.has_value(); }) {
+                return hazard.reach.has_value();
+            } else {
+                return std::nullopt;
+            }
+        },
+        state);
+}
+
 std::size_t CountRunning(const assets::Vfs& vfs, const std::string& name) {
     CAPTURE(name);
     Result<RaceTrack> track = LoadRaceTrack(vfs, name);
     REQUIRE(track.has_value());
     TrackEntities entities(track->entities);
-    const Hazards hazards(track->hazards, entities);
+    Random random(1);
+    const Hazards hazards(track->hazards, entities, random);
     std::size_t running = 0;
     for (const HazardSlot& slot : hazards.Slots()) {
-        std::visit(
-            [&](const auto& hazard) {
-                if constexpr (requires { hazard.entity; }) {
-                    CHECK(hazard.entity.has_value());
-                    ++running;
-                }
-            },
-            slot.state);
+        if (const std::optional<bool> found = FoundItsModel(slot.state)) {
+            CHECK(*found);
+            ++running;
+        }
     }
     return running;
 }
@@ -117,8 +124,25 @@ TEST_CASE("every retail hazard this race runs finds its entity") {
     for (const std::string& name : assets::ListRaceTracks(*vfs)) {
         running += CountRunning(*vfs, name);
     }
-    CHECK(running == 6);
+    CHECK(running == 10);
 }
 
 }
+TEST_CASE("retail hazards size their spheres from their models") {
+    const std::optional<RaceTrack> ghostTrack = test::RetailRaceTrack("RACEC1R0");
+    const std::optional<RaceTrack> lavaTrack = test::RetailRaceTrack("RACEC0R3");
+    if (!ghostTrack || !lavaTrack) {
+        return;
+    }
+    const auto radiusOf = [](const RaceTrack& track, std::string_view name) {
+        return std::ranges::find(track.entities.entities, name, &TrackEntity::name)->radius;
+    };
+    CHECK(radiusOf(*ghostTrack, "ghostly") == doctest::Approx(4.747F).epsilon(0.001));
+    CHECK(radiusOf(*lavaTrack, "mmlavbl") == doctest::Approx(5.259F).epsilon(0.001));
+
+    const TrackEntities entities(lavaTrack->entities);
+    const std::optional<Transform> pad = entities.FindStatic("mmrocof");
+    CHECK(pad.value_or(Transform{}).position.x == doctest::Approx(411.055F));
+}
+
 }
