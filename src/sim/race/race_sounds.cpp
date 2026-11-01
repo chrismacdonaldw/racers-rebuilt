@@ -8,7 +8,7 @@
 namespace rr::sim {
 namespace {
 
-constexpr std::size_t kMostSoundsPerRacer = 8;
+constexpr std::size_t kMostSoundsPerRacer = 10;
 constexpr std::size_t kMostRaceWideSounds = 2;
 constexpr std::array kLaterBeeps{Milliseconds{1000}, Milliseconds{2000}};
 constexpr Milliseconds kWallCooldown{250};
@@ -34,7 +34,7 @@ bool HasCrossed(Milliseconds mark, const RaceClock& before, const RaceClock& aft
 }
 
 RaceSounds::RaceSounds(std::size_t racerCount, std::size_t brickCount)
-    : wallCooldowns_(racerCount) {
+    : wallCooldowns_(racerCount), shields_(racerCount) {
     events_.reserve((racerCount * kMostSoundsPerRacer) + kMostRaceWideSounds + brickCount);
 }
 
@@ -86,6 +86,7 @@ void RaceSounds::HearRacer(std::size_t racer, const Racer& car, bool isPlayer, b
         Add(RaceSound::WallHit, racer);
         cooldown = kWallCooldown;
     }
+    HearShield(racer, car.Status().shield);
 }
 
 void RaceSounds::HearFinish(std::size_t racer) {
@@ -102,6 +103,19 @@ void RaceSounds::HearBricks(std::span<const BrickEvent> events, bool areBricksAu
              .brick = event.brick,
              .whiteCount = event.whiteCount});
     }
+}
+
+void RaceSounds::HearShield(std::size_t racer, const ShieldStatus& shield) {
+    HeardShield& heard = shields_.at(racer);
+    if (shield.absorbs != heard.absorbs) {
+        Add({.sound = RaceSound::ShieldAbsorb,
+             .racer = static_cast<std::uint8_t>(racer),
+             .variant = shield.absorbSound});
+    }
+    if (heard.isUp && !shield.level && shield.raised == heard.raised) {
+        Add(RaceSound::ShieldExpire, racer);
+    }
+    heard = {.raised = shield.raised, .absorbs = shield.absorbs, .isUp = shield.level.has_value()};
 }
 
 void RaceSounds::Add(RaceSound sound, std::size_t racer, TurboLevel level) {

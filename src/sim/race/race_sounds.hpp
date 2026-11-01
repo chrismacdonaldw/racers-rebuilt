@@ -28,6 +28,8 @@ enum class RaceSound : std::uint8_t {
     BrickCollect,
     BrickSwap,
     WhiteBrickCollect,
+    ShieldAbsorb,
+    ShieldExpire,
 };
 
 /// `racer` means nothing for countdown sounds, and the rest only for the sounds that use them.
@@ -37,6 +39,7 @@ struct SoundEvent {
     TurboLevel level = TurboLevel::Weak;
     std::uint32_t brick = 0;
     std::uint8_t whiteCount = 0;
+    std::uint8_t variant = 0;
 
     friend bool operator==(const SoundEvent&, const SoundEvent&) = default;
 };
@@ -63,11 +66,19 @@ public:
     [[nodiscard]] std::span<const SoundEvent> Events() const { return events_; }
 
 private:
+    struct HeardShield {
+        std::uint32_t raised = 0;
+        std::uint32_t absorbs = 0;
+        bool isUp = false;
+    };
+
+    void HearShield(std::size_t racer, const ShieldStatus& shield);
     void Add(RaceSound sound, std::size_t racer, TurboLevel level = TurboLevel::Weak);
     void Add(SoundEvent event);
 
     std::vector<SoundEvent> events_;
     std::vector<Milliseconds> wallCooldowns_;
+    std::vector<HeardShield> shields_;
 };
 
 }

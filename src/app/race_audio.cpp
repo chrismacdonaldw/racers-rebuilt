@@ -11,6 +11,7 @@ namespace {
 
 constexpr std::string_view kEffectsBank = "GAMEDATA/COMMON/GENERAL.SBK";
 constexpr std::size_t kCountdownBeep = 0;
+constexpr std::size_t kShieldAbsorb = 1;
 constexpr std::size_t kBrakeStart = 2;
 constexpr std::size_t kBrakeLoop = 3;
 constexpr std::size_t kWhiteBrickBeforeFirst = 10;
@@ -24,22 +25,35 @@ constexpr std::size_t kTurboStart = 36;
 constexpr std::size_t kWarpStart = 39;
 constexpr std::size_t kTurboEnd = 40;
 constexpr std::size_t kWarpLand = 41;
+constexpr std::size_t kShieldLoop1 = 53;
 constexpr std::size_t kWallScrape = 56;
 constexpr std::size_t kDriftStart = 57;
+constexpr std::size_t kShieldExpire = 59;
 constexpr std::size_t kCoastLoop = 61;
 constexpr std::size_t kBrickSwap = 72;
 constexpr std::size_t kEngineStart = 62;
 constexpr std::size_t kTurboWhoosh = 65;
+constexpr std::size_t kShieldAbsorbAlternate = 70;
 constexpr std::size_t kHoverTurboEnd = 75;
+constexpr std::size_t kShieldLoop0 = 76;
+constexpr std::size_t kShieldLoop2 = 77;
+constexpr std::size_t kShieldLoop3 = 78;
 constexpr std::size_t kOpponentEngine = 79;
 constexpr std::size_t kEffectCount = kOpponentEngine + 1;
 constexpr std::array kEngineLoopSounds{kIdleLoop, kDriveLoop, kCoastLoop};
+constexpr std::array kShieldLoops{kShieldLoop0, kShieldLoop1, kShieldLoop2, kShieldLoop3};
 constexpr std::int32_t kFirstAmbientId = 3000;
 constexpr float kWeakTurboEndVolume = 0.6F;
 constexpr float kStrongTurboEndVolume = 0.8F;
 constexpr SoundRange kOpponentRange{.min = 30.0F, .max = 200.0F};
 constexpr SoundRange kBrickRange{.min = 30.0F, .max = 150.0F};
 constexpr SoundRange kWarpRange{.min = 200.0F, .max = 600.0F};
+constexpr SoundRange kShieldRange{.min = 200.0F, .max = 600.0F};
+constexpr Vector3 kShieldExpireOffset{.z = 5.0F};
+
+std::size_t ShieldAbsorbSound(std::uint8_t variant) {
+    return variant == 0 ? kShieldAbsorb : kShieldAbsorbAlternate + variant - 1;
+}
 
 const Vector3& BrickAt(const sim::RaceSession& session, const sim::SoundEvent& event) {
     return session.Bricks().Coloured()[event.brick].brick.position;
@@ -87,7 +101,8 @@ RaceAudio::RaceAudio(audio::Mixer& mixer, RaceSoundSet sounds, const RaceAudioSe
       variants_(setup.seed),
       music_(std::move(sounds_.music), variants_.Next()),
       surfaces_(setup.racerCount),
-      surfaceLoops_(setup.racerCount) {
+      surfaceLoops_(setup.racerCount),
+      shieldLoops_(setup.racerCount) {
     RR_ASSERT(sounds_.effects.size() >= kEffectCount && setup.player < setup.racerCount);
 }
 
@@ -100,6 +115,9 @@ void RaceAudio::StopLoops() {
         loop.Stop(*mixer_);
     }
     for (LoopVoice& loop : surfaceLoops_) {
+        loop.Stop(*mixer_);
+    }
+    for (LoopVoice& loop : shieldLoops_) {
         loop.Stop(*mixer_);
     }
     brakeLoop_.Stop(*mixer_);
@@ -115,6 +133,7 @@ void RaceAudio::Hear(const sim::RaceSession& session, const Transform& camera,
     music_.Hear(session.Sounds(), player_, session.Progress().OfRacer(player_).finishPlace);
     HearEngine(session, elapsed);
     HearSurfaces(session, elapsed);
+    HearShields(session);
     HearNearestOpponent(session);
 }
 
@@ -142,15 +161,10 @@ void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent
             PlayTurboEnd(event.level, car);
             break;
         case sim::RaceSound::WarpEnter:
-            if (event.racer == player_) {
-                PlayFlat(kWarpStart);
-            }
-            PlayAt(kTurboWhoosh, car, {}, kWarpRange);
-            break;
         case sim::RaceSound::WarpLand:
-            if (event.racer == player_) {
-                PlayFlat(kWarpLand);
-            }
+        case sim::RaceSound::ShieldAbsorb:
+        case sim::RaceSound::ShieldExpire:
+            PlayPowerupEvent(event, car);
             break;
         case sim::RaceSound::DriftStart:
             PlayAt(kDriftStart, car);
@@ -171,6 +185,31 @@ void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent
             break;
         case sim::RaceSound::WhiteBrickCollect:
             PlayAt(kWhiteBrickBeforeFirst + event.whiteCount, car);
+            break;
+    }
+}
+
+void RaceAudio::PlayPowerupEvent(const sim::SoundEvent& event, const Vector3& car) {
+    const bool isPlayer = event.racer == player_;
+    switch (event.sound) {
+        case sim::RaceSound::WarpEnter:
+            if (isPlayer) {
+                PlayFlat(kWarpStart);
+            }
+            PlayAt(kTurboWhoosh, car, {}, kWarpRange);
+            break;
+        case sim::RaceSound::WarpLand:
+            if (isPlayer) {
+                PlayFlat(kWarpLand);
+            }
+            break;
+        case sim::RaceSound::ShieldAbsorb:
+            PlayAt(ShieldAbsorbSound(event.variant), car, {}, kShieldRange);
+            break;
+        case sim::RaceSound::ShieldExpire:
+            PlayAt(kShieldExpire, car + kShieldExpireOffset, {}, kShieldRange);
+            break;
+        default:
             break;
     }
 }
@@ -242,6 +281,19 @@ void RaceAudio::HearSurfaces(const sim::RaceSession& session, Milliseconds elaps
                                   PlaceSound(listener_, body.motion.position, loop->mix));
         } else {
             surfaceLoops_[i].Stop(*mixer_);
+        }
+    }
+}
+
+void RaceAudio::HearShields(const sim::RaceSession& session) {
+    for (std::size_t i = 0; i < shieldLoops_.size(); ++i) {
+        const sim::Racer& racer = session.Racers()[i];
+        if (const std::optional<std::uint8_t>& level = racer.Status().shield.level) {
+            shieldLoops_[i].Play(
+                *mixer_, sounds_.effects[kShieldLoops.at(*level)],
+                PlaceSound(listener_, racer.Body().motion.position, {}, kShieldRange));
+        } else {
+            shieldLoops_[i].Stop(*mixer_);
         }
     }
 }

@@ -59,7 +59,7 @@ public:
     /// Call after each session tick. `camera` is the player's, in engine space.
     void Hear(const sim::RaceSession& session, const Transform& camera, Milliseconds elapsed);
 
-    /// Silences the engine, brake, surface and opponent loops until the next `Hear`.
+    /// Silences the engine, brake, surface, shield and opponent loops until the next `Hear`.
     void StopLoops();
 
     [[nodiscard]] SceneMusic Music() const { return music_.Current(); }
@@ -76,12 +76,14 @@ private:
     };
 
     void PlayEvent(const sim::RaceSession& session, const sim::SoundEvent& event);
+    void PlayPowerupEvent(const sim::SoundEvent& event, const Vector3& car);
     void PlayTurboEnd(sim::TurboLevel level, const Vector3& car);
     void PlayAt(std::size_t effect, const Vector3& source, const audio::VoiceMix& mix = {},
                 SoundRange range = {});
     void PlayFlat(std::size_t effect);
     void HearEngine(const sim::RaceSession& session, Milliseconds elapsed);
     void HearSurfaces(const sim::RaceSession& session, Milliseconds elapsed);
+    void HearShields(const sim::RaceSession& session);
     void HearNearestOpponent(const sim::RaceSession& session);
     [[nodiscard]] std::optional<audio::SoundId> AmbientSound(std::int32_t soundId) const;
 
@@ -97,6 +99,7 @@ private:
     LoopVoice brakeLoop_;
     std::vector<SurfaceSound> surfaces_;
     std::vector<LoopVoice> surfaceLoops_;
+    std::vector<LoopVoice> shieldLoops_;
     LoopVoice opponentLoop_;
 };
 

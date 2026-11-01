@@ -136,6 +136,7 @@ add_executable(racers-rebuilt-tests
     sim/physics/box_contact_test.cpp
     sim/physics/car_body_test.cpp
     sim/physics/chassis_test.cpp
+    sim/physics/contact_effects_test.cpp
     sim/physics/curse_jitter_test.cpp
     sim/physics/drive_controller_test.cpp
     sim/physics/driver_input_test.cpp
@@ -151,12 +152,14 @@ add_executable(racers-rebuilt-tests
     sim/powerup/powerup_system_test.cpp
     sim/powerup/turbo_effect_test.cpp
     sim/powerup/warp_effect_test.cpp
+    sim/powerup/shield_effect_test.cpp
     sim/race/ai_race_test.cpp
     sim/race/checkpoint_graph_test.cpp
     sim/race/lap_tracker_test.cpp
     sim/race/race_clock_test.cpp
     sim/race/race_progress_test.cpp
     sim/race/race_session_test.cpp
+    sim/race/race_sounds_test.cpp
     sim/race/race_track_test.cpp
     sim/race/random_test.cpp
     sim/race/respawn_test.cpp
