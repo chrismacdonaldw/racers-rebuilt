@@ -1,6 +1,7 @@
 #include "sim/powerup/magnet_effect.hpp"
 
 #include "core/assert.hpp"
+#include "sim/physics/rigid_body.hpp"
 #include "sim/powerup/dropped_trap.hpp"
 #include "sim/powerup/weapon_events.hpp"
 
@@ -17,9 +18,19 @@ constexpr float kGrabDistanceSquared = 81.0F;
 constexpr float kLiftStopDistanceSquared = 100.0F;
 constexpr float kStoppedSpeed = 0.002F;
 constexpr float kPullPerMs = 1.0F;
+constexpr Vector3 kWorldUp{.z = 1.0F};
 
 float PullFor(Milliseconds elapsed) {
     return static_cast<float>(elapsed.count()) * kPullPerMs;
+}
+
+std::optional<Quaternion> TiltToward(const Vector3& model, const Vector3& racer) {
+    const Vector3 up = Normalized(model - racer, {});
+    const Vector3 forward = Normalized(Cross(Cross(kWorldUp, up), up), {});
+    if (Dot(forward, forward) == 0.0F || Dot(up, up) == 0.0F) {
+        return std::nullopt;
+    }
+    return ToQuaternion({.forward = forward, .side = Cross(up, forward), .up = up});
 }
 
 }
@@ -31,6 +42,8 @@ void MagnetEffect::Start(const PowerupUse& use, PowerupContext& context) {
     remaining_ = kArmed;
     isDropped_ = false;
     dropPoint_ = context.racers[owner_].Body().motion.position;
+    heading_ = {.x = 1.0F};
+    facing_ = {};
     held_.reset();
     pulled_.reset();
     hasStopped_ = false;
@@ -60,6 +73,7 @@ bool MagnetEffect::Tick(Milliseconds elapsed, PowerupContext& context) {
     } else if (pulled_) {
         Pull(context.racers[*pulled_], elapsed);
     }
+    Face(context);
     pulled_.reset();
     return phase_ != MagnetPhase::Done;
 }
@@ -81,7 +95,7 @@ EffectProgress MagnetEffect::Progress() const {
 }
 
 Transform MagnetEffect::Pose() const {
-    return {.position = dropPoint_ + kModelHeight};
+    return {.position = dropPoint_ + kModelHeight, .rotation = facing_};
 }
 
 void MagnetEffect::Drop(PowerupContext& context) {
@@ -89,6 +103,13 @@ void MagnetEffect::Drop(PowerupContext& context) {
     dropPoint_ = DropUnder(owner, *context.world).position;
     KickOwnerOnDrop(owner);
     isDropped_ = true;
+    if (context.checkpoints != nullptr && context.progress != nullptr) {
+        const std::optional<std::size_t> last =
+            context.progress->OfRacer(owner_).laps.LastCheckpoint();
+        if (last) {
+            heading_ = context.checkpoints->Checkpoints()[*last].normal;
+        }
+    }
     context.weapons->Add({.kind = WeaponEventKind::Fired,
                           .weapon = PowerupKind::Magnet,
                           .racer = owner_,
@@ -151,6 +172,18 @@ void MagnetEffect::Hold(Racer& racer, Milliseconds elapsed) {
     }
     if (racer.ActiveTurbo()) {
         racer.CancelTurbo();
+    }
+}
+
+void MagnetEffect::Face(const PowerupContext& context) {
+    const std::optional<std::uint8_t> caught = held_ ? held_ : pulled_;
+    const std::optional<Quaternion> tilted =
+        caught ? TiltToward(Pose().position, context.racers[*caught].Body().motion.position)
+               : std::nullopt;
+    if (tilted) {
+        facing_ = *tilted;
+    } else if (!caught) {
+        facing_ = ToQuaternion(OrthonormalBasis(heading_, kWorldUp));
     }
 }
 

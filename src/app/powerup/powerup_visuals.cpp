@@ -8,6 +8,7 @@
 #include "app/powerup/warp_start.hpp"
 #include "app/track_space.hpp"
 #include "sim/physics/turbo.hpp"
+#include "sim/powerup/magnet_effect.hpp"
 #include "sim/powerup/warp_effect.hpp"
 
 namespace rr::app {
@@ -28,6 +29,8 @@ constexpr std::array<std::string_view, 3> kTurboParts{"fireup", "sustain", "dieo
 constexpr std::array<std::string_view, 3> kMissileParts{"right", "middle", "left"};
 constexpr std::string_view kBlastModel = "EXPLSN";
 constexpr std::string_view kSpikeModel = "SPIKEXP";
+constexpr float kMagnetFadeMs = 1000.0F;
+constexpr float kMagnetRingFadeAlpha = 127.0F / 255.0F;
 
 ModelNames NamesFor(PowerupKind kind, std::uint8_t level) {
     switch (kind) {
@@ -76,8 +79,30 @@ bool IsShown(const sim::EffectSnapshot& effect, std::span<const sim::RacerSnapsh
            effect.phase == static_cast<std::uint8_t>(sim::WarpPhase::Starting);
 }
 
-float ScaleOf(const sim::EffectSnapshot& effect) {
-    return effect.kind == PowerupKind::Warp ? WarpPortalScale(effect.phaseLeftMs) : 1.0F;
+struct Look {
+    float scale = 1.0F;
+    float alpha = 1.0F;
+};
+
+Look LookOf(const sim::EffectSnapshot& effect, std::size_t part) {
+    if (effect.kind == PowerupKind::Warp) {
+        return {.scale = WarpPortalScale(effect.phaseLeftMs)};
+    }
+    if (effect.kind == PowerupKind::Magnet &&
+        effect.phase == static_cast<std::uint8_t>(sim::MagnetPhase::Fading)) {
+        const float left = effect.phaseLeftMs / kMagnetFadeMs;
+        return part == 0 ? Look{.scale = left} : Look{.alpha = left * kMagnetRingFadeAlpha};
+    }
+    return {};
+}
+
+void Fade(std::span<render::MeshDraw> draws, float alpha) {
+    for (render::MeshDraw& draw : draws) {
+        draw.material.tint.a *= alpha;
+        if (draw.material.blend == render::BlendMode::Opaque) {
+            draw.material.blend = render::BlendMode::Alpha;
+        }
+    }
 }
 
 }
@@ -94,7 +119,12 @@ void PowerupVisuals::Update(const sim::RenderSnapshot& snapshot, float elapsedMs
         Animate(instance, effect.phase, elapsedMs);
         if (IsShown(effect, snapshot.racers)) {
             for (Posed& posed : instance.models) {
-                Place(posed, effect.transform, ScaleOf(effect));
+                const Look look = LookOf(effect, posed.part);
+                const std::size_t first = draws_.size();
+                Place(posed, effect.transform, look.scale);
+                if (look.alpha < 1.0F) {
+                    Fade(std::span(draws_).subspan(first), look.alpha);
+                }
             }
         }
     }
@@ -120,12 +150,13 @@ void PowerupVisuals::Start(Instance& instance, const sim::EffectSnapshot& effect
     instance.use = effect.use;
     instance.phase.reset();
     instance.models.clear();
-    for (const std::string_view name : NamesFor(effect.kind, effect.use.level)) {
-        const auto found = name.empty() ? models_->end() : models_->find(name);
+    const ModelNames names = NamesFor(effect.kind, effect.use.level);
+    for (std::size_t part = 0; part < names.size(); ++part) {
+        const auto found = names[part].empty() ? models_->end() : models_->find(names[part]);
         if (found == models_->end()) {
             continue;
         }
-        Posed& posed = instance.models.emplace_back(Posed{.model = &found->second});
+        Posed& posed = instance.models.emplace_back(Posed{.model = &found->second, .part = part});
         if (const JointedAssets* jointed = found->second.jointed) {
             Result<AnimationPlayer> player =
                 AnimationPlayer::Create(jointed->animations, jointed->skeleton.nodes.size());
@@ -164,9 +195,14 @@ void PowerupVisuals::Place(Posed& posed, const Transform& engine, float scale) {
     for (std::size_t i = 0; i < model.draws.size(); ++i) {
         render::MeshDraw draw = model.draws[i];
         const std::uint16_t joint = i < model.joints.size() ? model.joints[i] : 0;
-        draw.transform =
-            joint < nodes.size() ? TransformToEngine(Compose(game, nodes[joint])) : engine;
-        draw.scale = scale;
+        if (joint < nodes.size()) {
+            Transform node = nodes[joint];
+            node.position = node.position * scale;
+            draw.transform = TransformToEngine(Compose(game, node));
+        } else {
+            draw.transform = engine;
+        }
+        draw.scale *= scale;
         draws_.push_back(draw);
     }
 }
