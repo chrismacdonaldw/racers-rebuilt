@@ -8,6 +8,7 @@ rr_add_module(audio
         music_catalog.cpp
         music_player.cpp
         music_source.cpp
+        peak_limiter.cpp
         stb_vorbis.cpp
         stream_data_source.cpp
         voice.cpp

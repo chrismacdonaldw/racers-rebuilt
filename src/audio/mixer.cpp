@@ -12,6 +12,7 @@
 
 #include "audio/alp.hpp"
 #include "audio/looping_stream.hpp"
+#include "audio/peak_limiter.hpp"
 #include "audio/voice.hpp"
 #include "core/assert.hpp"
 #include "core/log.hpp"
@@ -24,6 +25,7 @@ namespace {
 constexpr std::size_t kBusCount = 3;
 constexpr std::size_t kEffectVoiceCount = 32;
 constexpr ma_uint32 kChannelCount = 2;
+constexpr float kHeadroomGain = 0.5F;
 
 struct LoadedSound {
     assets::FileData file;
@@ -52,6 +54,11 @@ std::size_t IndexOf(Bus bus) {
     return static_cast<std::size_t>(bus);
 }
 
+std::unexpected<Error> CantStart(ma_result result) {
+    return Fail(ErrorCode::Platform,
+                std::format("can't start audio: {}", ma_result_description(result)));
+}
+
 }
 
 struct Mixer::State {
@@ -60,6 +67,13 @@ struct Mixer::State {
     State& operator=(const State&) = delete;
     State(State&&) = delete;
     State& operator=(State&&) = delete;
+
+    static void LimitMix(void* userData, float* frames, ma_uint64 frameCount) {
+        if (std::optional<PeakLimiter>& limiter = static_cast<State*>(userData)->limiter) {
+            limiter->Process(
+                std::span(frames, static_cast<std::size_t>(frameCount) * kChannelCount));
+        }
+    }
 
     ~State() {
         for (Voice& voice : music) {
@@ -83,6 +97,7 @@ struct Mixer::State {
     std::array<Voice, 2> music;
     std::size_t currentMusic = 0;
     std::vector<LoadedSound> sounds;
+    std::optional<PeakLimiter> limiter;
 };
 
 Result<Mixer> Mixer::Create() {
@@ -99,16 +114,25 @@ Result<Mixer> Mixer::Start(bool hasDevice, std::uint32_t sampleRateHz) {
     config.channels = kChannelCount;
     config.sampleRate = sampleRateHz;
     config.noDevice = hasDevice ? MA_FALSE : MA_TRUE;
+    config.noAutoStart = MA_TRUE;
+    config.onProcess = State::LimitMix;
+    config.pProcessUserData = state.get();
     config.allocationCallbacks = {.pUserData = &state->allocationCount,
                                   .onMalloc = CountedMalloc,
                                   .onRealloc = CountedRealloc,
                                   .onFree = Free};
     ma_result result = ma_engine_init(&config, &state->engine);
     if (result != MA_SUCCESS) {
-        return Fail(ErrorCode::Platform,
-                    std::format("can't start audio: {}", ma_result_description(result)));
+        return CantStart(result);
     }
     state->hasEngine = true;
+    state->limiter.emplace(ma_engine_get_sample_rate(&state->engine), kHeadroomGain);
+    if (hasDevice) {
+        result = ma_engine_start(&state->engine);
+        if (result != MA_SUCCESS) {
+            return CantStart(result);
+        }
+    }
     log::Info("audio mixing at {} Hz", ma_engine_get_sample_rate(&state->engine));
     return Mixer(std::move(state));
 }
