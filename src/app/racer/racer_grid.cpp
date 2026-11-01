@@ -79,6 +79,10 @@ std::int32_t RacerGrid::NameIndex(std::size_t slot) const {
     return slots_.at(slot).assets->files.driver.nameIndex;
 }
 
+std::int32_t RacerGrid::VoiceBank(std::size_t slot) const {
+    return slots_.at(slot).assets->files.driver.voiceBank;
+}
+
 void RacerGrid::Update(std::span<const sim::EntitySnapshot> poses,
                        std::span<const sim::RacerSnapshot> motion, float elapsedMs) {
     auto next = draws_.begin();

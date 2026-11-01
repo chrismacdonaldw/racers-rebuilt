@@ -49,6 +49,7 @@ enum class RaceSound : std::uint8_t {
     MagnetDeploy,
     MagnetGrab,
     MagnetFade,
+    Taunt,
 };
 
 /// `racer` means nothing for countdown sounds, and the rest only for the sounds that use them.
@@ -79,6 +80,8 @@ public:
                    Milliseconds elapsed);
 
     void HearFinish(std::size_t racer);
+
+    void HearTaunt(std::size_t racer);
 
     /// `areBricksAudible` gates the bricks' own sounds, not the white pickup sound.
     void HearBricks(std::span<const BrickEvent> events, bool areBricksAudible);

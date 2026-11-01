@@ -110,6 +110,7 @@ private:
                                            std::span<const RacerControls> controls);
     [[nodiscard]] bool WantsPowerup(std::size_t racer, Milliseconds elapsed,
                                     const RacerControls& controls);
+    void Taunt(std::size_t racer);
     void StartBoosts();
     void ResolveContacts();
     void PaceRoutes(Milliseconds elapsed);

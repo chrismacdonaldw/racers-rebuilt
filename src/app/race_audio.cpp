@@ -14,6 +14,7 @@ namespace {
 constexpr std::string_view kEffectsBank = "GAMEDATA/COMMON/GENERAL.SBK";
 constexpr std::uint64_t kAmbienceSeed = 0xA3B1E7C5D9F20468;
 constexpr std::uint64_t kHazardSeed = 0x5C2E9B71F04D8A36;
+constexpr std::uint64_t kPowerupSeed = 0x91D4F3A7C2E85B06;
 constexpr std::size_t kCountdownBeep = 0;
 constexpr std::size_t kShieldAbsorb = 1;
 constexpr std::size_t kBrakeStart = 2;
@@ -121,6 +122,15 @@ std::size_t ShieldAbsorbSound(std::uint8_t variant) {
     return variant == 0 ? kShieldAbsorb : kShieldAbsorbAlternate + variant - 1;
 }
 
+std::vector<std::optional<std::size_t>> Taunts(const RaceAudioSetup& setup) {
+    std::vector<std::optional<std::size_t>> taunts(setup.racerCount);
+    for (std::size_t i = 0; i < taunts.size(); ++i) {
+        const std::int32_t voiceBank = i < setup.voiceBanks.size() ? setup.voiceBanks[i] : 0;
+        taunts[i] = TauntSound(i == setup.player, voiceBank);
+    }
+    return taunts;
+}
+
 const Vector3& BrickAt(const sim::RaceSession& session, const sim::SoundEvent& event) {
     return session.Bricks().Coloured()[event.brick].brick.position;
 }
@@ -171,7 +181,8 @@ RaceAudio::RaceAudio(audio::Mixer& mixer, RaceSoundSet sounds, const RaceAudioSe
       surfaceLoops_(setup.racerCount),
       shieldLoops_(setup.racerCount),
       ambience_(sounds_.ambience, sounds_.ambient, sim::Random(setup.seed ^ kAmbienceSeed)),
-      hazards_(sounds_.ambient, sim::Random(setup.seed ^ kHazardSeed)) {
+      hazards_(sounds_.ambient, sim::Random(setup.seed ^ kHazardSeed)),
+      powerups_(sounds_.effects, Taunts(setup), sim::Random(setup.seed ^ kPowerupSeed)) {
     RR_ASSERT(sounds_.effects.size() >= kEffectCount && setup.player < setup.racerCount);
 }
 
@@ -193,6 +204,7 @@ void RaceAudio::StopLoops() {
     opponentLoop_.Stop(*mixer_);
     ambience_.Silence(*mixer_);
     hazards_.Silence(*mixer_);
+    powerups_.Silence(*mixer_);
 }
 
 void RaceAudio::Hear(const sim::RaceSession& session, const Transform& camera,
@@ -208,6 +220,7 @@ void RaceAudio::Hear(const sim::RaceSession& session, const Transform& camera,
     HearNearestOpponent(session);
     ambience_.Hear(session.Triggers().Events(), listener_, elapsed, *mixer_);
     hazards_.Hear(session, listener_, elapsed, *mixer_);
+    powerups_.Hear(session, listener_, elapsed, *mixer_);
 }
 
 void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent& event) {

@@ -50,12 +50,24 @@ sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, st
     return setup;
 }
 
-std::vector<std::int32_t> NameIndexes(const RacerGrid& racers, std::size_t slots) {
-    std::vector<std::int32_t> indexes(slots);
+std::vector<std::int32_t> PerSlot(const RacerGrid& racers, std::size_t slots,
+                                  std::int32_t (RacerGrid::*value)(std::size_t) const) {
+    std::vector<std::int32_t> values(slots);
     for (std::size_t i = 0; i < slots; ++i) {
-        indexes[i] = racers.NameIndex(i);
+        values[i] = (racers.*value)(i);
     }
-    return indexes;
+    return values;
+}
+
+std::unique_ptr<RaceAudio> LoadAudio(const RaceOutputs& outputs, const assets::Vfs& vfs,
+                                     std::string_view track, const RaceAudioSetup& setup) {
+    Result<std::unique_ptr<RaceAudio>> audio =
+        RaceAudio::Load(*outputs.mixer, *outputs.banks, vfs, track, setup);
+    if (!audio) {
+        log::Warn("{}, racing in silence", audio.error().message);
+        return nullptr;
+    }
+    return std::move(*audio);
 }
 
 float MsSince(std::optional<Nanoseconds>& last) {
@@ -113,15 +125,14 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                               raceTrack->entities);
     GhostTrail ghostTrail(model->draws, model->entityDraws, raceTrack->entities);
     WaterScroll waterScroll(raceTrack->hazards, model->entityDraws);
-    Result<std::unique_ptr<RaceAudio>> audio =
-        RaceAudio::Load(*outputs.mixer, *outputs.banks, vfs, track,
-                        {.racerCount = session->Racers().size(),
-                         .player = kPlayerSlot,
-                         .seed = seed,
-                         .ambience = raceTrack->events.table.sounds});
-    if (!audio) {
-        log::Warn("{}, racing in silence", audio.error().message);
-    }
+    const std::vector<std::int32_t> voiceBanks =
+        PerSlot(*racers, session->Racers().size(), &RacerGrid::VoiceBank);
+    std::unique_ptr<RaceAudio> audio = LoadAudio(outputs, vfs, track,
+                                                 {.racerCount = session->Racers().size(),
+                                                  .player = kPlayerSlot,
+                                                  .seed = seed,
+                                                  .ambience = raceTrack->events.table.sounds,
+                                                  .voiceBanks = voiceBanks});
     std::optional<RaceParticles> particles =
         LoadParticles(renderer, vfs, loader, track, raceTrack->collision.surfaces);
     return std::unique_ptr<RaceScene>(
@@ -140,7 +151,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                        .waterScroll = std::move(waterScroll),
                        .world = std::move(world),
                        .session = std::move(*session),
-                       .audio = std::move(audio).value_or(nullptr),
+                       .audio = std::move(audio),
                        .particles = std::move(particles),
                        .started = started}));
 }
@@ -151,7 +162,7 @@ RaceScene::RaceScene(Parts parts)
       powerupQuads_(parts_.powerups.quadMaterials),
       chase_(PlayerCar()),
       hud_(*parts_.renderer, *parts_.vfs, kPlayerSlot,
-           NameIndexes(parts_.racers, parts_.session.Racers().size())),
+           PerSlot(parts_.racers, parts_.session.Racers().size(), &RacerGrid::NameIndex)),
       controls_(parts_.session.Racers().size()),
       collisionLines_(BuildCollisionWireframe(parts_.raceTrack->collision)),
       triggerRings_(parts_.session.Triggers()) {

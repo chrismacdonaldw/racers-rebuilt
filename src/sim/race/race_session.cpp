@@ -376,13 +376,18 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
         const bool isEmptyHanded = !inventories_[racer].Colour();
         powerups_.Use(racer, inventories_[racer], bricks_, effects);
         if (isEmptyHanded) {
-            triggers_.FireStartAndEnd(kTauntEvent, positions_[racer]);
+            Taunt(racer);
         }
     }
     if (clock_.IsRunning() && !isPlayer_[racer] &&
         taunts_[racer].Tick(elapsed, racers_, racer, random_)) {
-        triggers_.FireStartAndEnd(kTauntEvent, positions_[racer]);
+        Taunt(racer);
     }
+}
+
+void RaceSession::Taunt(std::size_t racer) {
+    triggers_.FireStartAndEnd(kTauntEvent, positions_[racer]);
+    sounds_.HearTaunt(racer);
 }
 
 HazardContext RaceSession::HazardsContext(Milliseconds elapsed, PowerupContext& effects) {
