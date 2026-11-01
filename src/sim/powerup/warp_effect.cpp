@@ -9,7 +9,6 @@ namespace {
 constexpr Milliseconds kStartingTime{500};
 constexpr Milliseconds kActiveTime{1500};
 constexpr float kWalkPerMs = 0.6F;
-constexpr Vector3 kPortalHeight{.z = 6.0F};
 constexpr Vector3 kDropFrom{.z = 5.0F};
 constexpr Vector3 kDropTo{.z = -50.0F};
 constexpr Vector3 kLandingHeight{.z = 5.0F};
@@ -35,7 +34,6 @@ void WarpEffect::Start(const PowerupUse& use, PowerupContext& context) {
     remaining_ = kStartingTime;
     from_ = racer.Body().motion.position;
     pose_ = racer.Pose();
-    pose_.position = pose_.position + kPortalHeight;
     if (aim_ && phase_ == WarpPhase::Starting) {
         Advance(context);
         pose_ = racer.Pose();
@@ -60,9 +58,6 @@ bool WarpEffect::Tick(Milliseconds elapsed, PowerupContext& context) {
         remaining_ -= elapsed;
     }
     pose_ = racer.Pose();
-    if (phase_ == WarpPhase::Starting) {
-        pose_.position = pose_.position + kPortalHeight;
-    }
     return phase_ != WarpPhase::Done;
 }
 

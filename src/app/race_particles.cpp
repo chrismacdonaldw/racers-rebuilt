@@ -46,8 +46,8 @@ void RaceParticles::Tick(const sim::RaceSession& session, const Transform& camer
 void RaceParticles::Update(const sim::RaceSession& session, render::FloatMilliseconds elapsed) {
     const sim::Racer& racer = session.Racers()[player_];
     const sim::BodyState& body = racer.Body();
-    const bool isRolling =
-        !body.hover.isHovering && !racer.IsSpunOut() && body.derived.forwardSpeed > kMinSpeed;
+    const bool isRolling = !body.hover.isHovering && !racer.IsSpunOut() &&
+                           !racer.Status().isGhost && body.derived.forwardSpeed > kMinSpeed;
     const Vector3 velocity = ToEngine(body.motion.velocity) * kVelocityScale;
     for (std::size_t i = 0; i < wheels_.size(); ++i) {
         const sim::WheelProbe& probe = body.motion.wheels[i];

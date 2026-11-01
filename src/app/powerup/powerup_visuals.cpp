@@ -1,9 +1,11 @@
 #include "app/powerup/powerup_visuals.hpp"
 
 #include <array>
+#include <span>
 #include <string_view>
 #include <utility>
 
+#include "app/powerup/warp_start.hpp"
 #include "app/track_space.hpp"
 #include "sim/physics/turbo.hpp"
 #include "sim/powerup/warp_effect.hpp"
@@ -66,9 +68,16 @@ PartChoice PartFor(const sim::EffectSnapshot& effect) {
     return {};
 }
 
-bool IsShown(const sim::EffectSnapshot& effect) {
+bool IsShown(const sim::EffectSnapshot& effect, std::span<const sim::RacerSnapshot> racers) {
+    if (effect.kind == PowerupKind::Turbo) {
+        return effect.use.racer >= racers.size() || !racers[effect.use.racer].isGhost;
+    }
     return effect.kind != PowerupKind::Warp ||
            effect.phase == static_cast<std::uint8_t>(sim::WarpPhase::Starting);
+}
+
+float ScaleOf(const sim::EffectSnapshot& effect) {
+    return effect.kind == PowerupKind::Warp ? WarpPortalScale(effect.phaseLeftMs) : 1.0F;
 }
 
 }
@@ -83,9 +92,9 @@ void PowerupVisuals::Update(const sim::RenderSnapshot& snapshot, float elapsedMs
     for (const sim::EffectSnapshot& effect : snapshot.effects) {
         Instance& instance = InstanceFor(effect);
         Animate(instance, effect.phase, elapsedMs);
-        if (IsShown(effect)) {
+        if (IsShown(effect, snapshot.racers)) {
             for (Posed& posed : instance.models) {
-                Place(posed, effect.transform, 1.0F);
+                Place(posed, effect.transform, ScaleOf(effect));
             }
         }
     }

@@ -29,11 +29,11 @@ float Wrapped(float offset) {
 
 std::optional<WarpTube> WarpTube::Load(render::Renderer& renderer, const assets::Vfs& vfs,
                                        assets::TrackLoader& loader) {
-    Result<std::unique_ptr<PowerupAssets>> assets =
-        LoadEffectAssets(vfs, loader, kTubeWorld).transform([](PowerupAssets loaded) {
-            return std::make_unique<PowerupAssets>(std::move(loaded));
+    Result<std::unique_ptr<EffectAssets>> assets =
+        LoadEffectAssets(vfs, loader, kTubeWorld).transform([](EffectAssets loaded) {
+            return std::make_unique<EffectAssets>(std::move(loaded));
         });
-    Result<EffectModels> models = assets.and_then([&](const std::unique_ptr<PowerupAssets>& owned) {
+    Result<EffectModels> models = assets.and_then([&](const std::unique_ptr<EffectAssets>& owned) {
         return UploadPowerupModels(renderer, *owned);
     });
     if (!models) {
@@ -43,7 +43,7 @@ std::optional<WarpTube> WarpTube::Load(render::Renderer& renderer, const assets:
     return WarpTube(std::move(*assets), std::move(*models));
 }
 
-WarpTube::WarpTube(std::unique_ptr<PowerupAssets> assets, EffectModels models)
+WarpTube::WarpTube(std::unique_ptr<EffectAssets> assets, EffectModels models)
     : assets_(std::move(assets)), models_(std::move(models)) {
     for (const auto& [name, model] : models_) {
         if (model.jointed != nullptr) {
@@ -84,15 +84,6 @@ void WarpTube::Place(Part& part, float flownMs) {
         draw.material.uvOffset = scrolled;
         draws_.push_back(draw);
     }
-}
-
-const sim::EffectSnapshot* FindWarpFlight(std::span<const sim::EffectSnapshot> effects,
-                                          std::size_t racer) {
-    const auto flight = std::ranges::find_if(effects, [&](const sim::EffectSnapshot& effect) {
-        return effect.kind == sim::PowerupKind::Warp && effect.use.racer == racer &&
-               effect.phase == static_cast<std::uint8_t>(sim::WarpPhase::Active);
-    });
-    return flight == effects.end() ? nullptr : &*flight;
 }
 
 render::Camera WarpFlightCamera(render::Camera base, float leftMs) {
