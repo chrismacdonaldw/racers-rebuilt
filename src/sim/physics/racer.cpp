@@ -203,13 +203,10 @@ Transform Racer::Pose() const {
 
 void Racer::TakeRoutePose(const AiRacer& route) {
     const Transform pose = route.Pose();
-    const Quaternion& rotation = pose.rotation;
     BodyMotion& motion = body_.motion;
     body_.saved = motion;
     motion.position = pose.position;
-    motion.basis = {.forward = Rotate(rotation, {.x = 1.0F}),
-                    .side = Rotate(rotation, {.y = 1.0F}),
-                    .up = Rotate(rotation, {.z = 1.0F})};
+    motion.basis = ToBasis(pose.rotation);
     motion.velocity = route.Velocity();
     motion.contactCount = route.ContactCount();
     body_.facing = motion.basis.forward;

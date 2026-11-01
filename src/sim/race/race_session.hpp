@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "assets/brick_layout.hpp"
+#include "assets/hazard_list.hpp"
 #include "assets/target_points.hpp"
 #include "core/bounding_sphere.hpp"
 #include "core/duration.hpp"
@@ -18,6 +19,7 @@
 #include "sim/collision/racer_worlds.hpp"
 #include "sim/collision/track_collision.hpp"
 #include "sim/collision/track_surfaces.hpp"
+#include "sim/hazard/hazards.hpp"
 #include "sim/physics/collision_query.hpp"
 #include "sim/physics/racer.hpp"
 #include "sim/physics/racer_contacts.hpp"
@@ -54,6 +56,7 @@ struct RaceCourse {
     const TrackEventSources* events = nullptr;
     const TrackCollision* collision = nullptr;
     const TrackEntitySources* entities = nullptr;
+    std::span<const assets::Hazard> hazards;
     bool isMirrored = false;
 };
 
@@ -81,6 +84,7 @@ public:
     [[nodiscard]] std::span<const TriggerWorlds> SwitchedWorlds() const { return switchedWorlds_; }
     [[nodiscard]] const SurfaceEvents& SurfaceContacts() const { return surfaceEvents_; }
     [[nodiscard]] const TrackEntities& Entities() const { return entities_; }
+    [[nodiscard]] const Hazards& TrackHazards() const { return hazards_; }
     [[nodiscard]] const EventResources& Resources() const { return resources_; }
 
     /// Replaces what `racer` holds, sending its white bricks home.
@@ -107,6 +111,7 @@ private:
     void SwitchOnTriggerWorlds();
     [[nodiscard]] RacerWorldView WorldsOf(std::size_t racer) const;
     [[nodiscard]] PowerupContext EffectContext();
+    [[nodiscard]] HazardContext HazardsContext();
     [[nodiscard]] bool HasPlayerFinished() const;
 
     RaceCourse course_;
@@ -123,6 +128,7 @@ private:
     TrackSurfaces surfaces_;
     TrackEvents triggers_;
     TrackEntities entities_;
+    Hazards hazards_;
     EventResources resources_;
     std::vector<TriggerRacer> triggerRacers_;
     std::vector<std::optional<std::size_t>> sphereWorlds_;

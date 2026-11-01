@@ -24,6 +24,11 @@ void TrackEvents::BeginTick() {
     environmentSpheres_.EndFrame(queue_);
 }
 
+void TrackEvents::FireStartAndEnd(assets::EventId id, std::optional<Vector3> position) {
+    queue_.Fire({.id = id, .edge = EventEdge::Start, .position = position});
+    queue_.Fire({.id = id, .edge = EventEdge::End, .position = position});
+}
+
 void TrackEvents::TestSpheres(std::span<const TriggerRacer> racers) {
     racerSpheres_.Test(racers, queue_);
     environmentSpheres_.Test(racers, queue_);

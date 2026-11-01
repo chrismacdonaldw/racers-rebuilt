@@ -15,6 +15,11 @@ rr_add_module(sim
         collision/track_collision.cpp
         collision/track_surfaces.cpp
         collision/world_list.cpp
+        hazard/crane.cpp
+        hazard/hammer_swish.cpp
+        hazard/hazard_box.cpp
+        hazard/hazards.cpp
+        hazard/swing_strike.cpp
         input_latch.cpp
         interpolation.cpp
         physics/body_effects.cpp

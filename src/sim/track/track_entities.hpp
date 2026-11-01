@@ -27,6 +27,9 @@ public:
     /// A queued part waits for the current part to reach its last frame, looping or not.
     void Tick(Milliseconds elapsed);
 
+    /// Does nothing to an entity without a clock.
+    void Seek(std::size_t entity, float frame);
+
     /// Replaces any part already queued. An entity without a clock starts `part` at once.
     void Queue(std::size_t entity, std::size_t part, bool loops);
 
@@ -37,6 +40,9 @@ public:
 
     [[nodiscard]] std::span<const EntityClock> Clocks() const { return clocks_; }
     [[nodiscard]] std::span<const EntityClock> Queued() const { return queued_; }
+
+    /// 0 for an entity without a clock.
+    [[nodiscard]] float Frame(std::size_t entity) const;
 
     /// In game space.
     [[nodiscard]] Transform NodeWorld(std::size_t entity, std::size_t node) const;

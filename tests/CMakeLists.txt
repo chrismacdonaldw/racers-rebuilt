@@ -155,6 +155,11 @@ add_executable(racers-rebuilt-tests
     sim/collision/track_collision_test.cpp
     sim/collision/track_surfaces_test.cpp
     sim/collision/wall_tunnel_test.cpp
+    sim/hazard/crane_test.cpp
+    sim/hazard/hammer_swish_test.cpp
+    sim/hazard/hazard_box_test.cpp
+    sim/hazard/hazards_test.cpp
+    sim/hazard/swing_strike_test.cpp
     sim/input_latch_test.cpp
     sim/interpolation_test.cpp
     sim/physics/body_effects_test.cpp

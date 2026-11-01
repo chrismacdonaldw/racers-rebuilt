@@ -7,6 +7,8 @@
 #include <initializer_list>
 #include <limits>
 #include <optional>
+#include <type_traits>
+#include <variant>
 
 #include "sim/replay/replay_bytes.hpp"
 
@@ -305,6 +307,23 @@ public:
         }
     }
 
+    void Add(const HammerSwish& hammer) { Add(hammer.isArmed); }
+    void Add(const Crane& crane) { Add(crane.isArmed, crane.ball); }
+    void Add(const HazardBox& box) { Add(box.box.centre, box.box.axes); }
+
+    void Add(const Hazards& hazards) {
+        for (const HazardSlot& slot : hazards.Slots()) {
+            Add(static_cast<int>(slot.phase));
+            std::visit(
+                [this](const auto& hazard) {
+                    if constexpr (!std::same_as<std::decay_t<decltype(hazard)>, std::monostate>) {
+                        Add(hazard);
+                    }
+                },
+                slot.state);
+        }
+    }
+
     void Add(const RaceClock& clock) {
         Add(static_cast<int>(clock.Phase()), clock.PhaseTime(), clock.RaceTime());
     }
@@ -352,7 +371,7 @@ std::uint64_t HashRaceSession(const RaceSession& session) {
         hash.Add(static_cast<std::uint64_t>(racer));
     }
     hash.Add(session.Powerups(), session.Blasts(), session.Spikes(), session.Triggers(),
-             session.Surfaces(), session.Entities(), session.Resources());
+             session.Surfaces(), session.Entities(), session.Resources(), session.TrackHazards());
     if (!session.Bricks().IsEmpty()) {
         hash.Add(session.Bricks());
         for (const PowerupInventory& inventory : session.Inventories()) {

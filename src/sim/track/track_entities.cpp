@@ -64,6 +64,17 @@ void TrackEntities::Tick(Milliseconds elapsed) {
     }
 }
 
+void TrackEntities::Seek(std::size_t entity, float frame) {
+    if (EntityClock& clock = clocks_.at(entity)) {
+        clock->frame = frame;
+    }
+}
+
+float TrackEntities::Frame(std::size_t entity) const {
+    const EntityClock& clock = clocks_.at(entity);
+    return clock ? clock->frame : 0.0F;
+}
+
 void TrackEntities::Queue(std::size_t entity, std::size_t part, bool loops) {
     const PartClock clock{.part = part, .loops = loops};
     if (clocks_[entity]) {

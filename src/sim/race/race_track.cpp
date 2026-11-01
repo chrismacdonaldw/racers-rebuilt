@@ -10,6 +10,7 @@
 #include "assets/checkpoints.hpp"
 #include "assets/event_table.hpp"
 #include "assets/game_path.hpp"
+#include "assets/hazard_list.hpp"
 #include "assets/start_grid.hpp"
 #include "assets/target_points.hpp"
 #include "assets/track_triggers.hpp"
@@ -134,8 +135,11 @@ Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track) 
         [&](const std::vector<assets::TargetPoint>&) { return LoadEventSources(vfs, track); });
     Result<TrackEntitySources> entities =
         events.and_then([&](const TrackEventSources&) { return LoadTrackEntities(vfs, track); });
-    if (!entities) {
-        return std::unexpected(std::move(entities.error()));
+    Result<std::vector<assets::Hazard>> hazards = entities.and_then([&](const TrackEntitySources&) {
+        return ReadParsed(vfs, track, "HAZARDS.HZB", assets::ParseHazards);
+    });
+    if (!hazards) {
+        return std::unexpected(std::move(hazards.error()));
     }
     const float lowestTrackZ = LowestPoint(collision->Track());
     return RaceTrack{.collision = std::move(*collision),
@@ -146,6 +150,7 @@ Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track) 
                      .targets = std::move(*targets),
                      .events = std::move(*events),
                      .entities = std::move(*entities),
+                     .hazards = std::move(*hazards),
                      .lowestTrackZ = lowestTrackZ};
 }
 
