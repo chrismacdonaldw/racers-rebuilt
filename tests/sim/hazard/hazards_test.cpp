@@ -84,7 +84,11 @@ TEST_CASE("a racer in the hammer's sphere starts the hammer, and leaving stops i
     CHECK(hammer->phase == HazardPhase::Loaded);
 }
 
-std::optional<bool> FoundItsModel(const HazardState& state) {
+std::optional<bool> FoundItsModel(const HazardState& state, const assets::Hazard& spec) {
+    const auto* cannon = std::get_if<assets::LightningCannon>(&spec.payload);
+    if (cannon != nullptr && !cannon->entity) {
+        return std::nullopt;
+    }
     return std::visit(
         [](const auto& hazard) -> std::optional<bool> {
             if constexpr (requires { hazard.entity.has_value(); }) {
@@ -110,8 +114,9 @@ std::size_t CountRunning(const assets::Vfs& vfs, const std::string& name) {
     Random random(1);
     const Hazards hazards(track->hazards, entities, random);
     std::size_t running = 0;
-    for (const HazardSlot& slot : hazards.Slots()) {
-        if (const std::optional<bool> found = FoundItsModel(slot.state)) {
+    for (std::size_t i = 0; i < hazards.Slots().size(); ++i) {
+        if (const std::optional<bool> found =
+                FoundItsModel(hazards.Slots()[i].state, track->hazards[i])) {
             CHECK(*found);
             ++running;
         }
@@ -128,7 +133,7 @@ TEST_CASE("every retail hazard this race runs finds its entity") {
     for (const std::string& name : assets::ListRaceTracks(*vfs)) {
         running += CountRunning(*vfs, name);
     }
-    CHECK(running == 17);
+    CHECK(running == 19);
 }
 
 }

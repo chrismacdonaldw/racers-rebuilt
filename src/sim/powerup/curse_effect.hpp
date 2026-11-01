@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 
 #include "core/vector3.hpp"
 #include "sim/powerup/dropped_trap.hpp"
@@ -21,7 +22,7 @@ private:
     void Drop(PowerupContext& context);
     void Advance();
 
-    std::uint8_t owner_ = 0;
+    std::optional<std::uint8_t> owner_;
     std::uint8_t level_ = 0;
     TrapPhase phase_ = TrapPhase::Done;
     Milliseconds remaining_{0};

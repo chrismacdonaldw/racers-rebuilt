@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -18,11 +19,11 @@ enum class WeaponEventKind : std::uint8_t {
     Ended,
 };
 
-/// `racer` is the shooter for `Fired` and the victim for `Struck`.
+/// `racer` is the shooter for `Fired`, none for a hazard, and the victim for `Struck`.
 struct WeaponEvent {
     WeaponEventKind kind = WeaponEventKind::Fired;
     PowerupKind weapon = PowerupKind::Cannonball;
-    std::uint8_t racer = 0;
+    std::optional<std::uint8_t> racer;
     Vector3 position;
 
     friend bool operator==(const WeaponEvent&, const WeaponEvent&) = default;

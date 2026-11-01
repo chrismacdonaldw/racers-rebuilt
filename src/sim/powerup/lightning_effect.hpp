@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 
 #include "core/bounding_sphere.hpp"
 #include "sim/powerup/powerup_effect.hpp"
@@ -27,13 +28,15 @@ private:
     void Strike(std::uint8_t racer, PowerupContext& context);
     [[nodiscard]] bool IsOnBolt(const BoundingSphere& reach) const;
 
-    std::uint8_t owner_ = 0;
+    std::optional<std::uint8_t> owner_;
+    std::optional<std::uint8_t> hazard_;
     LightningPhase phase_ = LightningPhase::Done;
     Milliseconds timer_{0};
     std::uint8_t victim_ = 0;
     bool isHolding_ = false;
     Milliseconds held_{0};
     Vector3 origin_;
+    Vector3 forward_;
     std::array<Vector3, 4> bolt_{};
 };
 

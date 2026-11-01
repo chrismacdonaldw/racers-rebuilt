@@ -33,8 +33,13 @@ std::size_t EffectSlots(const RaceSetup& setup) {
     return slots;
 }
 
-std::size_t WeaponEventCount(const RaceSetup& setup) {
-    return (EffectSlots(setup) * kMostWeaponEventsPerEffect) + (setup.racers.size() * kMaxLaunches);
+std::size_t UsesPerTick(const RaceSetup& setup, const RaceCourse& course) {
+    return setup.racers.size() + Hazards::MostUsesPerTick(course.hazards, setup.racers.size());
+}
+
+std::size_t WeaponEventCount(const RaceSetup& setup, const RaceCourse& course) {
+    return (EffectSlots(setup) * kMostWeaponEventsPerEffect) +
+           (UsesPerTick(setup, course) * kMaxLaunches);
 }
 
 bool AreBricksAudible(const RaceClock& clock) {
@@ -111,7 +116,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       wasRespawned_(setup.racers.size()),
       positions_(setup.racers.size()),
       progress_(setup.racers.size(), setup.lapCount),
-      sounds_(setup.racers.size(), BrickCount(course), WeaponEventCount(setup)),
+      sounds_(setup.racers.size(), BrickCount(course), WeaponEventCount(setup, course)),
       random_(setup.seed),
       surfaces_(SurfacesFor(course)),
       triggers_(EventSourcesFor(course), setup.racers.size(), course.isMirrored, random_,
@@ -128,8 +133,8 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       routeSpeeds_(setup.racers.size(), 1.0F),
       bricks_(BricksFor(course)),
       inventories_(setup.racers.size()),
-      powerups_(setup.effects, setup.racers.size()),
-      weapons_(WeaponEventCount(setup)),
+      powerups_(setup.effects, UsesPerTick(setup, course)),
+      weapons_(WeaponEventCount(setup, course)),
       reaches_(setup.racers.size()),
       contactBodies_(setup.racers.size()) {
     racers_.reserve(setup.racers.size());
@@ -162,7 +167,8 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     for (TriggerWorlds& worlds : switchedWorlds_) {
         worlds.Tick(elapsed);
     }
-    HazardContext hazards = HazardsContext(elapsed);
+    PowerupContext hazardEffects = EffectContext();
+    HazardContext hazards = HazardsContext(elapsed, hazardEffects);
     hazards_.Tick(hazards);
     MeasureReaches();
     for (std::size_t i = 0; i < racers_.size(); ++i) {
@@ -311,7 +317,8 @@ PowerupContext RaceSession::EffectContext() {
             .spikes = &spikes_,
             .weapons = &weapons_,
             .surfaces = &surfaces_,
-            .trackEvents = &triggers_};
+            .trackEvents = &triggers_,
+            .hazardAims = hazards_.Aims()};
 }
 
 void RaceSession::TickBricks(Milliseconds elapsed) {
@@ -360,7 +367,7 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     }
 }
 
-HazardContext RaceSession::HazardsContext(Milliseconds elapsed) {
+HazardContext RaceSession::HazardsContext(Milliseconds elapsed, PowerupContext& effects) {
     return {.racers = racers_,
             .reaches = reaches_,
             .entities = &entities_,
@@ -370,7 +377,8 @@ HazardContext RaceSession::HazardsContext(Milliseconds elapsed) {
             .random = &random_,
             .elapsed = elapsed,
             .world = course_.world,
-            .explosions = &explosions_};
+            .explosions = &explosions_,
+            .effects = &effects};
 }
 
 bool RaceSession::HasPlayerFinished() const {

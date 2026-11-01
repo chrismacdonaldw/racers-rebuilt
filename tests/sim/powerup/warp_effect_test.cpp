@@ -77,4 +77,36 @@ TEST_CASE("a computer racer warps by playing its route as a ghost") {
 }
 
 }
+TEST_CASE("a warp pad's warp skips the start and moves toward its target, z from its x") {
+    Rig rig;
+    const Vector3 from = rig.Car().Body().motion.position;
+    rig.FireFromHazard(BrickColour::Green, 3,
+                       {.source = {.x = 100.0F, .z = 10.0F},
+                        .target = {.x = 100.0F, .z = 10.0F},
+                        .direction = {.x = 1.0F}});
+    CHECK(rig.Car().Status().isGhost);
+
+    rig.TickFor(63, {});
+
+    const float left = 744.0F / 1500.0F;
+    CHECK(rig.Car().Body().motion.position.x ==
+          doctest::Approx(100.0F + ((from.x - 100.0F) * left)));
+    CHECK(rig.Car().Body().motion.position.z ==
+          doctest::Approx(100.0F + ((from.z - 100.0F) * left)));
+}
+
+TEST_CASE("a warp pad's warp lands at its target and launches along its direction") {
+    Rig rig;
+    rig.FireFromHazard(BrickColour::Green, 3,
+                       {.source = {.x = 100.0F, .z = 10.0F},
+                        .target = {.x = 100.0F, .z = 10.0F},
+                        .direction = {.y = 1.0F}});
+
+    CHECK(rig.TicksUntil([&] { return !rig.Car().Status().isGhost; }, {}) == 125);
+
+    CHECK(rig.Car().Body().motion.position == Vector3{.x = 100.0F, .z = 5.0F});
+    CHECK(rig.Car().Body().motion.velocity.x == doctest::Approx(0.0F));
+    CHECK(rig.Car().Body().motion.velocity.y > 0.0F);
+}
+
 }

@@ -19,6 +19,8 @@ rr_add_module(sim
         hazard/breakable.cpp
         hazard/code_puzzle.cpp
         hazard/crane.cpp
+        hazard/curse_drop.cpp
+        hazard/dragon_cannonballs.cpp
         hazard/falling_pillar.cpp
         hazard/ghost.cpp
         hazard/hammer_swish.cpp
@@ -26,10 +28,12 @@ rr_add_module(sim
         hazard/hazard_cannon.cpp
         hazard/hazards.cpp
         hazard/lava_blob.cpp
+        hazard/lightning_cannon.cpp
         hazard/rocket_pad.cpp
         hazard/sphinx.cpp
         hazard/swing_strike.cpp
         hazard/ufo_grabber.cpp
+        hazard/warp_pad.cpp
         input_latch.cpp
         interpolation.cpp
         physics/body_effects.cpp

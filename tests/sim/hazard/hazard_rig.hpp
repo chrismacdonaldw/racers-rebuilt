@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "assets/archive_survey.hpp"
+#include "assets/brick_layout.hpp"
 #include "assets/hazard_list.hpp"
 #include "core/bounding_sphere.hpp"
 #include "core/duration.hpp"
@@ -20,7 +21,12 @@
 #include "sim/physics/racer.hpp"
 #include "sim/physics/racer_contacts.hpp"
 #include "sim/physics/racer_controls.hpp"
+#include "sim/powerup/brick_field.hpp"
+#include "sim/powerup/every_effect.hpp"
 #include "sim/powerup/explosions.hpp"
+#include "sim/powerup/powerup_effect.hpp"
+#include "sim/powerup/powerup_system.hpp"
+#include "sim/powerup/weapon_events.hpp"
 #include "sim/race/race_session.hpp"
 #include "sim/race/race_track.hpp"
 #include "sim/race/random.hpp"
@@ -86,7 +92,10 @@ public:
           events_({}, racerCount, false, random_,
                   sim::Hazards::MostEventsPerTick(hazardList_, racerCount)),
           heard_({}, racerCount, false, random_, 1),
-          reaches_(racerCount) {
+          reaches_(racerCount),
+          inventories_(racerCount),
+          powerups_(sim::EveryEffect(),
+                    racerCount + sim::Hazards::MostUsesPerTick(hazardList_, racerCount)) {
         for (std::size_t i = 0; i < racerCount; ++i) {
             racers_.emplace_back(
                 sim::ChassisSpec{}, sim::CarBuild{},
@@ -119,6 +128,8 @@ public:
 
     void Tick() {
         events_.BeginTick();
+        powerups_.BeginTick();
+        weapons_.Clear();
         sim::HazardContext context = Context();
         hazards_.Tick(context);
     }
@@ -169,9 +180,25 @@ public:
     [[nodiscard]] const sim::TrackEntities& Entities() const { return entities_; }
     [[nodiscard]] const sim::Explosions& Blasts() const { return explosions_; }
     [[nodiscard]] sim::Racer& Car(std::size_t racer = 0) { return racers_[racer]; }
+    [[nodiscard]] const sim::PowerupSystem& Powerups() const { return powerups_; }
+
+    [[nodiscard]] const sim::EffectSlot& Effect(std::size_t active = 0) const {
+        return powerups_.Slots()[powerups_.Active()[active]];
+    }
 
 private:
     sim::HazardContext Context() {
+        effects_ = {.racers = racers_,
+                    .world = &world_,
+                    .random = &random_,
+                    .reaches = reaches_,
+                    .powerups = &powerups_,
+                    .bricks = &bricks_,
+                    .inventories = inventories_,
+                    .explosions = &explosions_,
+                    .spikes = &spikes_,
+                    .weapons = &weapons_,
+                    .hazardAims = hazards_.Aims()};
         return {.racers = racers_,
                 .reaches = reaches_,
                 .entities = &entities_,
@@ -181,7 +208,8 @@ private:
                 .random = &random_,
                 .elapsed = kRigTick,
                 .world = &world_,
-                .explosions = &explosions_};
+                .explosions = &explosions_,
+                .effects = &effects_};
     }
 
     void MeasureReaches() {
@@ -202,6 +230,12 @@ private:
     PlaneWorld world_{{{}}};
     std::vector<sim::Racer> racers_;
     std::vector<BoundingSphere> reaches_;
+    sim::BrickField bricks_{assets::BrickLayout{}};
+    std::vector<sim::PowerupInventory> inventories_;
+    sim::PowerupSystem powerups_;
+    sim::Explosions spikes_{sim::kSpikeExplosion, sim::kSpikeExplosionCount};
+    sim::WeaponEvents weapons_{64};
+    sim::PowerupContext effects_;
 };
 
 }

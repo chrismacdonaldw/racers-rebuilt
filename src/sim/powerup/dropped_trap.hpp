@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 #include "core/duration.hpp"
 #include "core/vector3.hpp"
@@ -27,7 +28,7 @@ void KickOwnerOnDrop(Racer& owner);
 struct Trap {
     Vector3 position;
     float radius = 0.0F;
-    std::uint8_t owner = 0;
+    std::optional<std::uint8_t> owner;
     std::uint8_t level = 0;
 };
 

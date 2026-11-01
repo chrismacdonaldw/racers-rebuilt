@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <span>
 
 #include "core/bounding_sphere.hpp"
@@ -9,6 +10,8 @@
 #include "sim/physics/racer.hpp"
 #include "sim/physics/racer_contacts.hpp"
 #include "sim/powerup/explosions.hpp"
+#include "sim/powerup/powerup_effect.hpp"
+#include "sim/powerup/powerup_kind.hpp"
 #include "sim/race/random.hpp"
 #include "sim/track/model_switches.hpp"
 #include "sim/track/track_entities.hpp"
@@ -16,7 +19,7 @@
 
 namespace rr::sim {
 
-/// Rebuilt per use, since the session it points into can move. `bodies` is set only for touches.
+/// Rebuilt per use, as the session can move. `bodies` is for touches; `aim` is the hazard's own.
 struct HazardContext {
     std::span<Racer> racers;
     std::span<const BoundingSphere> reaches;
@@ -29,6 +32,9 @@ struct HazardContext {
     Milliseconds elapsed{0};
     const CollisionQuery* world = nullptr;
     Explosions* explosions = nullptr;
+    PowerupContext* effects = nullptr;
+    HazardAim* aim = nullptr;
+    std::uint8_t slot = 0;
 };
 
 }

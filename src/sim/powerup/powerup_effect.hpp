@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <span>
 
 #include "assets/target_points.hpp"
@@ -44,11 +45,16 @@ struct PowerupContext {
     const TrackSurfaces* surfaces = nullptr;
     TrackEvents* trackEvents = nullptr;
     std::span<const assets::TargetPoint> targets;
+    std::span<const HazardAim> hazardAims;
 };
+
+[[nodiscard]] inline std::optional<std::uint8_t> OwnerOf(const PowerupUse& use) {
+    return use.hazard ? std::nullopt : std::optional(use.racer);
+}
 
 struct PowerupHit {
     std::uint8_t racer = 0;
-    std::uint8_t from = 0;
+    std::optional<std::uint8_t> from;
     PowerupKind by = PowerupKind::Cannonball;
 };
 

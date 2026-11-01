@@ -61,16 +61,37 @@ HazardSlot Load(const assets::Hazard& hazard, TrackEntities& entities, ModelSwit
                 return HazardSlot{.trigger = payload.trigger,
                                   .state = LoadUfoGrabber(payload, entities)};
             });
+        case assets::HazardKind::CurseDrop:
+            return {.trigger = kCurseDropTrigger, .state = CurseDrop{}};
+        case assets::HazardKind::LightningCannon:
+            return WithPayload<assets::LightningCannon>(hazard, [&](const auto& payload) {
+                return HazardSlot{.trigger = payload.trigger,
+                                  .state = LoadLightningCannon(payload, entities)};
+            });
+        case assets::HazardKind::DragonCannonballs:
+            return WithPayload<assets::DragonCannonballs>(hazard, [&](const auto& payload) {
+                return HazardSlot{.trigger = payload.trigger,
+                                  .state = LoadDragonCannonballs(payload, entities)};
+            });
+        case assets::HazardKind::WarpPad:
+            return {.phase = HazardPhase::Active, .state = WarpPad{}};
         default:
             return {};
     }
 }
 
+void Select(HazardContext& context, std::vector<HazardAim>& aims, std::size_t slot) {
+    context.aim = &aims[slot];
+    context.slot = static_cast<std::uint8_t>(slot);
+}
+
 template <typename Run>
-void RunActive(std::vector<HazardSlot>& slots, Run run) {
-    for (HazardSlot& slot : slots) {
-        if (slot.phase == HazardPhase::Active) {
-            std::visit(run, slot.state);
+void RunActive(std::vector<HazardSlot>& slots, std::vector<HazardAim>& aims, HazardContext& context,
+               Run run) {
+    for (std::size_t i = 0; i < slots.size(); ++i) {
+        if (slots[i].phase == HazardPhase::Active) {
+            Select(context, aims, i);
+            std::visit(run, slots[i].state);
         }
     }
 }
@@ -127,6 +148,7 @@ Hazards::Hazards(std::span<const assets::Hazard> hazards, TrackEntities& entitie
     for (const assets::Hazard& hazard : hazards) {
         slots_.push_back(Load(hazard, entities, models_, random));
     }
+    aims_.resize(slots_.size());
 }
 
 std::size_t Hazards::MostEventsPerTick(std::span<const assets::Hazard> hazards,
@@ -148,16 +170,38 @@ std::size_t Hazards::MostEventsPerTick(std::span<const assets::Hazard> hazards,
     return count;
 }
 
+std::size_t Hazards::MostUsesPerTick(std::span<const assets::Hazard> hazards,
+                                     std::size_t racerCount) {
+    std::size_t count = 0;
+    for (const assets::Hazard& hazard : hazards) {
+        switch (hazard.kind) {
+            case assets::HazardKind::CurseDrop:
+            case assets::HazardKind::LightningCannon:
+            case assets::HazardKind::DragonCannonballs:
+                ++count;
+                break;
+            case assets::HazardKind::WarpPad:
+                count += racerCount;
+                break;
+            default:
+                break;
+        }
+    }
+    return count;
+}
+
 void Hazards::Hear(const TrackEvents& heard, HazardContext& context) {
     const std::size_t limit = heard.Events().size() + (slots_.size() * kMostHeardFiresPerHazard);
     for (std::size_t i = 0; i < heard.Events().size() && i < limit; ++i) {
         const TrackEvent event = heard.Events()[i];
-        for (HazardSlot& slot : slots_) {
-            if (!event.racer && (slot.trigger == event.id || StartsOn(slot.state, event))) {
-                Switch(slot, event, context);
+        for (std::size_t slot = 0; slot < slots_.size(); ++slot) {
+            HazardSlot& each = slots_[slot];
+            if (!event.racer && (each.trigger == event.id || StartsOn(each.state, event))) {
+                Select(context, aims_, slot);
+                Switch(each, event, context);
             }
         }
-        RunActive(slots_, [&](auto& hazard) {
+        RunActive(slots_, aims_, context, [&](auto& hazard) {
             if constexpr (requires { hazard.Hear(event, context); }) {
                 hazard.Hear(event, context);
             }
@@ -166,10 +210,12 @@ void Hazards::Hear(const TrackEvents& heard, HazardContext& context) {
 }
 
 void Hazards::Tick(HazardContext& context) {
-    for (HazardSlot& slot : slots_) {
+    for (std::size_t i = 0; i < slots_.size(); ++i) {
+        HazardSlot& slot = slots_[i];
         if (slot.phase != HazardPhase::Active) {
             continue;
         }
+        Select(context, aims_, i);
         std::visit(
             [&](auto& hazard) {
                 if constexpr (requires {
@@ -187,7 +233,7 @@ void Hazards::Tick(HazardContext& context) {
 }
 
 void Hazards::Touch(HazardContext& context) {
-    RunActive(slots_, [&](auto& hazard) {
+    RunActive(slots_, aims_, context, [&](auto& hazard) {
         if constexpr (requires { hazard.Touch(context); }) {
             hazard.Touch(context);
         }

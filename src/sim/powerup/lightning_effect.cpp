@@ -30,7 +30,8 @@ float Share(Milliseconds remaining, Milliseconds total) {
 
 void LightningEffect::Start(const PowerupUse& use, PowerupContext& context) {
     RR_ASSERT(context.world != nullptr && context.weapons != nullptr);
-    owner_ = use.racer;
+    owner_ = OwnerOf(use);
+    hazard_ = use.hazard;
     phase_ = LightningPhase::RampIn;
     timer_ = kRampTime;
     isHolding_ = false;
@@ -92,10 +93,11 @@ void LightningEffect::Advance(PowerupContext& context) {
         case LightningPhase::Done:
             phase_ = LightningPhase::Done;
             timer_ = Milliseconds{0};
-            context.weapons->Add({.kind = WeaponEventKind::Ended,
-                                  .weapon = PowerupKind::Lightning,
-                                  .racer = owner_,
-                                  .position = context.racers[owner_].Body().motion.position});
+            context.weapons->Add(
+                {.kind = WeaponEventKind::Ended,
+                 .weapon = PowerupKind::Lightning,
+                 .racer = owner_,
+                 .position = owner_ ? context.racers[*owner_].Body().motion.position : origin_});
             break;
     }
 }
@@ -114,9 +116,16 @@ float LightningEffect::SegmentLength() const {
 }
 
 void LightningEffect::TraceBolt(const PowerupContext& context) {
-    const BodyMotion& owner = context.racers[owner_].Body().motion;
-    origin_ = owner.position + kSourceHeight;
-    Vector3 direction = owner.basis.forward;
+    if (hazard_) {
+        const HazardAim& aim = context.hazardAims[*hazard_];
+        origin_ = aim.source;
+        forward_ = aim.direction;
+    } else {
+        const BodyMotion& owner = context.racers[*owner_].Body().motion;
+        origin_ = owner.position + kSourceHeight;
+        forward_ = owner.basis.forward;
+    }
+    Vector3 direction = forward_;
     float segment = SegmentLength();
     if (isHolding_) {
         const Vector3 toVictim = context.racers[victim_].Body().motion.position - origin_;
@@ -138,11 +147,10 @@ void LightningEffect::FindVictim(PowerupContext& context) {
     if (isHolding_ || phase_ != LightningPhase::Sustain) {
         return;
     }
-    const Vector3& forward = context.racers[owner_].Body().motion.basis.forward;
     for (std::optional<std::size_t> found =
-             FindRacerInCone(context.racers, origin_, forward, kVictimCone);
+             FindRacerInCone(context.racers, origin_, forward_, kVictimCone);
          found;
-         found = FindRacerInCone(context.racers, origin_, forward, kVictimCone, *found + 1)) {
+         found = FindRacerInCone(context.racers, origin_, forward_, kVictimCone, *found + 1)) {
         if (*found != owner_ && !context.racers[*found].Status().isGhost &&
             IsOnBolt(context.reaches[*found])) {
             Strike(static_cast<std::uint8_t>(*found), context);

@@ -33,7 +33,8 @@ bool Touches(const Vector3& from, const Vector3& to, const BoundingSphere& spher
 }
 
 std::optional<std::size_t> FindTouchedRacer(const PowerupContext& context,
-                                            const BoundingSphere& sphere, std::size_t owner) {
+                                            const BoundingSphere& sphere,
+                                            std::optional<std::size_t> owner) {
     for (std::size_t i = 0; i < context.reaches.size(); ++i) {
         if (i != owner && !context.racers[i].Status().isGhost &&
             Touches(sphere, context.reaches[i])) {

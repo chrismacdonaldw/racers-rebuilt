@@ -21,7 +21,7 @@ inline constexpr float kShotTouchRadius = 2.5F;
 /// Ghosts can't be touched.
 [[nodiscard]] std::optional<std::size_t> FindTouchedRacer(const PowerupContext& context,
                                                           const BoundingSphere& sphere,
-                                                          std::size_t owner);
+                                                          std::optional<std::size_t> owner);
 
 enum class HitOutcome : std::uint8_t { Absorbed, TurnedBack, Struck };
 
@@ -32,7 +32,7 @@ enum class ShotPhase : std::uint8_t { Armed, Flying, Done };
 
 struct ShotStep {
     PowerupKind weapon = PowerupKind::Cannonball;
-    std::uint8_t owner = 0;
+    std::optional<std::uint8_t> owner;
     FlightState state = FlightState::Flying;
     Vector3 position;
     Vector3 hitNormal;

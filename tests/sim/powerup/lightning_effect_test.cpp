@@ -93,4 +93,27 @@ TEST_CASE("lightning lasts 8 seconds and ends with a thunderclap") {
 }
 
 }
+TEST_CASE("a hazard's bolt runs from its aim and follows it") {
+    Rig rig;
+    rig.FireFromHazard(BrickColour::Red, 2,
+                       {.source = {.y = 500.0F, .z = 50.0F}, .direction = {.x = 1.0F}});
+    rig.TickFor(kRampTicks + 1);
+    CHECK(rig.EffectAt() == Vector3{.x = 200.0F, .y = 500.0F, .z = 50.0F});
+
+    rig.AimHazard({.source = {.y = 500.0F, .z = 50.0F}, .direction = {.y = 1.0F}});
+    rig.TickFor(1);
+
+    CHECK(rig.EffectAt() == Vector3{.y = 700.0F, .z = 50.0F});
+}
+
+TEST_CASE("a hazard's bolt strikes any racer on it") {
+    Rig rig;
+    rig.FireFromHazard(BrickColour::Red, 2,
+                       {.source = {.x = -20.0F, .z = 2.0F}, .direction = {.x = 1.0F}});
+
+    CHECK(rig.TicksUntil([&] { return rig.HasWeaponEvent(WeaponEventKind::Struck); }) ==
+          kRampTicks);
+    CHECK(rig.Effect().Progress().isHoldingRacer);
+}
+
 }

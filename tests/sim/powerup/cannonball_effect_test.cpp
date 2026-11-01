@@ -134,4 +134,27 @@ TEST_CASE("a player's cannonball aims at a target point before a racer ahead") {
 }
 
 }
+TEST_CASE("a hazard's cannonball drops from its aim and can hit any racer") {
+    Rig rig;
+    rig.FireFromHazard(BrickColour::Red, 0,
+                       {.source = {.x = 5.0F, .z = 30.0F}, .target = {.x = 5.0F, .z = 29.0F}});
+
+    REQUIRE(rig.Weapons().size() == 1);
+    CHECK_FALSE(rig.Weapons()[0].racer.has_value());
+    CHECK(rig.Weapons()[0].position == Vector3{.x = 5.0F, .z = 30.0F});
+    CHECK(rig.TicksUntil([&] { return rig.HasWeaponEvent(WeaponEventKind::Struck); }) > 0);
+}
+
+TEST_CASE("a hazard's cannonball flies at 30 with three times the gravity") {
+    Rig rig;
+    rig.FireFromHazard(
+        BrickColour::Red, 0,
+        {.source = {.y = 500.0F, .z = 100.0F}, .target = {.x = 30.0F, .y = 500.0F, .z = 100.0F}});
+
+    rig.TickFor(84);
+
+    CHECK(rig.EffectAt().x == doctest::Approx(30.24F).epsilon(0.01));
+    CHECK(rig.EffectAt().z == doctest::Approx(99.611F).epsilon(0.001));
+}
+
 }
