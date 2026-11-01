@@ -25,14 +25,6 @@ Result<void> ReadBodyAttachment(TokenReader& reader, ChassisEntry& chassis) {
     return ReadBlock<JointedModelFiles>(reader, kModelFields, chassis.bodyAttachment.emplace());
 }
 
-template <auto... Members, typename Target>
-Result<void> ReadMemberBlock(TokenReader& reader, Target& target) {
-    return reader.Expect(TokenKind::OpenBrace)
-        .and_then([&](const Token&) { return ReadMembers<Members...>(reader, target); })
-        .and_then([&] { return reader.Expect(TokenKind::CloseBrace); })
-        .transform([](const Token&) {});
-}
-
 Result<void> ReadSkids(TokenReader& reader, ChassisEntry& chassis) {
     return ReadMemberBlock<&SkidMarks::frontWidth, &SkidMarks::rearWidth, &SkidMarks::wheelOffsets>(
         reader, chassis.skids);
