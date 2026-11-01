@@ -10,14 +10,13 @@ namespace {
 
 constexpr BallisticSpec kCannonShot{
     .speed = 180.0F, .gravity = -32.176F, .lifetime = Milliseconds{3000}};
-constexpr std::uint32_t kRandomRange = 1024;
 
 const assets::AimPoint& Pick(std::span<const assets::AimPoint> points, bool atRandom,
                              Random& random) {
     if (!atRandom) {
         return points.front();
     }
-    return points[random.Below(kRandomRange) % points.size()];
+    return points[random.Below(kRollRange) % points.size()];
 }
 
 }

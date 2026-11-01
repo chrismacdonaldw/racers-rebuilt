@@ -18,4 +18,7 @@ private:
     std::uint64_t state_ = 0;
 };
 
+/// The game's rolls are `rand() % 1024`, reduced again by the caller.
+inline constexpr std::uint32_t kRollRange = 1024;
+
 }
