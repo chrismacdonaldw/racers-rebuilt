@@ -35,13 +35,21 @@ TEST_CASE("a race scene name records physics-driven computer racers") {
           RaceSceneSetup{.track = "RACEC0R0", .respawn = {}});
 }
 
+TEST_CASE("a race scene name records a circuit other than the track's home circuit") {
+    const RaceSceneSetup circuit{.track = "RACEC1R0", .circuit = "c0", .respawn = {}};
+
+    CHECK(RaceSceneName(circuit) == "race:RACEC1R0:respawn=3000:racer=0:circuit=c0");
+    CHECK(ParseRaceScene(RaceSceneName(circuit)) == circuit);
+    CHECK(ParseRaceScene("race:RACEC1R0:respawn=3000").value_or(circuit).circuit.empty());
+}
+
 TEST_CASE("a malformed race scene name is rejected") {
     for (const std::string_view scene :
          {"RACEC0R0", "race:RACEC0R0", "race::respawn=3000", "race:RACEC0R0:respawn=0",
-          "race:RACEC0R0:respawn=3s",
-          "race:RACEC0R0:respawn=", "race:RACEC0R0:respawn=3000:racer=6",
-          "race:RACEC0R0:respawn=3000:racer=-1", "race:RACEC0R0:respawn=3000:difficulty=1",
-          "race:RACEC0R0:respawn=3000:colour=1", "race:RACEC0R0:respawn=3000:ai=smart"}) {
+          "race:RACEC0R0:respawn=3s", "race:RACEC0R0:respawn=",
+          "race:RACEC0R0:respawn=3000:racer=6", "race:RACEC0R0:respawn=3000:racer=-1",
+          "race:RACEC0R0:respawn=3000:difficulty=1", "race:RACEC0R0:respawn=3000:colour=1",
+          "race:RACEC0R0:respawn=3000:ai=smart", "race:RACEC0R0:respawn=3000:circuit="}) {
         CAPTURE(scene);
         CHECK_FALSE(ParseRaceScene(scene).has_value());
     }

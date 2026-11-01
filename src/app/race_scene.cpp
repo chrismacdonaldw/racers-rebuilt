@@ -105,7 +105,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     Result<sim::RaceTrack> loaded =
         model.and_then([&](const TrackModel&) { return sim::LoadRaceTrack(vfs, track); });
     Result<RacerGrid> racers = loaded.and_then([&](const sim::RaceTrack& race) {
-        return RacerGrid::Load(renderer, vfs, loader, track, race.grid.size(), setup.racer);
+        return RacerGrid::Load(renderer, vfs, loader, setup, race.grid.size());
     });
     Result<BrickModels> bricks =
         racers.and_then([&](const RacerGrid&) { return BrickModels::Load(renderer, loader); });

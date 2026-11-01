@@ -10,9 +10,10 @@
 
 namespace rr::app {
 
-/// The player drives grid slot `racer`'s prebuilt racer, which swaps places with slot 0.
+/// Slot `racer`'s prebuilt racer swaps into slot 0 for the player. Empty `circuit` means home.
 struct RaceSceneSetup {
     std::string track;
+    std::string circuit;
     sim::RespawnRule respawn;
     std::size_t racer = 0;
     sim::AiDriving aiDriving = sim::AiDriving::Route;
@@ -21,7 +22,8 @@ struct RaceSceneSetup {
 };
 
 /// The name replays record, such as `race:RACEC0R0:respawn=3000:racer=2`, with `respawn=off`
-/// when respawning is off. `racer` may be left out, and `ai=physics` is added only when set.
+/// when respawning is off. `racer` may be left out, and `circuit=c1` and `ai=physics` are added
+/// only when set.
 [[nodiscard]] std::string RaceSceneName(const RaceSceneSetup& setup);
 
 [[nodiscard]] bool IsRaceScene(std::string_view scene);

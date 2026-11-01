@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "assets/archive_survey.hpp"
-#include "assets/circuit_database.hpp"
+#include "assets/race_catalog.hpp"
 #include "assets/racer_catalog.hpp"
 #include "assets/track_loader.hpp"
 #include "sim/ai/route_driver.hpp"
@@ -75,7 +75,7 @@ Result<double> LapRatio(const assets::Vfs& vfs, const assets::RacerCatalog& cata
     Result<assets::RaceRoute> route =
         track.and_then([&](const RaceTrack&) { return LoadRoute(vfs, name, "R1_F_0.RRB", false); });
     Result<assets::RacerFiles> files =
-        route.and_then([&](const assets::RaceRoute&) { return assets::LoadGrid(vfs, name); })
+        route.and_then([&](const assets::RaceRoute&) { return assets::LoadGrid(vfs, name, ""); })
             .and_then(
                 [&](const std::vector<std::string>& grid) { return catalog.Find(grid.at(1)); });
     if (!files) {

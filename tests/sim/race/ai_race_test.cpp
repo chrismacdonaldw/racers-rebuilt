@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "assets/archive_survey.hpp"
-#include "assets/circuit_database.hpp"
+#include "assets/race_catalog.hpp"
 #include "assets/racer_catalog.hpp"
 #include "assets/track_loader.hpp"
 #include "sim/collision/world_list.hpp"
@@ -61,8 +61,8 @@ struct PowerupTally {
 Result<RaceSetup> CircuitRace(const assets::Vfs& vfs, const std::string& track,
                               std::size_t slotCount) {
     Result<assets::RacerCatalog> catalog = assets::RacerCatalog::Load(vfs);
-    Result<std::vector<std::string>> codes =
-        catalog.and_then([&](const assets::RacerCatalog&) { return assets::LoadGrid(vfs, track); });
+    Result<std::vector<std::string>> codes = catalog.and_then(
+        [&](const assets::RacerCatalog&) { return assets::LoadGrid(vfs, track, ""); });
     if (!codes) {
         return std::unexpected(codes.error());
     }

@@ -20,13 +20,19 @@ struct RacerChoice {
     std::int32_t nameIndex = -1;
 };
 
+/// `nameLine` is a `CIRCUIT.SRF` line, or -1.
 struct TrackChoice {
     std::string track;
+    std::string circuit;
+    std::int32_t nameLine = -1;
     std::vector<RacerChoice> racers;
 };
 
-/// Every race track whose grid loads. Fails when there are none.
+/// Unmirrored circuit races in circuit order, each with its circuit's grid.
 [[nodiscard]] Result<std::vector<TrackChoice>> LoadTrackChoices(const assets::Vfs& vfs);
+
+[[nodiscard]] Result<std::vector<std::u16string>> ReadRaceNames(const assets::Vfs& vfs,
+                                                                std::string_view language);
 
 [[nodiscard]] Result<std::vector<std::u16string>> ReadDriverNames(const assets::Vfs& vfs,
                                                                   std::string_view language);

@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <memory>
 #include <span>
-#include <string_view>
 #include <vector>
 
+#include "app/race_scene_name.hpp"
 #include "app/racer/car_look.hpp"
 #include "app/racer/racer_assets.hpp"
 #include "app/racer/racer_visuals.hpp"
@@ -25,10 +25,10 @@ namespace rr::app {
 /// The prebuilt racer in each grid slot of a track's circuit.
 class RacerGrid {
 public:
-    /// Takes up to `slots` drivers and swaps slot `playerRacer` with 0. `renderer` must outlive it.
+    /// Takes up to `slots` drivers and swaps the player's slot with 0. `renderer` must outlive it.
     [[nodiscard]] static Result<RacerGrid> Load(render::Renderer& renderer, const assets::Vfs& vfs,
-                                                assets::TrackLoader& loader, std::string_view track,
-                                                std::size_t slots, std::size_t playerRacer);
+                                                assets::TrackLoader& loader,
+                                                const RaceSceneSetup& setup, std::size_t slots);
 
     [[nodiscard]] std::size_t Count() const { return slots_.size(); }
     [[nodiscard]] sim::ChassisSpec Chassis(std::size_t slot) const;

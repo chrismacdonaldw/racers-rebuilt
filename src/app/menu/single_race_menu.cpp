@@ -2,16 +2,17 @@
 
 #include <algorithm>
 #include <format>
+#include <iterator>
+#include <optional>
 #include <utility>
 
 #include "app/menu/menu_scenes.hpp"
 #include "app/race_scene_name.hpp"
-#include "assets/circuit_database.hpp"
+#include "assets/game_path.hpp"
+#include "assets/race_catalog.hpp"
 #include "assets/racer_catalog.hpp"
 #include "assets/string_table.hpp"
-#include "assets/track_loader.hpp"
 #include "core/assert.hpp"
-#include "core/log.hpp"
 
 namespace rr::app {
 namespace {
@@ -20,6 +21,8 @@ constexpr auto kRowCount = static_cast<int>(SingleRaceRow::Count);
 constexpr std::uint64_t kHashBase = 16;
 constexpr std::string_view kDriverFolder = "GAMEDATA/COMMON";
 constexpr std::string_view kDriverNames = "DRIVERS.SRF";
+constexpr std::string_view kRaceNamesFolder = "MENUDATA";
+constexpr std::string_view kRaceNames = "CIRCUIT.SRF";
 
 std::size_t Wrap(std::size_t value, int step, std::size_t count) {
     const auto signedCount = static_cast<std::ptrdiff_t>(count);
@@ -32,37 +35,59 @@ RacerChoice ChoiceOf(const assets::RacerCatalog& catalog, const std::string& cod
     return {.code = code, .nameIndex = files ? files->driver.nameIndex : -1};
 }
 
+Result<std::vector<std::u16string>> ReadStrings(const assets::Vfs& vfs, std::string_view path) {
+    return vfs.Read(path).and_then(
+        [](const assets::FileData& file) { return assets::ParseStringTable(file.Bytes()); });
+}
+
+std::vector<TrackChoice> CircuitChoices(const assets::RaceCatalog& races,
+                                        const assets::RacerCatalog& racers, std::size_t circuit) {
+    const assets::CircuitEntry& entry = races.Circuits()[circuit];
+    std::vector<RacerChoice> grid;
+    grid.reserve(entry.grid.size());
+    for (const std::string& code : entry.grid) {
+        grid.push_back(ChoiceOf(racers, code));
+    }
+    std::vector<TrackChoice> choices;
+    for (const std::optional<std::size_t>& slot : races.RacesOf(circuit)) {
+        const assets::RaceEntry* race = slot ? &races.Races()[*slot] : nullptr;
+        if (race != nullptr && !race->isMirrored) {
+            choices.push_back({.track = assets::ToUpperAscii(race->folder),
+                               .circuit = entry.name,
+                               .nameLine = race->nameLine.value_or(-1),
+                               .racers = grid});
+        }
+    }
+    return choices;
+}
+
 }
 
 Result<std::vector<TrackChoice>> LoadTrackChoices(const assets::Vfs& vfs) {
-    Result<assets::RacerCatalog> catalog = assets::RacerCatalog::Load(vfs);
-    if (!catalog) {
-        return std::unexpected(std::move(catalog.error()));
+    Result<assets::RacerCatalog> racers = assets::RacerCatalog::Load(vfs);
+    Result<assets::RaceCatalog> races = racers.and_then(
+        [&](const assets::RacerCatalog&) { return assets::RaceCatalog::Load(vfs); });
+    if (!races) {
+        return std::unexpected(std::move(races.error()));
     }
     std::vector<TrackChoice> choices;
-    for (const std::string& track : assets::ListRaceTracks(vfs)) {
-        const Result<std::vector<std::string>> codes = assets::LoadGrid(vfs, track);
-        if (!codes || codes->empty()) {
-            log::Warn("single race leaves out {}: it has no grid", track);
-            continue;
-        }
-        TrackChoice& choice = choices.emplace_back(TrackChoice{.track = track});
-        for (const std::string& code :
-             std::span(*codes).first(std::min(codes->size(), assets::kGridSlots))) {
-            choice.racers.push_back(ChoiceOf(*catalog, code));
-        }
+    for (std::size_t circuit = 0; circuit < races->Circuits().size(); ++circuit) {
+        std::ranges::move(CircuitChoices(*races, *racers, circuit), std::back_inserter(choices));
     }
     if (choices.empty()) {
-        return Fail(ErrorCode::NotFound, "no race track has a grid");
+        return Fail(ErrorCode::NotFound, "no circuit has an unmirrored race");
     }
     return choices;
 }
 
 Result<std::vector<std::u16string>> ReadDriverNames(const assets::Vfs& vfs,
                                                     std::string_view language) {
-    return vfs.Read(std::format("{}/{}/{}", kDriverFolder, language, kDriverNames))
-        .and_then(
-            [](const assets::FileData& file) { return assets::ParseStringTable(file.Bytes()); });
+    return ReadStrings(vfs, std::format("{}/{}/{}", kDriverFolder, language, kDriverNames));
+}
+
+Result<std::vector<std::u16string>> ReadRaceNames(const assets::Vfs& vfs,
+                                                  std::string_view language) {
+    return ReadStrings(vfs, std::format("{}/{}/{}", kRaceNamesFolder, language, kRaceNames));
 }
 
 SingleRaceMenu::SingleRaceMenu(std::vector<TrackChoice> tracks) : tracks_(std::move(tracks)) {
@@ -117,6 +142,7 @@ std::optional<std::string> SingleRaceMenu::Confirm(const RaceSceneSetup& rules) 
     switch (focus_) {
         case SingleRaceRow::Race:
             race.track = Track().track;
+            race.circuit = Track().circuit;
             race.racer = racer_;
             return RaceSceneName(race);
         case SingleRaceRow::Back:

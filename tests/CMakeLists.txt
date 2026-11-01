@@ -98,6 +98,8 @@ add_executable(racers-rebuilt-tests
     assets/menu_layout_test.cpp
     assets/menu_styles_test.cpp
     assets/model_survey_test.cpp
+    assets/race_catalog_test.cpp
+    assets/race_list_test.cpp
     assets/race_route_test.cpp
     assets/race_voices_test.cpp
     assets/racer_catalog_test.cpp

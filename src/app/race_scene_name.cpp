@@ -15,6 +15,7 @@ namespace {
 constexpr std::string_view kRacePrefix = "race:";
 constexpr std::string_view kRespawnKey = "respawn";
 constexpr std::string_view kRacerKey = "racer";
+constexpr std::string_view kCircuitKey = "circuit";
 constexpr std::string_view kAiKey = "ai";
 constexpr std::string_view kRespawnOff = "off";
 constexpr std::string_view kPhysicsAi = "physics";
@@ -63,6 +64,10 @@ bool ReadField(std::string_view field, RaceSceneSetup& setup,
         setup.racer = ParseNumber<std::size_t>(value).value_or(assets::kGridSlots);
         return setup.racer < assets::kGridSlots;
     }
+    if (key == kCircuitKey) {
+        setup.circuit = value;
+        return !value.empty();
+    }
     if (key == kAiKey) {
         return ReadAiDriving(value, setup.aiDriving);
     }
@@ -77,6 +82,9 @@ std::string RaceSceneName(const RaceSceneSetup& setup) {
                                     : std::string(kRespawnOff);
     std::string name = std::format("{}{}:{}={}:{}={}", kRacePrefix, setup.track, kRespawnKey,
                                    respawn, kRacerKey, setup.racer);
+    if (!setup.circuit.empty()) {
+        name += std::format(":{}={}", kCircuitKey, setup.circuit);
+    }
     if (setup.aiDriving == sim::AiDriving::Physics) {
         name += std::format(":{}={}", kAiKey, kPhysicsAi);
     }
