@@ -56,11 +56,13 @@ void SnapshotEffects(const sim::PowerupSystem& powerups, sim::RenderSnapshot& ou
 void SnapshotExplosions(const sim::Explosions& pool, sim::ExplosionKind kind,
                         sim::RenderSnapshot& out) {
     for (const sim::Explosion& explosion : pool.All()) {
-        if (explosion.phase == sim::ExplosionPhase::Exploding) {
+        if (explosion.phase != sim::ExplosionPhase::Idle) {
+            const bool isFlashing = explosion.phase == sim::ExplosionPhase::Exploding;
             out.explosions.push_back(
                 {.kind = kind,
                  .transform = TransformToEngine({.position = explosion.position}),
-                 .scale = explosion.growth});
+                 .growth = isFlashing ? explosion.growth : 0.0F,
+                 .scarLeft = pool.ScarLeft(explosion)});
         }
     }
 }

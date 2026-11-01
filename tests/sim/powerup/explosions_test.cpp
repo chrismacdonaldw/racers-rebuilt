@@ -61,12 +61,17 @@ TEST_CASE("a scar fades for 5,000 ms after the flash") {
     blasts.Pool().Spawn({}, true, std::nullopt);
     const Explosion& explosion = blasts.Pool().All()[0];
 
+    CHECK(blasts.Pool().ScarLeft(explosion) == 0.0F);
     blasts.Tick(84);
     CHECK(explosion.phase == ExplosionPhase::ScarFading);
-    blasts.Tick(415);
+    CHECK(blasts.Pool().ScarLeft(explosion) == doctest::Approx(1.0F).epsilon(0.01));
+    blasts.Tick(208);
+    CHECK(blasts.Pool().ScarLeft(explosion) == doctest::Approx(0.5F).epsilon(0.01));
+    blasts.Tick(207);
     CHECK(explosion.phase == ExplosionPhase::ScarFading);
     blasts.Tick();
     CHECK(explosion.phase == ExplosionPhase::Idle);
+    CHECK(blasts.Pool().ScarLeft(explosion) == 0.0F);
 }
 
 TEST_CASE("the blast launches unshielded racers it reaches, but not its owner") {

@@ -49,6 +49,9 @@ public:
 
     [[nodiscard]] float BlastRadius(const Explosion& explosion) const;
 
+    /// From 1 as the scar appears to 0 as it goes, and 0 for an explosion without one.
+    [[nodiscard]] float ScarLeft(const Explosion& explosion) const;
+
     [[nodiscard]] std::span<const Explosion> All() const { return explosions_; }
 
 private:

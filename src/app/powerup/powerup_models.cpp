@@ -3,10 +3,12 @@
 #include <cstddef>
 #include <format>
 #include <span>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
+#include "app/powerup/powerup_quads.hpp"
 #include "app/track_model.hpp"
 #include "assets/game_path.hpp"
 #include "assets/world_database.hpp"
@@ -115,16 +117,25 @@ Result<EffectModels> UploadPowerupModels(render::Renderer& renderer, const Power
 PowerupModelSet LoadPowerupModels(render::Renderer& renderer, const assets::Vfs& vfs,
                                   assets::TrackLoader& loader) {
     PowerupModelSet set;
-    Result<EffectModels> models =
-        LoadPowerupAssets(vfs, loader).and_then([&](PowerupAssets loaded) {
-            set.assets = std::make_unique<PowerupAssets>(std::move(loaded));
-            return UploadPowerupModels(renderer, *set.assets);
-        });
-    if (!models) {
-        log::Warn("power-up models: {}", models.error().message);
+    const std::vector<std::string> quadMaterials(PowerupQuadMaterials().begin(),
+                                                 PowerupQuadMaterials().end());
+    Result<void> loaded =
+        LoadPowerupAssets(vfs, loader)
+            .and_then([&](PowerupAssets assets) {
+                set.assets = std::make_unique<PowerupAssets>(std::move(assets));
+                return UploadPowerupModels(renderer, *set.assets);
+            })
+            .and_then([&](EffectModels models) {
+                set.models = std::move(models);
+                return UploadMaterials(renderer, set.assets->models, quadMaterials);
+            })
+            .transform([&](assets::NameMap<render::Material> materials) {
+                set.quadMaterials = std::move(materials);
+            });
+    if (!loaded) {
+        log::Warn("power-up models: {}", loaded.error().message);
         return {};
     }
-    set.models = std::move(*models);
     return set;
 }
 

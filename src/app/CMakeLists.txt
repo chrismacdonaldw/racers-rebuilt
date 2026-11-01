@@ -41,9 +41,12 @@ rr_add_module(app
         pace_car.cpp
         particle_assets.cpp
         positional_sound.cpp
+        powerup/effect_trail.cpp
         powerup/powerup_models.cpp
+        powerup/powerup_quads.cpp
         powerup/powerup_visuals.cpp
         powerup_tools.cpp
+        quad_shapes.cpp
         race_audio.cpp
         race_music.cpp
         race_particles.cpp

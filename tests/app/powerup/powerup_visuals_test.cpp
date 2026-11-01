@@ -119,9 +119,9 @@ TEST_CASE("explosions draw their own model, scaled by the blast's growth") {
     const EffectModels models{{"EXPLSN", Static()}, {"SPIKEXP", Static()}};
     PowerupVisuals visuals(models);
     sim::RenderSnapshot snapshot;
-    snapshot.explosions = {{.kind = sim::ExplosionKind::Blast, .transform = {}, .scale = 0.5F},
-                           {.kind = sim::ExplosionKind::Spike, .transform = {}, .scale = 0.25F},
-                           {.kind = sim::ExplosionKind::Blast, .transform = {}, .scale = 0.0F}};
+    snapshot.explosions = {{.kind = sim::ExplosionKind::Blast, .transform = {}, .growth = 0.5F},
+                           {.kind = sim::ExplosionKind::Spike, .transform = {}, .growth = 0.25F},
+                           {.kind = sim::ExplosionKind::Blast, .transform = {}, .growth = 0.0F}};
 
     visuals.Update(snapshot, kFrameMs);
 

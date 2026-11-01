@@ -28,9 +28,12 @@ add_executable(racers-rebuilt-tests
     app/music_folder_source_test.cpp
     app/pace_car_test.cpp
     app/particle_assets_test.cpp
+    app/powerup/effect_trail_test.cpp
     app/powerup/powerup_models_test.cpp
+    app/powerup/powerup_quads_test.cpp
     app/powerup/powerup_visuals_test.cpp
     app/positional_sound_test.cpp
+    app/quad_shapes_test.cpp
     app/race_audio_test.cpp
     app/race_determinism_test.cpp
     app/race_music_test.cpp

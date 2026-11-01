@@ -74,10 +74,12 @@ struct EffectSnapshot {
 
 enum class ExplosionKind : std::uint8_t { Blast, Spike };
 
+/// `growth` is 0 once the flash ends, and `scarLeft` falls from 1 to 0 as the scar fades.
 struct ExplosionSnapshot {
     ExplosionKind kind = ExplosionKind::Blast;
     Transform transform;
-    float scale = 0.0F;
+    float growth = 0.0F;
+    float scarLeft = 0.0F;
 
     friend bool operator==(const ExplosionSnapshot&, const ExplosionSnapshot&) = default;
 };
