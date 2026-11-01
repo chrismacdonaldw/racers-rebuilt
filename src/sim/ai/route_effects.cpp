@@ -10,12 +10,6 @@ constexpr float kMsPerSecond = 1000.0F;
 constexpr float kHopGravity = -100.0F;
 constexpr float kTiltReturnScale = 0.25F;
 
-Basis BasisOf(const Quaternion& rotation) {
-    return {.forward = Rotate(rotation, {.x = 1.0F}),
-            .side = Rotate(rotation, {.y = 1.0F}),
-            .up = Rotate(rotation, {.z = 1.0F})};
-}
-
 Basis Roll(const Basis& basis, float radians) {
     return OrthonormalBasis(basis.forward, RotateAbout(basis.up, basis.forward, radians));
 }
@@ -101,7 +95,7 @@ void UpdateRouteHop(RouteEffects& effects, int dtMs) {
 
 Transform PlaceOnRoute(RouteEffects& effects, const Transform& routePose,
                        const Vector3& wheelAnchor, int dtMs) {
-    Basis basis = BasisOf(routePose.rotation);
+    Basis basis = ToBasis(routePose.rotation);
     const bool isBanked = Bank(effects, basis);
     const bool isTilted = Tilt(effects.tilt, wheelAnchor, dtMs, basis);
     const bool isSpun = Spin(effects, dtMs, basis);

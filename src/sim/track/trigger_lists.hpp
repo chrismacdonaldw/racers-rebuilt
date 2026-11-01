@@ -19,7 +19,12 @@ struct TriggerRacer {
     int completedLaps = 0;
 };
 
-/// Each racer starts a sphere's event on first touch and ends it a whole tick after leaving.
+struct SphereActivity {
+    bool isTouched = false;
+    bool isActive = false;
+};
+
+/// Fires for each racer and, while anyone is inside, at the centre. Each ends a tick after leaving.
 class RacerTriggers {
 public:
     RacerTriggers(std::span<const assets::TriggerSphere> spheres, bool isMirrored);
@@ -34,10 +39,15 @@ public:
     /// One bit per racer that touched `sphere` in the last `Test`.
     [[nodiscard]] std::uint8_t Inside(std::size_t sphere) const { return masks_.at(sphere).inside; }
 
+    [[nodiscard]] bool IsActive(std::size_t sphere) const {
+        return masks_.at(sphere).atCentre.isActive;
+    }
+
 private:
     struct Masks {
         std::uint8_t inside = 0;
         std::uint8_t wasInside = 0;
+        SphereActivity atCentre;
     };
 
     std::vector<assets::TriggerSphere> spheres_;
@@ -56,13 +66,8 @@ public:
     [[nodiscard]] bool IsActive(std::size_t sphere) const { return states_.at(sphere).isActive; }
 
 private:
-    struct State {
-        bool isTouched = false;
-        bool isActive = false;
-    };
-
     std::vector<assets::TriggerSphere> spheres_;
-    std::vector<State> states_;
+    std::vector<SphereActivity> states_;
 };
 
 }

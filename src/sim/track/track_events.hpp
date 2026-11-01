@@ -1,12 +1,14 @@
 #pragma once
 
 #include <cstddef>
+#include <optional>
 #include <span>
 #include <vector>
 
 #include "assets/event_table.hpp"
 #include "assets/track_triggers.hpp"
 #include "core/duration.hpp"
+#include "core/vector3.hpp"
 #include "sim/race/random.hpp"
 #include "sim/track/track_event.hpp"
 #include "sim/track/track_timers.hpp"
@@ -34,6 +36,8 @@ public:
     void TickTimers(Milliseconds elapsed, Random& random);
 
     void Fire(const TrackEvent& event) { queue_.Fire(event); }
+
+    void FireStartAndEnd(assets::EventId id, std::optional<Vector3> position);
 
     [[nodiscard]] std::span<const TrackEvent> Events() const { return queue_.Events(); }
     [[nodiscard]] const RacerTriggers& RacerSpheres() const { return racerSpheres_; }

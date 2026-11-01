@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "assets/brick_layout.hpp"
+#include "assets/hazard_list.hpp"
 #include "assets/target_points.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -25,6 +26,7 @@ struct RaceTrack {
     std::vector<assets::TargetPoint> targets;
     TrackEventSources events;
     TrackEntitySources entities;
+    std::vector<assets::Hazard> hazards;
     float lowestTrackZ = 0.0F;
 };
 

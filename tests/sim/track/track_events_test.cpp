@@ -22,7 +22,14 @@ struct Fired {
     std::vector<assets::EventId> racerStarts;
     std::vector<assets::EventId> racerEnds;
     std::vector<assets::EventId> environmentStarts;
+    std::vector<assets::EventId> racerCentreStarts;
 };
+
+bool IsEnvironmentCentre(const TrackEvents& events, const Vector3& position) {
+    return std::ranges::any_of(
+        events.EnvironmentSpheres().Spheres(),
+        [&](const assets::TriggerSphere& sphere) { return sphere.centre == position; });
+}
 
 void Record(const TrackEvents& events, Fired& fired) {
     for (const TrackEvent& event : events.Events()) {
@@ -30,7 +37,9 @@ void Record(const TrackEvents& events, Fired& fired) {
             (event.edge == EventEdge::Start ? fired.racerStarts : fired.racerEnds)
                 .push_back(event.id);
         } else if (event.edge == EventEdge::Start && event.position) {
-            fired.environmentStarts.push_back(event.id);
+            (IsEnvironmentCentre(events, *event.position) ? fired.environmentStarts
+                                                          : fired.racerCentreStarts)
+                .push_back(event.id);
         }
     }
 }
@@ -80,6 +89,20 @@ TEST_CASE("driving a lap of RACEC0R0 fires its racer and environment spheres in 
     CHECK(std::ranges::starts_with(fired.racerStarts, lap));
     CHECK(std::ranges::starts_with(fired.environmentStarts, ambience));
     CHECK(fired.racerEnds.size() + 1 == fired.racerStarts.size());
+}
+
+TEST_CASE("a lap of RACEC0R0 also fires each racer sphere at its centre") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const Result<RaceTrack> track = LoadRaceTrack(*vfs, "RACEC0R0");
+    REQUIRE(track.has_value());
+
+    const Fired fired = DriveRoute(*track, FirstRoute(*track));
+
+    CHECK(std::ranges::starts_with(fired.racerCentreStarts,
+                                   std::vector<assets::EventId>{1033, 102, 53, 50, 100}));
 }
 
 }

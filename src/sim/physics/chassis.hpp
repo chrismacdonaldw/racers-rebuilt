@@ -51,6 +51,8 @@ struct StatMultipliers {
     float topSpeed = 1.0F;
 };
 
+[[nodiscard]] Vector3 BoxInertia(float mass, const Vector3& size);
+
 [[nodiscard]] BodyConstants MakeBodyConstants(const ChassisSpec& chassis, const CarBuild& build);
 
 [[nodiscard]] StatMultipliers MakeStatMultipliers(const ChassisSpec& chassis,

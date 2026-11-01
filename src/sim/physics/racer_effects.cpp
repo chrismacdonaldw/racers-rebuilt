@@ -282,4 +282,8 @@ bool Racer::IsSpunOut() const {
     return route_ ? route_->Effects().isSpunOut : body_.isSpunOut;
 }
 
+bool Racer::IsStopped() const {
+    return route_ ? route_->PlaybackSpeed() == 0.0F : body_.derived.forwardSpeed == 0.0F;
+}
+
 }

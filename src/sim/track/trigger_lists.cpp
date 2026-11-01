@@ -23,6 +23,24 @@ bool Accepts(const assets::TriggerSphere& sphere, const TriggerRacer& racer) {
            Touches({.centre = sphere.centre, .radius = sphere.radius}, racer.reach);
 }
 
+void TouchAtCentre(const assets::TriggerSphere& sphere, SphereActivity& activity,
+                   TrackEventQueue& queue) {
+    if (!activity.isActive) {
+        queue.Fire({.id = sphere.event, .edge = EventEdge::Start, .position = sphere.centre});
+        activity.isActive = true;
+    }
+    activity.isTouched = true;
+}
+
+void EndAtCentre(const assets::TriggerSphere& sphere, SphereActivity& activity,
+                 TrackEventQueue& queue) {
+    if (activity.isActive && !activity.isTouched) {
+        queue.Fire({.id = sphere.event, .edge = EventEdge::End, .position = sphere.centre});
+        activity.isActive = false;
+    }
+    activity.isTouched = false;
+}
+
 }
 
 RacerTriggers::RacerTriggers(std::span<const assets::TriggerSphere> spheres, bool isMirrored)
@@ -31,6 +49,7 @@ RacerTriggers::RacerTriggers(std::span<const assets::TriggerSphere> spheres, boo
 void RacerTriggers::EndFrame(TrackEventQueue& queue) {
     for (std::size_t i = 0; i < spheres_.size(); ++i) {
         Masks& masks = masks_[i];
+        EndAtCentre(spheres_[i], masks.atCentre, queue);
         const auto left = static_cast<std::uint8_t>(masks.wasInside & ~masks.inside);
         for (std::uint8_t racer = 0; racer < kMaxTriggerRacers; ++racer) {
             if ((left >> racer & 1U) != 0) {
@@ -50,6 +69,7 @@ void RacerTriggers::Test(std::span<const TriggerRacer> racers, TrackEventQueue& 
             if (!Accepts(spheres_[i], racers[racer])) {
                 continue;
             }
+            TouchAtCentre(spheres_[i], masks.atCentre, queue);
             const auto bit = static_cast<std::uint8_t>(1U << racer);
             if (((masks.wasInside | masks.inside) & bit) == 0) {
                 queue.Fire({.id = spheres_[i].event,
@@ -67,30 +87,16 @@ EnvironmentTriggers::EnvironmentTriggers(std::span<const assets::TriggerSphere> 
 
 void EnvironmentTriggers::EndFrame(TrackEventQueue& queue) {
     for (std::size_t i = 0; i < spheres_.size(); ++i) {
-        State& state = states_[i];
-        if (state.isActive && !state.isTouched) {
-            queue.Fire(
-                {.id = spheres_[i].event, .edge = EventEdge::End, .position = spheres_[i].centre});
-            state.isActive = false;
-        }
-        state.isTouched = false;
+        EndAtCentre(spheres_[i], states_[i], queue);
     }
 }
 
 void EnvironmentTriggers::Test(std::span<const TriggerRacer> racers, TrackEventQueue& queue) {
     for (std::size_t i = 0; i < spheres_.size(); ++i) {
-        State& state = states_[i];
         for (const TriggerRacer& racer : racers) {
-            if (!Accepts(spheres_[i], racer)) {
-                continue;
+            if (Accepts(spheres_[i], racer)) {
+                TouchAtCentre(spheres_[i], states_[i], queue);
             }
-            if (!state.isActive) {
-                queue.Fire({.id = spheres_[i].event,
-                            .edge = EventEdge::Start,
-                            .position = spheres_[i].centre});
-                state.isActive = true;
-            }
-            state.isTouched = true;
         }
     }
 }

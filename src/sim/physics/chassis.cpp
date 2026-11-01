@@ -5,20 +5,9 @@
 namespace rr::sim {
 namespace {
 
-constexpr float kBoxLength = 8.0F;
-constexpr float kBoxWidth = 5.0F;
-constexpr float kBoxHeight = 6.2F;
+constexpr Vector3 kBoxSize{.x = 8.0F, .y = 5.0F, .z = 6.2F};
 constexpr float kBodyPointHeight = 3.5F;
 constexpr float kStatPerPiece = 0.05F;
-
-Vector3 BoxInertia(float mass) {
-    const float length2 = kBoxLength * kBoxLength;
-    const float width2 = kBoxWidth * kBoxWidth;
-    const float height2 = kBoxHeight * kBoxHeight;
-    return {.x = mass / kBoxLength * (width2 + height2) / 12.0F,
-            .y = mass / kBoxWidth * (length2 + height2) / 12.0F,
-            .z = mass / kBoxHeight * (length2 + width2) / 12.0F};
-}
 
 std::array<Vector3, kBodyPointCount> BodyPoints(const ChassisSpec& chassis) {
     const float x = chassis.shadowLength / 2.0F;
@@ -45,7 +34,7 @@ BodyConstants MakeBodyConstants(const ChassisSpec& chassis, const CarBuild& buil
     return {
         .mass = mass,
         .massScale = mass * 0.001F * 0.001F,
-        .inertia = BoxInertia(mass),
+        .inertia = BoxInertia(mass, kBoxSize),
         .centreOfMass =
             chassis.centreOfMass + Vector3{.x = build.centroidOffsetX, .y = build.centroidOffsetY},
         .wheelAnchor = wheels[1],
@@ -54,6 +43,15 @@ BodyConstants MakeBodyConstants(const ChassisSpec& chassis, const CarBuild& buil
         .bodyPoints = BodyPoints(chassis),
         .boundsRadius = build.boundsRadius,
     };
+}
+
+Vector3 BoxInertia(float mass, const Vector3& size) {
+    const float length2 = size.x * size.x;
+    const float width2 = size.y * size.y;
+    const float height2 = size.z * size.z;
+    return {.x = mass / size.x * (width2 + height2) / 12.0F,
+            .y = mass / size.y * (length2 + height2) / 12.0F,
+            .z = mass / size.z * (length2 + width2) / 12.0F};
 }
 
 StatMultipliers MakeStatMultipliers(const ChassisSpec& chassis, const CarBuild& build) {

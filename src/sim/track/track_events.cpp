@@ -5,7 +5,7 @@ namespace rr::sim {
 namespace {
 
 std::size_t MostEventsPerTick(const TrackEventSources& sources, std::size_t racerCount) {
-    return (sources.racerSpheres.size() * racerCount * 2) +
+    return (sources.racerSpheres.size() * (racerCount + 1) * 2) +
            (sources.environmentSpheres.size() * 2) + sources.timers.size();
 }
 
@@ -22,6 +22,11 @@ void TrackEvents::BeginTick() {
     queue_.Clear();
     racerSpheres_.EndFrame(queue_);
     environmentSpheres_.EndFrame(queue_);
+}
+
+void TrackEvents::FireStartAndEnd(assets::EventId id, std::optional<Vector3> position) {
+    queue_.Fire({.id = id, .edge = EventEdge::Start, .position = position});
+    queue_.Fire({.id = id, .edge = EventEdge::End, .position = position});
 }
 
 void TrackEvents::TestSpheres(std::span<const TriggerRacer> racers) {

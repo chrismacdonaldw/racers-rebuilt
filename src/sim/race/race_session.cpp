@@ -49,7 +49,8 @@ const TrackEventSources& EventSourcesFor(const RaceCourse& course) {
 std::size_t OutsideEventCount(const RaceSetup& setup, const RaceCourse& course) {
     return (EffectSlots(setup) * kMostShotCastsPerEffect * kEventsPerShotCast) +
            (setup.racers.size() * SurfaceEvents::MostEventsPerRacer()) +
-           EventResources::MostFiredPerTick(EventSourcesFor(course).table);
+           EventResources::MostFiredPerTick(EventSourcesFor(course).table) +
+           Hazards::MostEventsPerTick(course.hazards.size(), setup.racers.size());
 }
 
 TrackSurfaces SurfacesFor(const RaceCourse& course) {
@@ -115,6 +116,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       triggers_(EventSourcesFor(course), setup.racers.size(), course.isMirrored, random_,
                 OutsideEventCount(setup, course)),
       entities_(EntitySourcesFor(course)),
+      hazards_(course.hazards, entities_),
       resources_(EventSourcesFor(course).table, EntitySourcesFor(course), course.collision),
       triggerRacers_(setup.racers.size()),
       sphereWorlds_(SphereWorldsFor(course)),
@@ -158,6 +160,8 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     for (TriggerWorlds& worlds : switchedWorlds_) {
         worlds.Tick(elapsed);
     }
+    HazardContext hazards = HazardsContext();
+    hazards_.Tick(hazards);
     MeasureReaches();
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         TickRacer(i, elapsed, clock_.Phase() == RacePhase::Intro ? RacerControls{} : controls[i]);
@@ -165,6 +169,8 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     ResolveContacts();
     TickBricks(elapsed);
     MeasureReaches();
+    hazards.bodies = contactBodies_;
+    hazards_.Touch(hazards);
     TickTriggers(elapsed);
     SwitchOnTriggerWorlds();
     PowerupContext effects = EffectContext();
@@ -193,6 +199,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     }
     PaceRoutes(elapsed);
     resources_.Dispatch(triggers_, entities_);
+    hazards_.Hear(triggers_.Events());
 }
 
 bool RaceSession::WantsPowerup(std::size_t racer, Milliseconds elapsed,
@@ -341,6 +348,10 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
         }
         powerups_.Use(racer, inventories_[racer], bricks_, effects);
     }
+}
+
+HazardContext RaceSession::HazardsContext() {
+    return {.racers = racers_, .reaches = reaches_, .entities = &entities_, .events = &triggers_};
 }
 
 bool RaceSession::HasPlayerFinished() const {
