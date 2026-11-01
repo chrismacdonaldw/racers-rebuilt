@@ -145,7 +145,7 @@ private:
         frames.push_back(input);
         previous = input;
     }
-    return {.buildVersion = "test", .scene = "test-track", .seed = 7, .racers = {frames}};
+    return {.buildVersion = "test", .scene = "test-track", .seed = 8, .racers = {frames}};
 }
 
 }

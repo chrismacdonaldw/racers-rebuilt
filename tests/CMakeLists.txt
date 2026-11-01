@@ -141,6 +141,7 @@ add_executable(racers-rebuilt-tests
     sim/ai/ai_grid_test.cpp
     sim/ai/ai_powerups_test.cpp
     sim/ai/ai_racer_test.cpp
+    sim/ai/ai_taunts_test.cpp
     sim/ai/powerup_habits_test.cpp
     sim/ai/route_choice_test.cpp
     sim/ai/route_driver_test.cpp

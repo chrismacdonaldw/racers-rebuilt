@@ -439,5 +439,44 @@ TEST_CASE("a computer racer that drives into a level 2 shield spins") {
     CHECK_FALSE(session.Racers()[0].IsSpinning());
 }
 
+std::optional<Vector3> TauntAt(const RaceSession& session) {
+    const auto taunt =
+        std::ranges::find_if(session.Triggers().Events(), [](const TrackEvent& event) {
+            return event.id == kTauntEvent && event.edge == EventEdge::Start;
+        });
+    return taunt == session.Triggers().Events().end() ? std::nullopt : taunt->position;
+}
+
+TEST_CASE("a computer racer close behind another racer fires the taunt event where it is") {
+    const Fixture fixture;
+    RaceSession session = fixture.Start(TwoRacers());
+    RunUntilRacing(session);
+
+    std::optional<Vector3> taunt;
+    Vector3 computer;
+    for (int tick = 0; tick < 200 && !taunt; ++tick) {
+        const BodyMotion& motion = session.Racers()[1].Body().motion;
+        session.Racers()[0].Place({.position = motion.position + (motion.basis.forward * 11.0F)});
+        Run(session, 1, {});
+        computer = session.Racers()[1].Body().motion.position;
+        taunt = TauntAt(session);
+    }
+
+    REQUIRE(taunt);
+    CHECK(Length(*taunt - computer) < 0.001F);
+}
+
+TEST_CASE("a player pressing use with nothing held fires the taunt event where it is") {
+    const Fixture fixture;
+    RaceSession session = fixture.Start(TwoRacers());
+    RunUntilRacing(session);
+
+    Run(session, 1, {.isUsePressed = true});
+
+    const std::optional<Vector3> taunt = TauntAt(session);
+    REQUIRE(taunt);
+    CHECK(Length(*taunt - session.Racers()[0].Body().motion.position) < 0.001F);
+}
+
 }
 }

@@ -14,6 +14,7 @@
 #include "core/result.hpp"
 #include "core/vector3.hpp"
 #include "sim/ai/ai_powerups.hpp"
+#include "sim/ai/ai_taunts.hpp"
 #include "sim/ai/route_choice.hpp"
 #include "sim/ai/rubber_band.hpp"
 #include "sim/collision/racer_worlds.hpp"
@@ -141,6 +142,7 @@ private:
     std::vector<PowerupInventory> inventories_;
     PowerupSystem powerups_;
     std::vector<AiPowerupUser> aiPowerups_;
+    std::vector<AiTaunter> taunts_;
     WeaponEvents weapons_;
     Explosions explosions_;
     Explosions spikes_{kSpikeExplosion, kSpikeExplosionCount};
