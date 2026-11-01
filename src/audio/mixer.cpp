@@ -12,6 +12,7 @@
 
 #include "audio/alp.hpp"
 #include "audio/looping_stream.hpp"
+#include "audio/peak_limiter.hpp"
 #include "audio/voice.hpp"
 #include "core/assert.hpp"
 #include "core/log.hpp"
@@ -24,6 +25,7 @@ namespace {
 constexpr std::size_t kBusCount = 3;
 constexpr std::size_t kEffectVoiceCount = 32;
 constexpr ma_uint32 kChannelCount = 2;
+constexpr float kHeadroomGain = 0.5F;
 
 struct LoadedSound {
     assets::FileData file;
@@ -52,6 +54,11 @@ std::size_t IndexOf(Bus bus) {
     return static_cast<std::size_t>(bus);
 }
 
+std::unexpected<Error> CantStart(ma_result result) {
+    return Fail(ErrorCode::Platform,
+                std::format("can't start audio: {}", ma_result_description(result)));
+}
+
 }
 
 struct Mixer::State {
@@ -61,6 +68,13 @@ struct Mixer::State {
     State(State&&) = delete;
     State& operator=(State&&) = delete;
 
+    static void LimitMix(void* userData, float* frames, ma_uint64 frameCount) {
+        if (std::optional<PeakLimiter>& limiter = static_cast<State*>(userData)->limiter) {
+            limiter->Process(
+                std::span(frames, static_cast<std::size_t>(frameCount) * kChannelCount));
+        }
+    }
+
     ~State() {
         for (Voice& voice : music) {
             voice.Stop();
@@ -68,8 +82,6 @@ struct Mixer::State {
         for (Voice& voice : effects) {
             voice.Stop();
         }
-        std::for_each_n(buses.begin(), busCount,
-                        [](ma_sound_group& bus) { ma_sound_group_uninit(&bus); });
         if (hasEngine) {
             ma_engine_uninit(&engine);
         }
@@ -78,13 +90,14 @@ struct Mixer::State {
     std::atomic<std::uint64_t> allocationCount{0};
     ma_engine engine{};
     bool hasEngine = false;
-    std::array<ma_sound_group, kBusCount> buses{};
-    std::size_t busCount = 0;
+    std::array<float, kBusCount> volumes{1.0F, 1.0F, 1.0F};
     std::array<Voice, kEffectVoiceCount> effects;
+    std::array<Bus, kEffectVoiceCount> effectBuses{};
     std::array<std::uint32_t, kEffectVoiceCount> generations{};
     std::array<Voice, 2> music;
     std::size_t currentMusic = 0;
     std::vector<LoadedSound> sounds;
+    std::optional<PeakLimiter> limiter;
 };
 
 Result<Mixer> Mixer::Create() {
@@ -101,25 +114,24 @@ Result<Mixer> Mixer::Start(bool hasDevice, std::uint32_t sampleRateHz) {
     config.channels = kChannelCount;
     config.sampleRate = sampleRateHz;
     config.noDevice = hasDevice ? MA_FALSE : MA_TRUE;
+    config.noAutoStart = MA_TRUE;
+    config.onProcess = State::LimitMix;
+    config.pProcessUserData = state.get();
     config.allocationCallbacks = {.pUserData = &state->allocationCount,
                                   .onMalloc = CountedMalloc,
                                   .onRealloc = CountedRealloc,
                                   .onFree = Free};
     ma_result result = ma_engine_init(&config, &state->engine);
     if (result != MA_SUCCESS) {
-        return Fail(ErrorCode::Platform,
-                    std::format("can't start audio: {}", ma_result_description(result)));
+        return CantStart(result);
     }
     state->hasEngine = true;
-    for (ma_sound_group& bus : state->buses) {
-        result = ma_sound_group_init(&state->engine,
-                                     MA_SOUND_FLAG_NO_SPATIALIZATION | MA_SOUND_FLAG_NO_PITCH,
-                                     nullptr, &bus);
+    state->limiter.emplace(ma_engine_get_sample_rate(&state->engine), kHeadroomGain);
+    if (hasDevice) {
+        result = ma_engine_start(&state->engine);
         if (result != MA_SUCCESS) {
-            return Fail(ErrorCode::Platform, std::format("can't create an audio bus: {}",
-                                                         ma_result_description(result)));
+            return CantStart(result);
         }
-        ++state->busCount;
     }
     log::Info("audio mixing at {} Hz", ma_engine_get_sample_rate(&state->engine));
     return Mixer(std::move(state));
@@ -144,7 +156,17 @@ Result<SoundId> Mixer::AddSound(assets::FileData file) {
 }
 
 void Mixer::SetVolume(Bus bus, float volume) {
-    ma_sound_group_set_volume(&state_->buses[IndexOf(bus)], volume);
+    state_->volumes[IndexOf(bus)] = volume;
+    if (bus == Bus::Music) {
+        for (Voice& voice : state_->music) {
+            voice.SetBusVolume(volume);
+        }
+    }
+    for (std::size_t slot = 0; slot < kEffectVoiceCount; ++slot) {
+        if (state_->effectBuses[slot] == bus) {
+            state_->effects[slot].SetBusVolume(volume);
+        }
+    }
 }
 
 void Mixer::Play(std::span<const SoundCue> cues) {
@@ -182,8 +204,10 @@ std::optional<VoiceId> Mixer::StartEffect(const SoundCue& cue, bool isLooping) {
     }
     const auto slot = static_cast<std::uint32_t>(voice - state_->effects.begin());
     const std::uint32_t generation = ++state_->generations.at(slot);
-    Result<void> started = voice->Start(state_->engine, state_->buses[IndexOf(cue.bus)],
-                                        std::move(stream), {.mix = cue.mix});
+    state_->effectBuses.at(slot) = cue.bus;
+    Result<void> started =
+        voice->Start(state_->engine, std::move(stream),
+                     {.mix = cue.mix, .busVolume = state_->volumes[IndexOf(cue.bus)]});
     if (!started) {
         log::Warn("{}", started.error().message);
         return std::nullopt;
@@ -198,9 +222,9 @@ bool Mixer::IsCurrent(VoiceId voice) const {
 Result<void> Mixer::PlayMusic(std::unique_ptr<PcmStream> track, Milliseconds crossfade) {
     state_->music[state_->currentMusic].FadeOut(crossfade);
     state_->currentMusic = (state_->currentMusic + 1) % state_->music.size();
-    return state_->music[state_->currentMusic].Start(state_->engine,
-                                                     state_->buses[IndexOf(Bus::Music)],
-                                                     std::move(track), {.fadeIn = crossfade});
+    return state_->music[state_->currentMusic].Start(
+        state_->engine, std::move(track),
+        {.busVolume = state_->volumes[IndexOf(Bus::Music)], .fadeIn = crossfade});
 }
 
 Result<void> Mixer::PlayMusic(SoundId track) {

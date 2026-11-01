@@ -66,6 +66,7 @@ constexpr std::array kEngineLoopSounds{kIdleLoop, kDriveLoop, kCoastLoop};
 constexpr std::array kShieldLoops{kShieldLoop0, kShieldLoop1, kShieldLoop2, kShieldLoop3};
 constexpr float kWeakTurboEndVolume = 0.6F;
 constexpr float kStrongTurboEndVolume = 0.8F;
+constexpr float kOpponentEngineVolume = 0.8F;
 constexpr SoundRange kOpponentRange{.min = 30.0F, .max = 200.0F};
 constexpr SoundRange kBrickRange{.min = 30.0F, .max = 150.0F};
 constexpr SoundRange kScrapeRange{.min = 30.0F, .max = 300.0F};
@@ -390,14 +391,15 @@ void RaceAudio::HearNearestOpponent(const sim::RaceSession& session) {
             nearestDistance = Dot(offset, offset);
         }
     }
-    if (nearest == nullptr) {
+    if (nearest == nullptr || !session.Clock().IsRunning()) {
         opponentLoop_.Stop(*mixer_);
         return;
     }
     const float pitch = OpponentEnginePitch(nearest->derived.speed, nearest->airborneMs, 1.0F);
     opponentLoop_.Play(
         *mixer_, sounds_.effects[kOpponentEngine],
-        PlaceSound(listener_, nearest->motion.position, {.pitch = pitch}, kOpponentRange));
+        PlaceSound(listener_, nearest->motion.position,
+                   {.volume = kOpponentEngineVolume, .pitch = pitch}, kOpponentRange));
 }
 
 }

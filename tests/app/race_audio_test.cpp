@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include "../audio/alp_builder.hpp"
@@ -21,6 +22,7 @@ constexpr std::uint32_t kRateHz = 22050;
 constexpr std::size_t kFramesPerTick = 265;
 constexpr Milliseconds kTick{12};
 constexpr int kTicksPastGo = 600;
+constexpr std::int32_t kSurfaceSound = 3000;
 constexpr std::array<std::uint8_t, 256> kPayload = [] {
     std::array<std::uint8_t, 256> payload{};
     payload.fill(0x77);
@@ -45,10 +47,10 @@ std::vector<sim::RacerStart> Grid() {
 
 class FullGrid {
 public:
-    FullGrid()
+    explicit FullGrid(std::optional<std::int32_t> surfaceSound = kSurfaceSound)
         : sound_(test::BuildAlp(1, kRateHz, kPayload)),
           mixer_(HeadlessMixer()),
-          world_({test::TestPlane{.surface = {.soundId = 3000}}}),
+          world_({test::TestPlane{.surface = {.soundId = surfaceSound}}}),
           grid_(Grid()),
           session_(Start()) {
         for (std::size_t i = 0; i <= kEffectCount; ++i) {
@@ -120,6 +122,19 @@ TEST_CASE("a full grid's race sounds mix without allocating on the audio thread"
     CHECK(renderAllocations == 0);
     CHECK_FALSE(race.LastRenderIsSilent());
     CHECK(race.Audio().Music().track == "royal");
+}
+
+TEST_CASE("the nearest opponent's engine waits for the go") {
+    FullGrid race(std::nullopt);
+    bool isSilent = true;
+
+    static_cast<void>(race.TickAndRender());
+    while (race.Session().Clock().Phase() == sim::RacePhase::Intro) {
+        isSilent = isSilent && race.LastRenderIsSilent();
+        static_cast<void>(race.TickAndRender());
+    }
+
+    CHECK(isSilent);
 }
 
 TEST_CASE("stopping the loops silences a racing grid") {

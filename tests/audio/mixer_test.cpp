@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <optional>
 #include <vector>
 
@@ -14,6 +15,9 @@ namespace {
 
 constexpr std::uint32_t kRateHz = 22050;
 constexpr std::size_t kFramesPerRender = 1024;
+constexpr float kHeadroom = 0.5F;
+constexpr float kHalfVolumeGain = 0.17783F * kHeadroom;
+constexpr float kPannedAwayGain = 0.13335F * kHeadroom;
 constexpr std::array<std::uint8_t, 256> kLoudPayload = [] {
     std::array<std::uint8_t, 256> payload{};
     payload.fill(0x77);
@@ -39,6 +43,15 @@ public:
         std::ranges::fill(output_, 1.0F);
         mixer_.Render(output_);
         return std::ranges::all_of(output_, [](float sample) { return sample == 0.0F; });
+    }
+
+    std::array<float, 2> RenderPeaks() {
+        mixer_.Render(output_);
+        std::array<float, 2> peaks{};
+        for (std::size_t sample = 0; sample < output_.size(); ++sample) {
+            peaks.at(sample % 2) = std::max(peaks.at(sample % 2), std::abs(output_.at(sample)));
+        }
+        return peaks;
     }
 
 protected:
@@ -104,6 +117,47 @@ TEST_CASE_FIXTURE(MixerFixture, "mixing a voice to zero volume silences it") {
     mixer_.Mix(voice.value_or(VoiceId{}), {.volume = 0.0F, .pitch = 2.0F, .pan = 1.0F});
 
     CHECK(RenderIsSilent());
+}
+
+TEST_CASE_FIXTURE(MixerFixture, "a voice at half volume plays 15 dB down") {
+    static_cast<void>(mixer_.Loop({.sound = effectId_, .mix = {.volume = 0.5F}}));
+
+    const std::array<float, 2> peaks = RenderPeaks();
+
+    CHECK(peaks[0] == doctest::Approx(kHalfVolumeGain).epsilon(0.01));
+    CHECK(peaks[1] == doctest::Approx(kHalfVolumeGain).epsilon(0.01));
+}
+
+TEST_CASE_FIXTURE(MixerFixture, "a bus volume scales its voices before the volume curve") {
+    mixer_.SetVolume(Bus::Effects, 0.5F);
+    static_cast<void>(mixer_.Loop({.sound = effectId_}));
+
+    CHECK(RenderPeaks()[0] == doctest::Approx(kHalfVolumeGain).epsilon(0.01));
+
+    mixer_.SetVolume(Bus::Effects, 1.0F);
+
+    CHECK(RenderPeaks()[0] == doctest::Approx(kHeadroom).epsilon(0.01));
+}
+
+TEST_CASE_FIXTURE(MixerFixture, "panning right cuts the left channel and keeps the right") {
+    static_cast<void>(mixer_.Loop({.sound = effectId_, .mix = {.pan = 0.7F}}));
+
+    const std::array<float, 2> peaks = RenderPeaks();
+
+    CHECK(peaks[0] == doctest::Approx(kPannedAwayGain).epsilon(0.01));
+    CHECK(peaks[1] == doctest::Approx(kHeadroom).epsilon(0.01));
+}
+
+TEST_CASE_FIXTURE(MixerFixture, "a stack of full-volume voices stays within full scale") {
+    for (int voice = 0; voice < 8; ++voice) {
+        static_cast<void>(mixer_.Loop({.sound = effectId_}));
+    }
+
+    const std::array<float, 2> peaks = RenderPeaks();
+
+    CHECK(peaks[0] <= 1.0F);
+    CHECK(peaks[1] <= 1.0F);
+    CHECK(peaks[0] == doctest::Approx(1.0F).epsilon(0.01));
 }
 
 TEST_CASE_FIXTURE(MixerFixture, "a stopped voice's id leaves the next voice in its slot alone") {
