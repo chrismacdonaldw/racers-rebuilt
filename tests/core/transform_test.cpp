@@ -34,6 +34,15 @@ TEST_CASE("a composed transform applies the child first") {
     CheckNear(Apply(composed, {.y = 1.0F}), Apply(parent, Apply(child, {.y = 1.0F})));
 }
 
+TEST_CASE("a transform composed with its inverse leaves a point where it was") {
+    const Transform placed{.position = {.x = 3.0F, .y = -2.0F, .z = 1.0F},
+                           .rotation = FromAxisAngle({.y = 1.0F}, 0.4F)};
+    const Vector3 point{.x = 1.0F, .y = 2.0F, .z = 3.0F};
+
+    CheckNear(Apply(Compose(Inverse(placed), placed), point), point);
+    CheckNear(Apply(Compose(placed, Inverse(placed)), point), point);
+}
+
 TEST_CASE("rotating back by the same angle restores a vector") {
     const Vector3 axis{.y = 1.0F};
 

@@ -19,6 +19,7 @@
 #include "app/powerup/powerup_models.hpp"
 #include "app/powerup/powerup_quads.hpp"
 #include "app/powerup/powerup_visuals.hpp"
+#include "app/powerup/warp_tube.hpp"
 #include "app/race_audio.hpp"
 #include "app/race_particles.hpp"
 #include "app/race_scene_name.hpp"
@@ -76,6 +77,7 @@ private:
         RacerGrid racers;
         BrickModels bricks;
         PowerupModelSet powerups;
+        std::optional<WarpTube> warpTube;
         render::Camera camera;
         std::unique_ptr<sim::RaceTrack> raceTrack;
         TrackEntityDraws entityDraws;

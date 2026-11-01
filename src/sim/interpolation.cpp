@@ -1,6 +1,7 @@
 #include "sim/interpolation.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 
@@ -49,6 +50,9 @@ void Interpolate(const RenderSnapshot& previous, const RenderSnapshot& current, 
     for (EffectSnapshot& effect : out.effects) {
         if (const EffectSnapshot* before = FindEffect(previous, effect.slot)) {
             effect.transform = Blend(before->transform, effect.transform, effect.flags, alpha);
+            if (before->phase == effect.phase) {
+                effect.phaseLeftMs = std::lerp(before->phaseLeftMs, effect.phaseLeftMs, alpha);
+            }
         }
     }
     out.explosions.assign(current.explosions.begin(), current.explosions.end());

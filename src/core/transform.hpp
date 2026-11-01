@@ -22,6 +22,11 @@ struct Transform {
             .rotation = parent.rotation * child.rotation};
 }
 
+[[nodiscard]] constexpr Transform Inverse(const Transform& transform) {
+    const Quaternion undo = Conjugate(transform.rotation);
+    return {.position = Rotate(undo, -transform.position), .rotation = undo};
+}
+
 [[nodiscard]] inline Transform Interpolate(const Transform& from, const Transform& to,
                                            float alpha) {
     return {.position = Lerp(from.position, to.position, alpha),

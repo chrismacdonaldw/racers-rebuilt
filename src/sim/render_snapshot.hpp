@@ -50,6 +50,7 @@ struct RacerSnapshot {
     std::uint32_t hitReactions = 0;
     std::optional<assets::BrickColour> heldColour;
     std::uint8_t whiteCount = 0;
+    bool isGhost = false;
 
     friend bool operator==(const RacerSnapshot&, const RacerSnapshot&) = default;
 };
@@ -67,6 +68,7 @@ struct EffectSnapshot {
     PowerupKind kind = PowerupKind::Cannonball;
     PowerupUse use;
     std::uint8_t phase = 0;
+    float phaseLeftMs = 0.0F;
     bool isHoldingRacer = false;
     Transform transform;
     std::optional<Vector3> hazardSource;

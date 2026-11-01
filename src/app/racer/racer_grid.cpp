@@ -89,7 +89,11 @@ void RacerGrid::Update(std::span<const sim::EntitySnapshot> poses,
     for (std::size_t i = 0; i < slots_.size() && i < poses.size() && i < motion.size(); ++i) {
         RacerVisuals& visuals = slots_[i].visuals;
         visuals.Update(TransformToGame(poses[i].transform), motion[i], elapsedMs);
+        const auto first = next;
         next = std::ranges::copy(visuals.Draws(), next).out;
+        if (motion[i].isGhost) {
+            std::ranges::for_each(first, next, [](render::MeshDraw& draw) { draw.indexCount = 0; });
+        }
     }
 }
 

@@ -13,12 +13,13 @@
 #include "assets/game_path.hpp"
 #include "assets/world_database.hpp"
 #include "core/log.hpp"
+#include "sim/physics/rigid_body.hpp"
 
 namespace rr::app {
 namespace {
 
 constexpr std::string_view kCommonFolder = "GAMEDATA/COMMON";
-constexpr std::string_view kPowerupWorld = "GAMEDATA/COMMON/POWERUP.WDB";
+constexpr std::string_view kPowerupWorld = "POWERUP.WDB";
 constexpr std::string_view kEmitterLibrary = "EMITTER";
 
 const std::string* NameAt(const std::vector<std::string>& names, std::int32_t index) {
@@ -55,7 +56,12 @@ Result<void> AddEntity(const assets::Vfs& vfs, const assets::WorldAsset& world,
     if (model == nullptr) {
         return {};
     }
-    EffectModelFiles files{.geometry = *model, .jointed = std::nullopt};
+    EffectModelFiles files{.geometry = *model,
+                           .jointed = std::nullopt,
+                           .placement = {.position = entity.position,
+                                         .rotation = sim::ToQuaternion(
+                                             sim::OrthonormalBasis(entity.forward, entity.up))},
+                           .scroll = entity.textureScroll.value_or(assets::TextureScroll{})};
     if (const std::string* node = NameAt(world.sceneNodes, lod.sceneNode)) {
         Result<JointedAssets> jointed = LoadJointed(vfs, *node, *node);
         if (!jointed) {
@@ -81,22 +87,27 @@ Result<void> AddEntities(const assets::Vfs& vfs, const assets::WorldAsset& world
 
 }
 
-Result<PowerupAssets> LoadPowerupAssets(const assets::Vfs& vfs, assets::TrackLoader& loader) {
-    Result<assets::WorldAsset> world =
-        vfs.Read(kPowerupWorld).and_then([](const assets::FileData& data) {
-            return assets::ParseWorld(data.Bytes());
-        });
-    if (!world) {
-        return std::unexpected(std::move(world.error()));
+Result<PowerupAssets> LoadEffectAssets(const assets::Vfs& vfs, assets::TrackLoader& loader,
+                                       std::string_view world) {
+    Result<assets::WorldAsset> parsed = vfs.Read(std::format("{}/{}", kCommonFolder, world))
+                                            .and_then([](const assets::FileData& data) {
+                                                return assets::ParseWorld(data.Bytes());
+                                            });
+    if (!parsed) {
+        return std::unexpected(std::move(parsed.error()));
     }
     PowerupAssets out;
-    return loader.LoadModels(kCommonFolder, FilesOf(*world))
+    return loader.LoadModels(kCommonFolder, FilesOf(*parsed))
         .and_then([&](assets::TrackAssets models) {
             out.models = std::move(models);
-            return AddEntities(vfs, *world, world->modelEntities, out);
+            return AddEntities(vfs, *parsed, parsed->modelEntities, out);
         })
-        .and_then([&] { return AddEntities(vfs, *world, world->animatedEntities, out); })
+        .and_then([&] { return AddEntities(vfs, *parsed, parsed->animatedEntities, out); })
         .transform([&] { return std::move(out); });
+}
+
+Result<PowerupAssets> LoadPowerupAssets(const assets::Vfs& vfs, assets::TrackLoader& loader) {
+    return LoadEffectAssets(vfs, loader, kPowerupWorld);
 }
 
 Result<EffectModels> UploadPowerupModels(render::Renderer& renderer, const PowerupAssets& assets) {
@@ -113,7 +124,9 @@ Result<EffectModels> UploadPowerupModels(render::Renderer& renderer, const Power
         }
         models.emplace(name,
                        EffectModel{.draws = FollowJoints(*geometry->second, std::move(*draws)),
-                                   .jointed = files.jointed ? &*files.jointed : nullptr});
+                                   .jointed = files.jointed ? &*files.jointed : nullptr,
+                                   .placement = files.placement,
+                                   .scroll = files.scroll});
     }
     return models;
 }

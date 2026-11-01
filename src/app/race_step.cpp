@@ -53,6 +53,7 @@ void SnapshotEffects(const sim::PowerupSystem& powerups, std::span<const sim::Ha
              .kind = effect.kind,
              .use = effect.use,
              .phase = progress.phase,
+             .phaseLeftMs = static_cast<float>(progress.phaseTime.count()),
              .isHoldingRacer = progress.isHoldingRacer,
              .transform = TransformToEngine(effect.effect->Pose()),
              .hazardSource = hazard ? std::optional(ToEngine(aims[*hazard].source)) : std::nullopt,
@@ -99,7 +100,8 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
                               .turnRadius = racer.Body().turnRadius,
                               .hitReactions = racer.Status().hitReactions,
                               .heldColour = inventory.Colour(),
-                              .whiteCount = static_cast<std::uint8_t>(inventory.WhiteCount())});
+                              .whiteCount = static_cast<std::uint8_t>(inventory.WhiteCount()),
+                              .isGhost = racer.Status().isGhost});
     }
     SnapshotBricks(session.Bricks(), out);
     SnapshotEffects(session.Powerups(), session.TrackHazards().Aims(), out);
