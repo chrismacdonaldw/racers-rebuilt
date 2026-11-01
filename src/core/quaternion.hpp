@@ -36,6 +36,10 @@ struct Quaternion {
     return (a.w * b.w) + (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
 }
 
+[[nodiscard]] constexpr Quaternion Conjugate(const Quaternion& q) {
+    return {.w = q.w, .x = -q.x, .y = -q.y, .z = -q.z};
+}
+
 /// `rotation` must be unit length.
 [[nodiscard]] constexpr Vector3 Rotate(const Quaternion& rotation, const Vector3& v) {
     const Vector3 axis{.x = rotation.x, .y = rotation.y, .z = rotation.z};

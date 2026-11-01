@@ -143,6 +143,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                        .racers = std::move(*racers),
                        .bricks = std::move(*bricks),
                        .powerups = LoadPowerupModels(renderer, vfs, loader),
+                       .warpTube = WarpTube::Load(renderer, vfs, loader),
                        .camera = TrackCamera(model->bounds),
                        .raceTrack = std::move(raceTrack),
                        .entityDraws = std::move(entityDraws),
@@ -287,12 +288,21 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     }
     powerupQuads_.Update(interpolated, camera.transform, elapsedMs);
     quads_.insert(quads_.end(), powerupQuads_.Quads().begin(), powerupQuads_.Quads().end());
-    Result<void> drawn = parts_.renderer->Draw(
-        {.camera = camera,
-         .meshes = draws_,
-         .quads = quads_,
-         .lines = debugLines_,
-         .sprites = hud_.Draw(parts_.session, interpolated.racers[kPlayerSlot], PauseFocus())});
+    render::RenderView view{
+        .camera = camera,
+        .meshes = draws_,
+        .quads = quads_,
+        .lines = debugLines_,
+        .sprites = hud_.Draw(parts_.session, interpolated.racers[kPlayerSlot], PauseFocus())};
+    const sim::EffectSnapshot* flight = FindWarpFlight(interpolated.effects, kPlayerSlot);
+    if (flight != nullptr && parts_.warpTube) {
+        parts_.warpTube->Fly(flight->phaseLeftMs, interpolated.entities[kPlayerSlot].transform,
+                             parts_.racers.SlotDraws(kPlayerSlot));
+        view = {.camera = WarpFlightCamera(parts_.camera, flight->phaseLeftMs),
+                .meshes = parts_.warpTube->Draws(),
+                .sprites = view.sprites};
+    }
+    Result<void> drawn = parts_.renderer->Draw(view);
     if (!drawn) {
         log::Error("{}", drawn.error().message);
         return;

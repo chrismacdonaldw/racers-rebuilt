@@ -70,5 +70,19 @@ TEST_CASE("effects blend by slot unless they started this tick") {
     CHECK(out.effects[1].transform.position.x == doctest::Approx(5.0F));
 }
 
+TEST_CASE("an effect's time left blends within a phase and jumps to a new one") {
+    const RenderSnapshot previous{.effects = {{.slot = 1, .phase = 2, .phaseLeftMs = 100.0F},
+                                              {.slot = 2, .phase = 1, .phaseLeftMs = 10.0F}}};
+    const RenderSnapshot current{.effects = {{.slot = 1, .phase = 2, .phaseLeftMs = 88.0F},
+                                             {.slot = 2, .phase = 2, .phaseLeftMs = 1500.0F}}};
+    RenderSnapshot out;
+
+    Interpolate(previous, current, 0.5F, out);
+
+    REQUIRE(out.effects.size() == 2);
+    CHECK(out.effects[0].phaseLeftMs == doctest::Approx(94.0F));
+    CHECK(out.effects[1].phaseLeftMs == 1500.0F);
+}
+
 }
 }

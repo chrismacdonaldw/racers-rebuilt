@@ -41,6 +41,7 @@ add_executable(racers-rebuilt-tests
     app/powerup/powerup_quads_test.cpp
     app/powerup/powerup_sounds_test.cpp
     app/powerup/powerup_visuals_test.cpp
+    app/powerup/warp_tube_test.cpp
     app/positional_sound_test.cpp
     app/quad_shapes_test.cpp
     app/race_audio_test.cpp

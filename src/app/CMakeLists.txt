@@ -56,6 +56,7 @@ rr_add_module(app
         powerup/powerup_quads.cpp
         powerup/powerup_sounds.cpp
         powerup/powerup_visuals.cpp
+        powerup/warp_tube.cpp
         powerup_tools.cpp
         quad_shapes.cpp
         race_audio.cpp
