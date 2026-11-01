@@ -39,6 +39,7 @@ private:
         sim::PowerupUse use;
         std::optional<std::uint8_t> phase;
         std::vector<Posed> models;
+        float ageMs = 0.0F;
         bool isLive = false;
         bool wasLive = false;
     };
@@ -46,7 +47,7 @@ private:
     [[nodiscard]] Instance& InstanceFor(const sim::EffectSnapshot& effect);
     void Start(Instance& instance, const sim::EffectSnapshot& effect);
     static void Animate(Instance& instance, std::uint8_t phase, float elapsedMs);
-    void Place(Posed& posed, const Transform& engine, float scale);
+    void Place(Posed& posed, const Transform& engine, float scale, float ageMs);
     void PlaceExplosion(const sim::ExplosionSnapshot& explosion);
 
     const EffectModels* models_;

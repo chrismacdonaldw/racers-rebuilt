@@ -123,12 +123,13 @@ void PowerupVisuals::Update(const sim::RenderSnapshot& snapshot, float elapsedMs
     }
     for (const sim::EffectSnapshot& effect : snapshot.effects) {
         Instance& instance = InstanceFor(effect);
+        instance.ageMs += elapsedMs;
         Animate(instance, effect.phase, elapsedMs);
         if (IsShown(effect, snapshot.racers)) {
             for (Posed& posed : instance.models) {
                 const Look look = LookOf(effect, posed.part);
                 const std::size_t first = draws_.size();
-                Place(posed, effect.transform, look.scale);
+                Place(posed, effect.transform, look.scale, instance.ageMs);
                 if (look.alpha < 1.0F) {
                     Fade(std::span(draws_).subspan(first), look.alpha);
                 }
@@ -157,6 +158,7 @@ void PowerupVisuals::Start(Instance& instance, const sim::EffectSnapshot& effect
     instance.use = effect.use;
     instance.phase.reset();
     instance.models.clear();
+    instance.ageMs = 0.0F;
     const ModelNames names = NamesFor(effect.kind, effect.use.level);
     for (std::size_t part = 0; part < names.size(); ++part) {
         const auto found = names[part].empty() ? models_->end() : models_->find(names[part]);
@@ -195,8 +197,9 @@ void PowerupVisuals::Animate(Instance& instance, std::uint8_t phase, float elaps
     }
 }
 
-void PowerupVisuals::Place(Posed& posed, const Transform& engine, float scale) {
+void PowerupVisuals::Place(Posed& posed, const Transform& engine, float scale, float ageMs) {
     const ModelDraws& model = posed.model->draws;
+    const render::UvOffset scrolled = ScrolledBy(posed.model->scroll, ageMs);
     const Transform game = Compose(TransformToGame(engine), posed.offset);
     const std::span<const Transform> nodes =
         posed.pose ? posed.pose->Solve() : std::span<const Transform>{};
@@ -211,6 +214,7 @@ void PowerupVisuals::Place(Posed& posed, const Transform& engine, float scale) {
             draw.transform = TransformToEngine(game);
         }
         draw.scale *= scale;
+        draw.material.uvOffset = scrolled;
         draws_.push_back(draw);
     }
 }
@@ -223,7 +227,7 @@ void PowerupVisuals::PlaceExplosion(const sim::ExplosionSnapshot& explosion) {
         return;
     }
     Posed posed{.model = &found->second};
-    Place(posed, explosion.transform, explosion.growth);
+    Place(posed, explosion.transform, explosion.growth, 0.0F);
 }
 
 }

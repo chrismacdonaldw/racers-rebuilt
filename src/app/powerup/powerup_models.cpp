@@ -1,5 +1,6 @@
 #include "app/powerup/powerup_models.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <format>
 #include <span>
@@ -21,6 +22,11 @@ namespace {
 constexpr std::string_view kCommonFolder = "GAMEDATA/COMMON";
 constexpr std::string_view kPowerupWorld = "POWERUP.WDB";
 constexpr std::string_view kEmitterLibrary = "EMITTER";
+constexpr float kMsPerSecond = 1000.0F;
+
+float Wrapped(float offset) {
+    return offset - std::floor(offset);
+}
 
 const std::string* NameAt(const std::vector<std::string>& names, std::int32_t index) {
     return index >= 0 && static_cast<std::size_t>(index) < names.size()
@@ -129,6 +135,11 @@ Result<EffectModels> UploadPowerupModels(render::Renderer& renderer, const Effec
                                    .scroll = files.scroll});
     }
     return models;
+}
+
+render::UvOffset ScrolledBy(const assets::TextureScroll& scroll, float elapsedMs) {
+    const float seconds = elapsedMs / kMsPerSecond;
+    return {.u = Wrapped(scroll.uPerSecond * seconds), .v = Wrapped(scroll.vPerSecond * seconds)};
 }
 
 PowerupModelSet LoadPowerupModels(render::Renderer& renderer, const assets::Vfs& vfs,

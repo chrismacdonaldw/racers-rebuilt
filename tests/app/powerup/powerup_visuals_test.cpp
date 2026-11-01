@@ -68,6 +68,12 @@ EffectModel Static() {
             .jointed = nullptr};
 }
 
+EffectModel Scrolling(assets::TextureScroll scroll) {
+    EffectModel model = Static();
+    model.scroll = scroll;
+    return model;
+}
+
 EffectModel Jointed(const JointedAssets& jointed) {
     return {
         .draws = {.draws = std::vector<render::MeshDraw>(1), .joints = {0}, .scale = kModelScale},
@@ -116,6 +122,18 @@ TEST_CASE("a power-up model's animation runs on from frame to frame") {
     visuals.Update(WithEffect(sim::PowerupKind::Shield, {}), 100.0F);
 
     CheckNear(GamePosition(visuals.Draws()[0]), kAt + Vector3{.x = 6.0F});
+}
+
+TEST_CASE("a shield's texture scrolls from when it's raised") {
+    const EffectModels models{{"SHIELD0", Scrolling({.vPerSecond = 4.0F})},
+                              {"SHLDIN0", Scrolling({.uPerSecond = -0.5F})}};
+    PowerupVisuals visuals(models);
+
+    visuals.Update(WithEffect(sim::PowerupKind::Shield, {}), 125.0F);
+    visuals.Update(WithEffect(sim::PowerupKind::Shield, {}), 250.0F);
+
+    CHECK(visuals.Draws()[0].material.uvOffset.v == doctest::Approx(0.5F));
+    CHECK(visuals.Draws()[1].material.uvOffset.u == doctest::Approx(0.8125F));
 }
 
 TEST_CASE("a turbo's flames fire up, sustain and die out with its phases") {

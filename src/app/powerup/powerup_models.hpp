@@ -47,6 +47,9 @@ struct EffectModel {
 
 using EffectModels = assets::NameMap<EffectModel>;
 
+/// Wraps to [0, 1), as the original's 16-bit offsets do.
+[[nodiscard]] render::UvOffset ScrolledBy(const assets::TextureScroll& scroll, float elapsedMs);
+
 /// `assets` must outlive the models.
 [[nodiscard]] Result<EffectModels> UploadPowerupModels(render::Renderer& renderer,
                                                        const EffectAssets& assets);
