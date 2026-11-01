@@ -40,6 +40,8 @@ rr_add_module(app
         orbiting_cube.cpp
         pace_car.cpp
         positional_sound.cpp
+        powerup/powerup_models.cpp
+        powerup/powerup_visuals.cpp
         powerup_tools.cpp
         race_audio.cpp
         race_music.cpp

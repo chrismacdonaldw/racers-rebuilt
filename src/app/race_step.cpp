@@ -46,9 +46,22 @@ void SnapshotEffects(const sim::PowerupSystem& powerups, sim::RenderSnapshot& ou
         out.effects.push_back({.slot = slot,
                                .kind = effect.kind,
                                .use = effect.use,
+                               .phase = effect.effect->Progress().phase,
                                .transform = TransformToEngine(effect.effect->Pose()),
                                .flags = HasStarted(powerups, slot) ? sim::SnapshotFlags::Teleported
                                                                    : sim::SnapshotFlags::None});
+    }
+}
+
+void SnapshotExplosions(const sim::Explosions& pool, sim::ExplosionKind kind,
+                        sim::RenderSnapshot& out) {
+    for (const sim::Explosion& explosion : pool.All()) {
+        if (explosion.phase == sim::ExplosionPhase::Exploding) {
+            out.explosions.push_back(
+                {.kind = kind,
+                 .transform = TransformToEngine({.position = explosion.position}),
+                 .scale = explosion.growth});
+        }
     }
 }
 
@@ -80,6 +93,9 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
     }
     SnapshotBricks(session.Bricks(), out);
     SnapshotEffects(session.Powerups(), out);
+    out.explosions.clear();
+    SnapshotExplosions(session.Blasts(), sim::ExplosionKind::Blast, out);
+    SnapshotExplosions(session.Spikes(), sim::ExplosionKind::Spike, out);
     out.simStateHash = sim::HashRaceSession(session);
 }
 

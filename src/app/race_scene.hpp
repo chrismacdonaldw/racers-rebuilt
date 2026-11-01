@@ -12,6 +12,8 @@
 #include "app/chase_camera.hpp"
 #include "app/hud/race_hud_layer.hpp"
 #include "app/menu/pause_menu.hpp"
+#include "app/powerup/powerup_models.hpp"
+#include "app/powerup/powerup_visuals.hpp"
 #include "app/race_audio.hpp"
 #include "app/racer/racer_grid.hpp"
 #include "app/racer_effect_tools.hpp"
@@ -72,6 +74,7 @@ public:
     [[nodiscard]] SceneMusic Music() const override;
 
 private:
+    // NOLINTNEXTLINE(bugprone-exception-escape)
     struct Parts {
         render::Renderer* renderer = nullptr;
         const assets::Vfs* vfs = nullptr;
@@ -79,6 +82,7 @@ private:
         std::vector<render::MeshDraw> trackDraws;
         RacerGrid racers;
         BrickModels bricks;
+        PowerupModelSet powerups;
         render::Camera camera;
         std::unique_ptr<sim::RaceTrack> raceTrack;
         std::unique_ptr<sim::WorldList> world;
@@ -98,6 +102,7 @@ private:
     void DrawDebugLines();
 
     Parts parts_;
+    PowerupVisuals powerupVisuals_;
     ChaseCamera chase_;
     RaceHudLayer hud_;
     PauseMenu pause_;

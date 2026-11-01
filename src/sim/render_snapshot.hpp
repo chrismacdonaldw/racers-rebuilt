@@ -65,10 +65,21 @@ struct EffectSnapshot {
     std::uint16_t slot = 0;
     PowerupKind kind = PowerupKind::Cannonball;
     PowerupUse use;
+    std::uint8_t phase = 0;
     Transform transform;
     SnapshotFlags flags = SnapshotFlags::None;
 
     friend bool operator==(const EffectSnapshot&, const EffectSnapshot&) = default;
+};
+
+enum class ExplosionKind : std::uint8_t { Blast, Spike };
+
+struct ExplosionSnapshot {
+    ExplosionKind kind = ExplosionKind::Blast;
+    Transform transform;
+    float scale = 0.0F;
+
+    friend bool operator==(const ExplosionSnapshot&, const ExplosionSnapshot&) = default;
 };
 
 /// `entities` stays sorted by id. Reuse a snapshot between ticks so its storage isn't reallocated.
@@ -78,6 +89,7 @@ struct RenderSnapshot {
     std::vector<RacerSnapshot> racers;
     std::vector<BrickSnapshot> bricks;
     std::vector<EffectSnapshot> effects;
+    std::vector<ExplosionSnapshot> explosions;
     CameraSnapshot camera;
     std::uint64_t simStateHash = 0;
 

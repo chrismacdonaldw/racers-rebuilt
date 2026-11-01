@@ -51,6 +51,7 @@ void Interpolate(const RenderSnapshot& previous, const RenderSnapshot& current, 
             effect.transform = Blend(before->transform, effect.transform, effect.flags, alpha);
         }
     }
+    out.explosions.assign(current.explosions.begin(), current.explosions.end());
     out.camera = current.camera;
     out.simStateHash = current.simStateHash;
     out.camera.transform =

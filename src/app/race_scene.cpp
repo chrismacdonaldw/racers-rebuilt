@@ -183,22 +183,25 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     if (!audio) {
         log::Warn("{}, racing in silence", audio.error().message);
     }
-    return std::unique_ptr<RaceScene>(new RaceScene({.renderer = &renderer,
-                                                     .vfs = &vfs,
-                                                     .setup = setup,
-                                                     .trackDraws = std::move(model->draws),
-                                                     .racers = std::move(*racers),
-                                                     .bricks = std::move(*bricks),
-                                                     .camera = TrackCamera(model->bounds),
-                                                     .raceTrack = std::move(raceTrack),
-                                                     .world = std::move(world),
-                                                     .session = std::move(*session),
-                                                     .audio = std::move(audio).value_or(nullptr),
-                                                     .started = started}));
+    return std::unique_ptr<RaceScene>(
+        new RaceScene({.renderer = &renderer,
+                       .vfs = &vfs,
+                       .setup = setup,
+                       .trackDraws = std::move(model->draws),
+                       .racers = std::move(*racers),
+                       .bricks = std::move(*bricks),
+                       .powerups = LoadPowerupModels(renderer, vfs, loader),
+                       .camera = TrackCamera(model->bounds),
+                       .raceTrack = std::move(raceTrack),
+                       .world = std::move(world),
+                       .session = std::move(*session),
+                       .audio = std::move(audio).value_or(nullptr),
+                       .started = started}));
 }
 
 RaceScene::RaceScene(Parts parts)
     : parts_(std::move(parts)),
+      powerupVisuals_(parts_.powerups.models),
       chase_(PlayerCar()),
       hud_(*parts_.renderer, *parts_.vfs, kPlayerSlot,
            NameIndexes(parts_.racers, parts_.session.Racers().size())),
@@ -294,11 +297,14 @@ void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
 }
 
 void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
-    parts_.racers.Update(interpolated.entities, interpolated.racers, MsSince(lastRender_));
+    const float elapsedMs = MsSince(lastRender_);
+    parts_.racers.Update(interpolated.entities, interpolated.racers, elapsedMs);
     draws_.resize(parts_.trackDraws.size() + parts_.racers.Draws().size());
     std::ranges::copy(parts_.racers.Draws(),
                       draws_.begin() + static_cast<std::ptrdiff_t>(parts_.trackDraws.size()));
     parts_.bricks.AppendDraws(interpolated.bricks, draws_);
+    powerupVisuals_.Update(interpolated, elapsedMs);
+    draws_.insert(draws_.end(), powerupVisuals_.Draws().begin(), powerupVisuals_.Draws().end());
     render::Camera camera = parts_.camera;
     camera.transform = interpolated.camera.transform;
     DrawDebugLines();
