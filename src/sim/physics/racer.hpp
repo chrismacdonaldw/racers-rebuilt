@@ -36,6 +36,14 @@ struct RacerEvents {
     bool hasWarpLanded = false;
 };
 
+struct ShieldStatus {
+    std::optional<std::uint8_t> level;
+    std::uint32_t raised = 0;
+    std::uint32_t absorbs = 0;
+    std::uint8_t absorbSound = 0;
+    int cooldownMs = 0;
+};
+
 struct RacerStatus {
     bool isHalted = false;
     bool isMagnetHeld = false;
@@ -45,6 +53,9 @@ struct RacerStatus {
     int curseMs = 0;
     CurseJitter jitter;
     std::uint32_t hitReactions = 0;
+    ShieldStatus shield;
+    std::optional<std::size_t> shoveForce;
+    int shoveMs = 0;
 };
 
 class Racer {
@@ -101,6 +112,16 @@ public:
     /// Off a route, sets the car down at `position` and launches it along `direction`.
     void LandWarp(const Vector3& position, const Vector3& direction);
 
+    /// Replaces any shield already up, and lifts a curse.
+    void RaiseShield(std::uint8_t level);
+    void LowerShield();
+
+    /// Rolls the absorb sound from `random`, unless an absorb in the last 500 ms already did.
+    void AbsorbShieldHit(Random& random);
+
+    /// Pushes with `force` for 750 ms. Does nothing while a shove runs or no force slot is free.
+    void Shove(const Vector3& force);
+
     /// Runs before each `Tick`, drawing from `random` while cursed.
     void RollCurse(Milliseconds elapsed, Random& random);
 
@@ -108,6 +129,7 @@ public:
     void UpdateTimers(Milliseconds elapsed);
 
     [[nodiscard]] bool IsSpinning() const;
+    [[nodiscard]] bool IsShielded() const { return status_.shield.level.has_value(); }
     [[nodiscard]] const RacerStatus& Status() const { return status_; }
 
     /// From now on the racer replays `route` from its start, ignoring controls and the world.
@@ -122,6 +144,8 @@ public:
     [[nodiscard]] Transform Pose() const;
 
     [[nodiscard]] const BodyState& Body() const { return body_; }
+
+    [[nodiscard]] Vector3 CentreOfMass() const;
 
     [[nodiscard]] const DriverState& Driver() const { return driver_.State(); }
 

@@ -182,6 +182,10 @@ bool Racer::HasHoverStalled() const {
     return !route_ && status_.isHalted && body_.derived.isAtRest && CanFadeEarly(*turbo_);
 }
 
+Vector3 Racer::CentreOfMass() const {
+    return CentreOfMassWorld(body_.motion, constants_);
+}
+
 Transform Racer::Pose() const {
     const Basis& basis = body_.motion.basis;
     const float bank = body_.hover.lift.bank;

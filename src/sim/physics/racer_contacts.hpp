@@ -4,6 +4,7 @@
 #include <span>
 #include <vector>
 
+#include "core/vector3.hpp"
 #include "sim/physics/body_state.hpp"
 #include "sim/physics/box_contact.hpp"
 #include "sim/physics/chassis.hpp"
@@ -24,15 +25,25 @@ struct ContactBody {
 void RespondToContact(const ContactBody& first, const ContactBody& second,
                       const BoxContact& contact);
 
+struct RacerContact {
+    std::size_t first = 0;
+    std::size_t second = 0;
+    Vector3 point;
+};
+
 /// Run once per tick after every racer has stepped. Bodies must keep their index between ticks.
 class RacerContacts {
 public:
     void Resolve(std::span<const ContactBody> bodies);
 
+    /// The pairs the last `Resolve` responded to, as indices into its bodies.
+    [[nodiscard]] std::span<const RacerContact> Contacts() const { return contacts_; }
+
 private:
     void SortByMinX(std::span<const ContactBody> bodies);
 
     std::vector<std::size_t> order_;
+    std::vector<RacerContact> contacts_;
 };
 
 }

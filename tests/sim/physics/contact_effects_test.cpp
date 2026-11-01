@@ -1,0 +1,189 @@
+#include "sim/physics/contact_effects.hpp"
+
+#include <doctest/doctest.h>
+
+#include <cstdint>
+#include <optional>
+
+#include "sim/ai/straight_route.hpp"
+#include "sim/physics/racer.hpp"
+
+namespace rr::sim {
+namespace {
+
+constexpr ChassisSpec kNeutralChassis{.handling = 50, .topSpeed = 50, .acceleration = 50};
+constexpr Vector3 kBeside{.y = 5.0F, .z = 0.2F};
+constexpr Vector3 kAhead{.x = 5.0F, .z = 0.2F};
+constexpr Milliseconds kShove{750};
+
+Racer RacerAt(const Vector3& position) {
+    return {kNeutralChassis, {}, {.position = position}};
+}
+
+Racer ShieldedAt(const Vector3& position, std::uint8_t level) {
+    Racer racer = RacerAt(position);
+    racer.RaiseShield(level);
+    return racer;
+}
+
+Vector3 PointBetween(const Racer& first, const Racer& second) {
+    return second.CentreOfMass() -
+           ((second.Body().motion.position - first.Body().motion.position) * 0.5F);
+}
+
+void Touch(Racer& first, Racer& second) {
+    ApplyContactEffects(first, second, PointBetween(first, second));
+}
+
+bool IsShoved(const Racer& racer) {
+    return racer.Body().externalForces[0].has_value();
+}
+
+bool IsLeftAlone(const Racer& racer) {
+    return !IsShoved(racer) && !racer.IsSpinning();
+}
+
+int SpinMs(const Racer& racer) {
+    return racer.IsSpinning() ? racer.Body().impulses.yawMs : 0;
+}
+
+TEST_CASE("a level 0 shield does nothing to the racer it touches") {
+    Racer shielded = ShieldedAt({}, 0);
+    Racer other = RacerAt(kBeside);
+
+    Touch(shielded, other);
+
+    CHECK(IsLeftAlone(other));
+}
+
+TEST_CASE("a level 1 shield shoves a racer it meets side on for 750 ms") {
+    Racer shielded = ShieldedAt({}, 1);
+    Racer other = RacerAt(kBeside);
+
+    Touch(shielded, other);
+
+    const Vector3 force = other.Body().externalForces[0].value_or(Vector3{});
+    CHECK(force.x == doctest::Approx(0.0F));
+    CHECK(force.y > 0.0F);
+    CHECK(other.Body().steering.isSteering);
+    CHECK(other.Body().steering.gain == 2.5F);
+    CHECK(other.Status().shoveMs == 750);
+    CHECK_FALSE(IsShoved(shielded));
+
+    other.UpdateTimers(kShove - Milliseconds{12});
+    CHECK(IsShoved(other));
+    other.UpdateTimers(Milliseconds{12});
+    CHECK_FALSE(IsShoved(other));
+    CHECK_FALSE(other.Status().shoveForce.has_value());
+}
+
+TEST_CASE("a level 1 shield doesn't shove a racer it meets nose to tail") {
+    Racer shielded = ShieldedAt({}, 1);
+    Racer other = RacerAt(kAhead);
+
+    Touch(shielded, other);
+
+    CHECK_FALSE(IsShoved(other));
+}
+
+TEST_CASE("a second shove waits for the first to end") {
+    Racer shielded = ShieldedAt({}, 1);
+    Racer other = RacerAt(kBeside);
+    Touch(shielded, other);
+
+    Touch(shielded, other);
+
+    CHECK(IsShoved(other));
+    CHECK_FALSE(other.Body().externalForces[1].has_value());
+}
+
+TEST_CASE("a level 2 shield spins the other racer 1 turn and level 3 spins it 2") {
+    Racer weaker = ShieldedAt({}, 2);
+    Racer stronger = ShieldedAt({}, 3);
+    Racer spunOnce = RacerAt(kBeside);
+    Racer spunTwice = RacerAt(kBeside);
+
+    Touch(weaker, spunOnce);
+    Touch(stronger, spunTwice);
+
+    CHECK(SpinMs(spunOnce) == 698);
+    CHECK(SpinMs(spunTwice) == 1396);
+    CHECK_FALSE(weaker.IsSpinning());
+    CHECK_FALSE(stronger.IsSpinning());
+}
+
+TEST_CASE("the second racer's shield acts on the first") {
+    Racer first = RacerAt({});
+    Racer shielded = ShieldedAt(kBeside, 3);
+
+    Touch(first, shielded);
+
+    CHECK(SpinMs(first) == 1396);
+    CHECK_FALSE(shielded.IsSpinning());
+}
+
+TEST_CASE("two shielded racers leave each other alone") {
+    for (std::uint8_t level = 1; level <= 3; ++level) {
+        CAPTURE(level);
+        Racer first = ShieldedAt({}, level);
+        Racer second = ShieldedAt(kBeside, level);
+
+        Touch(first, second);
+
+        CHECK(IsLeftAlone(first));
+        CHECK(IsLeftAlone(second));
+    }
+}
+
+TEST_CASE("a level 1 shield pushes a racer on a route") {
+    Racer shielded = ShieldedAt({}, 1);
+    Racer other = RacerAt({});
+    other.FollowRoute(test::StraightRoute(kBeside));
+
+    Touch(shielded, other);
+
+    CHECK(other.Route().transform([](const AiRacer& route) { return route.Effects().isPushed; }) ==
+          std::optional(true));
+}
+
+TEST_CASE("a curse passes to an unshielded racer with the time it has left") {
+    Racer cursed = RacerAt({});
+    cursed.AttachCurse(Milliseconds{10'000});
+    cursed.UpdateTimers(Milliseconds{4000});
+    Racer other = RacerAt(kBeside);
+
+    Touch(other, cursed);
+
+    CHECK_FALSE(cursed.Status().isCursed);
+    CHECK(other.Status().isCursed);
+    CHECK(other.Status().curseMs == 6000);
+}
+
+TEST_CASE("a shield blocks a curse passed by contact") {
+    for (std::uint8_t level = 0; level <= 3; ++level) {
+        CAPTURE(level);
+        Racer cursed = RacerAt({});
+        cursed.AttachCurse(Milliseconds{10'000});
+        Racer shielded = ShieldedAt(kBeside, level);
+
+        Touch(cursed, shielded);
+
+        CHECK(cursed.Status().isCursed);
+        CHECK_FALSE(shielded.Status().isCursed);
+    }
+}
+
+TEST_CASE("a curse doesn't pass to a racer that is already cursed") {
+    Racer first = RacerAt({});
+    first.AttachCurse(Milliseconds{10'000});
+    Racer second = RacerAt(kBeside);
+    second.AttachCurse(Milliseconds{2000});
+
+    Touch(first, second);
+
+    CHECK(first.Status().curseMs == 10'000);
+    CHECK(second.Status().curseMs == 2000);
+}
+
+}
+}

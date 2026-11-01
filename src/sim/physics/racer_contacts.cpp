@@ -74,6 +74,7 @@ void RespondToContact(const ContactBody& first, const ContactBody& second,
 
 void RacerContacts::Resolve(std::span<const ContactBody> bodies) {
     SortByMinX(bodies);
+    contacts_.clear();
     for (std::size_t i = 0; i < order_.size(); ++i) {
         const ContactBody& first = bodies[order_[i]];
         for (std::size_t j = i + 1; j < order_.size(); ++j) {
@@ -88,6 +89,8 @@ void RacerContacts::Resolve(std::span<const ContactBody> bodies) {
                 BoxOf(*first.body, *first.constants), BoxOf(*second.body, *second.constants));
             if (contact) {
                 RespondToContact(first, second, *contact);
+                contacts_.push_back(
+                    {.first = order_[i], .second = order_[j], .point = contact->point});
             }
         }
     }
@@ -97,6 +100,7 @@ void RacerContacts::SortByMinX(std::span<const ContactBody> bodies) {
     if (order_.size() != bodies.size()) {
         order_.resize(bodies.size());
         std::ranges::iota(order_, std::size_t{0});
+        contacts_.reserve(bodies.size() * bodies.size() / 2);
     }
     for (std::size_t i = 1; i < order_.size(); ++i) {
         const std::size_t moving = order_[i];

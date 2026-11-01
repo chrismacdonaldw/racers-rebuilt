@@ -16,6 +16,7 @@ rr_add_module(sim
         physics/box_contact.cpp
         physics/car_body.cpp
         physics/chassis.cpp
+        physics/contact_effects.cpp
         physics/collision_query.cpp
         physics/curse_jitter.cpp
         physics/drive_controller.cpp
@@ -39,6 +40,7 @@ rr_add_module(sim
         powerup/powerup_system.cpp
         powerup/turbo_effect.cpp
         powerup/warp_effect.cpp
+        powerup/shield_effect.cpp
         race/checkpoint_graph.cpp
         race/lap_tracker.cpp
         race/race_clock.cpp

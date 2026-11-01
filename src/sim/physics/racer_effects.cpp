@@ -1,3 +1,8 @@
+#include <algorithm>
+#include <numbers>
+#include <optional>
+#include <utility>
+
 #include "sim/physics/body_effects.hpp"
 #include "sim/physics/facing.hpp"
 #include "sim/physics/racer.hpp"
@@ -7,6 +12,15 @@ namespace rr::sim {
 namespace {
 
 constexpr float kWarpLaunchImpulse = 700.0F;
+constexpr std::uint32_t kAbsorbSounds = 3;
+constexpr int kShieldCooldownMs = 500;
+constexpr int kShoveMs = 750;
+constexpr float kShoveGain = 2.5F;
+constexpr float kShoveSlip = 0.9F;
+
+int CountDown(int remainingMs, int elapsedMs) {
+    return std::max(0, remainingMs - elapsedMs);
+}
 
 }
 
@@ -158,6 +172,8 @@ void Racer::EnterWarp() {
         for (std::size_t slot = 0; slot < kExternalForceSlots; ++slot) {
             sim::EndExternalForce(body_, slot);
         }
+        status_.shoveForce.reset();
+        status_.shoveMs = 0;
     }
     events_.hasWarpEntered = true;
 }
@@ -181,6 +197,42 @@ void Racer::LandWarp(const Vector3& position, const Vector3& direction) {
     events_.hasWarpLanded = true;
 }
 
+void Racer::RaiseShield(std::uint8_t level) {
+    status_.shield.level = level;
+    ++status_.shield.raised;
+    RemoveCurse();
+}
+
+void Racer::LowerShield() {
+    status_.shield.level.reset();
+}
+
+void Racer::AbsorbShieldHit(Random& random) {
+    if (status_.shield.cooldownMs > 0) {
+        return;
+    }
+    status_.shield.absorbSound = static_cast<std::uint8_t>(random.Below(kAbsorbSounds));
+    ++status_.shield.absorbs;
+    status_.shield.cooldownMs = kShieldCooldownMs;
+}
+
+void Racer::Shove(const Vector3& force) {
+    if (status_.shoveMs > 0) {
+        return;
+    }
+    const auto freeForce = std::ranges::find_if(
+        body_.externalForces, [](const std::optional<Vector3>& slot) { return !slot; });
+    if (freeForce == body_.externalForces.end()) {
+        return;
+    }
+    if (!route_) {
+        StartSteering(body_.steering, kShoveGain, kShoveSlip, std::numbers::pi_v<float>);
+    }
+    status_.shoveForce = static_cast<std::size_t>(freeForce - body_.externalForces.begin());
+    status_.shoveMs = kShoveMs;
+    StartExternalForce(*status_.shoveForce, force);
+}
+
 void Racer::RollCurse(Milliseconds elapsed, Random& random) {
     UpdateCurseJitter(status_.jitter, static_cast<int>(elapsed.count()), status_.isCursed, random);
 }
@@ -190,6 +242,13 @@ void Racer::UpdateTimers(Milliseconds elapsed) {
         EndSpinOut(body_);
     }
     const auto elapsedMs = static_cast<int>(elapsed.count());
+    status_.shield.cooldownMs = CountDown(status_.shield.cooldownMs, elapsedMs);
+    if (status_.shoveForce) {
+        status_.shoveMs = CountDown(status_.shoveMs, elapsedMs);
+        if (status_.shoveMs == 0) {
+            EndExternalForce(*std::exchange(status_.shoveForce, std::nullopt));
+        }
+    }
     if (elapsedMs <= status_.curseMs) {
         status_.curseMs -= elapsedMs;
     } else if (status_.isCursed) {
