@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <format>
+#include <optional>
 #include <ranges>
 #include <utility>
 
@@ -33,8 +34,15 @@ Result<RaceCatalog> RaceCatalog::Create(std::vector<CircuitEntry> circuits,
             return Fail(ErrorCode::InvalidData, std::format("race {} names a missing circuit {}",
                                                             races[race].name, *circuit));
         }
-        const auto index = static_cast<std::size_t>(found - circuits.begin());
-        slots[index].at(static_cast<std::size_t>(races[race].position)) = race;
+        std::optional<std::size_t>& slot = slots[static_cast<std::size_t>(found - circuits.begin())]
+                                                [static_cast<std::size_t>(races[race].position)];
+        if (slot) {
+            return Fail(
+                ErrorCode::InvalidData,
+                std::format("races {} and {} share position {} in circuit {}", races[*slot].name,
+                            races[race].name, races[race].position, *circuit));
+        }
+        slot = race;
     }
     return RaceCatalog(std::move(circuits), std::move(races), std::move(slots));
 }

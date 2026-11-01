@@ -5,6 +5,8 @@
 #include <optional>
 #include <span>
 
+#include "sim/race/circuit_run.hpp"
+
 namespace rr::app {
 namespace {
 
@@ -13,6 +15,7 @@ constexpr float kRowHeight = 32.0F;
 constexpr std::size_t kMaxRows = 6;
 constexpr float kRankX = 20.0F;
 constexpr float kNameX = 50.0F;
+constexpr float kPointsX = 450.0F;
 constexpr float kStatusX = 500.0F;
 constexpr float kBehindX = 520.0F;
 
@@ -46,14 +49,46 @@ void ReadResults(const sim::RaceProgress& progress, std::vector<ResultRow>& out)
     }
 }
 
+void ReadCircuitRace(const sim::RaceProgress& progress, std::vector<ResultRow>& out) {
+    ReadResults(progress, out);
+    for (ResultRow& row : out) {
+        row.points = sim::PlacePoints(progress.OfRacer(row.racer).finishPlace);
+    }
+    std::ranges::sort(out, [](const ResultRow& a, const ResultRow& b) {
+        return a.points != b.points ? a.points > b.points : a.racer > b.racer;
+    });
+}
+
+void ReadCircuitTotals(const sim::RaceProgress& progress, std::span<const std::int32_t> before,
+                       std::vector<ResultRow>& out) {
+    out.clear();
+    for (std::size_t racer = 0; racer < progress.Standings().size(); ++racer) {
+        const std::int32_t earlier = racer < before.size() ? before[racer] : 0;
+        out.push_back({.racer = racer,
+                       .status = ResultStatus::None,
+                       .points = earlier + sim::PlacePoints(progress.OfRacer(racer).finishPlace)});
+    }
+    std::ranges::stable_sort(out, std::ranges::greater{},
+                             [](const ResultRow& row) { return row.points.value_or(0); });
+}
+
 void LayoutResults(std::span<const ResultRow> rows, std::span<const std::u16string> names,
-                   const ResultLabels& labels, TextPool& pool, std::vector<HudText>& out) {
+                   const ResultLabels& labels, std::optional<std::size_t> hidden, TextPool& pool,
+                   std::vector<HudText>& out) {
     for (std::size_t rank = 0; rank < std::min(rows.size(), kMaxRows); ++rank) {
         const ResultRow& row = rows[rank];
+        if (row.racer == hidden) {
+            continue;
+        }
         const float y = kTop + (static_cast<float>(rank) * kRowHeight);
         out.push_back({.text = pool.Number(rank + 1), .x = kRankX, .y = y});
         if (row.racer < names.size()) {
             out.push_back({.text = names[row.racer], .x = kNameX, .y = y});
+        }
+        if (row.points) {
+            out.push_back({.text = pool.Number(static_cast<std::size_t>(*row.points)),
+                           .x = kPointsX,
+                           .y = y});
         }
         switch (row.status) {
             case ResultStatus::Winner:
@@ -65,6 +100,8 @@ void LayoutResults(std::span<const ResultRow> rows, std::span<const std::u16stri
                 break;
             case ResultStatus::Racing:
                 out.push_back({.text = labels.stillRacing, .x = kStatusX, .y = y});
+                break;
+            case ResultStatus::None:
                 break;
         }
     }

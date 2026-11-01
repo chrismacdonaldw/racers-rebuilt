@@ -228,6 +228,7 @@ add_executable(racers-rebuilt-tests
     sim/powerup/shot_world_test.cpp
     sim/race/ai_race_test.cpp
     sim/race/checkpoint_graph_test.cpp
+    sim/race/circuit_run_test.cpp
     sim/race/lap_tracker_test.cpp
     sim/race/race_clock_test.cpp
     sim/race/race_progress_test.cpp

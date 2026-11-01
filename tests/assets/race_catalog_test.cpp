@@ -64,6 +64,12 @@ TEST_CASE("a race on a missing circuit fails") {
         RaceCatalog::Create({Circuit("c0", "CR")}, {Race("racec0r1", "c5", 0)}).has_value());
 }
 
+TEST_CASE("two races at one circuit position fail") {
+    CHECK_FALSE(RaceCatalog::Create({Circuit("c0", "CR")},
+                                    {Race("racec0r1", "c0", 2), Race("racec0r3", "c0", 2)})
+                    .has_value());
+}
+
 std::vector<std::string> SlotFolders(const RaceCatalog& catalog, std::string_view circuit) {
     std::vector<std::string> folders;
     for (const std::optional<std::size_t>& race : catalog.RacesOf(*catalog.FindCircuit(circuit))) {
@@ -95,9 +101,23 @@ TEST_CASE("the retail circuits hold the original's races") {
           std::vector<std::string>{"racec0r1", "racec1r0", "racec0r3", "racec0r2"});
     CHECK(SlotFolders(*catalog, "c1") ==
           std::vector<std::string>{"racec1r1", "racec0r0", "racec1r3", "racec1r2"});
+    CHECK(SlotFolders(*catalog, "c2") ==
+          std::vector<std::string>{"racec2r0", "racec2r1", "racec2r2", "racec2r3"});
+    CHECK(SlotFolders(*catalog, "c6") == std::vector<std::string>{"racec3r0", "", "", ""});
+}
+
+TEST_CASE("the retail mirrored circuits replay the first three in reverse") {
+    const std::optional<RaceCatalog> catalog = RetailCatalog();
+    if (!catalog) {
+        return;
+    }
+
+    CHECK(SlotFolders(*catalog, "c3") ==
+          std::vector<std::string>{"racec0r2 M", "racec0r3 M", "racec1r0 M", "racec0r1 M"});
+    CHECK(SlotFolders(*catalog, "c4") ==
+          std::vector<std::string>{"racec1r2 M", "racec1r3 M", "racec0r0 M", "racec1r1 M"});
     CHECK(SlotFolders(*catalog, "c5") ==
           std::vector<std::string>{"racec2r3 M", "racec2r2 M", "racec2r1 M", "racec2r0 M"});
-    CHECK(SlotFolders(*catalog, "c6") == std::vector<std::string>{"racec3r0", "", "", ""});
 }
 
 TEST_CASE("a retail track's home circuit isn't always the one its folder names") {

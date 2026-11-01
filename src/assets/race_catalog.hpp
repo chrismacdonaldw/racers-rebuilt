@@ -20,7 +20,7 @@ using CircuitRaces = std::array<std::optional<std::size_t>, kCircuitRaces>;
 
 class RaceCatalog {
 public:
-    /// Fails when a race names a circuit that doesn't exist.
+    /// Fails when a race names a missing circuit or a position another race holds.
     [[nodiscard]] static Result<RaceCatalog> Create(std::vector<CircuitEntry> circuits,
                                                     std::vector<RaceEntry> races);
     [[nodiscard]] static Result<RaceCatalog> Load(const Vfs& vfs);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <span>
 #include <string>
 #include <string_view>
@@ -27,9 +28,10 @@ public:
     void Tick(const sim::RaceClock& clock, const sim::RaceProgress& progress, std::size_t racer,
               Milliseconds elapsed);
 
-    /// Replaces `out` without allocating once warm. `names` holds one name per racer.
+    /// Replaces `out` without allocating once warm. `circuitPoints` is empty outside a circuit.
     void Layout(const sim::RaceClock& clock, const sim::RaceProgress& progress, std::size_t racer,
-                std::span<const std::u16string> names, std::vector<HudText>& out);
+                std::span<const std::u16string> names, std::span<const std::int32_t> circuitPoints,
+                std::vector<HudText>& out);
 
     /// Appends the pause menu's title and rows, highlighting row `focus`.
     void LayoutPause(std::size_t focus, std::vector<HudText>& out) const;
@@ -42,6 +44,9 @@ private:
                          std::vector<HudText>& out);
     void AddPlace(int place, std::vector<HudText>& out);
     void AddBanner(const BannerView& banner, std::vector<HudText>& out) const;
+    void AddResults(const sim::RaceClock& clock, const sim::RaceProgress& progress,
+                    std::size_t racer, std::span<const std::u16string> names,
+                    std::span<const std::int32_t> circuitPoints, std::vector<HudText>& out);
     [[nodiscard]] std::u16string_view BannerText(HudBanner banner) const;
     [[nodiscard]] HudText Centered(std::u16string_view text, float y, render::Color tint) const;
 
