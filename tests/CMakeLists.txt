@@ -117,6 +117,7 @@ add_executable(racers-rebuilt-tests
     audio/music_catalog_test.cpp
     audio/music_player_test.cpp
     audio/music_source_test.cpp
+    audio/volume_curve_test.cpp
     core/log_test.cpp
     core/quaternion_test.cpp
     core/result_test.cpp

@@ -14,6 +14,7 @@ namespace rr::audio {
 
 struct VoiceStart {
     VoiceMix mix;
+    float busVolume = 1.0F;
     Milliseconds fadeIn{0};
 };
 
@@ -26,19 +27,24 @@ public:
     Voice& operator=(Voice&&) = delete;
     ~Voice() { Stop(); }
 
-    [[nodiscard]] Result<void> Start(ma_engine& engine, ma_sound_group& bus,
-                                     std::unique_ptr<PcmStream> stream, VoiceStart start);
+    [[nodiscard]] Result<void> Start(ma_engine& engine, std::unique_ptr<PcmStream> stream,
+                                     VoiceStart start);
     void Mix(const VoiceMix& mix);
+    void SetBusVolume(float volume);
     void Stop();
     void FadeOut(Milliseconds fade);
 
     [[nodiscard]] bool IsPlaying() const;
 
 private:
+    void Apply();
+
     std::unique_ptr<PcmStream> stream_;
     StreamDataSource source_{};
     ma_sound sound_{};
     bool hasSound_ = false;
+    VoiceMix mix_;
+    float busVolume_ = 1.0F;
 };
 
 }

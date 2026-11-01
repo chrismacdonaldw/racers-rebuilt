@@ -48,6 +48,7 @@ public:
     /// Keeps `file` until the mixer is destroyed.
     [[nodiscard]] Result<SoundId> AddSound(assets::FileData file);
 
+    /// Scales the volume of each voice on `bus` before its curve, as the game's sliders do.
     void SetVolume(Bus bus, float volume);
 
     /// Drops cues once every effect voice is busy.

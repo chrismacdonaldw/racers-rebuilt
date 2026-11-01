@@ -3,10 +3,11 @@
 #include <format>
 #include <utility>
 
+#include "audio/volume_curve.hpp"
+
 namespace rr::audio {
 
-Result<void> Voice::Start(ma_engine& engine, ma_sound_group& bus, std::unique_ptr<PcmStream> stream,
-                          VoiceStart start) {
+Result<void> Voice::Start(ma_engine& engine, std::unique_ptr<PcmStream> stream, VoiceStart start) {
     Stop();
     stream_ = std::move(stream);
     Result<void> source = InitStreamDataSource(source_, *stream_);
@@ -15,7 +16,7 @@ Result<void> Voice::Start(ma_engine& engine, ma_sound_group& bus, std::unique_pt
         return source;
     }
     const ma_result result = ma_sound_init_from_data_source(
-        &engine, &source_, MA_SOUND_FLAG_NO_SPATIALIZATION, &bus, &sound_);
+        &engine, &source_, MA_SOUND_FLAG_NO_SPATIALIZATION, nullptr, &sound_);
     if (result != MA_SUCCESS) {
         UninitStreamDataSource(source_);
         stream_.reset();
@@ -23,7 +24,9 @@ Result<void> Voice::Start(ma_engine& engine, ma_sound_group& bus, std::unique_pt
                     std::format("can't play a sound: {}", ma_result_description(result)));
     }
     hasSound_ = true;
-    Mix(start.mix);
+    mix_ = start.mix;
+    busVolume_ = start.busVolume;
+    Apply();
     if (start.fadeIn > Milliseconds{0}) {
         ma_sound_set_fade_in_milliseconds(&sound_, 0.0F, 1.0F,
                                           static_cast<ma_uint64>(start.fadeIn.count()));
@@ -33,10 +36,20 @@ Result<void> Voice::Start(ma_engine& engine, ma_sound_group& bus, std::unique_pt
 }
 
 void Voice::Mix(const VoiceMix& mix) {
+    mix_ = mix;
+    Apply();
+}
+
+void Voice::SetBusVolume(float volume) {
+    busVolume_ = volume;
+    Apply();
+}
+
+void Voice::Apply() {
     if (hasSound_) {
-        ma_sound_set_volume(&sound_, mix.volume);
-        ma_sound_set_pitch(&sound_, mix.pitch);
-        ma_sound_set_pan(&sound_, mix.pan);
+        ma_sound_set_volume(&sound_, VolumeGain(mix_.volume * busVolume_));
+        ma_sound_set_pitch(&sound_, mix_.pitch);
+        ma_sound_set_pan(&sound_, PanBalance(mix_.pan));
     }
 }
 
