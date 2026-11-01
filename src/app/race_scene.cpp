@@ -23,7 +23,6 @@
 #include "app/race_step.hpp"
 #include "app/track_model.hpp"
 #include "app/track_space.hpp"
-#include "app/trigger_spheres.hpp"
 #include "assets/circuit_database.hpp"
 #include "core/log.hpp"
 #include "platform/clock.hpp"
@@ -222,7 +221,8 @@ RaceScene::RaceScene(Parts parts)
       hud_(*parts_.renderer, *parts_.vfs, kPlayerSlot,
            NameIndexes(parts_.racers, parts_.session.Racers().size())),
       controls_(parts_.session.Racers().size()),
-      collisionLines_(BuildCollisionWireframe(parts_.raceTrack->collision)) {
+      collisionLines_(BuildCollisionWireframe(parts_.raceTrack->collision)),
+      triggerRings_(parts_.session.Triggers()) {
     draws_ = parts_.trackDraws;
     draws_.insert(draws_.end(), parts_.racers.Draws().begin(), parts_.racers.Draws().end());
 }
@@ -392,7 +392,9 @@ void RaceScene::DrawDebugLines() {
         debugLines_.insert(debugLines_.end(), collisionLines_.begin(), collisionLines_.end());
     }
     if (showsTriggers_) {
-        DrawTriggerSpheres(parts_.session.Triggers(), debugLines_);
+        triggerRings_.Light(parts_.session.Triggers());
+        debugLines_.insert(debugLines_.end(), triggerRings_.Lines().begin(),
+                           triggerRings_.Lines().end());
     }
 }
 

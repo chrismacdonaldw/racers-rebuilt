@@ -22,6 +22,7 @@
 #include "app/racer_effect_tools.hpp"
 #include "app/scene.hpp"
 #include "app/sound_banks.hpp"
+#include "app/trigger_spheres.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
 #include "audio/mixer.hpp"
@@ -117,6 +118,7 @@ private:
     std::vector<std::function<void(sim::RaceSession&)>> chosenTools_;
     std::vector<render::MeshDraw> draws_;
     std::vector<render::DebugLine> collisionLines_;
+    TriggerRings triggerRings_;
     std::vector<render::DebugLine> debugLines_;
     std::vector<render::QuadDraw> quads_;
     bool showsCheckpoints_ = false;

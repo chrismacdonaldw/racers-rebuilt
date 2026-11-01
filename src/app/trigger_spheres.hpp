@@ -1,5 +1,6 @@
 #pragma once
 
+#include <span>
 #include <vector>
 
 #include "render/render_view.hpp"
@@ -13,7 +14,17 @@ inline constexpr settings::SettingSpec<bool> kShowTriggerSpheres{.key = "dev.sho
                                                                  .label = "Show trigger spheres",
                                                                  .category = "Developer"};
 
-/// Appends engine-space rings for every trigger sphere, lit while a racer is inside.
-void DrawTriggerSpheres(const sim::TrackEvents& triggers, std::vector<render::DebugLine>& out);
+/// Engine-space rings for every trigger sphere, built once and relit each frame.
+class TriggerRings {
+public:
+    explicit TriggerRings(const sim::TrackEvents& triggers);
+
+    void Light(const sim::TrackEvents& triggers);
+
+    [[nodiscard]] std::span<const render::DebugLine> Lines() const { return lines_; }
+
+private:
+    std::vector<render::DebugLine> lines_;
+};
 
 }
