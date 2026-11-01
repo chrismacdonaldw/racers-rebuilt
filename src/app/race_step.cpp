@@ -102,6 +102,7 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
                               .heldColour = inventory.Colour(),
                               .whiteCount = static_cast<std::uint8_t>(inventory.WhiteCount()),
                               .isGhost = racer.Status().isGhost,
+                              .isCursed = racer.Status().isCursed,
                               .tint = session.Tints().Of(i).transform([](std::size_t tint) {
                                   return static_cast<std::uint8_t>(tint);
                               })});

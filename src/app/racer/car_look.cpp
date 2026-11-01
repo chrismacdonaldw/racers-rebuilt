@@ -20,6 +20,10 @@ float OffsetOf(std::int32_t offset) {
     return static_cast<float>(offset) / kChannelMax;
 }
 
+render::VertexColorTransform CurseFlash() {
+    return ToVertexColors({.shifts = {1, 0, 1, 0}, .offsets = {0, 64, 0, 0}});
+}
+
 }
 
 render::VertexColorTransform ToVertexColors(const assets::ColorTransformResource& transform) {
@@ -39,7 +43,9 @@ void LookCars(const sim::RenderSnapshot& snapshot,
     std::ranges::fill(looks, CarLook{});
     for (std::size_t i = 0; i < looks.size() && i < snapshot.racers.size(); ++i) {
         const std::optional<std::uint8_t> tint = snapshot.racers[i].tint;
-        if (tint && *tint < tints.size()) {
+        if (snapshot.racers[i].isCursed) {
+            looks[i].colors = CurseFlash();
+        } else if (tint && *tint < tints.size()) {
             looks[i].colors = ToVertexColors(tints[*tint]);
         }
     }

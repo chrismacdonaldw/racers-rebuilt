@@ -4,8 +4,10 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <string_view>
 #include <vector>
 
+#include "app/powerup/cursed_cars.hpp"
 #include "app/powerup/powerup_models.hpp"
 #include "app/racer/animation_player.hpp"
 #include "core/transform.hpp"
@@ -46,12 +48,17 @@ private:
 
     [[nodiscard]] Instance& InstanceFor(const sim::EffectSnapshot& effect);
     void Start(Instance& instance, const sim::EffectSnapshot& effect);
+    [[nodiscard]] std::optional<Posed> PoseModel(std::string_view name, std::size_t part) const;
     static void Animate(Instance& instance, std::uint8_t phase, float elapsedMs);
+    static void Advance(Posed& posed, float elapsedMs);
     void Place(Posed& posed, const Transform& engine, float scale, float ageMs);
     void PlaceExplosion(const sim::ExplosionSnapshot& explosion);
+    void PlaceCursedCars(const sim::RenderSnapshot& snapshot, float elapsedMs);
 
     const EffectModels* models_;
     std::vector<Instance> instances_;
+    CursedCars cursedCars_;
+    std::vector<std::optional<Posed>> carCurses_;
     std::vector<render::MeshDraw> draws_;
 };
 

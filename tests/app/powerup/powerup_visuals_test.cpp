@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "app/track_space.hpp"
+#include "sim/powerup/dropped_trap.hpp"
 #include "sim/powerup/magnet_effect.hpp"
 
 namespace rr::app {
@@ -204,6 +205,35 @@ TEST_CASE("a fading magnet shrinks while its ring fades from half alpha") {
     CHECK(visuals.Draws()[1].scale == 1.0F);
     CHECK(visuals.Draws()[1].material.tint.a == doctest::Approx(0.5F * 127.0F / 255.0F));
     CHECK(visuals.Draws()[1].material.blend == render::BlendMode::Alpha);
+}
+
+TEST_CASE("a fading curse shrinks away") {
+    const EffectModels models{{"CURSE", Static()}};
+    PowerupVisuals visuals(models);
+    sim::RenderSnapshot fading = WithEffect(sim::PowerupKind::Curse, {.level = 1},
+                                            static_cast<std::uint8_t>(sim::TrapPhase::Fading));
+    fading.effects[0].phaseLeftMs = 250.0F;
+
+    visuals.Update(fading, kFrameMs);
+
+    REQUIRE(visuals.Draws().size() == 1);
+    CHECK(visuals.Draws()[0].scale == doctest::Approx(0.25F));
+}
+
+TEST_CASE("a cursed car carries the curse model until the curse ends") {
+    const EffectModels models{{"CURSE", Static()}};
+    PowerupVisuals visuals(models);
+    sim::RenderSnapshot snapshot;
+    snapshot.entities.push_back({.transform = TransformToEngine({.position = kAt})});
+    snapshot.racers.push_back({.isCursed = true});
+
+    visuals.Update(snapshot, kFrameMs);
+    REQUIRE(visuals.Draws().size() == 1);
+    CHECK(GamePosition(visuals.Draws()[0]).z == doctest::Approx(9.0F));
+
+    snapshot.racers[0].isCursed = false;
+    visuals.Update(snapshot, kFrameMs);
+    CHECK(visuals.Draws().empty());
 }
 
 TEST_CASE("a scaled jointed model shrinks its node offsets too") {
