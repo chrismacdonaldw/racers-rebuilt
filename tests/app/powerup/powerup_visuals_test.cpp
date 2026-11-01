@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "app/track_space.hpp"
+#include "sim/powerup/magnet_effect.hpp"
 
 namespace rr::app {
 namespace {
@@ -133,6 +134,36 @@ TEST_CASE("a warp portal shows only while the warp opens, pulsing in size") {
     CHECK(visuals.Draws()[0].scale == doctest::Approx(0.309F).epsilon(0.001));
     visuals.Update(WithEffect(sim::PowerupKind::Warp, {.level = 3}, 1), kFrameMs);
     CHECK(visuals.Draws().empty());
+}
+
+TEST_CASE("a fading magnet shrinks while its ring fades from half alpha") {
+    const EffectModels models{{"MAGNET", Static()}, {"MAGRING", Static()}};
+    PowerupVisuals visuals(models);
+    sim::RenderSnapshot fading = WithEffect(sim::PowerupKind::Magnet, {.level = 2},
+                                            static_cast<std::uint8_t>(sim::MagnetPhase::Fading));
+    fading.effects[0].phaseLeftMs = 500.0F;
+
+    visuals.Update(fading, kFrameMs);
+
+    REQUIRE(visuals.Draws().size() == 2);
+    CHECK(visuals.Draws()[0].scale == doctest::Approx(0.5F));
+    CHECK(visuals.Draws()[0].material.tint.a == 1.0F);
+    CHECK(visuals.Draws()[1].scale == 1.0F);
+    CHECK(visuals.Draws()[1].material.tint.a == doctest::Approx(0.5F * 127.0F / 255.0F));
+    CHECK(visuals.Draws()[1].material.blend == render::BlendMode::Alpha);
+}
+
+TEST_CASE("a scaled jointed model shrinks its node offsets too") {
+    const JointedAssets jointed = OneNodeShifts({"a0"});
+    const EffectModels models{{"WARPPRT", Jointed(jointed)}};
+    PowerupVisuals visuals(models);
+    sim::RenderSnapshot opening = WithEffect(sim::PowerupKind::Warp, {.level = 3}, 0);
+    opening.effects[0].phaseLeftMs = 125.0F;
+
+    visuals.Update(opening, kFrameMs);
+
+    REQUIRE(visuals.Draws().size() == 1);
+    CheckNear(GamePosition(visuals.Draws()[0]), kAt + Vector3{.x = 0.70711F});
 }
 
 TEST_CASE("explosions draw their own model, scaled by the blast's growth") {

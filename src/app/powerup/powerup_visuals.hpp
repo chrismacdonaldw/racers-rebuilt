@@ -28,6 +28,7 @@ public:
 private:
     struct Posed {
         const EffectModel* model = nullptr;
+        std::size_t part = 0;
         std::optional<sim::SkeletonPose> pose;
         std::optional<AnimationPlayer> player;
     };

@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include "core/quaternion.hpp"
 #include "powerup_rig.hpp"
 
 namespace rr::sim {
@@ -27,6 +28,27 @@ TEST_CASE("a magnet hangs 30 above the ground under its owner") {
     CHECK(rig.HasWeaponEvent(WeaponEventKind::Fired));
 }
 
+Vector3 Axis(const Rig& rig, const Vector3& local) {
+    return Rotate(rig.Effect().Pose().rotation, local);
+}
+
+void CheckNear(const Vector3& actual, const Vector3& expected) {
+    CHECK(Length(actual - expected) < 0.001F);
+}
+
+TEST_CASE("a magnet faces +X before its owner crosses a gate, then back along the last gate") {
+    Rig first;
+    DropMagnet(first);
+    CheckNear(Axis(first, {.x = 1.0F}), {.x = 1.0F});
+    CheckNear(Axis(first, {.z = 1.0F}), {.z = 1.0F});
+
+    Rig later;
+    later.CrossFirstGate();
+    DropMagnet(later);
+    CheckNear(Axis(later, {.x = 1.0F}), {.x = -1.0F});
+    CheckNear(Axis(later, {.z = 1.0F}), {.z = 1.0F});
+}
+
 TEST_CASE("an untouched magnet stays armed for 20 s, then fades for 1 s") {
     Rig rig;
     rig.Fire(BrickColour::Yellow, 2);
@@ -49,6 +71,15 @@ TEST_CASE("a magnet grabs a stopped racer near it and halts it") {
     CHECK(rig.Car(1).Status().isHalted);
     CHECK(rig.HasWeaponEvent(WeaponEventKind::Struck));
     CHECK(rig.Car(1).Events().reaction == VoiceReaction::Negative);
+}
+
+TEST_CASE("a magnet tilts its base toward the racer it holds") {
+    Rig rig(2);
+    GrabNearby(rig);
+
+    const Vector3 toMagnet = rig.EffectAt() - rig.Car(1).Body().motion.position;
+    CheckNear(Axis(rig, {.z = 1.0F}), Normalized(toMagnet, {}));
+    CHECK(Dot(Axis(rig, {.x = 1.0F}), {.z = 1.0F}) < 0.0F);
 }
 
 TEST_CASE("a magnet cuts its hold to 1 s once its racer halts, and lets go as it fades") {

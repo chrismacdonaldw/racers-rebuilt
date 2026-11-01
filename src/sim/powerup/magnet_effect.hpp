@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 
+#include "core/quaternion.hpp"
 #include "core/vector3.hpp"
 #include "sim/powerup/powerup_effect.hpp"
 
@@ -26,12 +27,15 @@ private:
     void Expire(PowerupContext& context);
     void Hold(Racer& racer, Milliseconds elapsed);
     void Pull(Racer& racer, Milliseconds elapsed) const;
+    void Face(const PowerupContext& context);
 
     std::uint8_t owner_ = 0;
     MagnetPhase phase_ = MagnetPhase::Done;
     Milliseconds remaining_{0};
     bool isDropped_ = false;
     Vector3 dropPoint_;
+    Vector3 heading_{.x = 1.0F};
+    Quaternion facing_;
     std::optional<std::uint8_t> held_;
     std::optional<std::uint8_t> pulled_;
     bool hasStopped_ = false;
