@@ -36,20 +36,6 @@ Result<T> WithName(Result<T> result, const std::string& name) {
     return result;
 }
 
-Result<NameMap<render::TextureId>> UploadTextures(
-    render::Renderer& renderer,
-    const NameMap<assets::AssetCache<assets::ImageAsset>::Handle>& images) {
-    NameMap<render::TextureId> textures;
-    for (const auto& [name, image] : images) {
-        Result<render::TextureId> texture = WithName(renderer.UploadTexture(*image), name);
-        if (!texture) {
-            return std::unexpected(std::move(texture.error()));
-        }
-        textures.emplace(name, *texture);
-    }
-    return textures;
-}
-
 assets::GeometryAsset ToEngineGeometry(const assets::GeometryAsset& geometry) {
     assets::GeometryAsset converted{.vertices = geometry.vertices, .indices = geometry.indices};
     for (assets::GeometryVertex& vertex : converted.vertices) {
@@ -91,22 +77,6 @@ render::BlendMode BlendModeOf(const assets::MaterialAsset& material) {
                                                                        : render::BlendMode::Alpha;
     }
     return material.transparency ? render::BlendMode::Alpha : render::BlendMode::Opaque;
-}
-
-render::Material ToRenderMaterial(const assets::MaterialAsset& material,
-                                  const NameMap<render::TextureId>& textures) {
-    const auto texture = textures.find(assets::ToUpperAscii(material.texture));
-    const bool isTextured = texture != textures.end();
-    render::Color tint = ToColor(material.diffuse);
-    tint.a = material.transparency ? ToUnit(*material.transparency) : 1.0F;
-    const render::BlendMode blend = BlendModeOf(material);
-    return {.texture = isTextured ? texture->second : render::kWhiteTexture,
-            .tint = tint,
-            .ambient = ToColor(material.ambient),
-            .alphaCutoff = blend == render::BlendMode::Opaque ? kColorKeyCutoff : kBlendedCutoff,
-            .blend = blend,
-            .modulates = !isTextured || material.textureMode == assets::TextureMode::Modulate ||
-                         material.transparency.has_value()};
 }
 
 render::Material MaterialFor(const NameMap<render::Material>& materials,
@@ -174,6 +144,36 @@ private:
     Bounds everything_;
 };
 
+}
+
+Result<NameMap<render::TextureId>> UploadTextures(
+    render::Renderer& renderer,
+    const NameMap<assets::AssetCache<assets::ImageAsset>::Handle>& images) {
+    NameMap<render::TextureId> textures;
+    for (const auto& [name, image] : images) {
+        Result<render::TextureId> texture = WithName(renderer.UploadTexture(*image), name);
+        if (!texture) {
+            return std::unexpected(std::move(texture.error()));
+        }
+        textures.emplace(name, *texture);
+    }
+    return textures;
+}
+
+render::Material ToRenderMaterial(const assets::MaterialAsset& material,
+                                  const NameMap<render::TextureId>& textures) {
+    const auto texture = textures.find(assets::ToUpperAscii(material.texture));
+    const bool isTextured = texture != textures.end();
+    render::Color tint = ToColor(material.diffuse);
+    tint.a = material.transparency ? ToUnit(*material.transparency) : 1.0F;
+    const render::BlendMode blend = BlendModeOf(material);
+    return {.texture = isTextured ? texture->second : render::kWhiteTexture,
+            .tint = tint,
+            .ambient = ToColor(material.ambient),
+            .alphaCutoff = blend == render::BlendMode::Opaque ? kColorKeyCutoff : kBlendedCutoff,
+            .blend = blend,
+            .modulates = !isTextured || material.textureMode == assets::TextureMode::Modulate ||
+                         material.transparency.has_value()};
 }
 
 Result<TrackModel> UploadTrack(render::Renderer& renderer, const assets::TrackAssets& track) {

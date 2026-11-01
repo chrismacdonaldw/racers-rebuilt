@@ -16,6 +16,13 @@ struct TrackModel {
     Bounds bounds;
 };
 
+[[nodiscard]] Result<assets::NameMap<render::TextureId>> UploadTextures(
+    render::Renderer& renderer,
+    const assets::NameMap<assets::AssetCache<assets::ImageAsset>::Handle>& images);
+
+[[nodiscard]] render::Material ToRenderMaterial(const assets::MaterialAsset& material,
+                                                const assets::NameMap<render::TextureId>& textures);
+
 /// `bounds` covers the collidable track surface, or every model when there is none.
 [[nodiscard]] Result<TrackModel> UploadTrack(render::Renderer& renderer,
                                              const assets::TrackAssets& track);

@@ -39,6 +39,7 @@ rr_add_module(app
         music_folder_source.cpp
         orbiting_cube.cpp
         pace_car.cpp
+        particle_assets.cpp
         positional_sound.cpp
         powerup/powerup_models.cpp
         powerup/powerup_visuals.cpp
