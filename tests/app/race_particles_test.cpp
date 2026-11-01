@@ -70,6 +70,7 @@ public:
     }
 
     [[nodiscard]] RaceParticles& Particles() { return particles_; }
+    [[nodiscard]] sim::Racer& Player() { return session_.Racers()[0]; }
 
     [[nodiscard]] float RacerX(std::size_t racer) const {
         return session_.Racers()[racer].Body().motion.position.x;
@@ -107,6 +108,20 @@ TEST_CASE("the player's wheels kick up grass while rolling and stop on the road"
     while (race.RacerX(0) < kGrassEndX + 10.0F) {
         race.Tick();
     }
+    CHECK(race.QuadCount() == 0);
+}
+
+TEST_CASE("a spun-out player kicks up nothing") {
+    GrassRace race("grassemt");
+    race.Hold(0);
+    for (int tick = 0; tick < 20; ++tick) {
+        race.Tick();
+    }
+    REQUIRE(race.QuadCount() > 0);
+
+    race.Player().StartSpinOut();
+    race.Tick();
+
     CHECK(race.QuadCount() == 0);
 }
 

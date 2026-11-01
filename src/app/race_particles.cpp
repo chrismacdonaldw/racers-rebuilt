@@ -41,7 +41,7 @@ void RaceParticles::Update(const sim::RaceSession& session, render::FloatMillise
     const sim::Racer& racer = session.Racers()[player_];
     const sim::BodyState& body = racer.Body();
     const bool isRolling =
-        !racer.IsSpinning() && !racer.IsSpunOut() && body.derived.forwardSpeed > kMinSpeed;
+        !body.hover.isHovering && !racer.IsSpunOut() && body.derived.forwardSpeed > kMinSpeed;
     const Vector3 velocity = ToEngine(body.motion.velocity) * kVelocityScale;
     for (std::size_t i = 0; i < wheels_.size(); ++i) {
         const sim::WheelProbe& probe = body.motion.wheels[i];
