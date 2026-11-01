@@ -16,7 +16,7 @@
 
 namespace rr::app {
 
-/// Only SINGLE RACE and QUIT lead anywhere yet; the other buttons log.
+/// Only CIRCUIT RACE, SINGLE RACE and QUIT lead anywhere yet; the other buttons log.
 class MainMenuScene final : public Scene {
 public:
     /// `renderer` and `vfs` must outlive the scene.

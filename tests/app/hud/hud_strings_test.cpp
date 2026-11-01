@@ -46,6 +46,7 @@ TEST_CASE("pause labels come from their game string slots") {
     CHECK(strings->paused == game[0x14]);
     CHECK(strings->resume == game[0x0E]);
     CHECK(strings->restart == game[0x0F]);
+    CHECK(strings->restartCircuit == game[0x10]);
     CHECK(strings->quit == game[0x11]);
 }
 

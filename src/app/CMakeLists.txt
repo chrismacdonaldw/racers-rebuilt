@@ -8,6 +8,7 @@ rr_add_module(app
         car_sounds.cpp
         chase_camera.cpp
         checkpoint_gates.cpp
+        circuit_leg.cpp
         collision_wireframe.cpp
         extensions.cpp
         gameplay_fingerprint.cpp
@@ -36,14 +37,16 @@ rr_add_module(app
         install_discovery.cpp
         loop_sidecar.cpp
         loop_voice.cpp
+        menu/award_scene.cpp
+        menu/award_scene_name.cpp
         menu/main_menu_scene.cpp
         menu/menu_files.cpp
         menu/menu_focus.cpp
         menu/menu_page.cpp
         menu/menu_text.cpp
         menu/pause_menu.cpp
-        menu/single_race_menu.cpp
-        menu/single_race_scene.cpp
+        menu/race_setup_menu.cpp
+        menu/race_setup_scene.cpp
         music_folder_source.cpp
         orbiting_cube.cpp
         pace_car.cpp

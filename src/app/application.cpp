@@ -14,12 +14,15 @@
 
 #include "app/audio_settings.hpp"
 #include "app/audio_startup.hpp"
+#include "app/circuit_leg.hpp"
 #include "app/extensions.hpp"
 #include "app/gameplay_fingerprint.hpp"
 #include "app/input_bindings.hpp"
+#include "app/menu/award_scene.hpp"
+#include "app/menu/award_scene_name.hpp"
 #include "app/menu/main_menu_scene.hpp"
 #include "app/menu/menu_scenes.hpp"
-#include "app/menu/single_race_scene.hpp"
+#include "app/menu/race_setup_scene.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/race_scene.hpp"
 #include "app/race_scene_name.hpp"
@@ -31,6 +34,7 @@
 #include "app/track_viewer_scene.hpp"
 #include "app/video_settings.hpp"
 #include "assets/loader_pool.hpp"
+#include "assets/race_catalog.hpp"
 #include "assets/track_loader.hpp"
 #include "audio/music_catalog.hpp"
 #include "audio/music_player.hpp"
@@ -295,8 +299,16 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std:
     if (!scene || *scene == kMainMenuScene) {
         return MainMenuScene::Create(renderer_, vfs_).transform(ToScene<MainMenuScene>);
     }
-    if (*scene == kSingleRaceScene) {
-        return SingleRaceScene::Create(renderer_, vfs_).transform(ToScene<SingleRaceScene>);
+    if (*scene == kSingleRaceScene || *scene == kCircuitRaceScene) {
+        const RaceSetupMode mode =
+            *scene == kCircuitRaceScene ? RaceSetupMode::Circuit : RaceSetupMode::SingleRace;
+        return RaceSetupScene::Create(renderer_, vfs_, mode).transform(ToScene<RaceSetupScene>);
+    }
+    if (IsAwardScene(*scene)) {
+        return ParseAwardScene(*scene)
+            .and_then(
+                [&](sim::CircuitAward award) { return AwardScene::Create(renderer_, vfs_, award); })
+            .transform(ToScene<AwardScene>);
     }
     const Nanoseconds started = platform::Now();
     assets::LoaderPool pool(assets::LoaderPool::DefaultWorkerCount());
@@ -310,8 +322,29 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std:
             })
             .transform(ToScene<RaceScene>);
     }
+    if (IsCircuitScene(*scene)) {
+        return CreateCircuitRace(*scene, loader, started);
+    }
     return TrackViewerScene::Create(renderer_, vfs_, loader, *scene, started)
         .transform(ToScene<TrackViewerScene>);
+}
+
+Result<std::unique_ptr<Scene>> Application::CreateCircuitRace(std::string_view scene,
+                                                              assets::TrackLoader& loader,
+                                                              Nanoseconds started) {
+    Result<CircuitLeg> leg = ParseCircuitScene(scene).and_then([&](const CircuitSceneSetup& setup) {
+        return assets::RaceCatalog::Load(vfs_).and_then(
+            [&](const assets::RaceCatalog& catalog) { return CircuitLeg::Create(catalog, setup); });
+    });
+    Result<std::unique_ptr<RaceScene>> race = leg.and_then([&](const CircuitLeg& joined) {
+        return RaceScene::Create({.renderer = &renderer_, .mixer = &mixer_, .banks = &soundBanks_},
+                                 vfs_, loader, joined.Race(), seed_, started);
+    });
+    if (!race) {
+        return std::unexpected(std::move(race.error()));
+    }
+    (*race)->JoinCircuit(std::move(*leg));
+    return ToScene<RaceScene>(std::move(*race));
 }
 
 Result<std::unique_ptr<Scene>> Application::CreateRace(const std::string& track) {

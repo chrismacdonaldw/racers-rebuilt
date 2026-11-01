@@ -87,9 +87,12 @@ void RaceHud::AddResults(const sim::RaceClock& clock, const sim::RaceProgress& p
     LayoutResults(results_, names, labels, isLit ? std::nullopt : std::optional(racer), pool_, out);
 }
 
-void RaceHud::LayoutPause(std::size_t focus, std::vector<HudText>& out) const {
+void RaceHud::LayoutPause(std::size_t focus, bool restartsCircuit,
+                          std::vector<HudText>& out) const {
     out.push_back(Centered(strings_.paused, kPauseTitleY, {}));
-    const std::array<std::u16string_view, 3> rows{strings_.resume, strings_.restart, strings_.quit};
+    const std::array<std::u16string_view, 3> rows{
+        strings_.resume, restartsCircuit ? strings_.restartCircuit : strings_.restart,
+        strings_.quit};
     for (std::size_t row = 0; row < rows.size(); ++row) {
         out.push_back(Centered(rows[row],
                                kPauseFirstRowY + (static_cast<float>(row) * kPauseRowHeight),

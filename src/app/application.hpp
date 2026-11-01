@@ -6,15 +6,18 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "app/extensions.hpp"
 #include "app/frame_loop.hpp"
 #include "app/game_boot.hpp"
 #include "app/sound_banks.hpp"
+#include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
 #include "audio/mixer.hpp"
 #include "audio/music_player.hpp"
+#include "core/duration.hpp"
 #include "core/result.hpp"
 #include "overlay/overlay.hpp"
 #include "platform/event_pump.hpp"
@@ -57,6 +60,9 @@ private:
 
     [[nodiscard]] Result<std::unique_ptr<Scene>> CreateScene(
         const std::optional<std::string>& scene);
+    [[nodiscard]] Result<std::unique_ptr<Scene>> CreateCircuitRace(std::string_view scene,
+                                                                   assets::TrackLoader& loader,
+                                                                   Nanoseconds started);
     [[nodiscard]] Result<std::unique_ptr<Scene>> CreateRace(const std::string& track);
     [[nodiscard]] Result<void> OpenScene(const std::optional<std::string>& scene);
     [[nodiscard]] Result<void> SwitchScene(const SceneFactory& create);

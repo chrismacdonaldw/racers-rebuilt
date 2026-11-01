@@ -30,6 +30,9 @@ public:
     /// Loads only when `language` changes. The HUD stays hidden while its files fail to load.
     void SetLanguage(std::string_view language);
 
+    /// Shows the circuit results from `before`, each racer's points before this race.
+    void SetCircuitPoints(std::span<const std::int32_t> before);
+
     void Tick(const sim::RaceSession& session, Milliseconds elapsed);
 
     /// Valid until the next call. `cover` sits between the HUD and the `pauseFocus` pause menu.
@@ -43,6 +46,7 @@ private:
     const assets::Vfs* vfs_;
     std::size_t racer_;
     std::vector<std::int32_t> nameIndexes_;
+    std::vector<std::int32_t> circuitPoints_;
     std::string language_;
     UiFonts fonts_;
     std::vector<std::u16string> names_;

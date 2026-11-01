@@ -120,5 +120,27 @@ TEST_CASE("a restart clears every point and starts again from the first race") {
     CHECK_FALSE(run.Award().has_value());
 }
 
+TEST_CASE("a run picks up from a standing, knock-out included") {
+    CircuitRun run(kFourRaces, 0, true, {.race = 2, .points = {40, 50, 0, 0, 0, 0}});
+
+    CHECK(run.Race() == 2);
+    run.FinishRace(kPlayerWins);
+    CHECK(run.Standing() == CircuitStanding{.race = 3, .points = {70, 70, 10, 3, 2, 1}});
+
+    const CircuitRun knockedOut(kFourRaces, 0, true, {.race = 3, .points = {29, 0, 0, 0, 0, 0}});
+    CHECK_FALSE(knockedOut.Race().has_value());
+    CHECK(knockedOut.Award() == CircuitAward::None);
+}
+
+TEST_CASE("quitting ends the circuit without an award") {
+    CircuitRun run(kFourRaces, 0, true);
+    run.FinishRace(kPlayerWins);
+
+    run.Quit();
+
+    CHECK_FALSE(run.Race().has_value());
+    CHECK_FALSE(run.Award().has_value());
+}
+
 }
 }
