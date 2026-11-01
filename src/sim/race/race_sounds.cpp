@@ -33,6 +33,9 @@ std::optional<RaceSound> WeaponSound(const WeaponEvent& event) {
     if (event.weapon == PowerupKind::Cannonball) {
         return isFired ? RaceSound::CannonFire : RaceSound::CannonHit;
     }
+    if (event.weapon == PowerupKind::Missile) {
+        return isFired ? RaceSound::MissileFire : RaceSound::MissileHit;
+    }
     return std::nullopt;
 }
 

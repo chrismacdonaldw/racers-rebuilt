@@ -21,6 +21,8 @@ struct AimCone {
 
 inline constexpr AimCone kRacerAheadCone{
     .minDistanceSquared = 100.0F, .maxDistanceSquared = 160'000.0F, .cosine = 0.9F};
+inline constexpr AimCone kMissileCone{
+    .minDistanceSquared = 100.0F, .maxDistanceSquared = 160'000.0F, .cosine = 0.7071F};
 
 /// Searches in racer order from `first` like the original, so the match isn't the nearest racer.
 [[nodiscard]] std::optional<std::size_t> FindRacerInCone(std::span<const Racer> racers,
@@ -49,6 +51,7 @@ struct ShotStep {
     FlightState state = FlightState::Flying;
     Vector3 position;
     Vector3 hitNormal;
+    std::optional<std::size_t> target;
 };
 
 struct ShotOutcome {
@@ -57,7 +60,7 @@ struct ShotOutcome {
     std::optional<std::uint8_t> struck;
 };
 
-/// Bursts where the shot landed or on the racer it touched, unless a shield turns it back.
+/// Bursts where the shot landed or on the racer it reached, unless a shield turns it back.
 [[nodiscard]] ShotOutcome ResolveShot(PowerupContext& context, const ShotStep& shot);
 
 }

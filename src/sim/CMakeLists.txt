@@ -38,6 +38,8 @@ rr_add_module(sim
         powerup/cannonball_effect.cpp
         powerup/explosions.cpp
         powerup/green_effects.cpp
+        powerup/homing_flight.cpp
+        powerup/missile_effect.cpp
         powerup/powerup_inventory.cpp
         powerup/powerup_kind.cpp
         powerup/powerup_system.cpp

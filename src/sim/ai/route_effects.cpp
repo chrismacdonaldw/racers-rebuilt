@@ -16,10 +16,6 @@ Basis BasisOf(const Quaternion& rotation) {
             .up = Rotate(rotation, {.z = 1.0F})};
 }
 
-Vector3 RotateAbout(const Vector3& v, const Vector3& axis, float radians) {
-    return Rotate(FromAxisAngle(axis, radians), v);
-}
-
 Basis Roll(const Basis& basis, float radians) {
     return OrthonormalBasis(basis.forward, RotateAbout(basis.up, basis.forward, radians));
 }

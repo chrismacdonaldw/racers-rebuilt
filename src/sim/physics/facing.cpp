@@ -31,12 +31,6 @@ float AngleBetween(const Vector3& a, const Vector3& b) {
     return ArccosTable().at(static_cast<std::size_t>((cosine + 1.0F) * kArccosTableScale));
 }
 
-Vector3 RotateAbout(const Vector3& v, const Vector3& axis, float radians) {
-    const float cos = std::cos(radians);
-    return (v * cos) + (Cross(axis, v) * std::sin(radians)) +
-           (axis * (Dot(axis, v) * (1.0F - cos)));
-}
-
 Vector3 SlewToward(const Vector3& facing, const Vector3& target, int dtMs) {
     if (Dot(facing, target) > kSnapDot) {
         return target;
