@@ -42,9 +42,10 @@ public:
 
     [[nodiscard]] std::int32_t VoiceBank(std::size_t slot) const;
 
-    /// `poses` and `motion` hold one engine-space entry per slot, in slot order. Ghosts are hidden.
+    /// Each span holds one entry per slot, poses in engine space. Ghosts are hidden.
     void Update(std::span<const sim::EntitySnapshot> poses,
-                std::span<const sim::RacerSnapshot> motion, float elapsedMs);
+                std::span<const sim::RacerSnapshot> motion, std::span<const float> scales,
+                float elapsedMs);
 
     /// Every slot's draws, in slot order. The count never changes.
     [[nodiscard]] std::span<const render::MeshDraw> Draws() const { return draws_; }

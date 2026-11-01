@@ -19,26 +19,26 @@ constexpr std::array kAnimated{"SHIELD0", "SHLDIN3", "TURBOL2", "TURB0F1", "TURB
                                "DMISSIL", "CURSE",   "MAGNET",  "MAGRING"};
 constexpr std::array kStatic{"EXPLSN", "SPIKEXP", "BARREL", "GRAPPLE", "WARPPRT"};
 
-std::optional<PowerupAssets> LoadRetail() {
+std::optional<EffectAssets> LoadRetail() {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
         return std::nullopt;
     }
     assets::LoaderPool pool(2);
     assets::TrackLoader loader(*vfs, pool);
-    Result<PowerupAssets> loaded = LoadPowerupAssets(*vfs, loader);
+    Result<EffectAssets> loaded = LoadPowerupAssets(*vfs, loader);
     REQUIRE(loaded.has_value());
     return std::move(*loaded);
 }
 
-bool IsJointedAndLoaded(const PowerupAssets& loaded, std::string_view name) {
+bool IsJointedAndLoaded(const EffectAssets& loaded, std::string_view name) {
     const auto entity = loaded.entities.find(name);
     return entity != loaded.entities.end() && entity->second.jointed.has_value() &&
            loaded.models.models.contains(assets::ToUpperAscii(entity->second.geometry));
 }
 
 TEST_CASE("the power-up world loads the animated models with their skeletons") {
-    const std::optional<PowerupAssets> loaded = LoadRetail();
+    const std::optional<EffectAssets> loaded = LoadRetail();
     if (!loaded) {
         return;
     }
@@ -48,7 +48,7 @@ TEST_CASE("the power-up world loads the animated models with their skeletons") {
 }
 
 TEST_CASE("the power-up world holds every quad material") {
-    const std::optional<PowerupAssets> loaded = LoadRetail();
+    const std::optional<EffectAssets> loaded = LoadRetail();
     if (!loaded) {
         return;
     }
@@ -58,7 +58,7 @@ TEST_CASE("the power-up world holds every quad material") {
 }
 
 TEST_CASE("the power-up world loads the still models") {
-    const std::optional<PowerupAssets> loaded = LoadRetail();
+    const std::optional<EffectAssets> loaded = LoadRetail();
     if (!loaded) {
         return;
     }

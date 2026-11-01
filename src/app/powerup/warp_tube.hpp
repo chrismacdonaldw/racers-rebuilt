@@ -27,7 +27,7 @@ public:
                                                       const assets::Vfs& vfs,
                                                       assets::TrackLoader& loader);
 
-    WarpTube(std::unique_ptr<PowerupAssets> assets, EffectModels models);
+    WarpTube(std::unique_ptr<EffectAssets> assets, EffectModels models);
 
     /// Moves `car`, drawn at the engine-space `carPose`, to the tube's origin facing game +X.
     void Fly(float leftMs, const Transform& carPose, std::span<const render::MeshDraw> car);
@@ -43,14 +43,11 @@ private:
 
     void Place(Part& part, float flownMs);
 
-    std::unique_ptr<PowerupAssets> assets_;
+    std::unique_ptr<EffectAssets> assets_;
     EffectModels models_;
     std::vector<Part> parts_;
     std::vector<render::MeshDraw> draws_;
 };
-
-[[nodiscard]] const sim::EffectSnapshot* FindWarpFlight(
-    std::span<const sim::EffectSnapshot> effects, std::size_t racer);
 
 /// Chases the car in the tube, the field of view swelling up to 45 degrees mid-flight.
 [[nodiscard]] render::Camera WarpFlightCamera(render::Camera base, float leftMs);

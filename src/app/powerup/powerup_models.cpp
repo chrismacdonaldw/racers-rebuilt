@@ -47,7 +47,7 @@ std::vector<assets::ModelFiles> FilesOf(const assets::WorldAsset& world) {
 }
 
 Result<void> AddEntity(const assets::Vfs& vfs, const assets::WorldAsset& world,
-                       const assets::WorldEntity& entity, PowerupAssets& out) {
+                       const assets::WorldEntity& entity, EffectAssets& out) {
     if (entity.lods.empty()) {
         return {};
     }
@@ -76,7 +76,7 @@ Result<void> AddEntity(const assets::Vfs& vfs, const assets::WorldAsset& world,
 }
 
 Result<void> AddEntities(const assets::Vfs& vfs, const assets::WorldAsset& world,
-                         std::span<const assets::WorldEntity> entities, PowerupAssets& out) {
+                         std::span<const assets::WorldEntity> entities, EffectAssets& out) {
     for (const assets::WorldEntity& entity : entities) {
         if (Result<void> added = AddEntity(vfs, world, entity, out); !added) {
             return added;
@@ -87,8 +87,8 @@ Result<void> AddEntities(const assets::Vfs& vfs, const assets::WorldAsset& world
 
 }
 
-Result<PowerupAssets> LoadEffectAssets(const assets::Vfs& vfs, assets::TrackLoader& loader,
-                                       std::string_view world) {
+Result<EffectAssets> LoadEffectAssets(const assets::Vfs& vfs, assets::TrackLoader& loader,
+                                      std::string_view world) {
     Result<assets::WorldAsset> parsed = vfs.Read(std::format("{}/{}", kCommonFolder, world))
                                             .and_then([](const assets::FileData& data) {
                                                 return assets::ParseWorld(data.Bytes());
@@ -96,7 +96,7 @@ Result<PowerupAssets> LoadEffectAssets(const assets::Vfs& vfs, assets::TrackLoad
     if (!parsed) {
         return std::unexpected(std::move(parsed.error()));
     }
-    PowerupAssets out;
+    EffectAssets out;
     return loader.LoadModels(kCommonFolder, FilesOf(*parsed))
         .and_then([&](assets::TrackAssets models) {
             out.models = std::move(models);
@@ -106,11 +106,11 @@ Result<PowerupAssets> LoadEffectAssets(const assets::Vfs& vfs, assets::TrackLoad
         .transform([&] { return std::move(out); });
 }
 
-Result<PowerupAssets> LoadPowerupAssets(const assets::Vfs& vfs, assets::TrackLoader& loader) {
+Result<EffectAssets> LoadPowerupAssets(const assets::Vfs& vfs, assets::TrackLoader& loader) {
     return LoadEffectAssets(vfs, loader, kPowerupWorld);
 }
 
-Result<EffectModels> UploadPowerupModels(render::Renderer& renderer, const PowerupAssets& assets) {
+Result<EffectModels> UploadPowerupModels(render::Renderer& renderer, const EffectAssets& assets) {
     EffectModels models;
     for (const auto& [name, files] : assets.entities) {
         const auto geometry = assets.models.models.find(assets::ToUpperAscii(files.geometry));
@@ -138,8 +138,8 @@ PowerupModelSet LoadPowerupModels(render::Renderer& renderer, const assets::Vfs&
                                                  PowerupQuadMaterials().end());
     Result<void> loaded =
         LoadPowerupAssets(vfs, loader)
-            .and_then([&](PowerupAssets assets) {
-                set.assets = std::make_unique<PowerupAssets>(std::move(assets));
+            .and_then([&](EffectAssets assets) {
+                set.assets = std::make_unique<EffectAssets>(std::move(assets));
                 return UploadPowerupModels(renderer, *set.assets);
             })
             .and_then([&](EffectModels models) {

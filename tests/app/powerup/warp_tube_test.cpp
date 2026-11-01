@@ -7,7 +7,6 @@
 
 #include "app/chase_camera.hpp"
 #include "app/track_space.hpp"
-#include "sim/powerup/warp_effect.hpp"
 
 namespace rr::app {
 namespace {
@@ -49,12 +48,6 @@ WarpTube TubeOf(const JointedAssets& jointed) {
     return {nullptr, std::move(models)};
 }
 
-sim::EffectSnapshot Warp(std::size_t racer, sim::WarpPhase phase) {
-    return {.kind = sim::PowerupKind::Warp,
-            .use = {.racer = static_cast<std::uint8_t>(racer), .level = 3},
-            .phase = static_cast<std::uint8_t>(phase)};
-}
-
 TEST_CASE("the warp tube draws at its placement, animated and scrolled by the time flown") {
     const JointedAssets jointed = RisesOneUnit();
     WarpTube tube = TubeOf(jointed);
@@ -82,16 +75,6 @@ TEST_CASE("the warping car moves from its pose to the tube's origin, facing game
     CHECK(Length(tube.Draws()[1].transform.position - wheel.position) < 0.001F);
     CHECK(Length(Rotate(tube.Draws()[1].transform.rotation, {.x = 1.0F}) - Vector3{.x = 1.0F}) <
           0.001F);
-}
-
-TEST_CASE("only the racer's own warp counts as a flight, and only once it is under way") {
-    const std::vector<sim::EffectSnapshot> effects{Warp(0, sim::WarpPhase::Starting),
-                                                   Warp(1, sim::WarpPhase::Active),
-                                                   {.kind = sim::PowerupKind::Turbo}};
-
-    CHECK(FindWarpFlight(effects, 0) == nullptr);
-    CHECK(FindWarpFlight(effects, 1) == &effects[1]);
-    CHECK(FindWarpFlight(effects, 2) == nullptr);
 }
 
 TEST_CASE("the flight camera chases the car in the tube and swells 45 degrees mid-flight") {

@@ -23,6 +23,13 @@ Result<std::unique_ptr<RacerAssets>> LoadSlot(const assets::Vfs& vfs, assets::Tr
     });
 }
 
+void ScaleAbout(const Vector3& origin, float scale, std::span<render::MeshDraw> draws) {
+    for (render::MeshDraw& draw : draws) {
+        draw.transform.position = origin + ((draw.transform.position - origin) * scale);
+        draw.scale *= scale;
+    }
+}
+
 }
 
 Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs& vfs,
@@ -84,7 +91,8 @@ std::int32_t RacerGrid::VoiceBank(std::size_t slot) const {
 }
 
 void RacerGrid::Update(std::span<const sim::EntitySnapshot> poses,
-                       std::span<const sim::RacerSnapshot> motion, float elapsedMs) {
+                       std::span<const sim::RacerSnapshot> motion, std::span<const float> scales,
+                       float elapsedMs) {
     auto next = draws_.begin();
     for (std::size_t i = 0; i < slots_.size() && i < poses.size() && i < motion.size(); ++i) {
         RacerVisuals& visuals = slots_[i].visuals;
@@ -93,6 +101,8 @@ void RacerGrid::Update(std::span<const sim::EntitySnapshot> poses,
         next = std::ranges::copy(visuals.Draws(), next).out;
         if (motion[i].isGhost) {
             std::ranges::for_each(first, next, [](render::MeshDraw& draw) { draw.indexCount = 0; });
+        } else if (i < scales.size() && scales[i] != 1.0F) {
+            ScaleAbout(poses[i].transform.position, scales[i], std::span(first, next));
         }
     }
 }

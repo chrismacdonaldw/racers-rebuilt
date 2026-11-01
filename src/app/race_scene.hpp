@@ -19,6 +19,7 @@
 #include "app/powerup/powerup_models.hpp"
 #include "app/powerup/powerup_quads.hpp"
 #include "app/powerup/powerup_visuals.hpp"
+#include "app/powerup/warp_start.hpp"
 #include "app/powerup/warp_tube.hpp"
 #include "app/race_audio.hpp"
 #include "app/race_particles.hpp"
@@ -99,6 +100,7 @@ private:
     [[nodiscard]] overlay::RacerActionGroup PowerupTools();
     void ApplyChosenTools();
     [[nodiscard]] std::optional<std::size_t> PauseFocus() const;
+    void GatherMeshes(const sim::RenderSnapshot& interpolated, float elapsedMs);
     void DrawDebugLines();
 
     Parts parts_;
@@ -111,6 +113,7 @@ private:
     std::vector<sim::RacerControls> controls_;
     std::size_t chosenRacer_ = 0;
     std::vector<std::function<void(sim::RaceSession&)>> chosenTools_;
+    std::vector<float> carScales_;
     std::vector<render::MeshDraw> draws_;
     std::vector<render::DebugLine> collisionLines_;
     TriggerRings triggerRings_;

@@ -105,12 +105,32 @@ TEST_CASE("a missile plays the launch for its shot") {
     CheckNear(GamePosition(visuals.Draws()[0]), kAt + Vector3{.z = 1.0F});
 }
 
-TEST_CASE("a warp portal shows only while the warp opens") {
+TEST_CASE("a ghost racer's turbo flames are hidden") {
+    const JointedAssets jointed = OneNodeShifts({"fireup", "sustain", "dieout"});
+    const EffectModels models{{"TURBOL0", Jointed(jointed)}};
+    PowerupVisuals visuals(models);
+    sim::RenderSnapshot snapshot = WithEffect(sim::PowerupKind::Turbo, {.racer = 1}, 1);
+    snapshot.racers.resize(2);
+
+    visuals.Update(snapshot, kFrameMs);
+    CHECK(visuals.Draws().size() == 1);
+    snapshot.racers[1].isGhost = true;
+    visuals.Update(snapshot, kFrameMs);
+    CHECK(visuals.Draws().empty());
+}
+
+TEST_CASE("a warp portal shows only while the warp opens, pulsing in size") {
     const EffectModels models{{"WARPPRT", Static()}};
     PowerupVisuals visuals(models);
+    sim::RenderSnapshot opening = WithEffect(sim::PowerupKind::Warp, {.level = 3}, 0);
+    opening.effects[0].phaseLeftMs = 250.0F;
 
-    visuals.Update(WithEffect(sim::PowerupKind::Warp, {.level = 3}, 0), kFrameMs);
-    CHECK(visuals.Draws().size() == 1);
+    visuals.Update(opening, kFrameMs);
+    REQUIRE(visuals.Draws().size() == 1);
+    CHECK(visuals.Draws()[0].scale == doctest::Approx(1.0F));
+    opening.effects[0].phaseLeftMs = 450.0F;
+    visuals.Update(opening, kFrameMs);
+    CHECK(visuals.Draws()[0].scale == doctest::Approx(0.309F).epsilon(0.001));
     visuals.Update(WithEffect(sim::PowerupKind::Warp, {.level = 3}, 1), kFrameMs);
     CHECK(visuals.Draws().empty());
 }

@@ -32,9 +32,10 @@ public:
 
     void Tick(const sim::RaceSession& session, Milliseconds elapsed);
 
-    /// Valid until the next call. `pauseFocus` adds the pause menu with that row highlighted.
+    /// Valid until the next call. `cover` sits between the HUD and the `pauseFocus` pause menu.
     [[nodiscard]] std::span<const render::SpriteDraw> Draw(const sim::RaceSession& session,
                                                            const sim::RacerSnapshot& racer,
+                                                           std::optional<render::SpriteDraw> cover,
                                                            std::optional<std::size_t> pauseFocus);
 
 private:

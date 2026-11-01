@@ -261,9 +261,10 @@ void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
     }
 }
 
-void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
-    const float elapsedMs = MsSince(lastRender_);
-    parts_.racers.Update(interpolated.entities, interpolated.racers, elapsedMs);
+void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float elapsedMs) {
+    carScales_.resize(parts_.racers.Count());
+    WarpCarScales(interpolated.effects, carScales_);
+    parts_.racers.Update(interpolated.entities, interpolated.racers, carScales_, elapsedMs);
     draws_.resize(parts_.trackDraws.size() + parts_.racers.Draws().size());
     std::ranges::copy(parts_.racers.Draws(),
                       draws_.begin() + static_cast<std::ptrdiff_t>(parts_.trackDraws.size()));
@@ -277,8 +278,18 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     parts_.bricks.AppendDraws(interpolated.bricks, draws_);
     powerupVisuals_.Update(interpolated, elapsedMs);
     draws_.insert(draws_.end(), powerupVisuals_.Draws().begin(), powerupVisuals_.Draws().end());
+}
+
+void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
+    const float elapsedMs = MsSince(lastRender_);
+    GatherMeshes(interpolated, elapsedMs);
+    const sim::EffectSnapshot* start =
+        FindWarp(interpolated.effects, kPlayerSlot, sim::WarpPhase::Starting);
     render::Camera camera = parts_.camera;
     camera.transform = interpolated.camera.transform;
+    if (start != nullptr) {
+        camera = WarpStartCamera(camera, start->phaseLeftMs);
+    }
     DrawDebugLines();
     quads_.clear();
     if (parts_.particles) {
@@ -293,8 +304,11 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
         .meshes = draws_,
         .quads = quads_,
         .lines = debugLines_,
-        .sprites = hud_.Draw(parts_.session, interpolated.racers[kPlayerSlot], PauseFocus())};
-    const sim::EffectSnapshot* flight = FindWarpFlight(interpolated.effects, kPlayerSlot);
+        .sprites = hud_.Draw(parts_.session, interpolated.racers[kPlayerSlot],
+                             start != nullptr ? WarpFlash(start->phaseLeftMs) : std::nullopt,
+                             PauseFocus())};
+    const sim::EffectSnapshot* flight =
+        FindWarp(interpolated.effects, kPlayerSlot, sim::WarpPhase::Active);
     if (flight != nullptr && parts_.warpTube) {
         parts_.warpTube->Fly(flight->phaseLeftMs, interpolated.entities[kPlayerSlot].transform,
                              parts_.racers.SlotDraws(kPlayerSlot));

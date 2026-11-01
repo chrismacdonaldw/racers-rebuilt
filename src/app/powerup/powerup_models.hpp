@@ -25,18 +25,18 @@ struct EffectModelFiles {
 
 /// Entities are keyed by uppercase name, or by model name for the one unnamed entity.
 // NOLINTNEXTLINE(bugprone-exception-escape)
-struct PowerupAssets {
+struct EffectAssets {
     assets::TrackAssets models;
     assets::NameMap<EffectModelFiles> entities;
 };
 
 /// The model and animated entities of a world in `GAMEDATA/COMMON`, such as `POWERUP.WDB`.
-[[nodiscard]] Result<PowerupAssets> LoadEffectAssets(const assets::Vfs& vfs,
-                                                     assets::TrackLoader& loader,
-                                                     std::string_view world);
+[[nodiscard]] Result<EffectAssets> LoadEffectAssets(const assets::Vfs& vfs,
+                                                    assets::TrackLoader& loader,
+                                                    std::string_view world);
 
-[[nodiscard]] Result<PowerupAssets> LoadPowerupAssets(const assets::Vfs& vfs,
-                                                      assets::TrackLoader& loader);
+[[nodiscard]] Result<EffectAssets> LoadPowerupAssets(const assets::Vfs& vfs,
+                                                     assets::TrackLoader& loader);
 
 struct EffectModel {
     ModelDraws draws;
@@ -49,11 +49,11 @@ using EffectModels = assets::NameMap<EffectModel>;
 
 /// `assets` must outlive the models.
 [[nodiscard]] Result<EffectModels> UploadPowerupModels(render::Renderer& renderer,
-                                                       const PowerupAssets& assets);
+                                                       const EffectAssets& assets);
 
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct PowerupModelSet {
-    std::unique_ptr<PowerupAssets> assets;
+    std::unique_ptr<EffectAssets> assets;
     EffectModels models;
     assets::NameMap<render::Material> quadMaterials;
 };
