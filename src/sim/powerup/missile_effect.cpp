@@ -5,6 +5,7 @@
 
 #include "core/assert.hpp"
 #include "sim/physics/rigid_body.hpp"
+#include "sim/powerup/aim_cones.hpp"
 #include "sim/powerup/ballistic_flight.hpp"
 #include "sim/powerup/weapon_events.hpp"
 #include "sim/powerup/weapon_hits.hpp"

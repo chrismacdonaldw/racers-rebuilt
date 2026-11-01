@@ -1,22 +1,13 @@
 #include "sim/ai/route_choice.hpp"
 
-#include <algorithm>
 #include <format>
 #include <utility>
-
-#include "assets/game_path.hpp"
 
 namespace rr::sim {
 namespace {
 
 constexpr std::string_view kPaces = "FMS";
 constexpr int kMaxRoutesPerPace = 10;
-
-bool HasFile(std::span<const assets::VfsEntry> folder, std::string_view name) {
-    return std::ranges::any_of(folder, [&](const assets::VfsEntry& entry) {
-        return entry.kind == assets::EntryKind::File && assets::ToUpperAscii(entry.name) == name;
-    });
-}
 
 }
 
@@ -25,7 +16,7 @@ std::vector<std::string> SlotRoutes(std::span<const assets::VfsEntry> folder, in
     for (const char pace : kPaces) {
         for (int number = 0; number < kMaxRoutesPerPace; ++number) {
             std::string name = std::format("R{}_{}_{}.RRB", slot, pace, number);
-            if (!HasFile(folder, name)) {
+            if (!assets::HasFile(folder, name)) {
                 break;
             }
             routes.push_back(std::move(name));

@@ -109,5 +109,29 @@ TEST_CASE("a cannonball turned back hits its owner, for the shielded racer") {
     CHECK(rig.Blasts().All()[0].owner == 1);
 }
 
+TEST_CASE("a cannonball aims at the nearest racer ahead") {
+    Rig rig(3);
+    rig.Place(1, {.x = 305.0F, .z = 0.2F});
+    rig.Place(2, kAhead);
+    rig.Fire(BrickColour::Red, 0);
+
+    REQUIRE(rig.TicksUntil([&] { return HasWeaponEvent(rig, WeaponEventKind::Struck); }) > 0);
+    CHECK(rig.Car(2).Status().hitReactions == 1);
+    CHECK(rig.Car(1).Status().hitReactions == 0);
+}
+
+TEST_CASE("a player's cannonball aims at a target point before a racer ahead") {
+    Rig rig(2);
+    rig.Place(1, kAhead);
+    rig.AimAt({{.position = {.x = 205.0F, .y = 20.0F}}});
+    rig.Fire(BrickColour::Red, 0);
+
+    REQUIRE(rig.TicksUntil([&] { return HasWeaponEvent(rig, WeaponEventKind::Landed); }) > 0);
+    const Vector3 landed = rig.Weapons()[0].position;
+    CHECK(landed.x == doctest::Approx(205.0F).epsilon(0.02));
+    CHECK(landed.y == doctest::Approx(20.0F).epsilon(0.05));
+    CHECK(rig.Car(1).Status().hitReactions == 0);
+}
+
 }
 }

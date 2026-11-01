@@ -58,4 +58,10 @@ Result<std::vector<VfsEntry>> Vfs::List(std::string_view directory) const {
     return children;
 }
 
+bool HasFile(std::span<const VfsEntry> folder, std::string_view name) {
+    return std::ranges::any_of(folder, [&](const VfsEntry& entry) {
+        return entry.kind == EntryKind::File && ToUpperAscii(entry.name) == name;
+    });
+}
+
 }

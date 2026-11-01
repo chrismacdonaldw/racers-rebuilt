@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "assets/brick_layout.hpp"
+#include "assets/target_points.hpp"
 #include "core/bounding_sphere.hpp"
 #include "core/duration.hpp"
 #include "core/result.hpp"
@@ -39,6 +40,7 @@ struct RaceCourse {
     float lowestTrackZ = 0.0F;
     const GridRoutes* routes = nullptr;
     const assets::BrickLayout* bricks = nullptr;
+    std::span<const assets::TargetPoint> targets;
     bool isMirrored = false;
 };
 

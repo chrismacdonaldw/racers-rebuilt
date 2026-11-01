@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "sim/powerup/aim_cones.hpp"
 #include "sim/powerup/weapon_hits.hpp"
 
 namespace rr::sim {

@@ -34,12 +34,15 @@ rr_add_module(sim
         physics/start_boost.cpp
         physics/turbo.cpp
         physics/wall_sweep.cpp
+        powerup/aim_cones.cpp
         powerup/ballistic_flight.cpp
         powerup/brick_field.cpp
         powerup/cannonball_effect.cpp
         powerup/explosions.cpp
+        powerup/grapple_effect.cpp
         powerup/green_effects.cpp
         powerup/homing_flight.cpp
+        powerup/lightning_effect.cpp
         powerup/missile_effect.cpp
         powerup/powerup_inventory.cpp
         powerup/powerup_kind.cpp

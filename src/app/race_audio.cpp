@@ -17,6 +17,10 @@ constexpr std::size_t kCannonHit = 5;
 constexpr std::size_t kCannonFire = 6;
 constexpr std::size_t kBrakeLoop = 3;
 constexpr std::size_t kWhiteBrickBeforeFirst = 10;
+constexpr std::size_t kGrappleHit = 18;
+constexpr std::size_t kGrappleRelease = 20;
+constexpr std::size_t kGrappleFire = 21;
+constexpr std::size_t kGrappleMiss = 22;
 constexpr std::size_t kBrickRespawn = 14;
 constexpr std::size_t kDriveLoop = 10;
 constexpr std::size_t kGo = 15;
@@ -33,10 +37,13 @@ constexpr std::size_t kWarpLand = 41;
 constexpr std::size_t kShieldLoop1 = 53;
 constexpr std::size_t kCarScrapeAlternate = 55;
 constexpr std::size_t kWallScrape = 56;
+constexpr std::size_t kLightningEnd = 66;
+constexpr std::size_t kLightningStrike = 67;
 constexpr std::size_t kDriftStart = 57;
 constexpr std::size_t kShieldExpire = 59;
 constexpr std::size_t kCoastLoop = 61;
 constexpr std::size_t kBrickSwap = 72;
+constexpr std::size_t kGrappleRetract = 73;
 constexpr std::size_t kEngineStart = 62;
 constexpr std::size_t kTurboWhoosh = 65;
 constexpr std::size_t kShieldAbsorbAlternate = 70;
@@ -169,16 +176,6 @@ void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent
         case sim::RaceSound::TurboFade:
             PlayTurboEnd(event.level, car);
             break;
-        case sim::RaceSound::WarpEnter:
-        case sim::RaceSound::WarpLand:
-        case sim::RaceSound::ShieldAbsorb:
-        case sim::RaceSound::ShieldExpire:
-        case sim::RaceSound::CannonFire:
-        case sim::RaceSound::CannonHit:
-        case sim::RaceSound::MissileFire:
-        case sim::RaceSound::MissileHit:
-            PlayPowerupEvent(event, car);
-            break;
         case sim::RaceSound::DriftStart:
             PlayAt(kDriftStart, car);
             break;
@@ -201,6 +198,9 @@ void RaceAudio::PlayEvent(const sim::RaceSession& session, const sim::SoundEvent
             break;
         case sim::RaceSound::WhiteBrickCollect:
             PlayAt(kWhiteBrickBeforeFirst + event.whiteCount, car);
+            break;
+        default:
+            PlayPowerupEvent(event, car);
             break;
     }
 }
@@ -236,6 +236,33 @@ void RaceAudio::PlayPowerupEvent(const sim::SoundEvent& event, const Vector3& ca
             break;
         case sim::RaceSound::MissileHit:
             PlayAt(kMissileHit, event.position, {}, kWeaponHitRange);
+            break;
+        default:
+            PlayRedEvent(event);
+            break;
+    }
+}
+
+void RaceAudio::PlayRedEvent(const sim::SoundEvent& event) {
+    switch (event.sound) {
+        case sim::RaceSound::GrappleFire:
+            PlayAt(kGrappleFire, event.position, {}, kWeaponFireRange);
+            break;
+        case sim::RaceSound::GrappleHit:
+            PlayAt(kGrappleHit, event.position, {}, kWeaponFireRange);
+            break;
+        case sim::RaceSound::GrappleRelease:
+            PlayAt(kGrappleRelease, event.position, {}, kWeaponFireRange);
+            break;
+        case sim::RaceSound::GrappleMiss:
+            PlayAt(kGrappleMiss, event.position, {}, kWeaponFireRange);
+            PlayAt(kGrappleRetract, event.position, {}, kWeaponFireRange);
+            break;
+        case sim::RaceSound::LightningStrike:
+            PlayAt(kLightningStrike, event.position, {}, kWeaponFireRange);
+            break;
+        case sim::RaceSound::LightningEnd:
+            PlayAt(kLightningEnd, event.position, {}, kWeaponFireRange);
             break;
         default:
             break;

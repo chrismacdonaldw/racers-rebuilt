@@ -265,5 +265,29 @@ TEST_CASE(
     }
 }
 
+TEST_CASE("a race track loads the target points in its TGB") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+
+    const Result<RaceTrack> track = LoadRaceTrack(*vfs, "RACEC0R2");
+    REQUIRE(track.has_value());
+    REQUIRE(track->targets.size() == 2);
+    CHECK(track->targets[1].position.x == doctest::Approx(-534.24F).epsilon(0.001));
+    CHECK_FALSE(track->targets[1].removingEvent);
+}
+
+TEST_CASE("a race track without a TGB has no target points") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+
+    const Result<RaceTrack> track = LoadRaceTrack(*vfs, "RACEC0R0");
+    REQUIRE(track.has_value());
+    CHECK(track->targets.empty());
+}
+
 }
 }

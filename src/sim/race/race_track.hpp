@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "assets/brick_layout.hpp"
+#include "assets/target_points.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 #include "sim/ai/route_choice.hpp"
@@ -19,6 +20,7 @@ struct RaceTrack {
     std::vector<RacerStart> grid;
     GridRoutes routes;
     assets::BrickLayout bricks;
+    std::vector<assets::TargetPoint> targets;
     float lowestTrackZ = 0.0F;
 };
 

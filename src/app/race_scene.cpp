@@ -169,7 +169,8 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                                   .world = world.get(),
                                   .lowestTrackZ = raceTrack->lowestTrackZ,
                                   .routes = &raceTrack->routes,
-                                  .bricks = &raceTrack->bricks});
+                                  .bricks = &raceTrack->bricks,
+                                  .targets = raceTrack->targets});
     if (!session) {
         return std::unexpected(std::move(session.error()));
     }

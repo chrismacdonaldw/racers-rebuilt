@@ -147,10 +147,13 @@ add_executable(racers-rebuilt-tests
     sim/physics/racer_test.cpp
     sim/physics/start_boost_test.cpp
     sim/physics/turbo_test.cpp
+    sim/powerup/aim_cones_test.cpp
     sim/powerup/ballistic_flight_test.cpp
     sim/powerup/brick_field_test.cpp
     sim/powerup/cannonball_effect_test.cpp
     sim/powerup/explosions_test.cpp
+    sim/powerup/grapple_effect_test.cpp
+    sim/powerup/lightning_effect_test.cpp
     sim/powerup/missile_effect_test.cpp
     sim/powerup/powerup_inventory_test.cpp
     sim/powerup/powerup_system_test.cpp

@@ -15,6 +15,7 @@ enum class WeaponEventKind : std::uint8_t {
     Fired,
     Struck,
     Landed,
+    Ended,
 };
 
 /// `racer` is the shooter for `Fired` and the victim for `Struck`.

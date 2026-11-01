@@ -11,6 +11,8 @@
 namespace rr::sim {
 namespace {
 
+constexpr std::size_t kMostWeaponEventsPerEffect = 2;
+
 BrickField BricksFor(const RaceCourse& course) {
     return course.bricks == nullptr ? BrickField() : BrickField(*course.bricks);
 }
@@ -25,7 +27,7 @@ std::size_t WeaponEventCount(const RaceSetup& setup) {
     for (std::size_t kind = 0; kind < kPowerupKindCount; ++kind) {
         slots += setup.effects.at(kind) ? SpecFor(static_cast<PowerupKind>(kind)).poolSize : 0;
     }
-    return slots + (setup.racers.size() * kMaxLaunches);
+    return (slots * kMostWeaponEventsPerEffect) + (setup.racers.size() * kMaxLaunches);
 }
 
 bool AreBricksAudible(const RaceClock& clock) {
@@ -200,6 +202,9 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     positions_[racer] = car.Body().motion.position;
     if (controls.isUsePressed && clock_.IsRunning()) {
         PowerupContext effects = EffectContext();
+        if (isPlayer_[racer]) {
+            effects.targets = course_.targets;
+        }
         powerups_.Use(racer, inventories_[racer], bricks_, effects);
     }
 }
