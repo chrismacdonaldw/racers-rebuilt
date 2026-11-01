@@ -10,7 +10,9 @@
 #include <string_view>
 #include <vector>
 
+#include "app/ambient_sounds.hpp"
 #include "app/car_sounds.hpp"
+#include "app/loop_voice.hpp"
 #include "app/positional_sound.hpp"
 #include "app/race_music.hpp"
 #include "app/scene.hpp"
@@ -30,6 +32,7 @@ struct RaceSoundSet {
     std::span<const audio::SoundId> effects;
     std::span<const audio::SoundId> ambient;
     std::vector<std::string> music;
+    std::vector<assets::SoundResource> ambience;
 };
 
 /// Only `player` gets engine and brake loops.
@@ -59,22 +62,12 @@ public:
     /// Call after each session tick. `camera` is the player's, in engine space.
     void Hear(const sim::RaceSession& session, const Transform& camera, Milliseconds elapsed);
 
-    /// Silences the engine, brake, surface, shield and opponent loops until the next `Hear`.
+    /// Silences every loop until the next `Hear`.
     void StopLoops();
 
     [[nodiscard]] SceneMusic Music() const { return music_.Current(); }
 
 private:
-    class LoopVoice {
-    public:
-        void Play(audio::Mixer& mixer, audio::SoundId sound, const audio::VoiceMix& mix);
-        void Stop(audio::Mixer& mixer);
-
-    private:
-        std::optional<audio::VoiceId> voice_;
-        audio::SoundId sound_;
-    };
-
     void PlayEvent(const sim::RaceSession& session, const sim::SoundEvent& event);
     void PlayPowerupEvent(const sim::SoundEvent& event, const Vector3& car);
     void PlayTurboEnd(sim::TurboLevel level, const Vector3& car);
@@ -85,7 +78,6 @@ private:
     void HearSurfaces(const sim::RaceSession& session, Milliseconds elapsed);
     void HearShields(const sim::RaceSession& session);
     void HearNearestOpponent(const sim::RaceSession& session);
-    [[nodiscard]] std::optional<audio::SoundId> AmbientSound(std::int32_t soundId) const;
 
     audio::Mixer* mixer_;
     RaceSoundSet sounds_;
@@ -101,6 +93,7 @@ private:
     std::vector<LoopVoice> surfaceLoops_;
     std::vector<LoopVoice> shieldLoops_;
     LoopVoice opponentLoop_;
+    AmbientSounds ambience_;
 };
 
 }

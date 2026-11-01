@@ -1,5 +1,6 @@
 rr_add_module(app
     SOURCES
+        ambient_sounds.cpp
         application.cpp
         audio_settings.cpp
         audio_startup.cpp
@@ -28,6 +29,7 @@ rr_add_module(app
         input_bindings.cpp
         install_discovery.cpp
         loop_sidecar.cpp
+        loop_voice.cpp
         menu/main_menu_scene.cpp
         menu/menu_files.cpp
         menu/menu_focus.cpp
