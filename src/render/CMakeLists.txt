@@ -2,6 +2,7 @@ rr_add_module(render
     SOURCES
         camera.cpp
         pipelines.cpp
+        particle_bank.cpp
         quad_batch.cpp
         renderer.cpp
         renderer_uploads.cpp
