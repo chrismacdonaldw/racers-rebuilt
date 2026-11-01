@@ -52,6 +52,15 @@ void Interpolate(const RenderSnapshot& previous, const RenderSnapshot& current, 
         }
     }
     out.explosions.assign(current.explosions.begin(), current.explosions.end());
+    out.entityClocks.assign(current.entityClocks.begin(), current.entityClocks.end());
+    if (previous.entityClocks.size() == current.entityClocks.size()) {
+        for (std::size_t i = 0; i < out.entityClocks.size(); ++i) {
+            if (previous.entityClocks[i] && current.entityClocks[i]) {
+                out.entityClocks[i] =
+                    InterpolateClock(*previous.entityClocks[i], *current.entityClocks[i], alpha);
+            }
+        }
+    }
     out.camera = current.camera;
     out.simStateHash = current.simStateHash;
     out.camera.transform =

@@ -82,34 +82,38 @@ bool IsHoldingLastFrame(const assets::AnimationAsset& animations, const PartCloc
     return !clock.loops && clock.frame >= LastFrame(animations.parts[clock.part]);
 }
 
-void SamplePart(const assets::AnimationAsset& animations, const PartClock& clock,
-                std::span<Transform> locals) {
+void SampleNode(const assets::AnimationAsset& animations, const PartClock& clock, std::size_t node,
+                Transform& local) {
     const assets::AnimationPart& part = animations.parts[clock.part];
     const SampleTime time{
         .frame = clock.frame,
         .spanFrames = static_cast<float>(clock.loops ? part.loopFrames : part.frameCount)};
+    const assets::AnimationTrack& track = animations.tracks[part.firstTrack + node];
+    if (const auto rotation = SampleRun<Quaternion>(
+            track.rotations, animations.rotationKeys, animations.keyFrames, time,
+            [](const Quaternion& from, const Quaternion& to, float alpha) {
+                return Nlerp(from, to, alpha);
+            })) {
+        local.rotation = *rotation;
+    }
+    if (const auto position =
+            SampleRun<Vector3>(track.positions, animations.positionKeys, animations.keyFrames, time,
+                               [](const Vector3& from, const Vector3& to, float alpha) {
+                                   return Lerp(from, to, alpha);
+                               })) {
+        local.position = *position;
+    }
+}
+
+void SamplePart(const assets::AnimationAsset& animations, const PartClock& clock,
+                std::span<Transform> locals) {
     for (std::size_t node = 0; node < locals.size(); ++node) {
-        const assets::AnimationTrack& track = animations.tracks[part.firstTrack + node];
-        if (const auto rotation = SampleRun<Quaternion>(
-                track.rotations, animations.rotationKeys, animations.keyFrames, time,
-                [](const Quaternion& from, const Quaternion& to, float alpha) {
-                    return Nlerp(from, to, alpha);
-                })) {
-            locals[node].rotation = *rotation;
-        }
-        if (const auto position = SampleRun<Vector3>(
-                track.positions, animations.positionKeys, animations.keyFrames, time,
-                [](const Vector3& from, const Vector3& to, float alpha) {
-                    return Lerp(from, to, alpha);
-                })) {
-            locals[node].position = *position;
-        }
+        SampleNode(animations, clock, node, locals[node]);
     }
 }
 
 PartClock InterpolateClock(const PartClock& previous, const PartClock& next, float alpha) {
-    if (previous.part != next.part || previous.loops != next.loops ||
-        next.frame < previous.frame) {
+    if (previous.part != next.part || previous.loops != next.loops || next.frame < previous.frame) {
         return next;
     }
     PartClock blended = next;

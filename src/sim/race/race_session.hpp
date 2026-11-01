@@ -35,6 +35,7 @@
 #include "sim/race/random.hpp"
 #include "sim/race/respawn.hpp"
 #include "sim/track/surface_events.hpp"
+#include "sim/track/track_entities.hpp"
 #include "sim/track/track_events.hpp"
 #include "sim/track/trigger_lists.hpp"
 
@@ -51,6 +52,7 @@ struct RaceCourse {
     std::span<const assets::TargetPoint> targets;
     const TrackEventSources* events = nullptr;
     const TrackCollision* collision = nullptr;
+    const TrackEntitySources* entities = nullptr;
     bool isMirrored = false;
 };
 
@@ -77,6 +79,7 @@ public:
     [[nodiscard]] const TrackSurfaces& Surfaces() const { return surfaces_; }
     [[nodiscard]] std::span<const TriggerWorlds> SwitchedWorlds() const { return switchedWorlds_; }
     [[nodiscard]] const SurfaceEvents& SurfaceContacts() const { return surfaceEvents_; }
+    [[nodiscard]] const TrackEntities& Entities() const { return entities_; }
 
     /// Replaces what `racer` holds, sending its white bricks home.
     void GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level);
@@ -117,6 +120,7 @@ private:
     Random random_;
     TrackSurfaces surfaces_;
     TrackEvents triggers_;
+    TrackEntities entities_;
     std::vector<TriggerRacer> triggerRacers_;
     std::vector<std::optional<std::size_t>> sphereWorlds_;
     std::vector<TriggerWorlds> switchedWorlds_;

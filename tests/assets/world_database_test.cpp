@@ -110,7 +110,7 @@ TEST_CASE("an entity without fields keeps the defaults") {
     CHECK(entity.up == Vector3{.z = 1.0F});
     CHECK(entity.scale == 1.0F);
     CHECK_FALSE(entity.textureScroll.has_value());
-    CHECK_FALSE(entity.node.has_value());
+    CHECK_FALSE(entity.startPart.has_value());
 }
 
 TEST_CASE("animated entities read jointed and node levels of detail") {
@@ -130,14 +130,14 @@ TEST_CASE("animated entities read jointed and node levels of detail") {
     CHECK(entity.lods ==
           std::vector<WorldLod>{{.model = 1, .sceneNode = 2, .modelPart = 3, .maxDistance = 10.0F},
                                 {.sceneNode = 4, .modelPart = 5, .maxDistance = 20.0F}});
-    CHECK(entity.node == NodeReference{.name = "HEAD"});
+    CHECK(entity.startPart == NameOrIndex{.name = "HEAD"});
 }
 
-TEST_CASE("a node can be an index") {
+TEST_CASE("a start part can be an index") {
     const Result<WorldAsset> world = ParseEntity(0x2F, Join({Bytes({0x35}), Ints({7})}));
 
     REQUIRE(world.has_value());
-    CHECK(world->animatedEntities.front().node == NodeReference{.index = 7});
+    CHECK(world->animatedEntities.front().startPart == NameOrIndex{.index = 7});
     CHECK_FALSE(ParseEntity(0x2F, Join({Bytes({0x35}), Floats({7})})).has_value());
 }
 

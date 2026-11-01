@@ -270,6 +270,15 @@ public:
         }
     }
 
+    void Add(const TrackEntities& entities) {
+        for (const EntityClock& clock : entities.Clocks()) {
+            Add(clock.has_value());
+            if (clock) {
+                Add(static_cast<std::uint64_t>(clock->part), clock->frame, clock->loops);
+            }
+        }
+    }
+
     void Add(const RaceClock& clock) {
         Add(static_cast<int>(clock.Phase()), clock.PhaseTime(), clock.RaceTime());
     }
@@ -317,7 +326,7 @@ std::uint64_t HashRaceSession(const RaceSession& session) {
         hash.Add(static_cast<std::uint64_t>(racer));
     }
     hash.Add(session.Powerups(), session.Blasts(), session.Spikes(), session.Triggers(),
-             session.Surfaces());
+             session.Surfaces(), session.Entities());
     if (!session.Bricks().IsEmpty()) {
         hash.Add(session.Bricks());
         for (const PowerupInventory& inventory : session.Inventories()) {

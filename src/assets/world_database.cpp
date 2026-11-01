@@ -32,16 +32,17 @@ constexpr auto OptionalField(FieldId id) {
     };
 }
 
-template <typename Target>
-Result<void> ReadNode(TokenReader& reader, Target& target) {
+template <auto Member>
+Result<void> ReadNameOrIndex(TokenReader& reader,
+                             typename MemberPointer<decltype(Member)>::Target& target) {
     return reader.Next().and_then([&](const Token& token) -> Result<void> {
         if (token.kind == TokenKind::String) {
-            target.node = NodeReference{.name = std::string(token.text)};
+            target.*Member = NameOrIndex{.name = std::string(token.text)};
         } else if (token.kind == TokenKind::Int) {
-            target.node = NodeReference{.index = token.integer};
+            target.*Member = NameOrIndex{.index = token.integer};
         } else {
             return Fail(ErrorCode::InvalidData,
-                        std::format("expected a node index or name at offset {}", token.offset));
+                        std::format("expected an index or name at offset {}", token.offset));
         }
         return {};
     });
@@ -126,7 +127,7 @@ constexpr auto kAnimatedEntityFields =
                    .read = ReadLod<&WorldLod::model, &WorldLod::sceneNode, &WorldLod::modelPart>},
                FieldRule<WorldEntity>{.id = 0x2C,
                                       .read = ReadLod<&WorldLod::sceneNode, &WorldLod::modelPart>},
-               FieldRule<WorldEntity>{.id = 0x35, .read = ReadNode<WorldEntity>},
+               FieldRule<WorldEntity>{.id = 0x35, .read = ReadNameOrIndex<&WorldEntity::startPart>},
                Field<&WorldEntity::scale>(0x36),
                Field<&WorldEntity::hasFlag4C>(0x4C),
            });
@@ -161,7 +162,7 @@ constexpr std::array kCameraFields{
     Field<&WorldCamera::trackedEntity, &WorldCamera::trackedNode>(0x2F),
     Field<&WorldCamera::position>(0x31),
     Field<&WorldCamera::forward, &WorldCamera::up>(0x32),
-    FieldRule<WorldCamera>{.id = 0x35, .read = ReadNode<WorldCamera>},
+    FieldRule<WorldCamera>{.id = 0x35, .read = ReadNameOrIndex<&WorldCamera::node>},
     Field<&WorldCamera::target>(0x44),
     Field<&WorldCamera::nearClip>(0x45),
     Field<&WorldCamera::farClip>(0x46),

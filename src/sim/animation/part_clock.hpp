@@ -29,6 +29,10 @@ void AdvanceClock(const assets::AnimationAsset& animations, PartClock& clock, fl
 [[nodiscard]] bool IsHoldingLastFrame(const assets::AnimationAsset& animations,
                                       const PartClock& clock);
 
+/// Writes the keyed channels into `local`. A channel without keys keeps its value.
+void SampleNode(const assets::AnimationAsset& animations, const PartClock& clock, std::size_t node,
+                Transform& local);
+
 /// Writes the keyed nodes into `locals`. Nodes without keys keep their values.
 void SamplePart(const assets::AnimationAsset& animations, const PartClock& clock,
                 std::span<Transform> locals);

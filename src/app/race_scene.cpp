@@ -119,7 +119,8 @@ sim::RaceCourse CourseOf(const sim::RaceTrack& track, const sim::WorldList& worl
             .bricks = &track.bricks,
             .targets = track.targets,
             .events = &track.events,
-            .collision = &track.collision};
+            .collision = &track.collision,
+            .entities = &track.entities};
 }
 
 }

@@ -100,6 +100,8 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
     out.explosions.clear();
     SnapshotExplosions(session.Blasts(), sim::ExplosionKind::Blast, out);
     SnapshotExplosions(session.Spikes(), sim::ExplosionKind::Spike, out);
+    const std::span<const sim::EntityClock> clocks = session.Entities().Clocks();
+    out.entityClocks.assign(clocks.begin(), clocks.end());
     out.simStateHash = sim::HashRaceSession(session);
 }
 

@@ -81,6 +81,8 @@ rr_add_module(sim
         replay/snapshot_hash.cpp
         route_playback.cpp
         track/surface_events.cpp
+        track/track_entities.cpp
+        track/track_entity_sources.cpp
         track/track_events.cpp
         track/track_timers.cpp
         track/trigger_lists.cpp
