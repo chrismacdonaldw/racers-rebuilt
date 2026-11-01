@@ -9,6 +9,7 @@ add_executable(racers-rebuilt-tests
     app/game_extraction_test.cpp
     app/hazard/ghost_trail_test.cpp
     app/hazard/hazard_particles_test.cpp
+    app/hazard/water_scroll_test.cpp
     app/hidden_models_test.cpp
     app/hud/hud_assets_test.cpp
     app/hud/hud_strings_test.cpp

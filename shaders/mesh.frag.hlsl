@@ -8,6 +8,7 @@ cbuffer MaterialUniforms : register(b0, space3)
     float3 lightDirection;
     float alphaCutoff;
     float modulateWeight;
+    float2 uvOffset;
 };
 
 static const float kMinNormalLengthSquared = 1e-6;
@@ -26,7 +27,7 @@ float3 Shade(float3 normal, float4 vertexColor)
 float4 main(float4 position : SV_Position, float3 normal : TEXCOORD0, float2 uv : TEXCOORD1,
             float4 vertexColor : TEXCOORD2) : SV_Target0
 {
-    float4 texel = baseTexture.Sample(baseSampler, uv);
+    float4 texel = baseTexture.Sample(baseSampler, uv + uvOffset);
     float alpha = texel.a * tint.a;
     clip(alpha - alphaCutoff);
     return float4(texel.rgb * lerp(1.0, Shade(normal, vertexColor), modulateWeight), alpha);

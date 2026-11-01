@@ -12,6 +12,7 @@
 #include "app/brick_models.hpp"
 #include "app/chase_camera.hpp"
 #include "app/hazard/ghost_trail.hpp"
+#include "app/hazard/water_scroll.hpp"
 #include "app/hidden_models.hpp"
 #include "app/hud/race_hud_layer.hpp"
 #include "app/menu/pause_menu.hpp"
@@ -95,6 +96,7 @@ private:
         TrackEntityDraws entityDraws;
         HiddenModels hiddenModels;
         GhostTrail ghostTrail;
+        WaterScroll waterScroll;
         std::unique_ptr<sim::WorldList> world;
         sim::RaceSession session;
         std::unique_ptr<RaceAudio> audio;
