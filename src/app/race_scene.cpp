@@ -284,11 +284,6 @@ SceneMusic RaceScene::Music() const {
     return parts_.audio ? parts_.audio->Music() : SceneMusic{};
 }
 
-std::string RaceScene::DeveloperStatus() const {
-    const sim::PowerupInventory& held = parts_.session.Inventories()[kPlayerSlot];
-    return std::format("Power-up: {}, {} white", ColourName(held.Colour()), held.WhiteCount());
-}
-
 void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
     SnapshotRace(parts_.session, out);
     out.camera = {.transform = chase_.Pose(PlayerCar()), .flags = out.entities[kPlayerSlot].flags};
@@ -306,11 +301,11 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     render::Camera camera = parts_.camera;
     camera.transform = interpolated.camera.transform;
     DrawDebugLines();
-    Result<void> drawn =
-        parts_.renderer->Draw({.camera = camera,
-                               .meshes = draws_,
-                               .lines = debugLines_,
-                               .sprites = hud_.Draw(parts_.session, PauseFocus())});
+    Result<void> drawn = parts_.renderer->Draw(
+        {.camera = camera,
+         .meshes = draws_,
+         .lines = debugLines_,
+         .sprites = hud_.Draw(parts_.session, interpolated.racers[kPlayerSlot], PauseFocus())});
     if (!drawn) {
         log::Error("{}", drawn.error().message);
         return;

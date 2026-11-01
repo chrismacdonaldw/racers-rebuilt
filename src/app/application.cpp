@@ -253,14 +253,12 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
         const Nanoseconds now = platform::Now();
         Scene* shown = frameLoop_.Scenes().Top();
         const bool showsScene = menu.IsVisible() && shown != nullptr;
-        const std::string sceneStatus = showsScene ? shown->DeveloperStatus() : std::string();
         const overlay::RacerTools racerTools =
             showsScene ? shown->OverlayRacerTools() : overlay::RacerTools{};
         Persist(menu.Build(settings_,
                            {.frameTime = std::chrono::duration_cast<FloatSeconds>(now - lastFrame),
                             .ticksPerFrame = frame.tickCount,
-                            .startupSummary = startupSummary_,
-                            .sceneStatus = sceneStatus},
+                            .startupSummary = startupSummary_},
                            scenes, racerTools));
         lastFrame = now;
         frame = frameLoop_.RunFrame(now);

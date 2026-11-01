@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "app/hud/hud_assets.hpp"
+#include "app/hud/powerup_panel.hpp"
 #include "core/log.hpp"
 
 namespace rr::app {
@@ -42,6 +43,14 @@ void RaceHudLayer::SetLanguage(std::string_view language) {
         log::Error("the race HUD is hidden: {}", (found ? text.error() : found.error()).message);
         return;
     }
+    if (images_.empty()) {
+        Result<std::vector<UiImage>> images = LoadHudImages(*renderer_, *vfs_);
+        if (!images) {
+            log::Error("the race HUD is hidden: {}", images.error().message);
+            return;
+        }
+        images_ = std::move(*images);
+    }
     names_ = RacerNames(text->driverNames, nameIndexes_);
     hud_.emplace(std::move(text->strings), *found);
 }
@@ -53,13 +62,18 @@ void RaceHudLayer::Tick(const sim::RaceSession& session, Milliseconds elapsed) {
 }
 
 std::span<const render::SpriteDraw> RaceHudLayer::Draw(const sim::RaceSession& session,
+                                                       const sim::RacerSnapshot& racer,
                                                        std::optional<std::size_t> pauseFocus) {
     sprites_.clear();
-    if (hud_) {
-        hud_->Layout(session.Clock(), session.Progress(), racer_, names_, texts_);
-        if (pauseFocus) {
-            hud_->LayoutPause(*pauseFocus, texts_);
-        }
+    if (!hud_) {
+        return sprites_;
+    }
+    hud_->Layout(session.Clock(), session.Progress(), racer_, names_, texts_);
+    DrawHudText(texts_, hud_->Fonts(), sprites_);
+    LayoutPowerupPanel(racer, images_, sprites_);
+    if (pauseFocus) {
+        texts_.clear();
+        hud_->LayoutPause(*pauseFocus, texts_);
         DrawHudText(texts_, hud_->Fonts(), sprites_);
     }
     return sprites_;

@@ -1,6 +1,7 @@
 #include "app/powerup_tools.hpp"
 
 #include <format>
+#include <string_view>
 
 #include "sim/powerup/powerup_kind.hpp"
 
@@ -37,13 +38,8 @@ std::string_view KindName(sim::PowerupKind kind) {
     return {};
 }
 
-}
-
-std::string_view ColourName(std::optional<assets::BrickColour> colour) {
-    if (!colour) {
-        return "none";
-    }
-    switch (*colour) {
+std::string_view ColourName(assets::BrickColour colour) {
+    switch (colour) {
         case assets::BrickColour::Red:
             return "red";
         case assets::BrickColour::Blue:
@@ -53,7 +49,9 @@ std::string_view ColourName(std::optional<assets::BrickColour> colour) {
         case assets::BrickColour::Yellow:
             return "yellow";
     }
-    return "none";
+    return {};
+}
+
 }
 
 std::string PowerupLabel(assets::BrickColour colour, std::uint8_t level) {

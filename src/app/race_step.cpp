@@ -65,6 +65,7 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
     out.racers.clear();
     for (std::size_t i = 0; i < session.Racers().size(); ++i) {
         const sim::Racer& racer = session.Racers()[i];
+        const sim::PowerupInventory& inventory = session.Inventories()[i];
         const sim::EntityId id{static_cast<std::uint32_t>(i + 1)};
         out.entities.push_back({.id = id,
                                 .transform = TransformToEngine(racer.Pose()),
@@ -73,7 +74,9 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
         out.racers.push_back({.id = id,
                               .forwardSpeed = racer.Body().derived.forwardSpeed,
                               .turnRadius = racer.Body().turnRadius,
-                              .hitReactions = racer.Status().hitReactions});
+                              .hitReactions = racer.Status().hitReactions,
+                              .heldColour = inventory.Colour(),
+                              .whiteCount = static_cast<std::uint8_t>(inventory.WhiteCount())});
     }
     SnapshotBricks(session.Bricks(), out);
     SnapshotEffects(session.Powerups(), out);

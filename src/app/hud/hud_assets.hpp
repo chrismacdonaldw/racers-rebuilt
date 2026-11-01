@@ -7,8 +7,10 @@
 #include "app/hud/hud_strings.hpp"
 #include "app/hud/hud_text.hpp"
 #include "app/ui_text/ui_font.hpp"
+#include "app/ui_text/ui_image.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
+#include "render/renderer.hpp"
 
 namespace rr::app {
 
@@ -27,5 +29,9 @@ struct HudLanguage {
 
 /// Fails when `font_ths` or `ignum` is missing.
 [[nodiscard]] Result<HudFonts> FindHudFonts(const UiFonts& fonts);
+
+/// `LEGOIMGS.IDB` in list order, shared by every language.
+[[nodiscard]] Result<std::vector<UiImage>> LoadHudImages(render::Renderer& renderer,
+                                                         const assets::Vfs& vfs);
 
 }

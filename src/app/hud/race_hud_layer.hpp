@@ -10,11 +10,13 @@
 
 #include "app/hud/race_hud.hpp"
 #include "app/ui_text/ui_font.hpp"
+#include "app/ui_text/ui_image.hpp"
 #include "assets/vfs.hpp"
 #include "core/duration.hpp"
 #include "render/render_view.hpp"
 #include "render/renderer.hpp"
 #include "sim/race/race_session.hpp"
+#include "sim/render_snapshot.hpp"
 
 namespace rr::app {
 
@@ -32,6 +34,7 @@ public:
 
     /// Valid until the next call. `pauseFocus` adds the pause menu with that row highlighted.
     [[nodiscard]] std::span<const render::SpriteDraw> Draw(const sim::RaceSession& session,
+                                                           const sim::RacerSnapshot& racer,
                                                            std::optional<std::size_t> pauseFocus);
 
 private:
@@ -42,6 +45,7 @@ private:
     std::string language_;
     UiFonts fonts_;
     std::vector<std::u16string> names_;
+    std::vector<UiImage> images_;
     std::optional<RaceHud> hud_;
     std::vector<HudText> texts_;
     std::vector<render::SpriteDraw> sprites_;

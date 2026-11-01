@@ -10,6 +10,7 @@ add_executable(racers-rebuilt-tests
     app/hud/hud_strings_test.cpp
     app/hud/hud_text_test.cpp
     app/hud/place_pulse_test.cpp
+    app/hud/powerup_panel_test.cpp
     app/hud/race_hud_session_test.cpp
     app/hud/race_hud_test.cpp
     app/hud/race_hud_values_test.cpp

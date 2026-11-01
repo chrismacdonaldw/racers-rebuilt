@@ -10,6 +10,7 @@
 #include <variant>
 
 #include "app/ui_text/text_layout.hpp"
+#include "app/ui_text/ui_image.hpp"
 #include "assets/game_path.hpp"
 
 namespace rr::app {
@@ -47,7 +48,7 @@ Point OriginOf(const assets::MenuLayout& layout, const assets::MenuElement& elem
     return origin;
 }
 
-render::Rect BoundsOf(const assets::MenuRect& rect, Point origin, const MenuImage& image) {
+render::Rect BoundsOf(const assets::MenuRect& rect, Point origin, const UiImage& image) {
     const bool takesImageSize = rect.right == 0 && rect.bottom == 0;
     return {.x = origin.x,
             .y = origin.y,
@@ -101,7 +102,7 @@ public:
     [[nodiscard]] MenuPage& Page() { return page_; }
 
 private:
-    Result<MenuImage> Upload(std::string_view name) {
+    Result<UiImage> Upload(std::string_view name) {
         const std::string key = assets::ToUpperAscii(name);
         if (const auto image = images_.find(key); image != images_.end()) {
             return image->second;
@@ -111,10 +112,11 @@ private:
             return Fail(ErrorCode::NotFound,
                         std::format("menu image {} isn't in any image list", name));
         }
-        return LoadMenuImage(*renderer_, *vfs_, *entry).transform([&](const MenuImage& image) {
-            images_.emplace(key, image);
-            return image;
-        });
+        return LoadUiImage(*renderer_, *vfs_, kMenuFolder, *entry)
+            .transform([&](const UiImage& image) {
+                images_.emplace(key, image);
+                return image;
+            });
     }
 
     Result<void> AddPicture(const assets::MenuElement& element, const assets::ImageElement& image,
@@ -126,7 +128,7 @@ private:
         if (!color && style != nullptr) {
             color = style->color;
         }
-        return Upload(name).transform([&](const MenuImage& uploaded) {
+        return Upload(name).transform([&](const UiImage& uploaded) {
             page_.pictures.push_back({.texture = uploaded.texture,
                                       .bounds = BoundsOf(element.widget.rect, origin, uploaded),
                                       .tint = color ? ToColor(*color) : render::Color{}});
@@ -137,7 +139,7 @@ private:
                            Point origin, std::size_t textLine) {
         MenuButton button{.name = element.name, .textLine = textLine};
         for (std::size_t state = 0; state < assets::kControlStates; ++state) {
-            Result<MenuImage> image = Upload(PickName(own.images, style_.images, state));
+            Result<UiImage> image = Upload(PickName(own.images, style_.images, state));
             if (!image) {
                 return std::unexpected(std::move(image.error()));
             }
@@ -155,7 +157,7 @@ private:
     const assets::Vfs* vfs_;
     const MenuFiles* files_;
     assets::GameButtonElement style_;
-    std::map<std::string, MenuImage, std::less<>> images_;
+    std::map<std::string, UiImage, std::less<>> images_;
     MenuPage page_;
 };
 
