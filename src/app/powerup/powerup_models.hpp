@@ -44,9 +44,10 @@ using EffectModels = assets::NameMap<EffectModel>;
 struct PowerupModelSet {
     std::unique_ptr<PowerupAssets> assets;
     EffectModels models;
+    assets::NameMap<render::Material> quadMaterials;
 };
 
-/// Logs a failure and returns no models, so a race runs without them.
+/// Logs a failure and returns nothing, so a race runs without power-up visuals.
 [[nodiscard]] PowerupModelSet LoadPowerupModels(render::Renderer& renderer, const assets::Vfs& vfs,
                                                 assets::TrackLoader& loader);
 

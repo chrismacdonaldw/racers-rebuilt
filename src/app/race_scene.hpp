@@ -14,6 +14,7 @@
 #include "app/hud/race_hud_layer.hpp"
 #include "app/menu/pause_menu.hpp"
 #include "app/powerup/powerup_models.hpp"
+#include "app/powerup/powerup_quads.hpp"
 #include "app/powerup/powerup_visuals.hpp"
 #include "app/race_audio.hpp"
 #include "app/race_particles.hpp"
@@ -106,6 +107,7 @@ private:
 
     Parts parts_;
     PowerupVisuals powerupVisuals_;
+    PowerupQuads powerupQuads_;
     ChaseCamera chase_;
     RaceHudLayer hud_;
     PauseMenu pause_;

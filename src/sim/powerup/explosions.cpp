@@ -85,6 +85,13 @@ float Explosions::BlastRadius(const Explosion& explosion) const {
     return kBaseRadius + ((spec_.blastRadius - kBaseRadius) * explosion.growth);
 }
 
+float Explosions::ScarLeft(const Explosion& explosion) const {
+    if (explosion.phase != ExplosionPhase::ScarFading) {
+        return 0.0F;
+    }
+    return static_cast<float>(explosion.remaining.count()) / static_cast<float>(spec_.scar.count());
+}
+
 Explosion& Explosions::Claim() {
     const auto idle = std::ranges::find(explosions_, ExplosionPhase::Idle, &Explosion::phase);
     if (idle != explosions_.end()) {

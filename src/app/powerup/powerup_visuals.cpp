@@ -166,11 +166,11 @@ void PowerupVisuals::PlaceExplosion(const sim::ExplosionSnapshot& explosion) {
     const std::string_view name =
         explosion.kind == sim::ExplosionKind::Spike ? kSpikeModel : kBlastModel;
     const auto found = models_->find(name);
-    if (found == models_->end() || explosion.scale <= 0.0F) {
+    if (found == models_->end() || explosion.growth <= 0.0F) {
         return;
     }
     Posed posed{.model = &found->second};
-    Place(posed, explosion.transform, explosion.scale);
+    Place(posed, explosion.transform, explosion.growth);
 }
 
 }

@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -205,10 +206,25 @@ Result<std::vector<render::MeshDraw>> UploadModel(render::Renderer& renderer,
     if (model == assets.models.end() || model->second->indices.empty()) {
         return Fail(ErrorCode::NotFound, std::format("no model named {}", name));
     }
+    Result<NameMap<render::Material>> materials =
+        UploadMaterials(renderer, assets, model->second->materials);
+    Result<NameMap<UploadedModel>> uploaded = materials.and_then(
+        [&](const NameMap<render::Material>&) { return UploadModels(renderer, {*model}); });
+    if (!uploaded) {
+        return std::unexpected(std::move(uploaded.error()));
+    }
+    std::vector<render::MeshDraw> draws;
+    AppendDraws(draws, uploaded->begin()->second, *materials, {});
+    return draws;
+}
+
+Result<NameMap<render::Material>> UploadMaterials(render::Renderer& renderer,
+                                                  const assets::TrackAssets& assets,
+                                                  std::span<const std::string> names) {
     NameMap<assets::MaterialAsset> materials;
     NameMap<assets::AssetCache<assets::ImageAsset>::Handle> images;
-    for (const std::string& materialName : model->second->materials) {
-        const auto material = assets.materials.find(assets::ToUpperAscii(materialName));
+    for (const std::string& name : names) {
+        const auto material = assets.materials.find(assets::ToUpperAscii(name));
         if (material == assets.materials.end()) {
             continue;
         }
@@ -218,15 +234,10 @@ Result<std::vector<render::MeshDraw>> UploadModel(render::Renderer& renderer,
             images.insert(*image);
         }
     }
-    Result<NameMap<render::TextureId>> textures = UploadTextures(renderer, images);
-    Result<NameMap<UploadedModel>> uploaded = textures.and_then(
-        [&](const NameMap<render::TextureId>&) { return UploadModels(renderer, {*model}); });
-    if (!uploaded) {
-        return std::unexpected(std::move(uploaded.error()));
-    }
-    std::vector<render::MeshDraw> draws;
-    AppendDraws(draws, uploaded->begin()->second, ToRenderMaterials(materials, *textures), {});
-    return draws;
+    return UploadTextures(renderer, images)
+        .transform([&](const NameMap<render::TextureId>& textures) {
+            return ToRenderMaterials(materials, textures);
+        });
 }
 
 Result<std::vector<render::MeshDraw>> UploadStandInCar(render::Renderer& renderer,

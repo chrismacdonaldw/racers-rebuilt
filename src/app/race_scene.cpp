@@ -211,6 +211,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
 RaceScene::RaceScene(Parts parts)
     : parts_(std::move(parts)),
       powerupVisuals_(parts_.powerups.models),
+      powerupQuads_(parts_.powerups.quadMaterials),
       chase_(PlayerCar()),
       hud_(*parts_.renderer, *parts_.vfs, kPlayerSlot,
            NameIndexes(parts_.racers, parts_.session.Racers().size())),
@@ -323,6 +324,8 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
                                  render::FloatMilliseconds{pause_.IsOpen() ? 0.0F : elapsedMs});
         parts_.particles->AppendQuads(camera.transform, quads_);
     }
+    powerupQuads_.Update(interpolated, camera.transform, elapsedMs);
+    quads_.insert(quads_.end(), powerupQuads_.Quads().begin(), powerupQuads_.Quads().end());
     Result<void> drawn = parts_.renderer->Draw(
         {.camera = camera,
          .meshes = draws_,

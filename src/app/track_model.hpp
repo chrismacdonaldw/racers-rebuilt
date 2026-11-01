@@ -1,5 +1,7 @@
 #pragma once
 
+#include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -31,6 +33,11 @@ struct TrackModel {
 [[nodiscard]] Result<std::vector<render::MeshDraw>> UploadModel(render::Renderer& renderer,
                                                                 const assets::TrackAssets& assets,
                                                                 std::string_view name);
+
+/// Keyed by uppercase name. Names missing from `assets` are left out.
+[[nodiscard]] Result<assets::NameMap<render::Material>> UploadMaterials(
+    render::Renderer& renderer, const assets::TrackAssets& assets,
+    std::span<const std::string> names);
 
 /// A menu car that stands in for racer models, facing game +Y.
 [[nodiscard]] Result<std::vector<render::MeshDraw>> UploadStandInCar(render::Renderer& renderer,
