@@ -15,7 +15,6 @@
 #include "core/result.hpp"
 #include "render/render_view.hpp"
 #include "render/renderer.hpp"
-#include "sim/race/respawn.hpp"
 
 namespace rr::app {
 
@@ -48,7 +47,7 @@ private:
     MenuText text_;
     std::vector<std::u16string> trackNames_;
     std::vector<std::vector<std::u16string>> racerNames_;
-    sim::RespawnRule respawn_;
+    RaceSceneSetup rules_;
     std::optional<std::string> next_;
     std::vector<render::SpriteDraw> sprites_;
 };

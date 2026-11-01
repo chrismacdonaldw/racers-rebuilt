@@ -117,6 +117,20 @@ Result<CheckpointGraph> LoadCheckpoints(const assets::Vfs& vfs, std::string_view
         });
 }
 
+RaceCourse CourseOf(const RaceTrack& track, const CollisionQuery& world) {
+    return {.checkpoints = &track.checkpoints,
+            .grid = track.grid,
+            .world = &world,
+            .lowestTrackZ = track.lowestTrackZ,
+            .routes = &track.routes,
+            .bricks = &track.bricks,
+            .targets = track.targets,
+            .events = &track.events,
+            .collision = &track.collision,
+            .entities = &track.entities,
+            .hazards = track.hazards};
+}
+
 Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track) {
     Result<CheckpointGraph> checkpoints = LoadCheckpoints(vfs, track);
     Result<assets::StartGridAsset> grid = checkpoints.and_then([&](const CheckpointGraph&) {

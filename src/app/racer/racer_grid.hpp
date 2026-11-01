@@ -24,12 +24,12 @@ namespace rr::app {
 /// The prebuilt racer in each grid slot of a track's circuit.
 class RacerGrid {
 public:
-    /// Fails when the circuit has fewer than `slots` drivers. The driver of slot `playerRacer`
-    /// swaps places with slot 0's. `renderer` must outlive the grid.
+    /// Takes up to `slots` drivers and swaps slot `playerRacer` with 0. `renderer` must outlive it.
     [[nodiscard]] static Result<RacerGrid> Load(render::Renderer& renderer, const assets::Vfs& vfs,
                                                 assets::TrackLoader& loader, std::string_view track,
                                                 std::size_t slots, std::size_t playerRacer);
 
+    [[nodiscard]] std::size_t Count() const { return slots_.size(); }
     [[nodiscard]] sim::ChassisSpec Chassis(std::size_t slot) const;
     [[nodiscard]] sim::PowerupHabits Habits(std::size_t slot) const;
 

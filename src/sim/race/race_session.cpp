@@ -145,8 +145,15 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
         Racer& racer = racers_.emplace_back(entry.chassis, entry.build, course.grid[i]);
         racer.HoldAtStart();
         const std::span<const assets::RaceRoute> routes = RoutesFor(course, i);
+        drivers_.emplace_back();
         if (!entry.isPlayer && !routes.empty()) {
-            racer.FollowRoute(routes[random_.Below(static_cast<std::uint32_t>(routes.size()))]);
+            const assets::RaceRoute& route =
+                routes[random_.Below(static_cast<std::uint32_t>(routes.size()))];
+            if (setup.aiDriving == AiDriving::Physics) {
+                drivers_.back().emplace(route);
+            } else {
+                racer.FollowRoute(route);
+            }
         }
         isPlayer_.push_back(entry.isPlayer);
         localBounds_.push_back(entry.localBounds);
@@ -172,7 +179,8 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     hazards_.Tick(hazards);
     MeasureReaches();
     for (std::size_t i = 0; i < racers_.size(); ++i) {
-        TickRacer(i, elapsed, clock_.Phase() == RacePhase::Intro ? RacerControls{} : controls[i]);
+        TickRacer(i, elapsed,
+                  clock_.Phase() == RacePhase::Intro ? RacerControls{} : ControlsOf(i, controls));
     }
     ResolveContacts();
     TickBricks(elapsed);
@@ -208,6 +216,11 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     PaceRoutes(elapsed);
     hazards_.Hear(triggers_, hazards);
     resources_.Dispatch(triggers_, entities_);
+}
+
+RacerControls RaceSession::ControlsOf(std::size_t racer, std::span<const RacerControls> controls) {
+    std::optional<RouteDriver>& driver = drivers_[racer];
+    return driver ? driver->Drive(racers_[racer]) : controls[racer];
 }
 
 bool RaceSession::WantsPowerup(std::size_t racer, Milliseconds elapsed,
@@ -334,12 +347,17 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     car.Tick(elapsed, controls, WorldsOf(racer));
     surfaceEvents_.Hear(static_cast<std::uint8_t>(racer), car, surfaces_, triggers_);
     const BodyMotion& motion = car.Body().motion;
-    wasRespawned_[racer] =
+    std::optional<RouteDriver>& driver = drivers_[racer];
+    const bool hasFallen =
         !car.Route() && respawns_[racer].Update(respawn_, elapsed, IsGrounded(motion),
                                                 motion.position.z, course_.lowestTrackZ);
+    const bool hasStalled = driver && clock_.IsRunning() && driver->IsStalled(elapsed);
+    wasRespawned_[racer] = hasFallen || hasStalled;
     if (wasRespawned_[racer]) {
-        car.Place(RespawnPoint(*course_.checkpoints, progress_.OfRacer(racer).laps.LastCheckpoint(),
-                               course_.grid[racer], *course_.world));
+        car.Place(driver ? driver->Rejoin()
+                         : RespawnPoint(*course_.checkpoints,
+                                        progress_.OfRacer(racer).laps.LastCheckpoint(),
+                                        course_.grid[racer], *course_.world));
     } else {
         const bool hadFinished = progress_.OfRacer(racer).finishPlace.has_value();
         progress_.Move(*course_.checkpoints, racer,

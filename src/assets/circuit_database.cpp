@@ -28,13 +28,13 @@ constexpr std::array kCircuitFields{
 Result<std::vector<CircuitEntry>> ParseCircuits(std::span<const std::byte> bytes) {
     return ParseNamedLibrary<CircuitEntry>(bytes, kCircuitField, kCircuitFields)
         .and_then([](std::vector<CircuitEntry> circuits) -> Result<std::vector<CircuitEntry>> {
-            const auto unfilled = std::ranges::find_if(circuits, [](const CircuitEntry& circuit) {
-                return circuit.grid.size() != kGridSlots;
+            const auto misfit = std::ranges::find_if(circuits, [](const CircuitEntry& circuit) {
+                return circuit.grid.empty() || circuit.grid.size() > kGridSlots;
             });
-            if (unfilled != circuits.end()) {
+            if (misfit != circuits.end()) {
                 return Fail(ErrorCode::InvalidData,
-                            std::format("circuit {} names {} drivers for {} grid slots",
-                                        unfilled->name, unfilled->grid.size(), kGridSlots));
+                            std::format("circuit {} names {} drivers for 1 to {} grid slots",
+                                        misfit->name, misfit->grid.size(), kGridSlots));
             }
             return circuits;
         });

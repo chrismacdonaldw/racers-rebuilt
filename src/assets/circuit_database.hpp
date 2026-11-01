@@ -21,7 +21,7 @@ struct CircuitEntry {
     std::optional<std::string> next;
 };
 
-/// Fails when a circuit doesn't fill every grid slot.
+/// Fails when a circuit names no drivers, or more than there are grid slots.
 [[nodiscard]] Result<std::vector<CircuitEntry>> ParseCircuits(std::span<const std::byte> bytes);
 
 /// The driver codes of `track`'s circuit, such as `c3` for `RACEC3R1`.

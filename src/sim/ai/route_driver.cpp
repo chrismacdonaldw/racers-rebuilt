@@ -16,6 +16,7 @@ constexpr int kMaxCursorSteps = 256;
 constexpr float kCorrectionDistance = 30.0F;
 constexpr float kMinCurvature = 1.0F / 4096.0F;
 constexpr float kDriftReleaseLock = 0.8F;
+constexpr Milliseconds kStallTimeout{3000};
 
 Vector3 Flat(const Vector3& v) {
     return {.x = v.x, .y = v.y};
@@ -79,7 +80,23 @@ RacerControls RouteDriver::Drive(const Racer& racer) {
             .steerLeftAxis = std::copysign(std::min(lock, 1.0F), curvature)};
 }
 
+bool RouteDriver::IsStalled(Milliseconds elapsed) {
+    stalled_ = hasHeadway_ ? Milliseconds{0} : stalled_ + elapsed;
+    if (stalled_ < kStallTimeout) {
+        return false;
+    }
+    stalled_ = Milliseconds{0};
+    return true;
+}
+
+RacerStart RouteDriver::Rejoin() const {
+    const Transform pose = ahead_.Pose();
+    const Vector3 forward = FlatForward(pose.rotation);
+    return {.position = pose.position, .headingRadians = std::atan2(forward.y, forward.x)};
+}
+
 void RouteDriver::Follow(const Vector3& position) {
+    hasHeadway_ = IsPast(nearest_.Pose(), position);
     for (int step = 0; step < kMaxCursorSteps && IsPast(nearest_.Pose(), position); ++step) {
         nearest_.Advance(kCursorStep);
         referenceLead_ -= kCursorStep;

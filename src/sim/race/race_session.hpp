@@ -16,6 +16,7 @@
 #include "sim/ai/ai_powerups.hpp"
 #include "sim/ai/ai_taunts.hpp"
 #include "sim/ai/route_choice.hpp"
+#include "sim/ai/route_driver.hpp"
 #include "sim/ai/rubber_band.hpp"
 #include "sim/collision/racer_worlds.hpp"
 #include "sim/collision/track_collision.hpp"
@@ -88,6 +89,9 @@ public:
     [[nodiscard]] const Hazards& TrackHazards() const { return hazards_; }
     [[nodiscard]] const EventResources& Resources() const { return resources_; }
     [[nodiscard]] std::span<const AiTaunter> Taunters() const { return taunts_; }
+    [[nodiscard]] const std::optional<RouteDriver>& DriverOf(std::size_t racer) const {
+        return drivers_.at(racer);
+    }
 
     /// Replaces what `racer` holds, sending its white bricks home.
     void GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level);
@@ -102,6 +106,8 @@ private:
     RaceSession(const RaceSetup& setup, const RaceCourse& course);
 
     void TickRacer(std::size_t racer, Milliseconds elapsed, const RacerControls& controls);
+    [[nodiscard]] RacerControls ControlsOf(std::size_t racer,
+                                           std::span<const RacerControls> controls);
     [[nodiscard]] bool WantsPowerup(std::size_t racer, Milliseconds elapsed,
                                     const RacerControls& controls);
     void StartBoosts();
@@ -120,6 +126,7 @@ private:
     RespawnRule respawn_;
     std::vector<bool> isPlayer_;
     std::vector<Racer> racers_;
+    std::vector<std::optional<RouteDriver>> drivers_;
     std::vector<RespawnWatch> respawns_;
     std::vector<bool> wasRespawned_;
     std::vector<Vector3> positions_;

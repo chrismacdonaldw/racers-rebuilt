@@ -15,12 +15,14 @@
 #include "app/audio_settings.hpp"
 #include "app/audio_startup.hpp"
 #include "app/extensions.hpp"
+#include "app/gameplay_fingerprint.hpp"
 #include "app/input_bindings.hpp"
 #include "app/menu/main_menu_scene.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/single_race_scene.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/race_scene.hpp"
+#include "app/race_scene_name.hpp"
 #include "app/race_settings.hpp"
 #include "app/replay_session.hpp"
 #include "app/sprite_test_scene.hpp"
@@ -121,7 +123,9 @@ void FollowSceneMusic(audio::MusicPlayer& music, const SceneMusic& wanted, std::
 }
 
 std::string RaceNamed(std::string track, const settings::Registry& settings) {
-    return RaceSceneName({.track = std::move(track), .respawn = RespawnRuleFrom(settings)});
+    return RaceSceneName({.track = std::move(track),
+                          .respawn = RespawnRuleFrom(settings),
+                          .aiDriving = AiDrivingFrom(settings)});
 }
 
 Result<std::optional<std::string>> StartupScene(const settings::CommandLine& commandLine,
@@ -191,7 +195,8 @@ Result<Application> Application::Create(GameBoot boot) {
 }
 
 Result<void> Application::Run() {
-    Result<ReplaySession> replay = ReplaySession::Start(recordFile_, replayFile_, scene_);
+    Result<ReplaySession> replay = ReplaySession::Start(
+        recordFile_, replayFile_, scene_, GameplayFingerprint(settings_, extensions_.mods));
     if (!replay) {
         return std::unexpected(std::move(replay.error()));
     }

@@ -59,6 +59,13 @@ struct MeshDraw {
     Material material;
     Transform transform;
     float scale = 1.0F;
+    bool isStatic = false;
+};
+
+/// One directional light, in engine space. `ambient` scales each material's own ambient.
+struct Lighting {
+    Vector3 direction{.x = -0.36F, .y = -0.86F, .z = -0.36F};
+    Color ambient;
 };
 
 struct DebugLine {
@@ -96,6 +103,7 @@ struct QuadDraw {
 /// Quads draw after the meshes without writing depth, then sprites over the scene, each in order.
 struct RenderView {
     Camera camera;
+    Lighting lighting;
     std::span<const MeshDraw> meshes;
     std::span<const QuadDraw> quads;
     std::span<const DebugLine> lines;

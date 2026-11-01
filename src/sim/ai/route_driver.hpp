@@ -15,6 +15,20 @@ public:
 
     [[nodiscard]] RacerControls Drive(const Racer& racer);
 
+    /// True once `Drive` has made no headway along the route for 3 s. The count then restarts.
+    [[nodiscard]] bool IsStalled(Milliseconds elapsed);
+
+    /// On the route a little ahead of where the driver last followed it, facing along it.
+    [[nodiscard]] RacerStart Rejoin() const;
+
+    [[nodiscard]] const RoutePlayback& Nearest() const { return nearest_; }
+    [[nodiscard]] const RoutePlayback& Reference() const { return reference_; }
+    [[nodiscard]] const RoutePlayback& Ahead() const { return ahead_; }
+    [[nodiscard]] Milliseconds ReferenceLead() const { return referenceLead_; }
+    [[nodiscard]] Milliseconds AheadLead() const { return aheadLead_; }
+    [[nodiscard]] Milliseconds StalledFor() const { return stalled_; }
+    [[nodiscard]] bool HasHeadway() const { return hasHeadway_; }
+
 private:
     void Follow(const Vector3& position);
 
@@ -23,6 +37,8 @@ private:
     RoutePlayback ahead_;
     Milliseconds referenceLead_{0};
     Milliseconds aheadLead_{0};
+    Milliseconds stalled_{0};
+    bool hasHeadway_ = false;
 };
 
 }

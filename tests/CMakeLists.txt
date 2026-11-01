@@ -7,6 +7,7 @@ add_executable(racers-rebuilt-tests
     app/collision_wireframe_test.cpp
     app/frame_loop_test.cpp
     app/game_extraction_test.cpp
+    app/gameplay_fingerprint_test.cpp
     app/hazard/ghost_trail_test.cpp
     app/hazard/hazard_particles_test.cpp
     app/hazard/water_scroll_test.cpp

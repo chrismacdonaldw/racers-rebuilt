@@ -1,5 +1,6 @@
 #include "app/replay_session.hpp"
 
+#include <algorithm>
 #include <format>
 #include <fstream>
 #include <random>
@@ -24,6 +25,14 @@ Result<void> WriteBytes(const std::filesystem::path& path, std::span<const std::
     return {};
 }
 
+std::string Joined(std::span<const std::string> entries) {
+    std::string joined;
+    for (const std::string& entry : entries) {
+        joined += joined.empty() ? entry : ", " + entry;
+    }
+    return joined;
+}
+
 std::vector<std::uint64_t> LoadHashes(const std::filesystem::path& replayFile) {
     const std::filesystem::path path = SnapshotHashesPath(replayFile);
     Result<std::vector<std::uint64_t>> hashes = platform::MappedFile::Open(path).and_then(
@@ -43,8 +52,9 @@ std::filesystem::path SnapshotHashesPath(const std::filesystem::path& replayFile
     return path;
 }
 
-ReplayRecording::ReplayRecording(std::filesystem::path file, std::string scene, std::uint64_t seed)
-    : file_(std::move(file)), recorder_(RR_VERSION, std::move(scene), seed) {}
+ReplayRecording::ReplayRecording(std::filesystem::path file, std::string scene, std::uint64_t seed,
+                                 std::vector<std::string> gameplay)
+    : file_(std::move(file)), recorder_(RR_VERSION, std::move(scene), seed, std::move(gameplay)) {}
 
 void ReplayRecording::AfterTick(const sim::InputFrame& input, const sim::RenderSnapshot& after) {
     if (scenesStarted_ == 1) {
@@ -63,7 +73,8 @@ Result<void> ReplayRecording::Save() const {
     return saved;
 }
 
-Result<ReplayPlayback> ReplayPlayback::Load(const std::filesystem::path& file) {
+Result<ReplayPlayback> ReplayPlayback::Load(const std::filesystem::path& file,
+                                            std::span<const std::string> gameplay) {
     Result<sim::Replay> replay = platform::MappedFile::Open(file).and_then(
         [](const platform::MappedFile& mapped) { return sim::DecodeReplay(mapped.Bytes()); });
     if (!replay) {
@@ -73,6 +84,11 @@ Result<ReplayPlayback> ReplayPlayback::Load(const std::filesystem::path& file) {
     if (replay->buildVersion != RR_VERSION) {
         log::Warn("replay was recorded by version {}, this is {}", replay->buildVersion,
                   RR_VERSION);
+    }
+    if (!std::ranges::equal(replay->gameplay, gameplay)) {
+        log::Warn(
+            "replay was recorded with gameplay options [{}], this run has [{}], so it may drift",
+            Joined(replay->gameplay), Joined(gameplay));
     }
     return ReplayPlayback(sim::ReplayPlayer(std::move(*replay), LoadHashes(file)));
 }
@@ -109,13 +125,14 @@ void ReplayPlayback::LogOutcome() const {
 
 Result<ReplaySession> ReplaySession::Start(const std::optional<std::filesystem::path>& recordFile,
                                            const std::optional<std::filesystem::path>& replayFile,
-                                           std::optional<std::string>& scene) {
+                                           std::optional<std::string>& scene,
+                                           const std::vector<std::string>& gameplay) {
     ReplaySession session;
     if (recordFile && replayFile) {
         return Fail(ErrorCode::InvalidData, "--record and --replay can't be used together");
     }
     if (replayFile) {
-        Result<ReplayPlayback> playback = ReplayPlayback::Load(*replayFile);
+        Result<ReplayPlayback> playback = ReplayPlayback::Load(*replayFile, gameplay);
         if (!playback) {
             return std::unexpected(std::move(playback.error()));
         }
@@ -127,7 +144,8 @@ Result<ReplaySession> ReplaySession::Start(const std::optional<std::filesystem::
     std::random_device random;
     session.seed_ = (std::uint64_t{random()} << 32U) | random();
     if (recordFile) {
-        session.mode_.emplace<ReplayRecording>(*recordFile, scene.value_or(""), session.seed_);
+        session.mode_.emplace<ReplayRecording>(*recordFile, scene.value_or(""), session.seed_,
+                                               gameplay);
     }
     return session;
 }

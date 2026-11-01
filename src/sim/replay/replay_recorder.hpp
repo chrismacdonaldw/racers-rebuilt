@@ -16,7 +16,8 @@ namespace rr::sim {
 /// Records one human racer.
 class ReplayRecorder {
 public:
-    ReplayRecorder(std::string buildVersion, std::string scene, std::uint64_t seed);
+    ReplayRecorder(std::string buildVersion, std::string scene, std::uint64_t seed,
+                   std::vector<std::string> gameplay = {});
 
     void Record(const InputFrame& input, const RenderSnapshot& after);
 

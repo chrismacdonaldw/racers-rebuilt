@@ -1,9 +1,10 @@
+#include "app/race_scene_name.hpp"
+
 #include <doctest/doctest.h>
 
 #include <array>
 #include <string_view>
 
-#include "app/race_scene.hpp"
 #include "app/race_settings.hpp"
 #include "settings/command_line.hpp"
 #include "settings/registry.hpp"
@@ -24,12 +25,23 @@ TEST_CASE("a race scene name carries its track, respawn rule and racer") {
     CHECK_FALSE(IsRaceScene("RACEC0R0"));
 }
 
+TEST_CASE("a race scene name records physics-driven computer racers") {
+    const RaceSceneSetup physics{
+        .track = "RACEC0R0", .respawn = {}, .aiDriving = sim::AiDriving::Physics};
+
+    CHECK(RaceSceneName(physics) == "race:RACEC0R0:respawn=3000:racer=0:ai=physics");
+    CHECK(ParseRaceScene(RaceSceneName(physics)) == physics);
+    CHECK(ParseRaceScene("race:RACEC0R0:respawn=3000:ai=route") ==
+          RaceSceneSetup{.track = "RACEC0R0", .respawn = {}});
+}
+
 TEST_CASE("a malformed race scene name is rejected") {
     for (const std::string_view scene :
          {"RACEC0R0", "race:RACEC0R0", "race::respawn=3000", "race:RACEC0R0:respawn=0",
-          "race:RACEC0R0:respawn=3s", "race:RACEC0R0:respawn=",
-          "race:RACEC0R0:respawn=3000:racer=6", "race:RACEC0R0:respawn=3000:racer=-1",
-          "race:RACEC0R0:respawn=3000:difficulty=1", "race:RACEC0R0:respawn=3000:colour=1"}) {
+          "race:RACEC0R0:respawn=3s",
+          "race:RACEC0R0:respawn=", "race:RACEC0R0:respawn=3000:racer=6",
+          "race:RACEC0R0:respawn=3000:racer=-1", "race:RACEC0R0:respawn=3000:difficulty=1",
+          "race:RACEC0R0:respawn=3000:colour=1", "race:RACEC0R0:respawn=3000:ai=smart"}) {
         CAPTURE(scene);
         CHECK_FALSE(ParseRaceScene(scene).has_value());
     }
@@ -50,6 +62,16 @@ TEST_CASE("respawn settings default on after 3 seconds and follow their values")
     const sim::RespawnRule changed = RespawnRuleFrom(registry);
     CHECK_FALSE(changed.isEnabled);
     CHECK(changed.timeout == Milliseconds{5000});
+}
+
+TEST_CASE("computer racers play back their routes unless physics driving is on") {
+    settings::Registry registry;
+    DeclareRaceSettings(registry);
+    CHECK(AiDrivingFrom(registry) == sim::AiDriving::Route);
+
+    registry.Set(kPhysicsAi, true);
+
+    CHECK(AiDrivingFrom(registry) == sim::AiDriving::Physics);
 }
 
 }
