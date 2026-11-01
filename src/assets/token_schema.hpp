@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "assets/token_reader.hpp"
+#include "core/duration.hpp"
 #include "core/result.hpp"
 #include "core/vector3.hpp"
 
@@ -25,6 +26,7 @@ namespace rr::assets {
 /// Fails outside 0 to 255.
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, std::uint8_t& value);
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, float& value);
+[[nodiscard]] Result<void> ReadValue(TokenReader& reader, Milliseconds& value);
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, std::string& value);
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, Vector3& value);
 [[nodiscard]] Result<void> ReadFloats(TokenReader& reader, std::initializer_list<float*> values);
@@ -53,20 +55,40 @@ template <typename T>
 /// Reads a `{ }` block, nested blocks included, and drops it.
 [[nodiscard]] Result<void> SkipBlock(TokenReader& reader);
 
-/// Reads `[ count ] {`, calls `readElement` count times, then reads `}`.
+/// Calls `readElement` count times, then reads `}`.
 template <typename ReadElement>
-[[nodiscard]] Result<void> ReadList(TokenReader& reader, ReadElement&& readElement) {
-    Result<std::size_t> count = reader.ReadListHeader();
-    if (!count) {
-        return std::unexpected(std::move(count.error()));
-    }
-    for (std::size_t i = 0; i < *count; ++i) {
+[[nodiscard]] Result<void> ReadElements(TokenReader& reader, std::size_t count,
+                                        ReadElement&& readElement) {
+    for (std::size_t i = 0; i < count; ++i) {
         Result<void> read = readElement();
         if (!read) {
             return read;
         }
     }
     return reader.Expect(TokenKind::CloseBrace).transform([](const Token&) {});
+}
+
+/// Reads `[ count ] {`, calls `readElement` count times, then reads `}`.
+template <typename ReadElement>
+[[nodiscard]] Result<void> ReadList(TokenReader& reader, ReadElement&& readElement) {
+    return reader.ReadListHeader().and_then(
+        [&](std::size_t count) { return ReadElements(reader, count, readElement); });
+}
+
+/// Like `ReadList`, but an empty list at the end of the data may stop after its count.
+template <typename ReadElement>
+[[nodiscard]] Result<void> ReadEntryList(TokenReader& reader, ReadElement&& readElement) {
+    Result<std::size_t> count = reader.ReadListCount();
+    Result<Token> next = count.and_then([&](std::size_t) { return reader.Peek(); });
+    if (!next) {
+        return std::unexpected(std::move(next.error()));
+    }
+    if (*count == 0 && next->kind == TokenKind::End) {
+        return {};
+    }
+    return reader.Expect(TokenKind::OpenBrace).and_then([&](const Token&) {
+        return ReadElements(reader, *count, readElement);
+    });
 }
 
 template <typename T>

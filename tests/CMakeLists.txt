@@ -97,6 +97,7 @@ add_executable(racers-rebuilt-tests
     assets/token_survey_test.cpp
     assets/track_loader_test.cpp
     assets/track_survey_test.cpp
+    assets/track_triggers_test.cpp
     assets/vfs_test.cpp
     assets/world_database_test.cpp
     audio/alp_game_files_test.cpp

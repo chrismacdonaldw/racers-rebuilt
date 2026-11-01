@@ -52,6 +52,8 @@ public:
     [[nodiscard]] Result<float> ReadFloat();
     [[nodiscard]] Result<std::string_view> ReadString();
 
+    [[nodiscard]] Result<std::size_t> ReadListCount();
+
     /// Reads `[ count ] {` and returns the count.
     [[nodiscard]] Result<std::size_t> ReadListHeader();
 

@@ -40,6 +40,7 @@ rr_add_module(assets
         token_reader.cpp
         token_schema.cpp
         track_loader.cpp
+        track_triggers.cpp
         vfs.cpp
         world_database.cpp
     DEPENDS
