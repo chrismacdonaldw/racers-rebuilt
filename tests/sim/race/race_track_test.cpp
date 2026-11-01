@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -262,6 +263,36 @@ TEST_CASE(
 
     for (const std::string& folder : assets::ListRaceTracks(*vfs)) {
         CheckTrack(*vfs, folder);
+    }
+}
+
+std::size_t StartWorldTouches(const RaceTrack& track) {
+    const WorldList world(track.collision.Track());
+    const RaceSetup setup{.racers = std::vector<RacerEntry>(track.grid.size(), {.isPlayer = true})};
+    Result<RaceSession> session = RaceSession::Create(setup, {.checkpoints = &track.checkpoints,
+                                                              .grid = track.grid,
+                                                              .world = &world,
+                                                              .lowestTrackZ = track.lowestTrackZ,
+                                                              .events = &track.events});
+    REQUIRE(session.has_value());
+    session->Tick(kTick, std::vector<RacerControls>(track.grid.size()));
+    return static_cast<std::size_t>(
+        std::ranges::count_if(session->Triggers().Events(), [](const TrackEvent& event) {
+            return event.racer && event.edge == EventEdge::Start && event.id >= 1000;
+        }));
+}
+
+TEST_CASE("every racer on a retail grid starts inside its track's start world sphere") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+
+    for (const std::string& folder : assets::ListRaceTracks(*vfs)) {
+        CAPTURE(folder);
+        const Result<RaceTrack> track = LoadRaceTrack(*vfs, folder);
+        REQUIRE(track.has_value());
+        CHECK(StartWorldTouches(*track) == track->grid.size());
     }
 }
 

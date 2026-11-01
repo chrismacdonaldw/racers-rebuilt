@@ -30,6 +30,8 @@
 #include "sim/race/race_sounds.hpp"
 #include "sim/race/random.hpp"
 #include "sim/race/respawn.hpp"
+#include "sim/track/track_events.hpp"
+#include "sim/track/trigger_lists.hpp"
 
 namespace rr::sim {
 
@@ -42,6 +44,7 @@ struct RaceCourse {
     const GridRoutes* routes = nullptr;
     const assets::BrickLayout* bricks = nullptr;
     std::span<const assets::TargetPoint> targets;
+    const TrackEventSources* events = nullptr;
     bool isMirrored = false;
 };
 
@@ -64,6 +67,7 @@ public:
     [[nodiscard]] const PowerupSystem& Powerups() const { return powerups_; }
     [[nodiscard]] const Explosions& Blasts() const { return explosions_; }
     [[nodiscard]] const Explosions& Spikes() const { return spikes_; }
+    [[nodiscard]] const TrackEvents& Triggers() const { return triggers_; }
 
     /// Replaces what `racer` holds, sending its white bricks home.
     void GivePowerup(std::size_t racer, assets::BrickColour colour, std::uint8_t level);
@@ -85,6 +89,7 @@ private:
     void PaceRoutes(Milliseconds elapsed);
     void MeasureReaches();
     void TickBricks(Milliseconds elapsed);
+    void TickTriggers(Milliseconds elapsed);
     [[nodiscard]] PowerupContext EffectContext();
     [[nodiscard]] bool HasPlayerFinished() const;
 
@@ -99,6 +104,8 @@ private:
     RaceClock clock_;
     RaceSounds sounds_;
     Random random_;
+    TrackEvents triggers_;
+    std::vector<TriggerRacer> triggerRacers_;
     RubberBand rubberBand_;
     std::vector<PacedRacer> paced_;
     std::vector<float> routeSpeeds_;

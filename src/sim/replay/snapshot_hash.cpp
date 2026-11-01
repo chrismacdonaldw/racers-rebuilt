@@ -232,6 +232,23 @@ public:
         }
     }
 
+    void Add(const TrackEvents& triggers) {
+        for (const TrackEvent& event : triggers.Events()) {
+            Add(event.id, static_cast<int>(event.edge),
+                static_cast<int>(event.racer.value_or(kNoOwner)));
+        }
+        for (std::size_t i = 0; i < triggers.RacerSpheres().Spheres().size(); ++i) {
+            Add(static_cast<int>(triggers.RacerSpheres().Inside(i)));
+        }
+        for (std::size_t i = 0; i < triggers.EnvironmentSpheres().Spheres().size(); ++i) {
+            Add(triggers.EnvironmentSpheres().IsActive(i));
+        }
+        const TrackTimers& timers = triggers.Timers();
+        for (std::size_t i = 0; i < timers.Count(); ++i) {
+            Add(timers.IsOn(i), timers.PhaseTime(i).value_or(Milliseconds{-1}));
+        }
+    }
+
     void Add(const RaceClock& clock) {
         Add(static_cast<int>(clock.Phase()), clock.PhaseTime(), clock.RaceTime());
     }
@@ -277,7 +294,7 @@ std::uint64_t HashRaceSession(const RaceSession& session) {
     for (const std::size_t racer : session.Progress().Standings()) {
         hash.Add(static_cast<std::uint64_t>(racer));
     }
-    hash.Add(session.Powerups(), session.Blasts(), session.Spikes());
+    hash.Add(session.Powerups(), session.Blasts(), session.Spikes(), session.Triggers());
     if (!session.Bricks().IsEmpty()) {
         hash.Add(session.Bricks());
         for (const PowerupInventory& inventory : session.Inventories()) {

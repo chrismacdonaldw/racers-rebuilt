@@ -122,7 +122,8 @@ std::optional<std::string> RaceProblem(const assets::Vfs& vfs, const std::string
                                                                .lowestTrackZ = loaded->lowestTrackZ,
                                                                .routes = &loaded->routes,
                                                                .bricks = &loaded->bricks,
-                                                               .targets = loaded->targets});
+                                                               .targets = loaded->targets,
+                                                               .events = &loaded->events});
     if (!session) {
         return std::format("{}: {}", track, session.error().message);
     }
