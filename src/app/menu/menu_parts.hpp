@@ -17,6 +17,7 @@ struct MenuPicture {
 
 struct MenuButtonState {
     render::TextureId image{};
+    render::Color imageTint;
     std::string font;
     render::Color textColor;
 };

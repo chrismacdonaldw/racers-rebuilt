@@ -92,6 +92,7 @@ private:
     std::optional<std::string> scene_;
     std::uint64_t seed_ = 0;
     bool isQuitting_ = false;
+    bool unlockNotice_ = false;
     std::optional<std::filesystem::path> recordFile_;
     std::optional<std::filesystem::path> replayFile_;
     std::string startupSummary_;

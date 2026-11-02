@@ -38,6 +38,15 @@ TEST_CASE("gold opens the part set and next circuit, silver only the circuit") {
     CHECK(Granted(CircuitAward::None) == Progress{});
 }
 
+TEST_CASE("only gold and silver open the next circuit, and only once") {
+    CHECK(OpensNewCircuit({}, Circuit(), CircuitAward::Gold));
+    CHECK(OpensNewCircuit({}, Circuit(), CircuitAward::Silver));
+    CHECK_FALSE(OpensNewCircuit({}, Circuit(), CircuitAward::Bronze));
+    CHECK_FALSE(OpensNewCircuit({}, Circuit(), CircuitAward::None));
+    CHECK_FALSE(OpensNewCircuit(Granted(CircuitAward::Silver), Circuit(), CircuitAward::Gold));
+    CHECK_FALSE(OpensNewCircuit({}, {.name = "c6"}, CircuitAward::Gold));
+}
+
 TEST_CASE("an award that adds nothing leaves progress unchanged") {
     Progress progress = Granted(CircuitAward::Gold);
 
@@ -66,6 +75,18 @@ TEST_CASE("gold on the first retail circuit opens the second after a restart") {
     CHECK_FALSE(circuits->at(1).isLocked);
 }
 
+TEST_CASE("saving an award reports a new circuit only the first time it opens") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const test::TempFolder folder;
+    const std::filesystem::path file = folder.Path() / kProgressFileName;
+
+    CHECK(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::Silver}) == true);
+    CHECK(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::Gold}) == false);
+}
+
 TEST_CASE("an award that changes nothing doesn't write the file") {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
@@ -74,7 +95,7 @@ TEST_CASE("an award that changes nothing doesn't write the file") {
     const test::TempFolder folder;
     const std::filesystem::path file = folder.Path() / kProgressFileName;
 
-    REQUIRE(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::None}).has_value());
+    CHECK(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::None}) == false);
 
     CHECK_FALSE(std::filesystem::exists(file));
     CHECK_FALSE(SaveAward(file, *vfs, {.circuit = "c9", .award = CircuitAward::Gold}).has_value());

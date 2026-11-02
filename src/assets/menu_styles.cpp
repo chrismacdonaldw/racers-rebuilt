@@ -17,11 +17,19 @@ namespace {
 
 constexpr FieldId kCapacityField = 0x27;
 constexpr FieldId kImageStyle = 0x32;
+constexpr FieldId kTextStyle = 0x33;
 constexpr FieldId kGameButtonStyle = 0x3E;
 
 constexpr std::array kImageStyleFields{
     Field<&ImageStyle::image>(0x28),
     Field<&ImageStyle::color>(0x2A),
+};
+
+constexpr std::array kTextStyleFields{
+    Field<&TextStyle::font>(0x29),
+    Field<&TextStyle::color>(0x2A),
+    Field<&TextStyle::wrapWidth>(0x2E),
+    Field<&TextStyle::centered>(0x2F),
 };
 
 Result<void> SkipControlFields(TokenReader& reader, [[maybe_unused]] GameButtonStyle& style) {
@@ -70,6 +78,8 @@ Result<void> ReadSection(TokenReader& reader, MenuStyles& styles) {
     switch (tag->field) {
         case kImageStyle:
             return ReadStyles<ImageStyle>(reader, kImageStyle, kImageStyleFields, styles.images);
+        case kTextStyle:
+            return ReadStyles<TextStyle>(reader, kTextStyle, kTextStyleFields, styles.texts);
         case kGameButtonStyle:
             return ReadStyles<GameButtonStyle>(reader, kGameButtonStyle, kGameButtonStyleFields,
                                                styles.gameButtons);
@@ -88,6 +98,10 @@ const Style* FindStyle(std::span<const Style> styles, std::string_view name) {
 
 const ImageStyle* MenuStyles::FindImage(std::string_view name) const {
     return FindStyle<ImageStyle>(images, name);
+}
+
+const TextStyle* MenuStyles::FindText(std::string_view name) const {
+    return FindStyle<TextStyle>(texts, name);
 }
 
 const GameButtonStyle* MenuStyles::FindGameButton(std::string_view name) const {

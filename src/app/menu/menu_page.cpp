@@ -17,6 +17,7 @@ namespace rr::app {
 namespace {
 
 constexpr std::string_view kTextButtonStyle = "nubutton";
+constexpr std::size_t kFirstImageColor = 1;
 constexpr std::size_t kFirstTextColor = 7;
 constexpr float kChannelMax = 255.0F;
 
@@ -24,13 +25,6 @@ struct Point {
     float x = 0.0F;
     float y = 0.0F;
 };
-
-render::Color ToColor(const assets::MenuColor& color) {
-    return {.r = static_cast<float>(color.red) / kChannelMax,
-            .g = static_cast<float>(color.green) / kChannelMax,
-            .b = static_cast<float>(color.blue) / kChannelMax,
-            .a = static_cast<float>(color.alpha) / kChannelMax};
-}
 
 const assets::MenuElement* FindById(const assets::MenuLayout& layout, std::int32_t id) {
     const auto element = std::ranges::find(layout.elements, id, &assets::MenuElement::id);
@@ -68,22 +62,30 @@ std::string_view PickName(const std::optional<std::array<std::string, N>>& own,
     return style ? std::string_view((*style)[state]) : std::string_view{};
 }
 
-assets::GameButtonElement TextButtonStyle(const MenuFiles& files) {
-    const assets::GameButtonStyle* style = files.FindGameButtonStyle(kTextButtonStyle);
+assets::GameButtonElement StyleNamed(const MenuFiles& files, std::string_view name) {
+    const assets::GameButtonStyle* style = files.FindGameButtonStyle(name);
     return style != nullptr ? style->button : assets::GameButtonElement{};
+}
+
+render::Color ColorAt(const decltype(assets::GameButtonElement::colors)& colors,
+                      std::size_t index) {
+    return colors ? ToColor(colors->at(index)) : render::Color{};
 }
 
 MenuButtonState StateOf(const assets::GameButtonElement& own,
                         const assets::GameButtonElement& style, std::size_t state) {
     const auto& colors = own.colors ? own.colors : style.colors;
-    return {.font = std::string(PickName(own.fonts, style.fonts, state)),
-            .textColor = colors ? ToColor(colors->at(kFirstTextColor + state)) : render::Color{}};
+    return {.imageTint = ColorAt(colors, kFirstImageColor + state),
+            .font = std::string(PickName(own.fonts, style.fonts, state)),
+            .textColor = ColorAt(colors, kFirstTextColor + state)};
 }
 
 class PageBuilder {
 public:
     PageBuilder(render::Renderer& renderer, const assets::Vfs& vfs, const MenuFiles& files)
-        : renderer_(&renderer), vfs_(&vfs), files_(&files), style_(TextButtonStyle(files)) {}
+        : files_(&files),
+          images_(renderer, vfs, files),
+          style_(StyleNamed(files, kTextButtonStyle)) {}
 
     Result<void> Add(const assets::MenuElement& element, std::span<const ButtonLine> labels) {
         const Point origin = OriginOf(files_->layout, element);
@@ -102,23 +104,6 @@ public:
     [[nodiscard]] MenuPage& Page() { return page_; }
 
 private:
-    Result<UiImage> Upload(std::string_view name) {
-        const std::string key = assets::ToUpperAscii(name);
-        if (const auto image = images_.find(key); image != images_.end()) {
-            return image->second;
-        }
-        const assets::ImageListEntry* entry = files_->FindImage(name);
-        if (entry == nullptr) {
-            return Fail(ErrorCode::NotFound,
-                        std::format("menu image {} isn't in any image list", name));
-        }
-        return LoadUiImage(*renderer_, *vfs_, kMenuFolder, *entry)
-            .transform([&](const UiImage& image) {
-                images_.emplace(key, image);
-                return image;
-            });
-    }
-
     Result<void> AddPicture(const assets::MenuElement& element, const assets::ImageElement& image,
                             Point origin) {
         const assets::ImageStyle* style = files_->FindImageStyle(element.name);
@@ -128,7 +113,7 @@ private:
         if (!color && style != nullptr) {
             color = style->color;
         }
-        return Upload(name).transform([&](const UiImage& uploaded) {
+        return images_.Upload(name).transform([&](const UiImage& uploaded) {
             page_.pictures.push_back({.texture = uploaded.texture,
                                       .bounds = BoundsOf(element.widget.rect, origin, uploaded),
                                       .tint = color ? ToColor(*color) : render::Color{}});
@@ -139,7 +124,7 @@ private:
                            Point origin, std::size_t textLine) {
         MenuButton button{.name = element.name, .textLine = textLine};
         for (std::size_t state = 0; state < assets::kControlStates; ++state) {
-            Result<UiImage> image = Upload(PickName(own.images, style_.images, state));
+            Result<UiImage> image = images_.Upload(PickName(own.images, style_.images, state));
             if (!image) {
                 return std::unexpected(std::move(image.error()));
             }
@@ -153,14 +138,35 @@ private:
         return {};
     }
 
-    render::Renderer* renderer_;
-    const assets::Vfs* vfs_;
     const MenuFiles* files_;
+    MenuImageCache images_;
     assets::GameButtonElement style_;
-    std::map<std::string, UiImage, std::less<>> images_;
     MenuPage page_;
 };
 
+}
+
+Result<UiImage> MenuImageCache::Upload(std::string_view name) {
+    const std::string key = assets::ToUpperAscii(name);
+    if (const auto image = images_.find(key); image != images_.end()) {
+        return image->second;
+    }
+    const assets::ImageListEntry* entry = files_->FindImage(name);
+    if (entry == nullptr) {
+        return Fail(ErrorCode::NotFound,
+                    std::format("menu image {} isn't in any image list", name));
+    }
+    return LoadUiImage(*renderer_, *vfs_, kMenuFolder, *entry).transform([&](const UiImage& image) {
+        images_.emplace(key, image);
+        return image;
+    });
+}
+
+render::Color ToColor(const assets::MenuColor& color) {
+    return {.r = static_cast<float>(color.red) / kChannelMax,
+            .g = static_cast<float>(color.green) / kChannelMax,
+            .b = static_cast<float>(color.blue) / kChannelMax,
+            .a = static_cast<float>(color.alpha) / kChannelMax};
 }
 
 Result<MenuPage> BuildMenuPage(render::Renderer& renderer, const assets::Vfs& vfs,
@@ -175,13 +181,18 @@ Result<MenuPage> BuildMenuPage(render::Renderer& renderer, const assets::Vfs& vf
     return std::move(builder.Page());
 }
 
-std::array<MenuButtonState, assets::kControlStates> TextButtonStates(const MenuFiles& files) {
-    const assets::GameButtonElement style = TextButtonStyle(files);
+std::array<MenuButtonState, assets::kControlStates> ButtonStates(const MenuFiles& files,
+                                                                 std::string_view style) {
+    const assets::GameButtonElement element = StyleNamed(files, style);
     std::array<MenuButtonState, assets::kControlStates> states;
     for (std::size_t state = 0; state < states.size(); ++state) {
-        states.at(state) = StateOf({}, style, state);
+        states.at(state) = StateOf({}, element, state);
     }
     return states;
+}
+
+std::array<MenuButtonState, assets::kControlStates> TextButtonStates(const MenuFiles& files) {
+    return ButtonStates(files, kTextButtonStyle);
 }
 
 void DrawPictures(std::span<const MenuPicture> pictures, std::vector<render::SpriteDraw>& out) {

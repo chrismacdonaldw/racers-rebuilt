@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <string_view>
 #include <vector>
 
 namespace rr::app {
@@ -43,6 +44,32 @@ TEST_CASE("text width leaves out trailing spacing and missing glyphs") {
     CHECK(TextWidth(font, u"Ab A?") == 20.0F);
     CHECK(TextWidth(font, u"") == 0.0F);
     CHECK(TextWidth(font, u"?") == 0.0F);
+}
+
+using Lines = std::vector<std::u16string_view>;
+
+TEST_CASE("text wraps at the last space that fits and drops the spaces it breaks at") {
+    const UiFont font = TwoLetterFont();
+
+    CHECK(WrapText(font, u"AB AB  BA", 15.0F) == Lines{u"AB", u"AB", u"BA"});
+    CHECK(WrapText(font, u"AB AB", 28.0F) == Lines{u"AB AB"});
+    CHECK(WrapText(font, u"AB AB", 27.0F) == Lines{u"AB", u"AB"});
+    CHECK(WrapText(font, u"", 15.0F).empty());
+    CHECK(WrapText(font, u"AB AB  ", 15.0F) == Lines{u"AB", u"AB", u""});
+}
+
+TEST_CASE("text wraps at line breaks and keeps the spaces after one") {
+    const UiFont font = TwoLetterFont();
+
+    CHECK(WrapText(font, u"A\r\n B\nA", 100.0F) == Lines{u"A", u" B", u"A"});
+}
+
+TEST_CASE("a word too wide for a line is cut where it stops fitting") {
+    const UiFont font = TwoLetterFont();
+
+    CHECK(WrapText(font, u"BBBA", 15.0F) == Lines{u"BB", u"BA"});
+    CHECK(WrapText(font, u"B", 2.0F) == Lines{u"B"});
+    CHECK(WrapText(font, u"AB", -1.0F) == Lines{u"A", u"B"});
 }
 
 }

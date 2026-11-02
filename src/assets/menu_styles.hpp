@@ -20,6 +20,14 @@ struct ImageStyle {
     std::optional<MenuColor> color;
 };
 
+struct TextStyle {
+    std::string name;
+    std::string font;
+    std::optional<MenuColor> color;
+    std::optional<std::int32_t> wrapWidth;
+    std::int32_t centered = 0;
+};
+
 struct GameButtonStyle {
     std::string name;
     GameButtonElement button;
@@ -29,13 +37,15 @@ struct GameButtonStyle {
 
 struct MenuStyles {
     std::vector<ImageStyle> images;
+    std::vector<TextStyle> texts;
     std::vector<GameButtonStyle> gameButtons;
 
     [[nodiscard]] const ImageStyle* FindImage(std::string_view name) const;
+    [[nodiscard]] const TextStyle* FindText(std::string_view name) const;
     [[nodiscard]] const GameButtonStyle* FindGameButton(std::string_view name) const;
 };
 
-/// Sections other than image and game button styles are skipped.
+/// Sections other than image, text and game button styles are skipped.
 [[nodiscard]] Result<MenuStyles> ParseMenuStyles(std::span<const std::byte> bytes);
 
 }
