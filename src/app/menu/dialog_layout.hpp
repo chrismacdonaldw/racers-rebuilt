@@ -3,6 +3,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
+#include <vector>
 
 #include "core/duration.hpp"
 #include "render/render_view.hpp"
@@ -38,21 +40,32 @@ struct BoxSize {
     friend bool operator==(const BoxSize&, const BoxSize&) = default;
 };
 
+struct DialogButtonSize {
+    BoxSize image;
+    BoxSize text;
+};
+
 struct DialogContent {
     BoxSize message;
-    BoxSize buttonImage;
-    BoxSize buttonText;
+    std::span<const DialogButtonSize> buttons;
+};
+
+struct DialogButtonRects {
+    render::Rect image;
+    render::Rect text;
 };
 
 struct DialogLayout {
-    render::Rect frame;
+    BoxSize halfFrame;
     render::Rect message;
-    render::Rect buttonImage;
-    render::Rect buttonText;
+    std::vector<DialogButtonRects> buttons;
 };
 
-/// Centred on the UI canvas. `scale` shrinks only the frame.
-[[nodiscard]] DialogLayout LayOutDialog(const DialogContent& content, float scale);
+/// Centred on the UI canvas, with the buttons stacked under the message.
+[[nodiscard]] DialogLayout LayOutDialog(const DialogContent& content);
+
+/// `scale` shrinks the frame about the centre in whole units, as the box grows and shrinks.
+[[nodiscard]] render::Rect DialogFrame(const DialogLayout& layout, float scale);
 
 /// The border parts go clockwise from the top left corner. The last rect is the fill.
 [[nodiscard]] std::array<render::Rect, kFrameParts + 1> FrameSlices(

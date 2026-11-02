@@ -142,7 +142,7 @@ void OptionsScene::TickWarning(const sim::InputFrame& input) {
     if (!warning_) {
         return;
     }
-    warning_->Tick(input, sounds_);
+    static_cast<void>(warning_->Tick(input, sounds_));
     if (warning_->IsClosed()) {
         warning_.reset();
         menu_.Proceed();
@@ -156,7 +156,8 @@ void OptionsScene::Respond(OptionsRequest request, const OptionValues& before) {
                 menu_.Proceed();
                 return;
             }
-            warning_.emplace(*warningLook_, kWarningLine, kOkLine);
+            warning_.emplace(*warningLook_, kWarningLine,
+                             std::vector<DialogButton>{{.line = kOkLine}});
             warning_->Measure(text_);
             return;
         case OptionsRequest::ChangeValue:

@@ -56,37 +56,42 @@ void DialogAnimation::Close() {
     }
 }
 
-DialogLayout LayOutDialog(const DialogContent& content, float scale) {
-    const float halfWidth = Half(content.message.width + (2.0F * kMessageMargin));
-    const float halfHeight = Half(content.message.height + (2.0F * kMessageMargin)) +
-                             Half(content.buttonImage.height + kButtonGap);
-    const float centreX = Half(render::kUiWidth);
-    const float centreY = Half(render::kUiHeight);
-    const float scaledX = std::trunc(halfWidth * scale);
-    const float scaledY = std::trunc(halfHeight * scale);
-    const float left = centreX - std::trunc(halfWidth);
-    const float top = centreY - std::trunc(halfHeight);
-    const BoxSize image = content.buttonImage;
-    const BoxSize text = content.buttonText;
-    const float textInset =
-        image.height > text.height ? std::floor(Half(image.height - text.height)) : 0.0F;
-    const render::Rect button{.x = left + kButtonLeft,
-                              .y = top + content.message.height + (2.0F * kMessageMargin),
-                              .width = image.width,
-                              .height = image.height};
-    return {.frame = {.x = centreX - scaledX,
-                      .y = centreY - scaledY,
-                      .width = 2.0F * scaledX,
-                      .height = 2.0F * scaledY},
-            .message = {.x = left + kMessageMargin,
-                        .y = top + kMessageMargin,
-                        .width = content.message.width,
-                        .height = content.message.height},
-            .buttonImage = button,
-            .buttonText = {.x = button.x + image.width,
-                           .y = button.y + textInset,
-                           .width = text.width,
-                           .height = text.height}};
+DialogLayout LayOutDialog(const DialogContent& content) {
+    BoxSize half{.width = Half(content.message.width + (2.0F * kMessageMargin)),
+                 .height = Half(content.message.height + (2.0F * kMessageMargin))};
+    for (const DialogButtonSize& button : content.buttons) {
+        half.height += Half(button.image.height + kButtonGap);
+    }
+    const float left = Half(render::kUiWidth) - std::trunc(half.width);
+    const float top = Half(render::kUiHeight) - std::trunc(half.height);
+    DialogLayout layout{.halfFrame = half,
+                        .message = {.x = left + kMessageMargin,
+                                    .y = top + kMessageMargin,
+                                    .width = content.message.width,
+                                    .height = content.message.height}};
+    float buttonTop = top + content.message.height + (2.0F * kMessageMargin);
+    for (const auto& [image, text] : content.buttons) {
+        const float textInset =
+            image.height > text.height ? std::floor(Half(image.height - text.height)) : 0.0F;
+        const render::Rect button{
+            .x = left + kButtonLeft, .y = buttonTop, .width = image.width, .height = image.height};
+        layout.buttons.push_back({.image = button,
+                                  .text = {.x = button.x + image.width,
+                                           .y = button.y + textInset,
+                                           .width = text.width,
+                                           .height = text.height}});
+        buttonTop += image.height + kButtonGap;
+    }
+    return layout;
+}
+
+render::Rect DialogFrame(const DialogLayout& layout, float scale) {
+    const float scaledX = std::trunc(layout.halfFrame.width * scale);
+    const float scaledY = std::trunc(layout.halfFrame.height * scale);
+    return {.x = Half(render::kUiWidth) - scaledX,
+            .y = Half(render::kUiHeight) - scaledY,
+            .width = 2.0F * scaledX,
+            .height = 2.0F * scaledY};
 }
 
 std::array<render::Rect, kFrameParts + 1> FrameSlices(

@@ -17,6 +17,10 @@ namespace {
 constexpr std::string_view kScreen = "MAINMENU";
 constexpr std::size_t kUnlockNoticeLine = 0x7C;
 constexpr std::size_t kOkLine = 0x72;
+constexpr std::size_t kYesLine = 0x73;
+constexpr std::size_t kNoLine = 0x74;
+constexpr std::size_t kQuitQuestionLine = 0x75;
+constexpr std::string_view kQuitButton = "quit";
 
 struct ButtonTarget {
     std::string_view button;
@@ -35,7 +39,6 @@ constexpr std::array kButtonTargets{
     ButtonTarget{.button = "single", .scene = kSingleRaceScene},
     ButtonTarget{.button = "vs", .scene = kVersusRaceScene},
     ButtonTarget{.button = "options", .scene = kOptionsScene},
-    ButtonTarget{.button = "quit", .scene = kQuitScene},
 };
 
 constexpr std::array kFocusMoves{
@@ -45,13 +48,13 @@ constexpr std::array kFocusMoves{
     std::pair{sim::MenuAction::Right, FocusMove::Right},
 };
 
-std::optional<MessageDialog> UnlockNotice(render::Renderer& renderer, const assets::Vfs& vfs) {
+std::optional<DialogLook> MainMenuDialogLook(render::Renderer& renderer, const assets::Vfs& vfs) {
     Result<DialogLook> look = LoadDialogLook(renderer, vfs);
     if (!look) {
-        log::Warn("{}, the new circuit notice won't show", look.error().message);
+        log::Warn("{}, the main menu won't show dialogs", look.error().message);
         return std::nullopt;
     }
-    return MessageDialog(std::move(*look), kUnlockNoticeLine, kOkLine);
+    return std::move(*look);
 }
 
 }
@@ -66,16 +69,18 @@ Result<std::unique_ptr<MainMenuScene>> MainMenuScene::Create(render::Renderer& r
     if (!page) {
         return std::unexpected(std::move(page.error()));
     }
-    std::optional<MessageDialog> notice =
-        showsUnlockNotice ? UnlockNotice(renderer, vfs) : std::nullopt;
-    return std::unique_ptr<MainMenuScene>(
-        new MainMenuScene(renderer, vfs, sounds, std::move(*page), std::move(notice)));
+    auto scene = std::unique_ptr<MainMenuScene>(new MainMenuScene(
+        renderer, vfs, sounds, std::move(*page), MainMenuDialogLook(renderer, vfs)));
+    if (showsUnlockNotice) {
+        scene->OpenDialog(kUnlockNoticeLine, {{.line = kOkLine}}, {});
+    }
+    return scene;
 }
 
 void MainMenuScene::ApplySettings(const settings::Registry& settings) {
     static_cast<void>(text_.Apply(*renderer_, *vfs_, settings));
-    if (notice_) {
-        notice_->Measure(text_);
+    if (dialog_) {
+        dialog_->Measure(text_);
     }
 }
 
@@ -84,11 +89,8 @@ std::optional<std::string> MainMenuScene::TakeNextScene() {
 }
 
 void MainMenuScene::Tick(const sim::InputFrame& input) {
-    if (notice_) {
-        notice_->Tick(input, sounds_);
-        if (notice_->IsClosed()) {
-            notice_.reset();
-        }
+    if (dialog_) {
+        TickDialog(*dialog_, input);
         return;
     }
     if (page_.buttons.empty()) {
@@ -117,8 +119,8 @@ void MainMenuScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpola
     for (std::size_t i = 0; i < page_.buttons.size(); ++i) {
         DrawButton(page_.buttons[i], i == focus_ ? kFocusedState : kNormalState);
     }
-    if (notice_) {
-        notice_->Draw(text_, sprites_);
+    if (dialog_) {
+        dialog_->Draw(text_, sprites_);
     }
     Result<void> drawn = renderer_->Draw({.sprites = sprites_});
     if (!drawn) {
@@ -127,15 +129,37 @@ void MainMenuScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpola
 }
 
 MainMenuScene::MainMenuScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
-                             MenuPage page, std::optional<MessageDialog> notice)
+                             MenuPage page, std::optional<DialogLook> dialogLook)
     : renderer_(&renderer),
       vfs_(&vfs),
       sounds_(sounds),
       page_(std::move(page)),
-      notice_(std::move(notice)) {
+      dialogLook_(std::move(dialogLook)) {
     for (const MenuButton& button : page_.buttons) {
         buttonBounds_.push_back(button.bounds);
     }
+}
+
+void MainMenuScene::TickDialog(MessageDialog& dialog, const sim::InputFrame& input) {
+    if (dialog.Tick(input, sounds_) == 0 && !firstButtonScene_.empty()) {
+        next_ = std::string(firstButtonScene_);
+    }
+    if (dialog.IsClosed()) {
+        dialog_.reset();
+    }
+}
+
+void MainMenuScene::OpenDialog(std::size_t messageLine, std::vector<DialogButton> buttons,
+                               std::string_view firstButtonScene) {
+    if (!dialogLook_) {
+        if (!firstButtonScene.empty()) {
+            next_ = std::string(firstButtonScene);
+        }
+        return;
+    }
+    dialog_.emplace(*dialogLook_, messageLine, std::move(buttons));
+    dialog_->Measure(text_);
+    firstButtonScene_ = firstButtonScene;
 }
 
 void MainMenuScene::MoveFocus(std::size_t focus) {
@@ -146,6 +170,12 @@ void MainMenuScene::MoveFocus(std::size_t focus) {
 }
 
 void MainMenuScene::Choose(const MenuButton& button) {
+    if (button.name == kQuitButton) {
+        OpenDialog(kQuitQuestionLine,
+                   {{.line = kYesLine}, {.line = kNoLine, .style = DialogButtonStyle::Cross}},
+                   kQuitScene);
+        return;
+    }
     const auto target =
         std::ranges::find(kButtonTargets, std::string_view(button.name), &ButtonTarget::button);
     if (target == kButtonTargets.end()) {
