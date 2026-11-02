@@ -35,13 +35,13 @@ struct PressedControl {
     bool isRefused = false;
 };
 
-[[nodiscard]] ControlNames ReadControlNames(const settings::Registry& settings,
+[[nodiscard]] ControlNames ReadControlNames(const settings::Registry& settings, std::size_t player,
                                             ControlsDevice device);
 
-/// Binds `input` alone to `row`'s action and takes it off the device's other rows.
+/// Binds `input` alone to `row`'s action and takes it off the player's other rows for the device.
 [[nodiscard]] std::vector<SettingChange> RebindChanges(const ControlNames& names,
-                                                       ControlsDevice device, std::size_t row,
-                                                       std::string_view input);
+                                                       std::size_t player, ControlsDevice device,
+                                                       std::size_t row, std::string_view input);
 
 /// Keys the original won't bind, and the port's own keys, come back refused.
 [[nodiscard]] std::optional<PressedControl> PressedControlOf(const SDL_Event& event);

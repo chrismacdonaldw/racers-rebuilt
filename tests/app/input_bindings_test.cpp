@@ -197,7 +197,7 @@ TEST_CASE("with two players, player 2's keys drive player 2") {
 
 TEST_CASE("a key both players bind drives player 1") {
     settings::Registry registry = DefaultRegistry();
-    registry.Set(kPlayer2KeyBindings[0].keys, "Up");
+    registry.Set(kPlayer2Bindings[0].keys, "Up");
     InputBindings bindings(registry);
     sim::InputLatch latch;
     bindings.SetPlayerCount(2, latch);
@@ -239,6 +239,27 @@ TEST_CASE("pads drive players in the order they connected") {
     CHECK(frame.players[0].IsHeld(sim::Action::Brake));
     CHECK_FALSE(frame.players[0].IsHeld(sim::Action::Accelerate));
     CHECK(frame.players[0].steerLeftAxis == 0);
+}
+
+TEST_CASE("player 2's pad drives with player 2's buttons, and its start pauses") {
+    settings::Registry registry = DefaultRegistry();
+    registry.Set(kPlayer2Bindings[0].buttons, "y");
+    InputBindings bindings(registry);
+    sim::InputLatch latch;
+    ConnectTwoPads(bindings, latch);
+    bindings.SetPlayerCount(2, latch);
+
+    bindings.Handle(Button(SDL_EVENT_GAMEPAD_BUTTON_DOWN, SDL_GAMEPAD_BUTTON_NORTH, kSecondPad),
+                    latch);
+    bindings.Handle(Button(SDL_EVENT_GAMEPAD_BUTTON_DOWN, SDL_GAMEPAD_BUTTON_START, kSecondPad),
+                    latch);
+    bindings.Handle(Button(SDL_EVENT_GAMEPAD_BUTTON_DOWN, SDL_GAMEPAD_BUTTON_NORTH, kFirstPad),
+                    latch);
+    const sim::InputFrame frame = latch.TakeFrame();
+
+    CHECK(frame.players[1].IsHeld(sim::Action::Accelerate));
+    CHECK(frame.players[1].IsHeld(sim::Action::Pause));
+    CHECK(frame.players[0] == sim::PlayerInput{});
 }
 
 TEST_CASE("with one player, every pad drives player 1") {
@@ -300,7 +321,7 @@ TEST_CASE("rebinding keeps the player count and pad order but lets go of held in
     bindings.SetPlayerCount(2, latch);
     bindings.Handle(Key(SDL_EVENT_KEY_DOWN, SDLK_UP), latch);
     static_cast<void>(latch.TakeFrame());
-    registry.Set(kPlayer2KeyBindings[0].keys, "I");
+    registry.Set(kPlayer2Bindings[0].keys, "I");
 
     bindings.Rebind(registry, latch);
     CHECK(latch.TakeFrame().players[0].WasReleased(sim::Action::Accelerate));
@@ -309,7 +330,7 @@ TEST_CASE("rebinding keeps the player count and pad order but lets go of held in
                     latch);
     const sim::InputFrame frame = latch.TakeFrame();
 
-    CHECK(frame.players[1].IsHeld(kPlayer2KeyBindings[0].action));
+    CHECK(frame.players[1].IsHeld(kPlayer2Bindings[0].action));
     CHECK(frame.players[1].IsHeld(sim::Action::Brake));
 }
 

@@ -10,6 +10,7 @@ inline constexpr std::string_view kCircuitRaceScene = "menu:circuit_race";
 inline constexpr std::string_view kVersusRaceScene = "menu:versus_race";
 inline constexpr std::string_view kOptionsScene = "menu:options";
 inline constexpr std::string_view kControlsScene = "menu:controls";
+inline constexpr std::string_view kPlayer2ControlsScene = "menu:controls2";
 
 /// Asks the application to close rather than open a scene.
 inline constexpr std::string_view kQuitScene = "quit";

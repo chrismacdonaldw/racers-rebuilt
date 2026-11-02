@@ -56,28 +56,25 @@ inline constexpr std::array kActionBindings{
                "start"),
 };
 
-struct KeyBinding {
-    sim::Action action;
-    settings::SettingSpec<std::string_view> keys;
+/// Player 2's bindings in a two-player race. Player 1's pause keys pause for both.
+inline constexpr std::array kPlayer2Bindings{
+    BindingFor(sim::Action::Accelerate, "Player 2 accelerate", "input.p2.keys.accelerate",
+               "input.p2.buttons.accelerate", "W", "a,righttrigger"),
+    BindingFor(sim::Action::Brake, "Player 2 brake", "input.p2.keys.brake",
+               "input.p2.buttons.brake", "X", "b,lefttrigger"),
+    BindingFor(sim::Action::SteerLeft, "Player 2 steer left", "input.p2.keys.steer_left",
+               "input.p2.buttons.steer_left", "A", "dpleft"),
+    BindingFor(sim::Action::SteerRight, "Player 2 steer right", "input.p2.keys.steer_right",
+               "input.p2.buttons.steer_right", "D", "dpright"),
+    BindingFor(sim::Action::Drift, "Player 2 drift", "input.p2.keys.drift",
+               "input.p2.buttons.drift", "Left Shift", "rightshoulder,leftshoulder"),
+    BindingFor(sim::Action::UsePowerup, "Player 2 use powerup", "input.p2.keys.use_powerup",
+               "input.p2.buttons.use_powerup", "Left Alt", "x"),
+    BindingFor(sim::Action::Pause, "Player 2 pause", "input.p2.keys.pause",
+               "input.p2.buttons.pause", "", "start"),
 };
 
-[[nodiscard]] constexpr KeyBinding Player2KeysFor(sim::Action action, std::string_view name,
-                                                  std::string_view key, std::string_view keys) {
-    return {.action = action,
-            .keys = {.key = key, .defaultValue = keys, .label = name, .category = "Keyboard"}};
-}
-
-/// Player 2's keys in a two-player race. Pads all use the gamepad bindings above.
-inline constexpr std::array kPlayer2KeyBindings{
-    Player2KeysFor(sim::Action::Accelerate, "Player 2 accelerate", "input.p2.keys.accelerate", "W"),
-    Player2KeysFor(sim::Action::Brake, "Player 2 brake", "input.p2.keys.brake", "X"),
-    Player2KeysFor(sim::Action::SteerLeft, "Player 2 steer left", "input.p2.keys.steer_left", "A"),
-    Player2KeysFor(sim::Action::SteerRight, "Player 2 steer right", "input.p2.keys.steer_right",
-                   "D"),
-    Player2KeysFor(sim::Action::Drift, "Player 2 drift", "input.p2.keys.drift", "Left Shift"),
-    Player2KeysFor(sim::Action::UsePowerup, "Player 2 use powerup", "input.p2.keys.use_powerup",
-                   "Left Alt"),
-};
+[[nodiscard]] std::span<const Binding<sim::Action>> RaceBindingsOf(std::size_t player);
 
 inline constexpr std::array kMenuBindings{
     BindingFor(sim::MenuAction::Up, "Menu up", "input.keys.menu_up", "input.buttons.menu_up", "Up",
@@ -145,9 +142,6 @@ private:
     static BoundInputs<Action> Bind(const settings::Registry& registry,
                                     std::span<const Binding<Action>> bindings);
 
-    static std::vector<Bound<SDL_Keycode, sim::Action>> BindPlayer2(
-        const settings::Registry& registry);
-
     void HandleKey(const SDL_KeyboardEvent& event, sim::InputLatch& latch);
     void HandleButton(const SDL_GamepadButtonEvent& event, sim::InputLatch& latch);
     void HandleAxis(const SDL_GamepadAxisEvent& event, sim::InputLatch& latch);
@@ -160,7 +154,7 @@ private:
 
     BoundInputs<sim::Action> race_;
     BoundInputs<sim::MenuAction> menu_;
-    std::vector<Bound<SDL_Keycode, sim::Action>> player2Keys_;
+    BoundInputs<sim::Action> player2_;
     std::size_t playerCount_ = 1;
     std::vector<SDL_JoystickID> pads_;
     std::vector<SDL_Keycode> heldKeys_;

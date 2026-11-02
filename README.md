@@ -138,6 +138,7 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `input.keys.<action>` | See below | Comma-separated SDL key names, such as `Up,W` or `Left Shift` |
 | `input.buttons.<action>` | See below | Comma-separated SDL gamepad names: buttons such as `a` or `dpleft`, or `lefttrigger` and `righttrigger` |
 | `input.p2.keys.<action>` | See below | Player 2's keys in a two-player race, in the same form as `input.keys` |
+| `input.p2.buttons.<action>` | Player 1's default buttons | Player 2's gamepad buttons in a two-player race, in the same form as `input.buttons` |
 
 Each `<action>` has a key and a button default. The left stick always steers.
 
@@ -157,7 +158,7 @@ Each `<action>` has a key and a button default. The left stick always steers.
 | `menu_confirm` | `Return,Space` | `a` |
 | `menu_back` | `Escape,Backspace` | `b` |
 
-The keys follow the original's first keyboard set. In a two-player race, player 2 drives with `input.p2.keys`, and a key in both players' lists drives player 1. Gamepads drive players in the order they connected, all with the `input.buttons` layout. With one gamepad, player 1 takes it.
+The keys follow the original's first keyboard set. In a two-player race, player 2 drives with `input.p2.keys`, and a key in both players' lists drives player 1. Gamepads drive players in the order they connected, and player 2's uses `input.p2.buttons`. With one gamepad, player 1 takes it. PLAYER 1 CONTROLS and PLAYER 2 CONTROLS on the options screen rebind each player's keys and buttons.
 
 | Action | Player 2 keys |
 |---|---|
@@ -167,6 +168,7 @@ The keys follow the original's first keyboard set. In a two-player race, player 
 | `steer_right` | `D` |
 | `drift` | `Left Shift` |
 | `use_powerup` | `Left Alt` |
+| `pause` | None, since player 1's pause keys pause for both |
 
 ```toml
 [video]

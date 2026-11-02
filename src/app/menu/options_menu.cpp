@@ -89,8 +89,9 @@ OptionsRequest OptionsMenu::Choose() {
             warnedPage_ = OptionsPage::Audio;
             return OptionsRequest::Warn;
         case OptionsRow::Player1:
-            return OptionsRequest::Controls;
+            return OptionsRequest::Player1Controls;
         case OptionsRow::Player2:
+            return OptionsRequest::Player2Controls;
         case OptionsRow::Language:
         case OptionsRow::Credits:
             return OptionsRequest::NotBuilt;

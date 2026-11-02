@@ -41,7 +41,15 @@ struct OptionValues {
     friend bool operator==(const OptionValues&, const OptionValues&) = default;
 };
 
-enum class OptionsRequest : std::uint8_t { None, Warn, ChangeValue, Controls, Leave, NotBuilt };
+enum class OptionsRequest : std::uint8_t {
+    None,
+    Warn,
+    ChangeValue,
+    Player1Controls,
+    Player2Controls,
+    Leave,
+    NotBuilt
+};
 
 /// Video and audio ask for a warning first, and open once `Proceed` runs.
 class OptionsMenu {

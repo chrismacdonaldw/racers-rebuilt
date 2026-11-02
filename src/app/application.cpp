@@ -281,8 +281,9 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std:
     if (*scene == kOptionsScene) {
         return OptionsScene::Create(renderer_, vfs_).transform(ToScene<OptionsScene>);
     }
-    if (*scene == kControlsScene) {
-        return ControlsScene::Create(renderer_, vfs_).transform(ToScene<ControlsScene>);
+    if (*scene == kControlsScene || *scene == kPlayer2ControlsScene) {
+        const std::size_t player = *scene == kPlayer2ControlsScene ? 1 : 0;
+        return ControlsScene::Create(renderer_, vfs_, player).transform(ToScene<ControlsScene>);
     }
     if (const std::optional<RaceSetupMode> mode = RaceSetupModeOf(*scene)) {
         return RaceSetupScene::Create(renderer_, vfs_, *mode, UnlockedCircuits(ProgressFile()))

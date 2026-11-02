@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <span>
 #include <utility>
 
 #include "app/input_bindings.hpp"
@@ -19,9 +20,11 @@ constexpr std::array kRefusedKeys{
     SDLK_WAKE,   kToggleOverlayKey, kCyclePacingKey,
 };
 
-const settings::SettingSpec<std::string_view>* SpecFor(sim::Action action, ControlsDevice device) {
-    const auto binding = std::ranges::find(kActionBindings, action, &Binding<sim::Action>::action);
-    if (binding == kActionBindings.end()) {
+const settings::SettingSpec<std::string_view>* SpecFor(sim::Action action, std::size_t player,
+                                                       ControlsDevice device) {
+    const std::span<const Binding<sim::Action>> bindings = RaceBindingsOf(player);
+    const auto binding = std::ranges::find(bindings, action, &Binding<sim::Action>::action);
+    if (binding == bindings.end()) {
         return nullptr;
     }
     return device == ControlsDevice::Keyboard ? &binding->keys : &binding->buttons;
@@ -56,23 +59,25 @@ std::string NameOf(const char* name) {
 
 }
 
-ControlNames ReadControlNames(const settings::Registry& settings, ControlsDevice device) {
+ControlNames ReadControlNames(const settings::Registry& settings, std::size_t player,
+                              ControlsDevice device) {
     ControlNames names;
     for (std::size_t row = 0; row < kControlRows; ++row) {
         const std::optional<sim::Action> action = kControlActions.at(row);
-        if (const auto* spec = action ? SpecFor(*action, device) : nullptr) {
+        if (const auto* spec = action ? SpecFor(*action, player, device) : nullptr) {
             names.at(row) = SplitBindingNames(settings.Get(*spec));
         }
     }
     return names;
 }
 
-std::vector<SettingChange> RebindChanges(const ControlNames& names, ControlsDevice device,
-                                         std::size_t row, std::string_view input) {
+std::vector<SettingChange> RebindChanges(const ControlNames& names, std::size_t player,
+                                         ControlsDevice device, std::size_t row,
+                                         std::string_view input) {
     std::vector<SettingChange> changes;
     for (std::size_t other = 0; other < kControlRows; ++other) {
         const std::optional<sim::Action> action = kControlActions.at(other);
-        const auto* spec = action ? SpecFor(*action, device) : nullptr;
+        const auto* spec = action ? SpecFor(*action, player, device) : nullptr;
         if (spec == nullptr) {
             continue;
         }
