@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "assets/car_data.hpp"
 #include "assets/driver_look.hpp"
 #include "core/result.hpp"
 
@@ -24,6 +25,8 @@ struct SavedTime {
 struct SavedRacer {
     std::u16string name;
     DriverLook look;
+    std::string chassis;
+    CarData car{};
     std::uint16_t trophies = 0;
 
     friend bool operator==(const SavedRacer&, const SavedRacer&) = default;
