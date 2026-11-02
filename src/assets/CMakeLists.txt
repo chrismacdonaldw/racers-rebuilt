@@ -27,6 +27,7 @@ rr_add_module(assets
         material_library.cpp
         menu_layout.cpp
         menu_styles.cpp
+        mirror.cpp
         path_index.cpp
         race_catalog.cpp
         race_list.cpp

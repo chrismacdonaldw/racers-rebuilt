@@ -104,6 +104,7 @@ add_executable(racers-rebuilt-tests
     assets/material_library_test.cpp
     assets/menu_layout_test.cpp
     assets/menu_styles_test.cpp
+    assets/mirror_test.cpp
     assets/model_survey_test.cpp
     assets/race_catalog_test.cpp
     assets/race_list_test.cpp
