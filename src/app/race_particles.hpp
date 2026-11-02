@@ -10,6 +10,8 @@
 
 #include "app/hazard/hazard_particles.hpp"
 #include "app/powerup/powerup_particles.hpp"
+#include "app/racer/car_particles.hpp"
+#include "app/racer/skid_marks.hpp"
 #include "assets/surface_table.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
@@ -42,7 +44,8 @@ public:
 
     /// `camera` is the player's, in engine space.
     void Tick(const sim::RaceSession& session, const Transform& camera, Milliseconds elapsed);
-    void Update(const sim::RaceSession& session, render::FloatMilliseconds elapsed);
+    void Update(const sim::RaceSession& session, const std::optional<SkidWheels>& skidding,
+                render::FloatMilliseconds elapsed);
     void AppendQuads(const Transform& camera, std::vector<render::QuadDraw>& out) const;
 
     [[nodiscard]] render::ParticleBank& Bank(ParticleFile file);
@@ -63,6 +66,7 @@ private:
     std::span<const assets::SurfaceEntry> surfaces_;
     std::size_t player_;
     std::array<WheelEmitter, sim::kWheelCount> wheels_{};
+    CarParticles cars_;
     PowerupParticles powerups_;
     HazardParticles hazards_;
 };

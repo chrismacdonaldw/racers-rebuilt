@@ -14,6 +14,8 @@
 
 namespace rr::app {
 
+using SkidWheels = std::array<bool, assets::kChassisWheelCount>;
+
 /// One car's marks, which the original leaves only under human drivers.
 class SkidMarks {
 public:
@@ -23,6 +25,8 @@ public:
     void Update(const sim::EntitySnapshot& pose, const sim::RacerSnapshot& racer, float elapsedMs);
 
     void Append(const sim::CollisionQuery& ground, std::vector<render::QuadDraw>& out) const;
+
+    [[nodiscard]] std::optional<SkidWheels> Skidding() const;
 
 private:
     void Follow(const sim::EntitySnapshot& pose, const sim::SkidSnapshot& skid, float elapsedMs);
@@ -38,7 +42,7 @@ private:
     bool isSkidding_ = false;
     bool isSpinMarking_ = false;
     bool isTurboMarking_ = false;
-    std::array<bool, assets::kChassisWheelCount> marks_{};
+    SkidWheels marks_{};
     std::array<std::optional<SkidTrail>, assets::kChassisWheelCount> trails_;
     std::vector<SkidTrail> fading_;
 };

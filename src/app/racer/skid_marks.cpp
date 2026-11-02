@@ -8,8 +8,6 @@
 namespace rr::app {
 namespace {
 
-using Wheels = std::array<bool, assets::kChassisWheelCount>;
-
 constexpr std::string_view kSkidMaterial = "SKID";
 constexpr std::string_view kTurboSkidMaterial = "TRBSKID";
 constexpr float kMarkMs = 1000.0F;
@@ -17,9 +15,9 @@ constexpr float kSpinMarkMs = 250.0F;
 constexpr float kStopFadeMs = 1000.0F;
 constexpr std::size_t kFrontWheels = 2;
 constexpr std::size_t kFadingStops = 2;
-constexpr Wheels kRearWheels{false, false, true, true};
-constexpr Wheels kLeftWheels{false, true, false, true};
-constexpr Wheels kRightWheels{true, false, true, false};
+constexpr SkidWheels kRearWheels{false, false, true, true};
+constexpr SkidWheels kLeftWheels{false, true, false, true};
+constexpr SkidWheels kRightWheels{true, false, true, false};
 
 std::optional<QuadLook> Find(const assets::NameMap<render::Material>& materials,
                              std::string_view name) {
@@ -101,6 +99,10 @@ void SkidMarks::Append(const sim::CollisionQuery& ground,
     for (const SkidTrail& trail : fading_) {
         trail.Append(ground, out);
     }
+}
+
+std::optional<SkidWheels> SkidMarks::Skidding() const {
+    return isSkidding_ ? std::optional(marks_) : std::nullopt;
 }
 
 void SkidMarks::Follow(const sim::EntitySnapshot& pose, const sim::SkidSnapshot& skid,

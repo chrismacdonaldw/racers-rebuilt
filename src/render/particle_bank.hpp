@@ -62,6 +62,7 @@ public:
     std::optional<EmitterHandle> Start(std::string_view name, const EmitterPlacement& placement);
 
     void Place(EmitterHandle handle, const EmitterPlacement& placement);
+    [[nodiscard]] bool IsLive(EmitterHandle handle) const;
     [[nodiscard]] std::size_t SpawnCount(EmitterHandle handle) const;
 
     /// Stops spawning and lets the particles live out their lives.
@@ -96,7 +97,6 @@ private:
         std::array<Particle, kParticlesPerSlot> particles{};
     };
 
-    [[nodiscard]] bool IsLive(EmitterHandle handle) const;
     [[nodiscard]] Slot* Find(EmitterHandle handle);
     [[nodiscard]] std::optional<std::size_t> ChooseSlot(std::uint8_t priority) const;
     void UpdateSlot(Slot& slot, float elapsedMs);
