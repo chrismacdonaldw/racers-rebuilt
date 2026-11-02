@@ -137,17 +137,18 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `mods.<id>.enabled` | The mod's `enabled` value | `true`, `false` |
 | `input.keys.<action>` | See below | Comma-separated SDL key names, such as `Up,W` or `Left Shift` |
 | `input.buttons.<action>` | See below | Comma-separated SDL gamepad names: buttons such as `a` or `dpleft`, or `lefttrigger` and `righttrigger` |
+| `input.p2.keys.<action>` | See below | Player 2's keys in a two-player race, in the same form as `input.keys` |
 
 Each `<action>` has a key and a button default. The left stick always steers.
 
 | Action | Keys | Buttons |
 |---|---|---|
-| `accelerate` | `Up,W` | `a,righttrigger` |
-| `brake` | `Down,S` | `b,lefttrigger` |
-| `steer_left` | `Left,A` | `dpleft` |
-| `steer_right` | `Right,D` | `dpright` |
-| `drift` | `Left Shift,Right Shift` | `rightshoulder,leftshoulder` |
-| `use_powerup` | `Space` | `x` |
+| `accelerate` | `Up` | `a,righttrigger` |
+| `brake` | `Down` | `b,lefttrigger` |
+| `steer_left` | `Left` | `dpleft` |
+| `steer_right` | `Right` | `dpright` |
+| `drift` | `Space` | `rightshoulder,leftshoulder` |
+| `use_powerup` | `Return` | `x` |
 | `pause` | `Escape` | `start` |
 | `menu_up` | `Up` | `dpup` |
 | `menu_down` | `Down` | `dpdown` |
@@ -155,6 +156,17 @@ Each `<action>` has a key and a button default. The left stick always steers.
 | `menu_right` | `Right` | `dpright` |
 | `menu_confirm` | `Return,Space` | `a` |
 | `menu_back` | `Escape,Backspace` | `b` |
+
+The keys follow the original's first keyboard set. In a two-player race, player 2 drives with `input.p2.keys`, and a key in both players' lists drives player 1. Gamepads drive players in the order they connected, all with the `input.buttons` layout. With one gamepad, player 1 takes it.
+
+| Action | Player 2 keys |
+|---|---|
+| `accelerate` | `W` |
+| `brake` | `X` |
+| `steer_left` | `A` |
+| `steer_right` | `D` |
+| `drift` | `Left Shift` |
+| `use_powerup` | `Left Alt` |
 
 ```toml
 [video]

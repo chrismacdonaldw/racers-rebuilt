@@ -96,7 +96,7 @@ sim::SkidSnapshot SkidOf(const sim::Racer& racer) {
 
 void StepRace(sim::RaceSession& session, const sim::InputFrame& input,
               std::span<sim::RacerControls> controls) {
-    controls[kPlayerSlot] = sim::ControlsFrom(input);
+    controls[kPlayerSlot] = sim::ControlsFrom(input.players[0]);
     session.Tick(kSimTick, controls);
 }
 

@@ -12,11 +12,10 @@ ReplayRecorder::ReplayRecorder(std::string buildVersion, std::string scene, std:
     : replay_{.buildVersion = std::move(buildVersion),
               .scene = std::move(scene),
               .seed = seed,
-              .gameplay = std::move(gameplay),
-              .racers = {{}}} {}
+              .gameplay = std::move(gameplay)} {}
 
 void ReplayRecorder::Record(const InputFrame& input, const RenderSnapshot& after) {
-    replay_.racers.front().push_back(input);
+    replay_.frames.push_back(input);
     hashes_.push_back(HashSnapshot(after));
 }
 
@@ -24,12 +23,12 @@ ReplayPlayer::ReplayPlayer(Replay replay, std::vector<std::uint64_t> hashes)
     : replay_(std::move(replay)), hashes_(std::move(hashes)) {}
 
 bool ReplayPlayer::IsFinished() const {
-    return replay_.racers.empty() || next_ >= replay_.racers.front().size();
+    return next_ >= replay_.frames.size();
 }
 
 const InputFrame& ReplayPlayer::Next() {
     RR_VERIFY(!IsFinished());
-    return replay_.racers.front()[next_++];
+    return replay_.frames[next_++];
 }
 
 void ReplayPlayer::Check(const RenderSnapshot& after) {

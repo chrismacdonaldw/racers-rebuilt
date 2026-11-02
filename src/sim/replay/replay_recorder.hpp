@@ -13,7 +13,7 @@
 
 namespace rr::sim {
 
-/// Records one human racer.
+/// Records every player's input.
 class ReplayRecorder {
 public:
     ReplayRecorder(std::string buildVersion, std::string scene, std::uint64_t seed,
@@ -29,7 +29,7 @@ private:
     std::vector<std::uint64_t> hashes_;
 };
 
-/// Plays back the first racer, checking each tick against the recorded hashes.
+/// Checks each tick against the recorded hashes.
 class ReplayPlayer {
 public:
     ReplayPlayer(Replay replay, std::vector<std::uint64_t> hashes);

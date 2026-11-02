@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL_events.h>
 
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -38,6 +39,9 @@ public:
 
     /// Read every frame, so it can change as the scene runs.
     [[nodiscard]] virtual SceneMusic Music() const { return {}; }
+
+    /// Read once as the scene opens, to split the keys and pads between players.
+    [[nodiscard]] virtual std::size_t PlayerCount() const { return 1; }
 
     /// A scene name for the application to open after this frame. Each request is taken once.
     [[nodiscard]] virtual std::optional<std::string> TakeNextScene() { return std::nullopt; }

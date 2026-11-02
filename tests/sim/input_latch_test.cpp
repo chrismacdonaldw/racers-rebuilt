@@ -8,65 +8,65 @@ namespace {
 TEST_CASE("a tap between two ticks reaches the next frame") {
     InputLatch latch;
 
-    latch.Press(Action::UsePowerup);
-    latch.Release(Action::UsePowerup);
+    latch.Press(0, Action::UsePowerup);
+    latch.Release(0, Action::UsePowerup);
     const InputFrame frame = latch.TakeFrame();
 
-    CHECK(frame.WasPressed(Action::UsePowerup));
-    CHECK(frame.WasReleased(Action::UsePowerup));
-    CHECK_FALSE(frame.IsHeld(Action::UsePowerup));
+    CHECK(frame.players[0].WasPressed(Action::UsePowerup));
+    CHECK(frame.players[0].WasReleased(Action::UsePowerup));
+    CHECK_FALSE(frame.players[0].IsHeld(Action::UsePowerup));
 }
 
 TEST_CASE("a held action stays held but is pressed only once") {
     InputLatch latch;
 
-    latch.Press(Action::Accelerate);
+    latch.Press(0, Action::Accelerate);
     const InputFrame first = latch.TakeFrame();
     const InputFrame second = latch.TakeFrame();
 
-    CHECK(first.WasPressed(Action::Accelerate));
-    CHECK(second.IsHeld(Action::Accelerate));
-    CHECK_FALSE(second.WasPressed(Action::Accelerate));
+    CHECK(first.players[0].WasPressed(Action::Accelerate));
+    CHECK(second.players[0].IsHeld(Action::Accelerate));
+    CHECK_FALSE(second.players[0].WasPressed(Action::Accelerate));
 }
 
 TEST_CASE("key repeat while held doesn't count as a new press") {
     InputLatch latch;
-    latch.Press(Action::SteerLeft);
+    latch.Press(0, Action::SteerLeft);
     static_cast<void>(latch.TakeFrame());
 
-    latch.Press(Action::SteerLeft);
+    latch.Press(0, Action::SteerLeft);
 
-    CHECK_FALSE(latch.TakeFrame().WasPressed(Action::SteerLeft));
+    CHECK_FALSE(latch.TakeFrame().players[0].WasPressed(Action::SteerLeft));
 }
 
 TEST_CASE("the steer axis holds its last value across frames") {
     InputLatch latch;
 
-    latch.SetSteerLeftAxis(-40);
+    latch.SetSteerLeftAxis(0, -40);
 
-    CHECK(latch.TakeFrame().steerLeftAxis == -40);
-    CHECK(latch.TakeFrame().steerLeftAxis == -40);
+    CHECK(latch.TakeFrame().players[0].steerLeftAxis == -40);
+    CHECK(latch.TakeFrame().players[0].steerLeftAxis == -40);
 }
 
 TEST_CASE("releasing everything releases only what was held and centres the axis") {
     InputLatch latch;
-    latch.Press(Action::Accelerate);
-    latch.SetSteerLeftAxis(90);
+    latch.Press(0, Action::Accelerate);
+    latch.SetSteerLeftAxis(0, 90);
     static_cast<void>(latch.TakeFrame());
 
     latch.ReleaseAll();
     const InputFrame frame = latch.TakeFrame();
 
-    CHECK(frame.WasReleased(Action::Accelerate));
-    CHECK_FALSE(frame.IsHeld(Action::Accelerate));
-    CHECK_FALSE(frame.WasReleased(Action::Brake));
-    CHECK(frame.steerLeftAxis == 0);
+    CHECK(frame.players[0].WasReleased(Action::Accelerate));
+    CHECK_FALSE(frame.players[0].IsHeld(Action::Accelerate));
+    CHECK_FALSE(frame.players[0].WasReleased(Action::Brake));
+    CHECK(frame.players[0].steerLeftAxis == 0);
 }
 
 TEST_CASE("releasing an action that isn't held is ignored") {
     InputLatch latch;
 
-    latch.Release(Action::Brake);
+    latch.Release(0, Action::Brake);
 
     CHECK(latch.TakeFrame() == InputFrame{});
 }

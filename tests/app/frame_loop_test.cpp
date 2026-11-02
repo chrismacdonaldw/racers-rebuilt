@@ -118,14 +118,14 @@ TEST_CASE("a 2 s stall runs at most kMaxStepsPerFrame ticks and drops the rest")
 TEST_CASE("a tap shorter than one tick reaches the next tick's input") {
     LoopUnderTest test;
     static_cast<void>(test.loop.RunFrame(Nanoseconds{0}));
-    test.loop.Input().Press(sim::Action::UsePowerup);
-    test.loop.Input().Release(sim::Action::UsePowerup);
+    test.loop.Input().Press(0, sim::Action::UsePowerup);
+    test.loop.Input().Release(0, sim::Action::UsePowerup);
     static_cast<void>(test.loop.RunFrame(milliseconds{5}));
 
     static_cast<void>(test.loop.RunFrame(milliseconds{13}));
 
     REQUIRE(test.scene->inputs.size() == 1);
-    CHECK(test.scene->inputs[0].WasPressed(sim::Action::UsePowerup));
+    CHECK(test.scene->inputs[0].players[0].WasPressed(sim::Action::UsePowerup));
 }
 
 TEST_CASE("an empty scene stack runs no ticks") {

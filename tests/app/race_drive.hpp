@@ -94,7 +94,7 @@ private:
         }
         sim::RacerControls& player = controls_[app::kPlayerSlot];
         player = pilot_->Drive(session_.Racers()[app::kPlayerSlot]);
-        player.isUsePressed = sim::ControlsFrom(input).isUsePressed;
+        player.isUsePressed = sim::ControlsFrom(input.players[0]).isUsePressed;
         session_.Tick(app::kSimTick, controls_);
     }
 

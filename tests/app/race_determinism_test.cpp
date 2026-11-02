@@ -104,7 +104,7 @@ TEST_CASE("a scripted race on the test track replays identically at every framer
     const test::DriveResult uncapped =
         test::Drive(replay, {}, setup, track.Course(), FramesFor(0, kTestTrackRace), script);
 
-    REQUIRE(uncapped.hashes.size() == replay.racers.front().size());
+    REQUIRE(uncapped.hashes.size() == replay.frames.size());
     CHECK(uncapped.respawns > 0);
     CHECK(uncapped.mostLaps > 0);
     CHECK(uncapped.powerupUses.front() > std::ssize(gifts));
@@ -187,7 +187,7 @@ void CheckRetailTrack(const assets::Vfs& vfs, const std::string& name, const sim
     const test::DriveResult uncapped =
         test::Drive(replay, {}, setup, course, FramesFor(0, kRetailRace), script);
 
-    REQUIRE(uncapped.hashes.size() == replay.racers.front().size());
+    REQUIRE(uncapped.hashes.size() == replay.frames.size());
     CHECK(uncapped.mostLaps > 0);
     CHECK(uncapped.powerupUses.front() >= std::ssize(gifts));
     CHECK(std::ranges::any_of(ComputerUses(uncapped), IsPositive));

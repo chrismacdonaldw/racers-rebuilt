@@ -234,7 +234,7 @@ overlay::RacerActionGroup RaceScene::PowerupTools() {
 }
 
 void RaceScene::Tick(const sim::InputFrame& input) {
-    if (pause_.IsOpen() || input.WasPressed(sim::Action::Pause)) {
+    if (pause_.IsOpen() || input.WasAnyPressed(sim::Action::Pause)) {
         TickPause(input);
         return;
     }

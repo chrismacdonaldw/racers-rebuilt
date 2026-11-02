@@ -13,7 +13,7 @@ using sim::MenuAction;
 
 sim::InputFrame Pressing(Action action) {
     sim::InputFrame frame;
-    frame.pressed.set(sim::InputFrame::Index(action));
+    frame.players[0].pressed.set(sim::PlayerInput::Index(action));
     return frame;
 }
 
@@ -65,7 +65,7 @@ TEST_CASE("back and confirming Resume close the pause menu") {
 TEST_CASE("a held pause key's menu back repeats leave the pause menu open") {
     PauseMenu menu = Opened();
     sim::InputFrame held;
-    held.held.set(sim::InputFrame::Index(Action::Pause));
+    held.players[1].held.set(sim::PlayerInput::Index(Action::Pause));
     held.menuPressed.set(sim::InputFrame::Index(MenuAction::Back));
 
     CHECK_FALSE(menu.Tick(held).has_value());
