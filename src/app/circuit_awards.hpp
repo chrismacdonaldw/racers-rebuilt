@@ -45,9 +45,6 @@ struct AwardUnlocks {
 /// An empty code where the grid has no such slot.
 [[nodiscard]] AwardDrivers DriversOf(const assets::CircuitEntry& circuit, std::size_t racer);
 
-[[nodiscard]] Result<AwardDrivers> LoadAwardDrivers(const assets::Vfs& vfs,
-                                                    const AwardSceneSetup& award);
-
 struct AwardClaim {
     std::string screen;
     bool opensCircuit = false;

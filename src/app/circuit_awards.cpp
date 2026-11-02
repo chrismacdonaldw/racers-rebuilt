@@ -49,6 +49,27 @@ settings::Trophy TrophyOf(sim::CircuitAward award) {
     return settings::Trophy::Bronze;
 }
 
+Result<AwardUnlocks> SaveCircuitAward(const std::filesystem::path& file,
+                                      const assets::CircuitEntry& circuit,
+                                      sim::CircuitAward award) {
+    const std::filesystem::path racersFile = file.parent_path() / kRacersFileName;
+    Result<settings::Progress> progress = settings::LoadProgress(file);
+    if (!progress) {
+        return std::unexpected(std::move(progress.error()));
+    }
+    settings::RacerStore racers = RacersOrNone(racersFile);
+    const AwardUnlocks unlocks{.opensCircuit = OpensNewCircuit(*progress, circuit, award),
+                               .partSet = NewPartSet(*progress, circuit, award)};
+    if (!GrantAward(*progress, settings::TrophiesOf(*progress, racers), circuit, award)) {
+        return AwardUnlocks{};
+    }
+    Result<void> saved =
+        racers.selected ? settings::SaveRacers(racers, racersFile) : Result<void>{};
+    return saved.and_then([&] { return settings::SaveProgress(*progress, file); }).transform([&] {
+        return unlocks;
+    });
+}
+
 }
 
 bool GrantAward(settings::Progress& progress, settings::Trophies& trophies,
@@ -86,25 +107,8 @@ std::optional<std::int32_t> NewPartSet(const settings::Progress& progress,
 
 Result<AwardUnlocks> SaveAward(const std::filesystem::path& file, const assets::Vfs& vfs,
                                const AwardSceneSetup& award) {
-    Result<assets::CircuitEntry> entry = LoadCircuit(vfs, award.circuit);
-    if (!entry) {
-        return std::unexpected(std::move(entry.error()));
-    }
-    const std::filesystem::path racersFile = file.parent_path() / kRacersFileName;
-    Result<settings::Progress> progress = settings::LoadProgress(file);
-    if (!progress) {
-        return std::unexpected(std::move(progress.error()));
-    }
-    settings::RacerStore racers = RacersOrNone(racersFile);
-    const AwardUnlocks unlocks{.opensCircuit = OpensNewCircuit(*progress, *entry, award.award),
-                               .partSet = NewPartSet(*progress, *entry, award.award)};
-    if (!GrantAward(*progress, settings::TrophiesOf(*progress, racers), *entry, award.award)) {
-        return AwardUnlocks{};
-    }
-    Result<void> saved =
-        racers.selected ? settings::SaveRacers(racers, racersFile) : Result<void>{};
-    return saved.and_then([&] { return settings::SaveProgress(*progress, file); }).transform([&] {
-        return unlocks;
+    return LoadCircuit(vfs, award.circuit).and_then([&](const assets::CircuitEntry& circuit) {
+        return SaveCircuitAward(file, circuit, award.award);
     });
 }
 
@@ -115,26 +119,22 @@ AwardDrivers DriversOf(const assets::CircuitEntry& circuit, std::size_t racer) {
     return {.player = code(racer), .champion = code(kChampionSlot)};
 }
 
-Result<AwardDrivers> LoadAwardDrivers(const assets::Vfs& vfs, const AwardSceneSetup& award) {
-    return LoadCircuit(vfs, award.circuit).transform([&](const assets::CircuitEntry& circuit) {
-        return DriversOf(circuit, award.racer);
-    });
-}
-
 AwardClaim ClaimAward(const std::filesystem::path& file, const assets::Vfs& vfs,
                       const AwardSceneSetup& award) {
-    const Result<AwardUnlocks> unlocks = SaveAward(file, vfs, award);
+    const Result<assets::CircuitEntry> circuit = LoadCircuit(vfs, award.circuit);
+    const Result<AwardUnlocks> unlocks = circuit.and_then([&](const assets::CircuitEntry& entry) {
+        return SaveCircuitAward(file, entry, award.award);
+    });
+    if (!circuit) {
+        log::Warn("{}, the award shows its stand-in racer", circuit.error().message);
+    }
     if (!unlocks) {
         log::Warn("{}, progress wasn't saved", unlocks.error().message);
     }
-    const Result<AwardDrivers> drivers = LoadAwardDrivers(vfs, award);
-    if (!drivers) {
-        log::Warn("{}, the award shows its stand-in racer", drivers.error().message);
-    }
     const AwardUnlocks granted = unlocks.value_or(AwardUnlocks{});
-    return {
-        .screen = AwardScreenName(award.award, granted.partSet, drivers.value_or(AwardDrivers{})),
-        .opensCircuit = granted.opensCircuit};
+    const AwardDrivers drivers = circuit ? DriversOf(*circuit, award.racer) : AwardDrivers{};
+    return {.screen = AwardScreenName(award.award, granted.partSet, drivers),
+            .opensCircuit = granted.opensCircuit};
 }
 
 settings::Progress ReadProgress(const std::filesystem::path& file) {
