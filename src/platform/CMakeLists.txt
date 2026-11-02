@@ -9,7 +9,7 @@ rr_add_module(platform
         gamepads.cpp
         install_locations.cpp
         message_box.cpp
-        png_file.cpp
+        image_file.cpp
         sdl_context.cpp
         window.cpp
         win32/frame_timer.cpp

@@ -69,6 +69,7 @@ add_executable(racers-rebuilt-tests
     app/race_music_test.cpp
     app/race_particles_test.cpp
     app/race_scene_name_test.cpp
+    app/screenshots_test.cpp
     app/racer/animation_player_test.cpp
     app/racer/car_shadows_test.cpp
     app/racer/body_lean_test.cpp
@@ -172,6 +173,7 @@ add_executable(racers-rebuilt-tests
     platform/mapped_file_test.cpp
     render/asset_table_test.cpp
     render/camera_test.cpp
+    render/frame_readback_test.cpp
     render/particle_bank_test.cpp
     render/quad_batch_test.cpp
     render/sprite_batch_test.cpp

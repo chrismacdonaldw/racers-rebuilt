@@ -13,4 +13,8 @@ namespace rr::platform {
 [[nodiscard]] Result<void> SavePng(const std::filesystem::path& path, std::uint32_t widthPx,
                                    std::uint32_t heightPx, std::span<const std::byte> rgba);
 
+/// Same pixel layout as `SavePng`.
+[[nodiscard]] Result<void> SaveBmp(const std::filesystem::path& path, std::uint32_t widthPx,
+                                   std::uint32_t heightPx, std::span<const std::byte> rgba);
+
 }

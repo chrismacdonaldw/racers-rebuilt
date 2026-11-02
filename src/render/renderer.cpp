@@ -7,6 +7,7 @@
 #include <format>
 #include <functional>
 #include <limits>
+#include <optional>
 #include <ranges>
 #include <utility>
 #include <vector>
@@ -146,6 +147,31 @@ Result<void> Renderer::Draw(std::span<const RenderView> views) {
     if (commands == nullptr) {
         return GpuFailure("can't start a frame");
     }
+    const bool captures = std::exchange(isCaptureRequested_, false);
+    const Result<void> drawn = DrawFrame(commands, views, captures);
+    if (!captures) {
+        if (!SDL_SubmitGPUCommandBuffer(commands)) {
+            return GpuFailure("can't submit a frame");
+        }
+        return drawn;
+    }
+    Result<assets::ImageAsset> frame = readback_.Submit(device_.get(), commands);
+    if (!drawn) {
+        return drawn;
+    }
+    if (!frame) {
+        return std::unexpected(std::move(frame.error()));
+    }
+    capture_ = std::move(*frame);
+    return {};
+}
+
+std::optional<assets::ImageAsset> Renderer::TakeCapture() {
+    return std::exchange(capture_, std::nullopt);
+}
+
+Result<void> Renderer::DrawFrame(SDL_GPUCommandBuffer* commands, std::span<const RenderView> views,
+                                 bool captures) {
     SDL_GPUTexture* swapchain = nullptr;
     std::uint32_t widthPx = 0;
     std::uint32_t heightPx = 0;
@@ -158,28 +184,33 @@ Result<void> Renderer::Draw(std::span<const RenderView> views) {
                                     : EnsureSceneTargets(Scaled(widthPx, resolutionScale_),
                                                          Scaled(heightPx, resolutionScale_));
     });
-    if (prepared && swapchain != nullptr) {
-        if (overlay_ != nullptr) {
-            overlay_->Prepare(commands);
-        }
-        DrawScenes(commands, views, IsScaled() ? sceneColor_.Get() : swapchain);
-        if (IsScaled()) {
-            const SDL_GPUBlitInfo blit{
-                .source = {.texture = sceneColor_.Get(), .w = sceneWidthPx_, .h = sceneHeightPx_},
-                .destination = {.texture = swapchain, .w = widthPx, .h = heightPx},
-                .load_op = SDL_GPU_LOADOP_DONT_CARE,
-                .filter = SDL_GPU_FILTER_LINEAR};
-            SDL_BlitGPUTexture(commands, &blit);
-        }
-        DrawSprites(commands, swapchain, widthPx, heightPx);
-        if (overlay_ != nullptr) {
-            DrawOverlay(commands, swapchain);
-        }
+    if (prepared && swapchain != nullptr && captures) {
+        prepared = readback_.Prepare(device_.get(), colorFormat_, widthPx, heightPx);
     }
-    if (!SDL_SubmitGPUCommandBuffer(commands)) {
-        return GpuFailure("can't submit a frame");
+    if (!prepared || swapchain == nullptr) {
+        return prepared;
     }
-    return prepared;
+    if (overlay_ != nullptr) {
+        overlay_->Prepare(commands);
+    }
+    SDL_GPUTexture* frame = captures ? readback_.Target() : swapchain;
+    DrawScenes(commands, views, IsScaled() ? sceneColor_.Get() : frame);
+    if (IsScaled()) {
+        const SDL_GPUBlitInfo blit{
+            .source = {.texture = sceneColor_.Get(), .w = sceneWidthPx_, .h = sceneHeightPx_},
+            .destination = {.texture = frame, .w = widthPx, .h = heightPx},
+            .load_op = SDL_GPU_LOADOP_DONT_CARE,
+            .filter = SDL_GPU_FILTER_LINEAR};
+        SDL_BlitGPUTexture(commands, &blit);
+    }
+    DrawSprites(commands, frame, widthPx, heightPx);
+    if (captures) {
+        readback_.Finish(commands, swapchain);
+    }
+    if (overlay_ != nullptr) {
+        DrawOverlay(commands, swapchain);
+    }
+    return {};
 }
 
 Renderer::Renderer(std::unique_ptr<SDL_GPUDevice, DeviceDeleter> device)
