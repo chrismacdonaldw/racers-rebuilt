@@ -27,6 +27,7 @@ rr_add_module(app
         cutscene/cutscene_sprites.cpp
         cutscene/cutscene_tints.cpp
         cutscene/cutscene_timeline.cpp
+        cutscene/cutscene_view.cpp
         extensions.cpp
         player_cameras.cpp
         gameplay_fingerprint.cpp
