@@ -49,7 +49,7 @@ enum class OptionsRequest : std::uint8_t {
     Player2Controls,
     Language,
     Leave,
-    NotBuilt
+    Credits
 };
 
 /// Video and audio ask for a warning first, and open once `Proceed` runs.

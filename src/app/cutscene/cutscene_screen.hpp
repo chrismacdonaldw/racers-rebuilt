@@ -15,6 +15,10 @@ namespace rr::app {
 
 inline constexpr std::string_view kCutsceneScreenPrefix = "screen:";
 inline constexpr std::string_view kLegalScreen = "legal";
+inline constexpr std::string_view kCreditsScreen = "credits";
+inline constexpr std::string_view kWinCarScreen = "wincar";
+inline constexpr std::string_view kWinRocketRacerCarScreen = "winrrcar";
+inline constexpr std::string_view kWinRecordsCarScreen = "winvvcar";
 
 /// `next` is the scene to show after the cutscene, empty for the screen's usual one.
 struct CutsceneScreenSetup {

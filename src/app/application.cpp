@@ -17,11 +17,11 @@
 #include "app/circuit_awards.hpp"
 #include "app/circuit_leg.hpp"
 #include "app/cutscene/cutscene_scene.hpp"
+#include "app/cutscene/cutscene_screen.hpp"
 #include "app/extensions.hpp"
 #include "app/game_settings.hpp"
 #include "app/gameplay_fingerprint.hpp"
 #include "app/input_bindings.hpp"
-#include "app/menu/award_scene.hpp"
 #include "app/menu/award_scene_name.hpp"
 #include "app/menu/controls_scene.hpp"
 #include "app/menu/language_scene.hpp"
@@ -264,22 +264,21 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(
                                       *mode, ReadProgress(ProgressFile()))
             .transform(ToScene<RaceSetupScene>);
     }
-    if (*scene == kRecordsUnlockScene) {
-        return AwardScene::CreateRecordsUnlock(renderer_, vfs_).transform(ToScene<AwardScene>);
-    }
     if (IsAwardScene(*scene)) {
-        return ParseAwardScene(*scene)
-            .and_then([&](const AwardSceneSetup& award) {
-                const Result<bool> opened = SaveAward(ProgressFile(), vfs_, award);
-                if (!opened) {
-                    log::Warn("{}, progress wasn't saved", opened.error().message);
-                }
-                unlockNotice_ = opened.value_or(false);
-                return AwardScene::Create(renderer_, vfs_, award.award);
-            })
-            .transform(ToScene<AwardScene>);
+        return ParseAwardScene(*scene).and_then(
+            [&](const AwardSceneSetup& award) { return CreateWorldScene(ClaimAward(award)); });
     }
     return CreateWorldScene(*scene);
+}
+
+std::string Application::ClaimAward(const AwardSceneSetup& award) {
+    const Result<AwardUnlocks> unlocks = SaveAward(ProgressFile(), vfs_, award);
+    if (!unlocks) {
+        log::Warn("{}, progress wasn't saved", unlocks.error().message);
+    }
+    const AwardUnlocks granted = unlocks.value_or(AwardUnlocks{});
+    unlockNotice_ = granted.opensCircuit;
+    return AwardScreenName(award.award, granted.partSet);
 }
 
 Result<std::unique_ptr<Scene>> Application::CreateWorldScene(std::string_view scene) {
@@ -346,7 +345,9 @@ std::string Application::EndTimeTrial() {
         log::Warn("{}, the time trial wasn't saved", unlocked.error().message);
     }
     trial_.reset();
-    return std::string(unlocked.value_or(false) ? kRecordsUnlockScene : kMainMenuScene);
+    return unlocked.value_or(false)
+               ? CutsceneScreenName({.menu = std::string(kWinRecordsCarScreen)})
+               : std::string(kMainMenuScene);
 }
 
 Result<std::unique_ptr<RaceScene>> Application::LoadRace(const RaceSceneSetup& setup,

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -24,9 +26,20 @@ bool GrantAward(settings::Progress& progress, settings::Trophies& trophies,
 [[nodiscard]] bool OpensNewCircuit(const settings::Progress& progress,
                                    const assets::CircuitEntry& circuit, sim::CircuitAward award);
 
-/// Returns whether a new circuit opened. Writes only on a change, and never over a bad file.
-[[nodiscard]] Result<bool> SaveAward(const std::filesystem::path& file, const assets::Vfs& vfs,
-                                     const AwardSceneSetup& award);
+[[nodiscard]] std::optional<std::int32_t> NewPartSet(const settings::Progress& progress,
+                                                     const assets::CircuitEntry& circuit,
+                                                     sim::CircuitAward award);
+
+struct AwardUnlocks {
+    bool opensCircuit = false;
+    std::optional<std::int32_t> partSet;
+
+    friend bool operator==(const AwardUnlocks&, const AwardUnlocks&) = default;
+};
+
+/// Writes only on a change, and never over a bad file.
+[[nodiscard]] Result<AwardUnlocks> SaveAward(const std::filesystem::path& file,
+                                             const assets::Vfs& vfs, const AwardSceneSetup& award);
 
 /// Logs a file that doesn't parse and treats it as a fresh game.
 [[nodiscard]] settings::Progress ReadProgress(const std::filesystem::path& file);

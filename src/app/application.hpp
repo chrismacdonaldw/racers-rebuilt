@@ -12,6 +12,7 @@
 #include "app/extensions.hpp"
 #include "app/frame_loop.hpp"
 #include "app/game_boot.hpp"
+#include "app/menu/award_scene_name.hpp"
 #include "app/sound_banks.hpp"
 #include "app/time_trial/time_trial_run.hpp"
 #include "assets/track_loader.hpp"
@@ -73,6 +74,8 @@ private:
                                                                  assets::TrackLoader& loader,
                                                                  Nanoseconds started);
     [[nodiscard]] std::string EndTimeTrial();
+    /// Saves what `award` grants, and returns the cutscene screen that shows it.
+    [[nodiscard]] std::string ClaimAward(const AwardSceneSetup& award);
     [[nodiscard]] Result<std::unique_ptr<RaceScene>> LoadRace(const RaceSceneSetup& setup,
                                                               assets::TrackLoader& loader,
                                                               Nanoseconds started);

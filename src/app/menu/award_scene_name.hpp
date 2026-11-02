@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -20,5 +22,9 @@ struct AwardSceneSetup {
 
 [[nodiscard]] bool IsAwardScene(std::string_view scene);
 [[nodiscard]] Result<AwardSceneSetup> ParseAwardScene(std::string_view scene);
+
+/// The award's cutscene screen, followed by a car win screen when it unlocked `newPartSet`.
+[[nodiscard]] std::string AwardScreenName(sim::CircuitAward award,
+                                          std::optional<std::int32_t> newPartSet);
 
 }
