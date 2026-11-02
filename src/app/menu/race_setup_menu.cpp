@@ -79,13 +79,10 @@ std::vector<CourseChoice> TrackChoicesOf(const Catalogs& catalogs, std::size_t c
     return choices;
 }
 
-bool IsRacedUnmirrored(const assets::RaceCatalog& races, std::size_t circuit) {
-    const assets::CircuitRaces& slots = races.RacesOf(circuit);
-    const auto isRaced = [](const std::optional<std::size_t>& slot) { return slot.has_value(); };
-    const auto isMirrored = [&](const std::optional<std::size_t>& slot) {
-        return slot && races.Races()[*slot].isMirrored;
-    };
-    return std::ranges::any_of(slots, isRaced) && std::ranges::none_of(slots, isMirrored);
+bool HasRaces(const assets::RaceCatalog& races, std::size_t circuit) {
+    return std::ranges::any_of(races.RacesOf(circuit), [](const std::optional<std::size_t>& slot) {
+        return slot.has_value();
+    });
 }
 
 }
@@ -113,13 +110,13 @@ Result<std::vector<CourseChoice>> LoadCircuitChoices(const assets::Vfs& vfs,
     }
     std::vector<CourseChoice> choices;
     for (std::size_t circuit = 0; circuit < catalogs->races.Circuits().size(); ++circuit) {
-        if (IsRacedUnmirrored(catalogs->races, circuit)) {
+        if (HasRaces(catalogs->races, circuit)) {
             CourseChoice& choice = choices.emplace_back(CircuitChoice(*catalogs, circuit));
             choice.isLocked = circuit != 0 && !unlocked.contains(choice.circuit);
         }
     }
     if (choices.empty()) {
-        return Fail(ErrorCode::NotFound, "no circuit has only unmirrored races");
+        return Fail(ErrorCode::NotFound, "no circuit has a race");
     }
     return choices;
 }
