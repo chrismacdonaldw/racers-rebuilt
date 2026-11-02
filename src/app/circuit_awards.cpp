@@ -25,12 +25,12 @@ settings::Trophy TrophyOf(sim::CircuitAward award) {
 
 }
 
-bool GrantAward(settings::Progress& progress, const assets::CircuitEntry& circuit,
-                sim::CircuitAward award) {
+bool GrantAward(settings::Progress& progress, settings::Trophies& trophies,
+                const assets::CircuitEntry& circuit, sim::CircuitAward award) {
     if (award == sim::CircuitAward::None) {
         return false;
     }
-    bool changed = settings::AwardTrophy(progress, circuit.name, TrophyOf(award));
+    bool changed = settings::AwardTrophy(trophies, circuit.name, TrophyOf(award));
     if (award == sim::CircuitAward::Gold && circuit.partSet) {
         changed = progress.partSets.insert(*circuit.partSet).second || changed;
     }
@@ -57,16 +57,23 @@ Result<bool> SaveAward(const std::filesystem::path& file, const assets::Vfs& vfs
     if (!circuit) {
         return Fail(ErrorCode::NotFound, std::format("there's no circuit {}", award.circuit));
     }
+    const std::filesystem::path racersFile = file.parent_path() / kRacersFileName;
     Result<settings::Progress> progress = settings::LoadProgress(file);
-    if (!progress) {
-        return std::unexpected(std::move(progress.error()));
+    Result<settings::RacerStore> racers = progress.and_then(
+        [&](const settings::Progress&) { return settings::LoadRacers(racersFile); });
+    if (!racers) {
+        return std::unexpected(std::move(racers.error()));
     }
     const assets::CircuitEntry& entry = catalog->Circuits()[*circuit];
     const bool opens = OpensNewCircuit(*progress, entry, award.award);
-    if (!GrantAward(*progress, entry, award.award)) {
+    if (!GrantAward(*progress, settings::TrophiesOf(*progress, *racers), entry, award.award)) {
         return false;
     }
-    return settings::SaveProgress(*progress, file).transform([&] { return opens; });
+    Result<void> saved =
+        racers->selected ? settings::SaveRacers(*racers, racersFile) : Result<void>{};
+    return saved.and_then([&] { return settings::SaveProgress(*progress, file); }).transform([&] {
+        return opens;
+    });
 }
 
 settings::Progress ReadProgress(const std::filesystem::path& file) {

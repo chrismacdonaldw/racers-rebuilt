@@ -72,7 +72,7 @@ TEST_CASE("hand-written progress skips the values that don't parse") {
     REQUIRE(progress.has_value());
     CHECK(progress->unlockedCircuits == std::set<std::string>{"c1"});
     CHECK(progress->partSets.empty());
-    CHECK(progress->trophies == std::map<std::string, Trophy>{{"c1", Trophy::Silver}});
+    CHECK(progress->trophies == Trophies{{"c1", Trophy::Silver}});
     CHECK(progress->bestTimes.at("RACEC0R1") == TrackRecords{.race = BestTime{.ms = 90000}});
 }
 
@@ -99,13 +99,13 @@ TEST_CASE("a progress file that isn't TOML fails") {
 }
 
 TEST_CASE("a trophy only ever improves") {
-    Progress progress;
+    Trophies trophies;
 
-    CHECK(AwardTrophy(progress, "c0", Trophy::Silver));
-    CHECK_FALSE(AwardTrophy(progress, "c0", Trophy::Bronze));
-    CHECK_FALSE(AwardTrophy(progress, "c0", Trophy::Silver));
-    CHECK(AwardTrophy(progress, "c0", Trophy::Gold));
-    CHECK(progress.trophies.at("c0") == Trophy::Gold);
+    CHECK(AwardTrophy(trophies, "c0", Trophy::Silver));
+    CHECK_FALSE(AwardTrophy(trophies, "c0", Trophy::Bronze));
+    CHECK_FALSE(AwardTrophy(trophies, "c0", Trophy::Silver));
+    CHECK(AwardTrophy(trophies, "c0", Trophy::Gold));
+    CHECK(trophies.at("c0") == Trophy::Gold);
 }
 
 }

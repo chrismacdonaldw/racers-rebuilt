@@ -211,6 +211,7 @@ add_executable(racers-rebuilt-tests
     render/ui_layout_test.cpp
     settings/command_line_test.cpp
     settings/progress_test.cpp
+    settings/racers_test.cpp
     settings/registry_test.cpp
     settings/settings_file_test.cpp
     sim/ai/ai_grid_test.cpp

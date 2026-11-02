@@ -24,7 +24,7 @@ assets::CircuitEntry Circuit() {
 
 Progress Granted(CircuitAward award) {
     Progress progress;
-    GrantAward(progress, Circuit(), award);
+    GrantAward(progress, progress.trophies, Circuit(), award);
     return progress;
 }
 
@@ -50,9 +50,9 @@ TEST_CASE("only gold and silver open the next circuit, and only once") {
 TEST_CASE("an award that adds nothing leaves progress unchanged") {
     Progress progress = Granted(CircuitAward::Gold);
 
-    CHECK_FALSE(GrantAward(progress, Circuit(), CircuitAward::Silver));
-    CHECK_FALSE(GrantAward(progress, Circuit(), CircuitAward::Gold));
-    CHECK_FALSE(GrantAward(progress, Circuit(), CircuitAward::None));
+    CHECK_FALSE(GrantAward(progress, progress.trophies, Circuit(), CircuitAward::Silver));
+    CHECK_FALSE(GrantAward(progress, progress.trophies, Circuit(), CircuitAward::Gold));
+    CHECK_FALSE(GrantAward(progress, progress.trophies, Circuit(), CircuitAward::None));
     CHECK(progress == Granted(CircuitAward::Gold));
 }
 
@@ -85,6 +85,26 @@ TEST_CASE("saving an award reports a new circuit only the first time it opens") 
 
     CHECK(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::Silver}) == true);
     CHECK(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::Gold}) == false);
+}
+
+TEST_CASE("the selected racer takes the trophy and progress keeps the unlocks") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const test::TempFolder folder;
+    const std::filesystem::path file = folder.Path() / kProgressFileName;
+    const std::filesystem::path racers = folder.Path() / kRacersFileName;
+    const settings::RacerStore store{.racers = {{.name = "A"}, {.name = "B"}}, .selected = 1};
+    REQUIRE(settings::SaveRacers(store, racers).has_value());
+
+    REQUIRE(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::Silver}).has_value());
+
+    CHECK(settings::LoadProgress(file) == Progress{.unlockedCircuits = {"c1"}});
+    CHECK(settings::LoadRacers(racers) ==
+          settings::RacerStore{
+              .racers = {{.name = "A"}, {.name = "B", .trophies = {{"c0", Trophy::Silver}}}},
+              .selected = 1});
 }
 
 TEST_CASE("an award that changes nothing doesn't write the file") {

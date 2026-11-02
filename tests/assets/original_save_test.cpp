@@ -6,8 +6,10 @@
 #include <fstream>
 #include <iterator>
 #include <optional>
+#include <string>
 #include <vector>
 
+#include "assets/archive_survey.hpp"
 #include "assets/save_bytes.hpp"
 #include "game_files.hpp"
 
@@ -81,6 +83,38 @@ TEST_CASE("the first retail save holds one racer and their car") {
                               .chassis = "ddchas0",
                               .car = racer.car});
     CHECK(racer.car != CarData{});
+}
+
+TEST_CASE("a racer file reads only its records") {
+    const std::vector<std::byte> file = Played().File();
+
+    const Result<std::vector<SavedRacer>> racers = ParseRacerFile(file);
+
+    REQUIRE(racers.has_value());
+    CHECK(*racers == ParseOriginalSave(file)->racers);
+    CHECK_FALSE(ParseRacerFile(test::SaveBytes().Byte(0, 'X').File()).has_value());
+}
+
+std::vector<std::u16string> RacerNames(const Vfs& vfs, const char* path) {
+    const Result<std::vector<SavedRacer>> racers =
+        vfs.Read(path).and_then([](const FileData& data) { return ParseRacerFile(data.Bytes()); });
+    REQUIRE(racers.has_value());
+    std::vector<std::u16string> names;
+    for (const SavedRacer& racer : *racers) {
+        names.push_back(racer.name);
+    }
+    return names;
+}
+
+TEST_CASE("the retail racer files hold the default racers and the quick builds") {
+    const std::optional<Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+
+    CHECK(RacerNames(*vfs, "MENUDATA/DEFAULT.LRS") ==
+          std::vector<std::u16string>{u"JOAN OF KART", u"TURBO CHARGER", u"SCOOTER", u"ROBORACER"});
+    CHECK(RacerNames(*vfs, "MENUDATA/QBUILD.LRS").size() == 24);
 }
 
 TEST_CASE("the second retail save is empty") {

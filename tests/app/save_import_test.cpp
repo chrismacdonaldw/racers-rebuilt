@@ -8,8 +8,10 @@
 #include <string>
 #include <vector>
 
+#include "app/circuit_awards.hpp"
 #include "assets/archive_survey.hpp"
 #include "assets/save_bytes.hpp"
+#include "game_files.hpp"
 #include "temp_folder.hpp"
 
 namespace rr::app {
@@ -17,6 +19,8 @@ namespace {
 
 using settings::BestTime;
 using settings::Progress;
+using settings::Racer;
+using settings::RacerStore;
 using settings::Trophy;
 
 constexpr std::size_t kFirstScore = 0x009;
@@ -49,7 +53,7 @@ test::SaveBytes Played() {
     return save;
 }
 
-TEST_CASE("an original save adds its circuits, part sets, records, times and best trophies") {
+TEST_CASE("an original save adds its circuits, part sets, records and times") {
     Progress progress;
 
     CHECK(MergeOriginalSave(progress, Parsed(Played()), Catalog()));
@@ -58,7 +62,6 @@ TEST_CASE("an original save adds its circuits, part sets, records, times and bes
           Progress{.unlockedCircuits = {"c2"},
                    .partSets = {1},
                    .beatenRecords = {0, 3},
-                   .trophies = {{"c0", Trophy::Gold}, {"c2", Trophy::Bronze}},
                    .bestTimes = {{"RACEC0R0",
                                   {.lap = BestTime{.ms = 31250, .holder = "KING KAHUKA"},
                                    .race = BestTime{.ms = 98000, .holder = "\xC3\x88ve"}}}}});
@@ -81,17 +84,29 @@ TEST_CASE("a holder's surrogate pairs and stray surrogates survive a save and lo
                                                                      "B\xEF\xBF\xBD"});
 }
 
-TEST_CASE("an original save keeps the better of each held time and trophy") {
-    Progress progress{.trophies = {{"c2", Trophy::Gold}},
-                      .bestTimes = {{"RACEC0R0",
+TEST_CASE("an original save keeps the better of each held time") {
+    Progress progress{.bestTimes = {{"RACEC0R0",
                                      {.lap = BestTime{.ms = 30000, .holder = "ME"},
                                       .race = BestTime{.ms = 99000, .holder = "ME"}}}}};
     MergeOriginalSave(progress, Parsed(Played()), Catalog());
 
-    CHECK(progress.trophies.at("c2") == Trophy::Gold);
     CHECK(progress.bestTimes.at("RACEC0R0").lap == BestTime{.ms = 30000, .holder = "ME"});
     CHECK(progress.bestTimes.at("RACEC0R0").race == BestTime{.ms = 98000, .holder = "\xC3\x88ve"});
     CHECK_FALSE(MergeOriginalSave(progress, Parsed(Played()), Catalog()));
+}
+
+TEST_CASE("an original save adds its racers with their trophies, skipping exact copies") {
+    const assets::OriginalSave save =
+        Parsed(test::SaveBytes().Driver(0b11'00'10).Racer(u"\u00C8VE", {1, 2, 3, 4, 5}).Driver(0));
+    const Racer eve{.name = "\xC3\x88VE",
+                    .look = {.face = 1, .hat = 2, .legs = 3, .torso = 4, .expression = 5},
+                    .trophies = {{"c0", Trophy::Silver}, {"c2", Trophy::Bronze}}};
+    RacerStore store{.racers = {Racer{}}};
+
+    CHECK(MergeSavedRacers(store, save.racers, Catalog()));
+
+    CHECK(store.racers == std::vector<Racer>{Racer{}, eve});
+    CHECK_FALSE(MergeSavedRacers(store, save.racers, Catalog()));
 }
 
 void WriteFile(const std::filesystem::path& path, const std::vector<std::byte>& bytes) {
@@ -114,9 +129,48 @@ TEST_CASE("importing a retail-shaped save writes progress once") {
     CHECK(ImportOriginalSave(save, progress, *vfs) == true);
     CHECK(ImportOriginalSave(save, progress, *vfs) == false);
 
-    CHECK(settings::LoadProgress(progress) ==
-          Progress{.unlockedCircuits = {"c1"}, .trophies = {{"c0", Trophy::Gold}}});
-    CHECK_FALSE(ImportOriginalSave(folder.Path() / "missing", progress, *vfs).has_value());
+    CHECK(settings::LoadProgress(progress) == Progress{.unlockedCircuits = {"c1"}});
+    CHECK(settings::LoadRacers(folder.Path() / kRacersFileName) ==
+          RacerStore{.racers = {{.trophies = {{"c0", Trophy::Gold}}}}});
+}
+
+TEST_CASE("importing a missing save fails") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const test::TempFolder folder;
+
+    CHECK_FALSE(
+        ImportOriginalSave(folder.Path() / "missing", folder.Path() / kProgressFileName, *vfs)
+            .has_value());
+}
+
+Racer OnlyRacer(const std::filesystem::path& folder) {
+    const Result<RacerStore> racers = settings::LoadRacers(folder / kRacersFileName);
+    REQUIRE(racers.has_value());
+    REQUIRE(racers->racers.size() == 1);
+    return racers->racers.front();
+}
+
+TEST_CASE("importing the first retail save adds its racer and their car") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    const std::optional<std::filesystem::path> game = test::GameFolder();
+    if (!vfs || !game) {
+        return;
+    }
+    const test::TempFolder folder;
+    const std::filesystem::path progress = folder.Path() / kProgressFileName;
+
+    CHECK(ImportOriginalSave(*game / "Save/0/LEGORac1", progress, *vfs) == true);
+    CHECK(ImportOriginalSave(*game / "Save/0/LEGORac1", progress, *vfs) == false);
+
+    const Racer racer = OnlyRacer(folder.Path());
+    CHECK(racer == Racer{.name = "OLDGAMESDOWNL",
+                         .look = {.face = 14, .hat = 0, .legs = 5, .torso = 7},
+                         .chassis = "ddchas0",
+                         .car = racer.car});
+    CHECK(racer.car != assets::CarData{});
 }
 
 TEST_CASE("original saves are found by folder number") {

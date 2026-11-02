@@ -47,4 +47,7 @@ struct OriginalSave {
 /// Fails on a block whose checksum doesn't match, as the original does.
 [[nodiscard]] Result<OriginalSave> ParseOriginalSave(std::span<const std::byte> bytes);
 
+/// Reads only the records of a save-format file, such as `DEFAULT.LRS` and `QBUILD.LRS`.
+[[nodiscard]] Result<std::vector<SavedRacer>> ParseRacerFile(std::span<const std::byte> bytes);
+
 }

@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "app/track_model.hpp"
 #include "assets/game_path.hpp"
@@ -33,12 +34,12 @@ constexpr Transform kCameraTransform{.position = {.y = 5.0F, .z = 14.0F},
 Result<assets::CarData> FindCar(const assets::Vfs& vfs, std::string_view name) {
     const std::string wanted = assets::ToUpperAscii(name);
     for (const std::string_view file : kRacerFiles) {
-        Result<assets::OriginalSave> racers = vfs.Read(file).and_then(
-            [](const assets::FileData& data) { return assets::ParseOriginalSave(data.Bytes()); });
+        Result<std::vector<assets::SavedRacer>> racers = vfs.Read(file).and_then(
+            [](const assets::FileData& data) { return assets::ParseRacerFile(data.Bytes()); });
         if (!racers) {
             return std::unexpected(std::move(racers.error()));
         }
-        for (const assets::SavedRacer& racer : racers->racers) {
+        for (const assets::SavedRacer& racer : *racers) {
             if (assets::ToUpperAscii(Utf8FromUtf16(racer.name)) == wanted) {
                 return racer.car;
             }
