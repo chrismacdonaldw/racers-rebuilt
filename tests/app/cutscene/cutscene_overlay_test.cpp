@@ -56,6 +56,20 @@ TEST_CASE("an image without edges centres in the cutscene's rectangle at its own
     CHECK(Drawn(overlay).empty());
 }
 
+TEST_CASE("a centred image bigger than its rectangle stays on the canvas") {
+    const assets::CutsceneEffectsAsset effects{.images = {{.name = "splash1"}}};
+    CutsceneOverlay overlay{effects,
+                            {.images = {{.texture = kPicture, .widthPx = 640, .heightPx = 480}}}};
+    overlay.Start(EffectKind::Image, 0);
+
+    const std::vector<render::SpriteDraw> shown =
+        Drawn(overlay, {.x = 5.0F, .y = 35.0F, .width = 630.0F, .height = 420.0F});
+
+    REQUIRE(shown.size() == 1);
+    CHECK(shown[0].bounds.x == 0.0F);
+    CHECK(shown[0].bounds.y == 0.0F);
+}
+
 TEST_CASE("edges and sizes are fractions of the target, and a visual past its edge isn't drawn") {
     assets::CutsceneEffectsAsset effects{
         .images = {{.layout = {.left = 0.5F, .top = 0.25F, .width = 0.25F, .height = 0.5F}}}};

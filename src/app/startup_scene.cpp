@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "app/cutscene/cutscene_scene.hpp"
+#include "app/cutscene/cutscene_screen.hpp"
 #include "app/race_scene_name.hpp"
 #include "app/race_settings.hpp"
 
@@ -30,9 +31,12 @@ Result<std::optional<std::string>> StartupScene(const settings::CommandLine& com
         }
         return std::optional(std::format("{}{}", kCutsceneScenePrefix, *commandLine.cutscene));
     }
-    return commandLine.race ? std::optional(RaceNamed(*commandLine.race,
-                                                      commandLine.players.value_or(1), settings))
-                            : commandLine.track;
+    if (commandLine.race) {
+        return std::optional(
+            RaceNamed(*commandLine.race, commandLine.players.value_or(1), settings));
+    }
+    return std::optional(
+        commandLine.track.value_or(CutsceneScreenName({.menu = std::string(kLegalScreen)})));
 }
 
 }
