@@ -14,7 +14,7 @@
 #include "assets/track_loader.hpp"
 #include "sim/ai/route_driver.hpp"
 #include "sim/collision/world_list.hpp"
-#include "sim/physics/prebuilt_chassis.hpp"
+#include "sim/physics/racer_chassis.hpp"
 #include "sim/race/race_progress.hpp"
 #include "sim/race/race_track.hpp"
 

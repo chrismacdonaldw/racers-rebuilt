@@ -55,7 +55,7 @@ rr_add_module(sim
         physics/facing.cpp
         physics/ground_contact.cpp
         physics/hover_contact.cpp
-        physics/prebuilt_chassis.cpp
+        physics/racer_chassis.cpp
         physics/racer.cpp
         physics/racer_contact_state.cpp
         physics/racer_contacts.cpp
