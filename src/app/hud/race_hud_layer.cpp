@@ -4,10 +4,13 @@
 
 #include "app/hud/hud_assets.hpp"
 #include "app/hud/powerup_panel.hpp"
+#include "app/screen_fill.hpp"
 #include "core/log.hpp"
 
 namespace rr::app {
 namespace {
+
+constexpr render::Color kDialogBackdrop{.r = 0.0F, .g = 0.0F, .b = 0.0F, .a = 64.0F / 255.0F};
 
 std::vector<std::u16string> RacerNames(std::span<const std::u16string> driverNames,
                                        std::span<const std::int32_t> nameIndexes) {
@@ -65,10 +68,16 @@ void RaceHudLayer::Tick(const sim::RaceSession& session, Milliseconds elapsed) {
     }
 }
 
+void RaceHudLayer::TickPause(Milliseconds elapsed) {
+    if (hud_) {
+        hud_->TickPause(elapsed);
+    }
+}
+
 std::span<const render::SpriteDraw> RaceHudLayer::Draw(const sim::RaceSession& session,
                                                        const sim::RacerSnapshot& racer,
                                                        std::optional<render::SpriteDraw> cover,
-                                                       std::optional<std::size_t> pauseFocus) {
+                                                       std::optional<PauseView> pause) {
     sprites_.clear();
     if (hud_) {
         hud_->Layout(session.Clock(), session.Progress(), racer_, names_, circuitPoints_, texts_);
@@ -78,9 +87,10 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(const sim::RaceSession& s
     if (cover) {
         sprites_.push_back(*cover);
     }
-    if (hud_ && pauseFocus) {
+    if (hud_ && pause) {
+        sprites_.push_back(ScreenFill(kDialogBackdrop));
         texts_.clear();
-        hud_->LayoutPause(*pauseFocus, !circuitPoints_.empty(), texts_);
+        hud_->LayoutPause(*pause, !circuitPoints_.empty(), texts_);
         DrawHudText(texts_, hud_->Fonts(), sprites_);
     }
     return sprites_;

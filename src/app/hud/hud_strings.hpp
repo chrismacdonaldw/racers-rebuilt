@@ -26,6 +26,9 @@ struct HudStrings {
     std::u16string restart;
     std::u16string restartCircuit;
     std::u16string quit;
+    std::u16string sure;
+    std::u16string yes;
+    std::u16string no;
 };
 
 /// Picks the HUD and pause labels out of a language's `GAME.SRF` strings.

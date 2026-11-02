@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <numbers>
 
-#include "render/ui_layout.hpp"
+#include "app/screen_fill.hpp"
 
 namespace rr::app {
 namespace {
@@ -15,7 +15,6 @@ constexpr float kShrinkMs = 250.0F;
 constexpr float kFlashMs = 200.0F;
 constexpr float kFovBoostDegrees = 30.0F;
 constexpr float kFlashBlue = 100.0F / 255.0F;
-constexpr float kFlashSpan = 3.0F;
 
 bool IsWarpIn(const sim::EffectSnapshot& effect, sim::WarpPhase phase) {
     return effect.kind == sim::PowerupKind::Warp &&
@@ -51,12 +50,7 @@ std::optional<render::SpriteDraw> WarpFlash(float leftMs) {
     if (leftMs >= kFlashMs) {
         return std::nullopt;
     }
-    return render::SpriteDraw{
-        .bounds = {.x = -render::kUiWidth,
-                   .y = -render::kUiHeight,
-                   .width = kFlashSpan * render::kUiWidth,
-                   .height = kFlashSpan * render::kUiHeight},
-        .tint = {.r = 0.0F, .g = 0.0F, .b = kFlashBlue, .a = 1.0F - (leftMs / kFlashMs)}};
+    return ScreenFill({.r = 0.0F, .g = 0.0F, .b = kFlashBlue, .a = 1.0F - (leftMs / kFlashMs)});
 }
 
 }

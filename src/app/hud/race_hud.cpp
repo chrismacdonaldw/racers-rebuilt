@@ -1,6 +1,9 @@
 #include "app/hud/race_hud.hpp"
 
 #include <array>
+#include <cmath>
+#include <numbers>
+#include <optional>
 #include <utility>
 
 #include "app/hud/race_time_text.hpp"
@@ -21,14 +24,19 @@ constexpr float kBestLabelGap = 14.0F;
 constexpr float kGapLabelGap = 4.0F;
 constexpr float kBestRow = 7.0F / 8.0F;
 constexpr float kGapRow = 21.0F / 8.0F;
-constexpr float kPauseTitleY = 160.0F;
-constexpr float kPauseFirstRowY = 216.0F;
-constexpr float kPauseRowHeight = 32.0F;
+constexpr float kCenterY = render::kUiHeight / 2.0F;
+constexpr float kDialogRowGap = 2.0F;
+constexpr Milliseconds kDialogBlinkPeriod{500};
+constexpr Milliseconds kDialogBlinkLit{250};
+constexpr float kDialogFocusAlpha = 191.0F / 255.0F;
+constexpr float kDialogFocusSwing = 64.0F / 255.0F;
+constexpr render::Color kDialogFocusTint{.r = 1.0F, .g = 1.0F, .b = 36.0F / 255.0F};
+constexpr render::Color kDialogRowTint{
+    .r = 127.0F / 255.0F, .g = 127.0F / 255.0F, .b = 18.0F / 255.0F};
 constexpr float kCircuitTitleY = 60.0F;
 constexpr Milliseconds kBlinkPeriod{400};
 constexpr Milliseconds kBlinkLit{250};
 constexpr render::Color kCountdownTint{.r = 1.0F, .g = 1.0F, .b = 0.0F};
-constexpr render::Color kFocusTint = kCountdownTint;
 
 float TimeWidth(const HudFonts& fonts) {
     std::array<char16_t, kRaceTimeLength> zero{};
@@ -87,17 +95,52 @@ void RaceHud::AddResults(const sim::RaceClock& clock, const sim::RaceProgress& p
     LayoutResults(results_, names, labels, isLit ? std::nullopt : std::optional(racer), pool_, out);
 }
 
-void RaceHud::LayoutPause(std::size_t focus, bool restartsCircuit,
-                          std::vector<HudText>& out) const {
-    out.push_back(Centered(strings_.paused, kPauseTitleY, {}));
+void RaceHud::TickPause(Milliseconds elapsed) {
+    dialogTime_ += elapsed;
+    if (dialogTime_ >= kDialogBlinkPeriod) {
+        dialogTime_ = Milliseconds{0};
+    }
+}
+
+void RaceHud::LayoutPause(PauseView view, bool restartsCircuit, std::vector<HudText>& out) const {
+    if (view.dialog == PauseDialog::Confirm) {
+        const std::array<std::u16string_view, 2> rows{strings_.yes, strings_.no};
+        AddDialog(strings_.sure, rows, view.focus, out);
+        return;
+    }
     const std::array<std::u16string_view, 3> rows{
         strings_.resume, restartsCircuit ? strings_.restartCircuit : strings_.restart,
         strings_.quit};
+    AddDialog(strings_.paused, rows, view.focus, out);
+}
+
+void RaceHud::AddDialog(std::u16string_view title, std::span<const std::u16string_view> rows,
+                        std::size_t focus, std::vector<HudText>& out) const {
+    const float rowHeight = fonts_.Height(HudFont::Text) + kDialogRowGap;
+    const float firstRowY =
+        kCenterY - std::floor(static_cast<float>(rows.size()) * rowHeight / 2.0F);
+    out.push_back(Centered(title, firstRowY - rowHeight, {}));
+    const std::optional<render::Color> focusTint = FocusTint();
     for (std::size_t row = 0; row < rows.size(); ++row) {
-        out.push_back(Centered(rows[row],
-                               kPauseFirstRowY + (static_cast<float>(row) * kPauseRowHeight),
-                               row == focus ? kFocusTint : render::Color{}));
+        const float y = firstRowY + (static_cast<float>(row) * rowHeight);
+        if (row != focus) {
+            out.push_back(Centered(rows[row], y, kDialogRowTint));
+        } else if (focusTint) {
+            out.push_back(Centered(rows[row], y, *focusTint));
+        }
     }
+}
+
+std::optional<render::Color> RaceHud::FocusTint() const {
+    if (dialogTime_ >= kDialogBlinkLit) {
+        return std::nullopt;
+    }
+    const float turn =
+        static_cast<float>(dialogTime_.count()) / static_cast<float>(kDialogBlinkPeriod.count());
+    render::Color tint = kDialogFocusTint;
+    tint.a =
+        kDialogFocusAlpha + (kDialogFocusSwing * std::sin(2.0F * std::numbers::pi_v<float> * turn));
+    return tint;
 }
 
 void RaceHud::AddLap(const HudValues& values, std::vector<HudText>& out) {

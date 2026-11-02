@@ -3,7 +3,15 @@
 namespace rr::app {
 namespace {
 
-constexpr int kRowCount = static_cast<int>(PauseRow::Count);
+constexpr int kConfirmShift = 8;
+
+template <typename Row>
+Row Stepped(Row row, const sim::InputFrame& input) {
+    constexpr int kCount = static_cast<int>(Row::Count);
+    const int step = (input.WasPressed(sim::MenuAction::Down) ? 1 : 0) -
+                     (input.WasPressed(sim::MenuAction::Up) ? 1 : 0);
+    return static_cast<Row>((static_cast<int>(row) + step + kCount) % kCount);
+}
 
 }
 
@@ -13,33 +21,49 @@ std::optional<PauseRow> PauseMenu::Tick(const sim::InputFrame& input) {
         focus_ = PauseRow::Resume;
         return std::nullopt;
     }
+    if (confirm_) {
+        return TickConfirm(input);
+    }
     if (input.WasPressed(sim::Action::Pause) ||
         (input.WasPressed(sim::MenuAction::Back) && !input.IsHeld(sim::Action::Pause))) {
-        isOpen_ = false;
+        Close();
         return std::nullopt;
     }
-    if (input.WasPressed(sim::MenuAction::Up)) {
-        MoveFocus(-1);
-    }
-    if (input.WasPressed(sim::MenuAction::Down)) {
-        MoveFocus(1);
-    }
+    focus_ = Stepped(focus_, input);
     if (!input.WasPressed(sim::MenuAction::Confirm)) {
         return std::nullopt;
     }
     if (focus_ == PauseRow::Resume) {
-        isOpen_ = false;
+        Close();
+    } else {
+        confirm_ = ConfirmRow::No;
+    }
+    return std::nullopt;
+}
+
+std::optional<PauseRow> PauseMenu::TickConfirm(const sim::InputFrame& input) {
+    confirm_ = Stepped(*confirm_, input);
+    if (!input.WasPressed(sim::MenuAction::Confirm)) {
+        return std::nullopt;
+    }
+    if (confirm_ == ConfirmRow::No) {
+        Close();
         return std::nullopt;
     }
     return focus_;
 }
 
-std::uint64_t PauseMenu::StateHash() const {
-    return isOpen_ ? static_cast<std::uint64_t>(focus_) + 1 : 0;
+void PauseMenu::Close() {
+    isOpen_ = false;
+    confirm_.reset();
 }
 
-void PauseMenu::MoveFocus(int step) {
-    focus_ = static_cast<PauseRow>((static_cast<int>(focus_) + step + kRowCount) % kRowCount);
+std::uint64_t PauseMenu::StateHash() const {
+    if (!isOpen_) {
+        return 0;
+    }
+    const std::uint64_t confirm = confirm_ ? static_cast<std::uint64_t>(*confirm_) + 1 : 0;
+    return (static_cast<std::uint64_t>(focus_) + 1) | (confirm << kConfirmShift);
 }
 
 }

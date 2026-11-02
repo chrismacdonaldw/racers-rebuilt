@@ -48,6 +48,9 @@ TEST_CASE("pause labels come from their game string slots") {
     CHECK(strings->restart == game[0x0F]);
     CHECK(strings->restartCircuit == game[0x10]);
     CHECK(strings->quit == game[0x11]);
+    CHECK(strings->sure == game[0x2C]);
+    CHECK(strings->yes == game[0x12]);
+    CHECK(strings->no == game[0x13]);
 }
 
 TEST_CASE("a game string table without every HUD label fails") {

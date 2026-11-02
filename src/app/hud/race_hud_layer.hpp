@@ -34,12 +34,13 @@ public:
     void SetCircuitPoints(std::span<const std::int32_t> before);
 
     void Tick(const sim::RaceSession& session, Milliseconds elapsed);
+    void TickPause(Milliseconds elapsed);
 
-    /// Valid until the next call. `cover` sits between the HUD and the `pauseFocus` pause menu.
+    /// Valid until the next call. `cover` sits between the HUD and the `pause` dialog.
     [[nodiscard]] std::span<const render::SpriteDraw> Draw(const sim::RaceSession& session,
                                                            const sim::RacerSnapshot& racer,
                                                            std::optional<render::SpriteDraw> cover,
-                                                           std::optional<std::size_t> pauseFocus);
+                                                           std::optional<PauseView> pause);
 
 private:
     render::Renderer* renderer_;
