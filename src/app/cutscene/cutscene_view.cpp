@@ -5,6 +5,7 @@
 #include <optional>
 #include <utility>
 
+#include "app/cutscene/award_driver.hpp"
 #include "app/cutscene/cutscene_bindings.hpp"
 #include "app/cutscene/cutscene_particles.hpp"
 #include "app/cutscene/cutscene_racer.hpp"
@@ -12,7 +13,6 @@
 #include "app/cutscene/cutscene_sounds.hpp"
 #include "app/cutscene/cutscene_tints.hpp"
 #include "assets/game_path.hpp"
-#include "assets/racer_catalog.hpp"
 #include "core/log.hpp"
 #include "render/ui_layout.hpp"
 
@@ -75,18 +75,18 @@ Result<std::unique_ptr<assets::CutsceneEffectsAsset>> ReadEffects(const assets::
     return std::make_unique<assets::CutsceneEffectsAsset>(std::move(*effects));
 }
 
-void DropDriverLegVariants(const assets::Vfs& vfs, const CutscenePlay& play,
-                           const assets::CutsceneFrame& frame, CutsceneBindings& bindings) {
-    if (play.driver.empty()) {
-        return;
+std::optional<AwardDriver> LoadDriver(const assets::Vfs& vfs, assets::TrackLoader& loader,
+                                      const CutscenePlay& play) {
+    if (play.driver.empty() && !play.playerRacer) {
+        return std::nullopt;
     }
-    const Result<assets::RacerFiles> racer = assets::RacerCatalog::Load(vfs).and_then(
-        [&](const assets::RacerCatalog& catalog) { return catalog.Find(play.driver); });
-    if (!racer) {
-        log::Warn("{}, {} keeps its stand-in racer", racer.error().message, NameOf(play));
-        return;
+    Result<AwardDriver> driver = AwardLook(vfs, play).and_then(
+        [&](const assets::DriverLook& look) { return LoadAwardDriver(vfs, loader, look); });
+    if (!driver) {
+        log::Warn("{}, {} keeps its stand-in racer", driver.error().message, NameOf(play));
+        return std::nullopt;
     }
-    DropLegVariants(frame, bindings.models, racer->driver.legsIndex);
+    return std::move(*driver);
 }
 
 struct FrameSources {
@@ -96,14 +96,15 @@ struct FrameSources {
     const TrackModel* model = nullptr;
     const WorldAnimations* animations = nullptr;
     sim::TrackEntitySources* entities = nullptr;
+    const std::optional<assets::DriverLook>* driver = nullptr;
 };
 
 Result<CutscenePlayer> PlayFrame(const FrameSources& from, const assets::CutsceneFrame& frame) {
     const std::vector<const assets::WorldAsset*> worlds = WorldsOf(*from.assets);
     Result<CutsceneBindings> bindings =
         BindCutscene(frame, worlds, from.model->entityDraws, *from.entities);
-    if (bindings) {
-        DropDriverLegVariants(*from.vfs, *from.play, frame, *bindings);
+    if (bindings && *from.driver) {
+        DropLegVariants(frame, bindings->models, (*from.driver)->legs);
     }
     Result<CutsceneSprites> sprites = bindings.and_then([&](const CutsceneBindings& bound) {
         return CutsceneSprites::Create(bound.models, from.model->materials);
@@ -197,14 +198,26 @@ struct LoadedWorlds {
 
 Result<LoadedWorlds> LoadWorlds(render::Renderer& renderer, const assets::Vfs& vfs,
                                 assets::TrackLoader& loader, std::string_view folder,
-                                std::span<const std::string> names) {
-    Result<assets::TrackAssets> assets = loader.LoadWorlds(folder, names);
+                                const assets::CutsceneTimelineAsset& timeline,
+                                const std::optional<AwardDriver>& driver) {
+    Result<assets::TrackAssets> assets = loader.LoadWorlds(folder, timeline.worlds);
+    if (assets && driver) {
+        DressAwardDriver(*driver, *assets);
+    }
     Result<TrackModel> model = assets.and_then(
         [&](const assets::TrackAssets& loaded) { return UploadTrack(renderer, loaded); });
-    Result<WorldAnimations> animations = model.and_then(
-        [&](const TrackModel&) { return LoadWorldAnimations(vfs, folder, WorldsOf(*assets)); });
-    Result<sim::TrackEntitySources> sources = animations.and_then(
-        [&](const WorldAnimations&) { return sim::LoadWorldEntities(vfs, folder, names); });
+    Result<WorldAnimations> animations = model.and_then([&](const TrackModel&) {
+        return LoadWorldAnimations(vfs, folder, WorldsOf(*assets))
+            .transform([&](WorldAnimations loaded) {
+                if (driver) {
+                    ShowDriverFaces(timeline.frames, driver->face, loaded);
+                }
+                return loaded;
+            });
+    });
+    Result<sim::TrackEntitySources> sources = animations.and_then([&](const WorldAnimations&) {
+        return sim::LoadWorldEntities(vfs, folder, timeline.worlds);
+    });
     if (!sources) {
         return std::unexpected(std::move(sources.error()));
     }
@@ -227,15 +240,19 @@ Result<std::unique_ptr<CutsceneView>> CutsceneView::Create(const RaceOutputs& ou
         return std::unexpected(std::move(timeline.error()));
     }
     const assets::CutsceneFrame& frame = (*timeline)->frames.front();
+    const std::optional<AwardDriver> driver = LoadDriver(vfs, loader, play);
+    const std::optional<assets::DriverLook> look =
+        driver ? std::optional(driver->look) : std::nullopt;
     Result<LoadedWorlds> loaded =
-        LoadWorlds(*outputs.renderer, vfs, loader, play.folder, (*timeline)->worlds);
+        LoadWorlds(*outputs.renderer, vfs, loader, play.folder, **timeline, driver);
     Result<CutscenePlayer> player = loaded.and_then([&](const LoadedWorlds& world) {
         return PlayFrame({.vfs = &vfs,
                           .play = &play,
                           .assets = &world.assets,
                           .model = world.model.get(),
                           .animations = &world.animations,
-                          .entities = world.sources.get()},
+                          .entities = world.sources.get(),
+                          .driver = &look},
                          frame);
     });
     const std::vector<const assets::WorldAsset*> worlds =
@@ -257,6 +274,7 @@ Result<std::unique_ptr<CutsceneView>> CutsceneView::Create(const RaceOutputs& ou
     return std::unique_ptr<CutsceneView>(
         new CutsceneView({.vfs = &vfs,
                           .play = std::move(play),
+                          .driver = look,
                           .timeline = std::move(*timeline),
                           .assets = std::move(loaded->assets),
                           .model = std::move(loaded->model),
@@ -288,7 +306,8 @@ Result<bool> CutsceneView::SelectFrame(std::string_view name) {
                                                .assets = &parts_.assets,
                                                .model = parts_.model.get(),
                                                .animations = &parts_.animations,
-                                               .entities = parts_.sources.get()},
+                                               .entities = parts_.sources.get(),
+                                               .driver = &parts_.driver},
                                               *found);
     if (!player) {
         return Fail(player.error().code, std::format("{} frame {}: {}", NameOf(parts_.play),

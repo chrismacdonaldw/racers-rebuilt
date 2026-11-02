@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "app/cutscene/cutscene_bindings.hpp"
+#include "app/cutscene/cutscene_materials.hpp"
 #include "assets/cutscene_effects.hpp"
 #include "assets/cutscene_timeline.hpp"
 
@@ -22,7 +23,8 @@ void DropLegVariants(const assets::CutsceneFrame& frame, std::span<ModelBinding>
 /// Drops the links that start a text named in `names`, so those texts never show.
 void HideTexts(assets::CutsceneEffectsAsset& effects, std::span<const std::string> names);
 
-/// 1 to 5 for `angry`, `blink`, `happy`, `sad` and `suprz`, 0 for `dflt` and anything else.
-[[nodiscard]] std::int32_t FaceExpression(std::string_view material);
+/// Renames the keys of tracks any frame binds to `guy1` once, to those expressions of `face`.
+void ShowDriverFaces(std::span<const assets::CutsceneFrame> frames, std::string_view face,
+                     WorldAnimations& animations);
 
 }

@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -17,6 +18,7 @@
 #include "app/ui_text/ui_font.hpp"
 #include "assets/cutscene_effects.hpp"
 #include "assets/cutscene_timeline.hpp"
+#include "assets/driver_look.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
 #include "core/duration.hpp"
@@ -62,6 +64,7 @@ private:
     struct Parts {
         const assets::Vfs* vfs = nullptr;
         CutscenePlay play;
+        std::optional<assets::DriverLook> driver;
         std::unique_ptr<assets::CutsceneTimelineAsset> timeline;
         std::size_t frame = 0;
         assets::TrackAssets assets;

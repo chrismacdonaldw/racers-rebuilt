@@ -4,6 +4,7 @@ add_executable(racers-rebuilt-tests
     app/ambient_sounds_test.cpp
     app/car_sounds_test.cpp
     app/checkpoint_gates_test.cpp
+    app/cutscene/award_driver_test.cpp
     app/cutscene/cutscene_bindings_test.cpp
     app/cutscene/cutscene_links_test.cpp
     app/cutscene/cutscene_materials_test.cpp

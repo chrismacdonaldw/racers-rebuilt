@@ -1,16 +1,20 @@
 #include "app/racer/racer_models.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <format>
+#include <memory>
 #include <span>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include "assets/game_path.hpp"
 #include "assets/geometry_database.hpp"
 #include "assets/part_library.hpp"
+#include "assets/texture_database.hpp"
 #include "sim/car_build/built_car.hpp"
 #include "sim/car_build/car_mesh.hpp"
 #include "sim/physics/racer_chassis.hpp"
@@ -20,6 +24,7 @@ namespace {
 
 constexpr std::string_view kPartFolder = "MENUDATA/PARTDB";
 constexpr std::uint8_t kPartGrey = 200;
+constexpr std::int32_t kExpressionCount = 6;
 
 struct MinifigFiles {
     std::string_view folder;
@@ -34,6 +39,24 @@ Result<T> ReadParsed(const assets::Vfs& vfs, const std::string& path,
                      Result<T> (*parse)(std::span<const std::byte>)) {
     return vfs.Read(path).and_then(
         [parse](const assets::FileData& data) { return parse(data.Bytes()); });
+}
+
+Result<assets::TextureDefinition> DefaultFaceTexture(const assets::Vfs& vfs,
+                                                     std::string_view name) {
+    return ReadParsed(vfs, std::format("{}/BODYPART.TDB", kPartFolder),
+                      assets::ParseTextureDatabase)
+        .and_then([&](const std::vector<assets::TextureDefinition>& definitions)
+                      -> Result<assets::TextureDefinition> {
+            const std::string upper = assets::ToUpperAscii(name);
+            const auto found =
+                std::ranges::find_if(definitions, [&](const assets::TextureDefinition& definition) {
+                    return assets::ToUpperAscii(definition.name) == upper;
+                });
+            if (found == definitions.end()) {
+                return Fail(ErrorCode::NotFound, std::format("BODYPART.TDB has no {}", name));
+            }
+            return *found;
+        });
 }
 
 }
@@ -76,6 +99,42 @@ Result<assets::GeometryAsset> BuildMinifig(const assets::Vfs& vfs,
     return body.and_then([&](const assets::GeometryAsset& geometry) {
         return assets::BuildDriverGeometry(parts, *heads, geometry, look, detail);
     });
+}
+
+Result<assets::TrackAssets> LoadExpressionFaces(
+    const assets::Vfs& vfs, const assets::NameMap<assets::MaterialAsset>& materials,
+    std::string_view face) {
+    const std::string defaultFace = assets::FaceMaterial(face, 0);
+    const auto material = materials.find(assets::ToUpperAscii(defaultFace));
+    if (material == materials.end()) {
+        return Fail(ErrorCode::NotFound, std::format("there's no {} material", defaultFace));
+    }
+    const Result<assets::TextureDefinition> texture =
+        DefaultFaceTexture(vfs, material->second.texture);
+    if (!texture) {
+        return std::unexpected(texture.error());
+    }
+    assets::TrackAssets faces;
+    for (std::int32_t expression = 1; expression < kExpressionCount; ++expression) {
+        assets::TextureDefinition definition = *texture;
+        definition.name = assets::FaceMaterial(face, expression);
+        Result<assets::ImageAsset> image =
+            vfs.Read(std::format("{}/{}", kPartFolder, assets::ToUpperAscii(definition.FileName())))
+                .and_then([&](const assets::FileData& data) {
+                    return assets::DecodeTexture(data.Bytes(), definition);
+                });
+        if (!image) {
+            return std::unexpected(std::move(image.error()));
+        }
+        assets::MaterialAsset shown = material->second;
+        shown.name = definition.name;
+        shown.texture = definition.name;
+        const std::string key = assets::ToUpperAscii(definition.name);
+        faces.materials.insert_or_assign(key, std::move(shown));
+        faces.textures.insert_or_assign(
+            key, std::make_shared<const assets::ImageAsset>(std::move(*image)));
+    }
+    return faces;
 }
 
 void GreyMinifigMaterials(assets::NameMap<assets::MaterialAsset>& materials,

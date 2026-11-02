@@ -10,6 +10,7 @@
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 #include "render/render_view.hpp"
+#include "settings/racers.hpp"
 
 namespace rr::app {
 
@@ -69,6 +70,7 @@ struct CutsceneScreenPlacement {
 [[nodiscard]] bool IsSkipPress(const SDL_Event& event);
 
 /// `scene` is a screen name such as `screen:legal`, played once in its `MIB` rectangle.
-[[nodiscard]] Result<CutscenePlay> ScreenPlay(const assets::Vfs& vfs, std::string_view scene);
+[[nodiscard]] Result<CutscenePlay> ScreenPlay(const assets::Vfs& vfs, std::string_view scene,
+                                              const std::optional<settings::Racer>& playerRacer);
 
 }

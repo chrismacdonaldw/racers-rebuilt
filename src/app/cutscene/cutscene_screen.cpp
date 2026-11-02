@@ -195,7 +195,8 @@ bool IsSkipPress(const SDL_Event& event) {
     }
 }
 
-Result<CutscenePlay> ScreenPlay(const assets::Vfs& vfs, std::string_view scene) {
+Result<CutscenePlay> ScreenPlay(const assets::Vfs& vfs, std::string_view scene,
+                                const std::optional<settings::Racer>& playerRacer) {
     Result<CutsceneScreenSetup> setup = ParseCutsceneScreen(scene);
     if (!setup) {
         return std::unexpected(std::move(setup.error()));
@@ -212,6 +213,9 @@ Result<CutscenePlay> ScreenPlay(const assets::Vfs& vfs, std::string_view scene) 
                       .repeat = screen.loopsMusic ? audio::Repeat::Loop : audio::Repeat::Once},
             .next = setup->next.empty() ? std::string(screen.next) : std::move(setup->next),
             .driver = screen.showsRacer ? setup->driver : std::string(),
+            .playerRacer = screen.showsRacer && !screen.namesChampion
+                               ? playerRacer
+                               : std::optional<settings::Racer>(),
             .hiddenTexts = screen.namesChampion ? OtherChampionNames(setup->driver)
                                                 : std::vector<std::string>{}};
     });

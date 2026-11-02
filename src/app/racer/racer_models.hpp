@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 #include "assets/car_data.hpp"
 #include "assets/driver_look.hpp"
 #include "assets/driver_model.hpp"
@@ -31,6 +33,11 @@ struct BuiltCarModel {
                                                          const assets::DriverPartCatalog& parts,
                                                          const assets::DriverLook& look,
                                                          assets::DriverDetail detail);
+
+/// The face's five other expressions, copied from its default material with `PARTDB` images.
+[[nodiscard]] Result<assets::TrackAssets> LoadExpressionFaces(
+    const assets::Vfs& vfs, const assets::NameMap<assets::MaterialAsset>& materials,
+    std::string_view face);
 
 /// Sets ambient and diffuse to 200 grey on the look's default face, torso and legs materials.
 void GreyMinifigMaterials(assets::NameMap<assets::MaterialAsset>& materials,

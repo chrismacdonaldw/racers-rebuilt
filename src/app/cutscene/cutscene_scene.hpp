@@ -15,6 +15,7 @@
 #include "core/duration.hpp"
 #include "core/result.hpp"
 #include "render/renderer.hpp"
+#include "settings/racers.hpp"
 
 namespace rr::app {
 
@@ -29,11 +30,10 @@ inline constexpr std::string_view kCutsceneScenePrefix = "cutscene:";
 /// Plays one cutscene's first frame, then shows `play.next` unless it loops.
 class CutsceneScene final : public Scene {
 public:
-    [[nodiscard]] static Result<std::unique_ptr<CutsceneScene>> Create(const RaceOutputs& outputs,
-                                                                       const assets::Vfs& vfs,
-                                                                       assets::TrackLoader& loader,
-                                                                       std::string_view language,
-                                                                       std::string_view scene);
+    [[nodiscard]] static Result<std::unique_ptr<CutsceneScene>> Create(
+        const RaceOutputs& outputs, const assets::Vfs& vfs, assets::TrackLoader& loader,
+        std::string_view language, std::string_view scene,
+        const std::optional<settings::Racer>& playerRacer);
 
     [[nodiscard]] SceneMusic Music() const override { return view_->Play().music; }
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;

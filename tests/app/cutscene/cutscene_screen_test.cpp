@@ -10,6 +10,7 @@
 
 #include "app/menu/menu_scenes.hpp"
 #include "assets/archive_survey.hpp"
+#include "settings/racers.hpp"
 
 namespace rr::app {
 namespace {
@@ -97,7 +98,7 @@ TEST_CASE("retail award and car win screens place their cutscenes full screen") 
 }
 
 std::string Play(const assets::Vfs& vfs, std::string_view scene) {
-    const Result<CutscenePlay> play = ScreenPlay(vfs, scene);
+    const Result<CutscenePlay> play = ScreenPlay(vfs, scene, std::nullopt);
     REQUIRE_MESSAGE(play.has_value(), play.error().message);
     return std::format("{} looping={} skippable={} music='{}' next={}", play->file, play->isLooping,
                        play->isSkippable, play->music.track, play->next);
@@ -128,23 +129,25 @@ TEST_CASE("award screens can't be skipped, and the Rocket Racer win leads to the
 }
 
 std::string Racer(const assets::Vfs& vfs, std::string_view scene) {
-    const Result<CutscenePlay> play = ScreenPlay(vfs, scene);
+    const Result<CutscenePlay> play = ScreenPlay(vfs, scene, settings::Racer{.name = "MINE"});
     REQUIRE(play.has_value());
-    std::string racer = std::format("driver='{}' hides", play->driver);
+    std::string racer = std::format("driver='{}' player='{}' hides", play->driver,
+                                    play->playerRacer ? play->playerRacer->name : "");
     for (const std::string& text : play->hiddenTexts) {
         racer += std::format(" {}", text);
     }
     return racer;
 }
 
-TEST_CASE("only racer screens take a driver, and wincar shows only its champion's name") {
+TEST_CASE("only racer screens take a driver, and wincar shows its champion, not the player") {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
         return;
     }
     CHECK(Racer(*vfs, "screen:wincar:driver=KK") ==
-          "driver='KK' hides textCR textBB textJT textGM textBVB");
-    CHECK(Racer(*vfs, "screen:winvvcar:driver=KK") == "driver='' hides");
+          "driver='KK' player='' hides textCR textBB textJT textGM textBVB");
+    CHECK(Racer(*vfs, "screen:winvvcar:driver=KK") == "driver='' player='' hides");
+    CHECK(Racer(*vfs, "screen:c_award2:driver=KK") == "driver='KK' player='MINE' hides");
 }
 
 }
