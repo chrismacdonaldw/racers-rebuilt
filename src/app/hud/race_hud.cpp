@@ -23,6 +23,7 @@ constexpr float kLapLabelGap = 6.0F;
 constexpr float kBestLabelGap = 14.0F;
 constexpr float kGapLabelGap = 4.0F;
 constexpr float kBestRow = 7.0F / 8.0F;
+constexpr float kTotalRow = 14.0F / 8.0F;
 constexpr float kGapRow = 21.0F / 8.0F;
 constexpr float kCenterY = render::kUiHeight / 2.0F;
 constexpr float kDialogRowGap = 2.0F;
@@ -52,6 +53,7 @@ RaceHud::RaceHud(HudStrings strings, HudFonts fonts, HudPlacement placement)
       lapTimeX_(render::kUiWidth - (kLapTimeWidths * TimeWidth(fonts) * placement.textScale)),
       topY_(placement.top + kTopY),
       bestLapY_(topY_ + (kBestRow * fonts.Height(HudFont::Text) * placement.textScale)),
+      totalY_(topY_ + (kTotalRow * fonts.Height(HudFont::Text) * placement.textScale)),
       gapY_(topY_ + (kGapRow * fonts.Height(HudFont::Text) * placement.textScale)) {}
 
 void RaceHud::Tick(const sim::RaceClock& clock, const sim::RaceProgress& progress,
@@ -63,10 +65,14 @@ void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progr
                      const HudRacer& racer, std::vector<HudText>& out) {
     out.clear();
     pool_.Clear();
-    const HudValues values = ReadHudValues(clock, progress, racer.slot);
+    const HudValues values = ReadHudValues(clock, progress, racer.slot, racer.trial);
     if (!racer.isGhost) {
         AddLap(values, out);
-        AddPlace(values.place, out);
+        if (values.total) {
+            AddLabelledTime(strings_.total, kBestLabelGap, *values.total, totalY_, out);
+        } else {
+            AddPlace(values.place, out);
+        }
     }
     if (values.isWrongWay && !racer.isGhost) {
         const float wrongWayY =
@@ -110,26 +116,45 @@ void RaceHud::TickPause(Milliseconds elapsed) {
 }
 
 void RaceHud::LayoutPause(PauseView view, bool restartsCircuit, std::vector<HudText>& out) const {
-    if (view.dialog == PauseDialog::Confirm) {
-        const std::array<std::u16string_view, 2> rows{strings_.yes, strings_.no};
-        AddDialog(strings_.sure, rows, view.focus, out);
-        return;
-    }
+    const std::array<std::u16string_view, 2> answers{strings_.yes, strings_.no};
     const std::array<std::u16string_view, 3> rows{
         strings_.resume, restartsCircuit ? strings_.restartCircuit : strings_.restart,
         strings_.quit};
-    AddDialog(strings_.paused, rows, view.focus, out);
+    switch (view.dialog) {
+        case PauseDialog::Menu:
+            AddDialog(std::array<std::u16string_view, 1>{strings_.paused}, rows, view.focus, out);
+            return;
+        case PauseDialog::Confirm:
+            AddDialog(std::array<std::u16string_view, 1>{strings_.sure}, answers, view.focus, out);
+            return;
+        case PauseDialog::RecordStands:
+            AddDialog(std::array<std::u16string_view, 2>{strings_.recordStands[0],
+                                                         strings_.recordStands[1]},
+                      answers, view.focus, out);
+            return;
+        case PauseDialog::RecordBeaten:
+            AddDialog(std::array<std::u16string_view, 2>{strings_.recordBeaten[0],
+                                                         strings_.recordBeaten[1]},
+                      answers, view.focus, out);
+            return;
+    }
 }
 
-void RaceHud::AddDialog(std::u16string_view title, std::span<const std::u16string_view> rows,
-                        std::size_t focus, std::vector<HudText>& out) const {
+void RaceHud::AddDialog(std::span<const std::u16string_view> titles,
+                        std::span<const std::u16string_view> rows, std::size_t focus,
+                        std::vector<HudText>& out) const {
     const float rowHeight = fonts_.Height(HudFont::Text) + kDialogRowGap;
     const float firstRowY =
         kCenterY - std::floor(static_cast<float>(rows.size()) * rowHeight / 2.0F);
-    out.push_back(Centered(title, firstRowY - rowHeight, {}));
+    const float lead = titles.size() > 1 ? std::floor(rowHeight / 2.0F) : 0.0F;
+    float titleY = firstRowY - rowHeight - lead;
+    for (const std::u16string_view title : titles) {
+        out.push_back(Centered(title, titleY, {}));
+        titleY += rowHeight;
+    }
     const std::optional<render::Color> focusTint = FocusTint();
     for (std::size_t row = 0; row < rows.size(); ++row) {
-        const float y = firstRowY + (static_cast<float>(row) * rowHeight);
+        const float y = titleY + (static_cast<float>(row) * rowHeight);
         if (row != focus) {
             out.push_back(Centered(rows[row], y, kDialogRowTint));
         } else if (focusTint) {

@@ -8,6 +8,7 @@
 
 #include "app/loop_sidecar.hpp"
 #include "audio/decoded_file.hpp"
+#include "audio/music_catalog.hpp"
 #include "core/log.hpp"
 #include "core/utf8_path.hpp"
 
@@ -53,6 +54,21 @@ Result<audio::MusicTrack> MusicFolderSource::Open(std::string_view id) const {
         return audio::MusicTrack{.stream = std::move(*stream), .loop = loop};
     }
     return Fail(ErrorCode::NotFound, std::format("no replacement for {}", id));
+}
+
+audio::MusicPlayer CreateMusicPlayer(audio::Mixer& mixer, const assets::Vfs& vfs,
+                                     const std::filesystem::path& musicFolder,
+                                     std::span<const mods::Mod* const> enabledMods) {
+    Result<audio::MusicCatalog> catalog = audio::MusicCatalog::Scan(vfs);
+    log::Info("{} music tracks, replacements read from {}", catalog ? catalog->Ids().size() : 0,
+              Utf8FromPath(musicFolder));
+    std::vector<std::unique_ptr<audio::MusicSource>> sources;
+    sources.push_back(std::make_unique<MusicFolderSource>(musicFolder));
+    for (const mods::Mod* mod : enabledMods) {
+        sources.push_back(std::make_unique<MusicFolderSource>(mod->MusicFolder()));
+    }
+    sources.push_back(std::make_unique<audio::OriginalTrackSource>(vfs));
+    return {mixer, std::move(sources)};
 }
 
 }

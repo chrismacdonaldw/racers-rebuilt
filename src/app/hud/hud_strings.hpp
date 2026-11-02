@@ -15,6 +15,7 @@ struct HudStrings {
     std::u16string gap;
     std::u16string wrongWay;
     std::u16string best;
+    std::u16string total;
     std::u16string lap;
     std::u16string finish;
     std::u16string go;
@@ -29,6 +30,8 @@ struct HudStrings {
     std::u16string sure;
     std::u16string yes;
     std::u16string no;
+    std::array<std::u16string, 2> recordStands;
+    std::array<std::u16string, 2> recordBeaten;
 };
 
 /// Picks the HUD and pause labels out of a language's `GAME.SRF` strings.

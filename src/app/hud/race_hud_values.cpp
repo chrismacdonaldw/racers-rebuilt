@@ -1,6 +1,7 @@
 #include "app/hud/race_hud_values.hpp"
 
 #include <algorithm>
+#include <numeric>
 #include <span>
 
 namespace rr::app {
@@ -80,12 +81,21 @@ std::optional<Milliseconds> ReadBestLap(const sim::RacerProgress& progress, int 
     return std::ranges::min(completed);
 }
 
-std::optional<Milliseconds> ReadLapGap(const sim::RacerProgress& progress, int lap, int lapCount) {
-    if (lap == 0 || lap >= lapCount || progress.lapGap <= Milliseconds{0} ||
+std::optional<Milliseconds> ReadLapGap(const sim::RacerProgress& progress, int lap, int lapCount,
+                                       Milliseconds gap) {
+    if (lap == 0 || lap >= lapCount || gap <= Milliseconds{0} ||
         progress.lapTimes[static_cast<std::size_t>(lap)] >= kGapTime) {
         return std::nullopt;
     }
-    return progress.lapGap;
+    return gap;
+}
+
+std::optional<Milliseconds> ReadTotal(const sim::RacerProgress& progress,
+                                      const sim::TimeTrialGhosts* trial) {
+    if (trial == nullptr) {
+        return std::nullopt;
+    }
+    return std::accumulate(progress.lapTimes.begin(), progress.lapTimes.end(), Milliseconds{0});
 }
 
 int ReadPlace(const sim::RaceProgress& progress, std::size_t racer) {
@@ -99,15 +109,20 @@ int ReadPlace(const sim::RaceProgress& progress, std::size_t racer) {
 }
 
 HudValues ReadHudValues(const sim::RaceClock& clock, const sim::RaceProgress& progress,
-                        std::size_t racer) {
+                        std::size_t racer, const sim::TimeTrialGhosts* trial) {
     const sim::RacerProgress& own = progress.OfRacer(racer);
     const int lapCount = progress.LapCount();
     const int lap = std::min(own.laps.CompletedLaps(), lapCount);
+    const Milliseconds gap =
+        trial != nullptr
+            ? trial->TimeBehind(std::span(own.lapTimes).first(static_cast<std::size_t>(lap)))
+            : own.lapGap;
     return {.banner = ReadBanner(clock, own.finishPlace.has_value()),
             .lap = std::min(lap + 1, lapCount),
             .lapTime = ReadLapTime(clock, own, lap, lapCount),
             .bestLap = ReadBestLap(own, lap),
-            .lapGap = ReadLapGap(own, lap, lapCount),
+            .lapGap = ReadLapGap(own, lap, lapCount, gap),
+            .total = ReadTotal(own, trial),
             .place = ReadPlace(progress, racer),
             .isWrongWay = own.laps.IsWrongWay()};
 }

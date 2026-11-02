@@ -23,6 +23,8 @@ struct RaceSceneSetup {
     std::size_t secondRacer = 1;
     int lapCount = 3;
     std::size_t opponents = 5;
+    bool isTimeTrial = false;
+    std::size_t firstSlot = 0;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
 };
@@ -35,6 +37,11 @@ struct RaceSceneSetup {
 
 [[nodiscard]] bool IsRaceScene(std::string_view scene);
 [[nodiscard]] Result<RaceSceneSetup> ParseRaceScene(std::string_view scene);
+
+[[nodiscard]] bool IsTrialScene(std::string_view scene);
+
+/// A time trial races the player alone over 3 laps.
+[[nodiscard]] Result<RaceSceneSetup> ParseTrialScene(std::string_view scene);
 
 /// `race.track` stays empty: each race takes its track from `race.circuit`.
 struct CircuitSceneSetup {

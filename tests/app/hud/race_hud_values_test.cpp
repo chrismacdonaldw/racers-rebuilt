@@ -5,6 +5,7 @@
 #include <array>
 #include <optional>
 
+#include "../../sim/time_trial/ghost_run_rig.hpp"
 #include "ring_race.hpp"
 
 namespace rr::app {
@@ -153,6 +154,21 @@ TEST_CASE("the gap to the leader shows for 2 s after a lap") {
 
     CHECK(shown.lapGap == Milliseconds{1000});
     CHECK_FALSE(ReadHudValues(race.clock, race.progress, 0).lapGap.has_value());
+}
+
+TEST_CASE("a time trial shows its total and the time lost to the record ghost") {
+    RingRace race(1, 3);
+    race.StartRacing();
+    const sim::TimeTrialGhosts ghosts(test::StraightGhost(4, test::Laps(400, 400, 400)));
+    race.DriveLap(0);
+    race.DriveLap(0);
+    race.Wait(0, Milliseconds{100});
+
+    const HudValues values = ReadHudValues(race.clock, race.progress, 0, &ghosts);
+
+    CHECK(values.total == Milliseconds{1100});
+    CHECK(values.lapGap == Milliseconds{100});
+    CHECK_FALSE(ReadHudValues(race.clock, race.progress, 0).total.has_value());
 }
 
 }

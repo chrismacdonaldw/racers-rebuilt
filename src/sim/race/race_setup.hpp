@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -26,10 +27,11 @@ struct RacerEntry {
 /// `Physics` computer racers drive the car along their route instead of playing it back.
 enum class AiDriving : std::uint8_t { Route, Physics };
 
-/// Racer `i` starts in grid slot `i`.
+/// Racer `i` starts in grid slot `firstSlot + i`.
 struct RaceSetup {
     std::string track;
     std::vector<RacerEntry> racers;
+    std::size_t firstSlot = 0;
     std::uint64_t seed = 0;
     int lapCount = 3;
     RespawnRule respawn;

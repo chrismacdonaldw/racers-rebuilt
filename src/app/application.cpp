@@ -40,8 +40,10 @@
 #include "app/scene_music.hpp"
 #include "app/screenshots.hpp"
 #include "app/sprite_test_scene.hpp"
+#include "app/startup_scene.hpp"
 #include "app/startup_settings.hpp"
 #include "app/test_scene.hpp"
+#include "app/time_trial/trial_records.hpp"
 #include "app/track_viewer_scene.hpp"
 #include "app/video_settings.hpp"
 #include "assets/loader_pool.hpp"
@@ -66,41 +68,6 @@ constexpr std::string_view kMusicFolderName = "music";
 template <typename T>
 std::unique_ptr<Scene> ToScene(std::unique_ptr<T> scene) {
     return scene;
-}
-
-audio::MusicPlayer CreateMusicPlayer(audio::Mixer& mixer, const assets::Vfs& vfs,
-                                     const std::filesystem::path& musicFolder,
-                                     std::span<const mods::Mod* const> enabledMods) {
-    Result<audio::MusicCatalog> catalog = audio::MusicCatalog::Scan(vfs);
-    log::Info("{} music tracks, replacements read from {}", catalog ? catalog->Ids().size() : 0,
-              Utf8FromPath(musicFolder));
-    std::vector<std::unique_ptr<audio::MusicSource>> sources;
-    sources.push_back(std::make_unique<MusicFolderSource>(musicFolder));
-    for (const mods::Mod* mod : enabledMods) {
-        sources.push_back(std::make_unique<MusicFolderSource>(mod->MusicFolder()));
-    }
-    sources.push_back(std::make_unique<audio::OriginalTrackSource>(vfs));
-    return {mixer, std::move(sources)};
-}
-
-std::string RaceNamed(std::string track, std::size_t players, const settings::Registry& settings) {
-    return RaceSceneName({.track = std::move(track),
-                          .respawn = RespawnRuleFrom(settings),
-                          .aiDriving = AiDrivingFrom(settings),
-                          .players = players});
-}
-
-Result<std::optional<std::string>> StartupScene(const settings::CommandLine& commandLine,
-                                                const settings::Registry& settings) {
-    if (commandLine.track && commandLine.race) {
-        return Fail(ErrorCode::InvalidData, "--track and --race can't be used together");
-    }
-    if (commandLine.players && !commandLine.race) {
-        return Fail(ErrorCode::InvalidData, "--players needs --race");
-    }
-    return commandLine.race ? std::optional(RaceNamed(*commandLine.race,
-                                                      commandLine.players.value_or(1), settings))
-                            : commandLine.track;
 }
 
 std::filesystem::path OriginalInstall(const GameBoot& boot) {
@@ -266,7 +233,13 @@ Application::Application(Parts parts)
       replayFile_(std::move(parts.replayFile)),
       startupSummary_(std::move(parts.startupSummary)) {}
 
-Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std::string>& scene) {
+Result<std::unique_ptr<Scene>> Application::CreateScene(
+    const std::optional<std::string>& requested) {
+    const std::optional<std::string> scene =
+        requested && *requested == kTrialEndScene ? std::optional(EndTimeTrial()) : requested;
+    if (!scene || !IsTrialScene(*scene)) {
+        trial_.reset();
+    }
     if (!scene || *scene == kMainMenuScene) {
         return MainMenuScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_),
                                      std::exchange(unlockNotice_, false))
@@ -288,6 +261,9 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std:
         return RaceSetupScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_),
                                       *mode, UnlockedCircuits(ProgressFile()))
             .transform(ToScene<RaceSetupScene>);
+    }
+    if (*scene == kRecordsUnlockScene) {
+        return AwardScene::CreateRecordsUnlock(renderer_, vfs_).transform(ToScene<AwardScene>);
     }
     if (IsAwardScene(*scene)) {
         return ParseAwardScene(*scene)
@@ -312,6 +288,9 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std:
     if (IsCircuitScene(*scene)) {
         return CreateCircuitRace(*scene, loader, started);
     }
+    if (IsTrialScene(*scene)) {
+        return CreateTrialRace(*scene, loader, started);
+    }
     return TrackViewerScene::Create(renderer_, vfs_, loader, *scene, started)
         .transform(ToScene<TrackViewerScene>);
 }
@@ -330,6 +309,33 @@ Result<std::unique_ptr<Scene>> Application::CreateCircuitRace(std::string_view s
     }
     (*race)->JoinCircuit(std::move(*leg));
     return ToScene<RaceScene>(std::move(*race));
+}
+
+Result<std::unique_ptr<Scene>> Application::CreateTrialRace(std::string_view scene,
+                                                            assets::TrackLoader& loader,
+                                                            Nanoseconds started) {
+    return ParseTrialScene(scene)
+        .and_then([&](RaceSceneSetup setup) {
+            if (!trial_ || trial_->Track() != setup.track) {
+                trial_ = TimeTrialRun::Load(vfs_, setup.track);
+            }
+            setup.firstSlot = trial_->StartSlot();
+            return LoadRace(setup, loader, started);
+        })
+        .transform([&](std::unique_ptr<RaceScene> race) {
+            race->JoinTimeTrial(*trial_);
+            return ToScene<RaceScene>(std::move(race));
+        });
+}
+
+std::string Application::EndTimeTrial() {
+    const Result<bool> unlocked =
+        trial_ ? SaveTrial(ProgressFile(), vfs_, trial_->Outcome()) : Result<bool>(false);
+    if (!unlocked) {
+        log::Warn("{}, the time trial wasn't saved", unlocked.error().message);
+    }
+    trial_.reset();
+    return std::string(unlocked.value_or(false) ? kRecordsUnlockScene : kMainMenuScene);
 }
 
 Result<std::unique_ptr<RaceScene>> Application::LoadRace(const RaceSceneSetup& setup,

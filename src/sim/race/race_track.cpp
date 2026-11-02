@@ -139,7 +139,8 @@ RaceCourse CourseOf(const RaceTrack& track, const CollisionQuery& world) {
             .isMirrored = track.isMirrored};
 }
 
-Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track, bool isMirrored) {
+Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track, bool isMirrored,
+                                BrickSet bricks) {
     Result<CheckpointGraph> checkpoints = LoadCheckpoints(vfs, track, isMirrored);
     Result<assets::StartGridAsset> grid = checkpoints.and_then([&](const CheckpointGraph&) {
         return ReadParsed(vfs, track, "STARTPOS.SPB",
@@ -150,11 +151,12 @@ Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track, 
     Result<GridRoutes> routes = collision.and_then([&](const TrackCollision&) {
         return LoadGridRoutes(vfs, track, grid->slots.size(), isMirrored);
     });
-    Result<assets::BrickLayout> bricks = routes.and_then([&](const GridRoutes&) {
-        return ReadParsed(vfs, track, "POWERUP.PWB",
+    Result<assets::BrickLayout> layout = routes.and_then([&](const GridRoutes&) {
+        return ReadParsed(vfs, track,
+                          bricks == BrickSet::TimeTrial ? "POWERUP2.PWB" : "POWERUP.PWB",
                           assets::MirroredIf(isMirrored, assets::ParsePwb));
     });
-    Result<std::vector<assets::TargetPoint>> targets = bricks.and_then(
+    Result<std::vector<assets::TargetPoint>> targets = layout.and_then(
         [&](const assets::BrickLayout&) { return LoadTargetPoints(vfs, track, isMirrored); });
     Result<TrackEventSources> events =
         targets.and_then([&](const std::vector<assets::TargetPoint>&) {
@@ -174,7 +176,7 @@ Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track, 
                      .checkpoints = std::move(*checkpoints),
                      .grid = GridStarts(*grid),
                      .routes = std::move(*routes),
-                     .bricks = std::move(*bricks),
+                     .bricks = std::move(*layout),
                      .targets = std::move(*targets),
                      .events = std::move(*events),
                      .entities = std::move(*entities),

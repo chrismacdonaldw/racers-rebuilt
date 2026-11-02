@@ -20,6 +20,7 @@
 #include "app/hud/race_hud_values.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/powerup_tools.hpp"
+#include "app/race_scene_parts.hpp"
 #include "app/race_step.hpp"
 #include "app/racer/racer_fx.hpp"
 #include "app/track_map.hpp"
@@ -28,7 +29,6 @@
 #include "assets/circuit_database.hpp"
 #include "core/log.hpp"
 #include "platform/clock.hpp"
-#include "sim/powerup/every_effect.hpp"
 
 namespace rr::app {
 namespace {
@@ -36,95 +36,6 @@ namespace {
 constexpr std::uint64_t kHashPrime = 1099511628211ULL;
 constexpr Milliseconds kCircuitResultsTime{5000};
 constexpr std::size_t kChampionSlot = 1;
-
-sim::RaceSetup GridSetup(const RaceSceneSetup& scene, const RacerGrid& racers, std::uint64_t seed,
-                         std::size_t slots) {
-    sim::RaceSetup setup{.track = scene.track,
-                         .seed = seed,
-                         .lapCount = scene.lapCount,
-                         .respawn = scene.respawn,
-                         .aiDriving = scene.aiDriving,
-                         .effects = sim::EveryEffect()};
-    setup.racers.resize(slots);
-    for (std::size_t i = 0; i < slots; ++i) {
-        setup.racers[i].chassis = racers.Chassis(i);
-        setup.racers[i].localBounds = racers.LocalBounds(i);
-        setup.racers[i].habits = racers.Habits(i);
-    }
-    for (std::size_t player = 0; player < scene.players; ++player) {
-        setup.racers[kPlayerSlot + player].isPlayer = true;
-    }
-    return setup;
-}
-
-std::vector<SkidMarks> PlayerSkids(const assets::NameMap<render::Material>& materials,
-                                   const RacerGrid& racers, std::size_t players) {
-    std::vector<SkidMarks> skids;
-    skids.reserve(players);
-    for (std::size_t player = 0; player < players; ++player) {
-        skids.emplace_back(materials, racers.Skids(kPlayerSlot + player));
-    }
-    return skids;
-}
-
-std::vector<PowerupQuads> PlayerPowerupQuads(const assets::NameMap<render::Material>& materials,
-                                             std::size_t players) {
-    std::vector<PowerupQuads> quads;
-    quads.reserve(players);
-    for (std::size_t player = 0; player < players; ++player) {
-        quads.emplace_back(materials);
-    }
-    return quads;
-}
-
-template <typename T>
-std::vector<T> PerSlot(const RacerGrid& racers, std::size_t slots,
-                       T (RacerGrid::*value)(std::size_t) const) {
-    std::vector<T> values(slots);
-    for (std::size_t i = 0; i < slots; ++i) {
-        values[i] = (racers.*value)(i);
-    }
-    return values;
-}
-
-RaceAudioSetup AudioSetup(const sim::RaceTrack& raceTrack, std::span<const std::int32_t> voiceBanks,
-                          std::uint64_t seed) {
-    return {.racerCount = voiceBanks.size(),
-            .player = kPlayerSlot,
-            .seed = seed,
-            .ambience = raceTrack.events.table.sounds,
-            .voiceBanks = voiceBanks};
-}
-
-std::unique_ptr<RaceAudio> LoadAudio(const RaceOutputs& outputs, const assets::Vfs& vfs,
-                                     std::string_view track, const RaceAudioSetup& setup) {
-    Result<std::unique_ptr<RaceAudio>> audio =
-        RaceAudio::Load(*outputs.mixer, *outputs.banks, vfs, track, setup);
-    if (!audio) {
-        log::Warn("{}, racing in silence", audio.error().message);
-        return nullptr;
-    }
-    return std::move(*audio);
-}
-
-float MsSince(std::optional<Nanoseconds>& last) {
-    const Nanoseconds now = platform::Now();
-    const Nanoseconds elapsed = last ? now - *last : Nanoseconds{};
-    last = now;
-    return std::chrono::duration<float, std::milli>(elapsed).count();
-}
-
-std::optional<RaceParticles> LoadParticles(render::Renderer& renderer, const assets::Vfs& vfs,
-                                           assets::TrackLoader& loader, std::string_view track,
-                                           std::span<const assets::SurfaceEntry> surfaces) {
-    Result<RaceParticles> particles =
-        RaceParticles::Load(renderer, vfs, loader, track, surfaces, kPlayerSlot);
-    if (!particles) {
-        log::Warn("{}, racing without particles", particles.error().message);
-        return std::nullopt;
-    }
-    return std::move(*particles);
-}
 
 }
 
@@ -139,8 +50,8 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                                    .and_then([&](const assets::TrackAssets& assets) {
                                        return UploadTrack(renderer, assets);
                                    });
-    Result<sim::RaceTrack> loaded = model.and_then(
-        [&](const TrackModel&) { return sim::LoadRaceTrack(vfs, track, setup.isMirrored); });
+    Result<sim::RaceTrack> loaded =
+        model.and_then([&](const TrackModel&) { return LoadSceneTrack(vfs, setup); });
     Result<RacerGrid> racers = loaded.and_then([&](const sim::RaceTrack& race) {
         return RacerGrid::Load(renderer, vfs, loader, setup, RacerCount(setup, race.grid.size()));
     });
@@ -165,9 +76,9 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     const std::vector<std::int32_t> voiceBanks =
         PerSlot(*racers, session->Racers().size(), &RacerGrid::VoiceBank);
     std::unique_ptr<RaceAudio> audio =
-        LoadAudio(outputs, vfs, track, AudioSetup(*raceTrack, voiceBanks, seed));
+        LoadRaceAudio(outputs, vfs, track, AudioSetup(*raceTrack, voiceBanks, seed));
     std::optional<RaceParticles> particles =
-        LoadParticles(renderer, vfs, loader, track, raceTrack->collision.surfaces);
+        LoadRaceParticles(renderer, vfs, loader, track, raceTrack->collision.surfaces);
     return std::unique_ptr<RaceScene>(
         new RaceScene({.renderer = &renderer,
                        .vfs = &vfs,
@@ -225,6 +136,11 @@ void RaceScene::JoinCircuit(CircuitLeg leg) {
     circuit_ = std::move(leg);
 }
 
+void RaceScene::JoinTimeTrial(TimeTrialRun& run) {
+    trial_.emplace(run);
+    hud_.SetTimeTrial(trial_->Ghosts());
+}
+
 std::optional<std::string> RaceScene::TakeNextScene() {
     return std::exchange(next_, std::nullopt);
 }
@@ -272,13 +188,22 @@ overlay::RacerActionGroup RaceScene::PowerupTools() {
 }
 
 void RaceScene::Tick(const sim::InputFrame& input) {
+    if (trial_ && trial_->IsAsking(parts_.session.Clock())) {
+        TickTrialQuestion(*trial_, input);
+        return;
+    }
     if (pause_.IsOpen() || input.WasAnyPressed(sim::Action::Pause)) {
         TickPause(input);
         return;
     }
     ApplyChosenTools();
-    LeaveAfterResults(input);
+    if (!trial_) {
+        LeaveAfterResults(input);
+    }
     StepRace(parts_.session, input, controls_, cameras_.Count());
+    if (trial_) {
+        trial_->Follow(parts_.session, hud_.RacerName(kPlayerSlot));
+    }
     for (std::size_t player = 0; player < cameras_.Count(); ++player) {
         const sim::PlayerInput& controls = input.players.at(player);
         if (controls.WasPressed(sim::Action::ToggleDisplay)) {
@@ -404,7 +329,7 @@ render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated
 
 void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     const float elapsedMs = MsSince(lastRender_);
-    const float simMs = pause_.IsOpen() ? 0.0F : elapsedMs;
+    const float simMs = pause_.IsOpen() || IsTrialAsking() ? 0.0F : elapsedMs;
     GatherMeshes(interpolated, elapsedMs);
     DrawDebugLines();
     GatherCarMarks(interpolated, simMs);
@@ -443,15 +368,33 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
 
 void RaceScene::TickPause(const sim::InputFrame& input) {
     const std::optional<PauseRow> chosen = pause_.Tick(input);
+    Hush();
+    if (chosen == PauseRow::Restart) {
+        next_ = circuit_ ? circuit_->AfterRestart() : RaceSceneName(parts_.setup);
+    } else if (chosen == PauseRow::Quit) {
+        next_ = circuit_ ? circuit_->AfterQuit()
+                         : std::string(trial_ ? kTrialEndScene : kMainMenuScene);
+    }
+}
+
+void RaceScene::TickTrialQuestion(TimeTrialRace& trial, const sim::InputFrame& input) {
+    const std::optional<TrialChoice> choice = trial.Ask(input);
+    Hush();
+    if (choice) {
+        next_ = *choice == TrialChoice::RaceAgain ? RaceSceneName(parts_.setup)
+                                                  : std::string(kTrialEndScene);
+    }
+}
+
+void RaceScene::Hush() {
     hud_.TickPause(kSimTick);
     if (parts_.audio) {
         parts_.audio->StopLoops();
     }
-    if (chosen == PauseRow::Restart) {
-        next_ = circuit_ ? circuit_->AfterRestart() : RaceSceneName(parts_.setup);
-    } else if (chosen == PauseRow::Quit) {
-        next_ = circuit_ ? circuit_->AfterQuit() : std::string(kMainMenuScene);
-    }
+}
+
+bool RaceScene::IsTrialAsking() const {
+    return trial_ && trial_->IsAsking(parts_.session.Clock());
 }
 
 void RaceScene::LeaveAfterResults(const sim::InputFrame& input) {
@@ -486,6 +429,9 @@ void RaceScene::ApplyChosenTools() {
 }
 
 std::optional<PauseView> RaceScene::PauseShown() const {
+    if (trial_ && trial_->IsAsking(parts_.session.Clock())) {
+        return trial_->Question();
+    }
     if (!pause_.IsOpen()) {
         return std::nullopt;
     }

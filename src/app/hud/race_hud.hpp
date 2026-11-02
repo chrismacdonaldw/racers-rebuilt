@@ -19,10 +19,11 @@
 #include "render/ui_layout.hpp"
 #include "sim/race/race_clock.hpp"
 #include "sim/race/race_progress.hpp"
+#include "sim/time_trial/time_trial_ghosts.hpp"
 
 namespace rr::app {
 
-enum class PauseDialog : std::uint8_t { Menu, Confirm };
+enum class PauseDialog : std::uint8_t { Menu, Confirm, RecordStands, RecordBeaten };
 
 struct PauseView {
     PauseDialog dialog = PauseDialog::Menu;
@@ -32,6 +33,7 @@ struct PauseView {
 struct HudRacer {
     std::size_t slot = 0;
     bool isGhost = false;
+    const sim::TimeTrialGhosts* trial = nullptr;
 };
 
 /// One racer's HUD, placed as the original places it on a 640×480 screen.
@@ -64,8 +66,9 @@ private:
                          std::vector<HudText>& out);
     void AddPlace(int place, std::vector<HudText>& out);
     void AddBanner(const BannerView& banner, std::vector<HudText>& out) const;
-    void AddDialog(std::u16string_view title, std::span<const std::u16string_view> rows,
-                   std::size_t focus, std::vector<HudText>& out) const;
+    void AddDialog(std::span<const std::u16string_view> titles,
+                   std::span<const std::u16string_view> rows, std::size_t focus,
+                   std::vector<HudText>& out) const;
     [[nodiscard]] std::optional<render::Color> FocusTint() const;
     [[nodiscard]] std::u16string_view BannerText(HudBanner banner) const;
     [[nodiscard]] HudText Centered(std::u16string_view text, float y, render::Color tint,
@@ -81,6 +84,7 @@ private:
     float lapTimeX_ = 0.0F;
     float topY_ = 0.0F;
     float bestLapY_ = 0.0F;
+    float totalY_ = 0.0F;
     float gapY_ = 0.0F;
     Milliseconds dialogTime_{0};
 };

@@ -22,6 +22,13 @@ constexpr std::string_view kScreen = "MAINMENU";
 constexpr std::string_view kTrophyList = "DRVRLICE.IDB";
 constexpr std::array<std::string_view, 3> kTrophies{"gtrophy", "strophy", "btrophy"};
 constexpr std::array<std::string_view, 4> kAwardTracks{"1st", "2nd", "3rd", "lose"};
+constexpr std::string_view kRecordsUnlockTrack = "vvcar";
+
+Result<MenuPage> LoadBackdrop(render::Renderer& renderer, const assets::Vfs& vfs) {
+    return ReadMenuFiles(vfs, kScreen).and_then([&](const MenuFiles& files) {
+        return BuildMenuPage(renderer, vfs, files, std::span<const ButtonLine>{});
+    });
+}
 
 Result<std::optional<UiImage>> LoadTrophy(render::Renderer& renderer, const assets::Vfs& vfs,
                                           sim::CircuitAward award) {
@@ -55,21 +62,26 @@ std::string_view AwardMusic(sim::CircuitAward award) {
 Result<std::unique_ptr<AwardScene>> AwardScene::Create(render::Renderer& renderer,
                                                        const assets::Vfs& vfs,
                                                        sim::CircuitAward award) {
-    Result<MenuPage> page = ReadMenuFiles(vfs, kScreen).and_then([&](const MenuFiles& files) {
-        return BuildMenuPage(renderer, vfs, files, std::span<const ButtonLine>{});
-    });
+    Result<MenuPage> page = LoadBackdrop(renderer, vfs);
     Result<std::optional<UiImage>> trophy =
         page.and_then([&](const MenuPage&) { return LoadTrophy(renderer, vfs, award); });
     if (!trophy) {
         return std::unexpected(std::move(trophy.error()));
     }
     return std::unique_ptr<AwardScene>(
-        new AwardScene(renderer, award, std::move(page->pictures), *trophy));
+        new AwardScene(renderer, AwardMusic(award), std::move(page->pictures), *trophy));
+}
+
+Result<std::unique_ptr<AwardScene>> AwardScene::CreateRecordsUnlock(render::Renderer& renderer,
+                                                                    const assets::Vfs& vfs) {
+    return LoadBackdrop(renderer, vfs).transform([&](MenuPage page) {
+        return std::unique_ptr<AwardScene>(
+            new AwardScene(renderer, kRecordsUnlockTrack, std::move(page.pictures), std::nullopt));
+    });
 }
 
 SceneMusic AwardScene::Music() const {
-    return {
-        .track = AwardMusic(award_), .repeat = audio::Repeat::Once, .start = MusicStart::OnEntry};
+    return {.track = music_, .repeat = audio::Repeat::Once, .start = MusicStart::OnEntry};
 }
 
 std::optional<std::string> AwardScene::TakeNextScene() {
@@ -106,8 +118,8 @@ void AwardScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpolated
     }
 }
 
-AwardScene::AwardScene(render::Renderer& renderer, sim::CircuitAward award,
+AwardScene::AwardScene(render::Renderer& renderer, std::string_view music,
                        std::vector<MenuPicture> pictures, std::optional<UiImage> trophy)
-    : renderer_(&renderer), award_(award), pictures_(std::move(pictures)), trophy_(trophy) {}
+    : renderer_(&renderer), music_(music), pictures_(std::move(pictures)), trophy_(trophy) {}
 
 }

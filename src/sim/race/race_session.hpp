@@ -65,7 +65,7 @@ struct RaceCourse {
 
 class RaceSession {
 public:
-    /// Fails when there are more racers than grid slots.
+    /// Fails when the racers don't fit on the grid from `setup.firstSlot`.
     [[nodiscard]] static Result<RaceSession> Create(const RaceSetup& setup,
                                                     const RaceCourse& course);
 
