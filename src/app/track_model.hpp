@@ -15,10 +15,11 @@
 
 namespace rr::app {
 
-/// Draws at the model's origin. Draw `i` hangs from skeleton node `joints[i]`.
+/// Draws at the model's origin. Draw `i` hangs from node `joints[i]` and fills slot `slots[i]`.
 struct JointedModel {
     std::vector<render::MeshDraw> draws;
     std::vector<std::uint16_t> joints;
+    std::vector<std::uint32_t> slots;
 };
 
 struct DrawSpan {
@@ -35,8 +36,10 @@ struct NamedDraws {
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct TrackModel {
     std::vector<render::MeshDraw> draws;
+    std::vector<std::uint32_t> drawSlots;
     std::vector<NamedDraws> entityDraws;
     assets::NameMap<JointedModel> animatedModels;
+    assets::NameMap<render::Material> materials;
     Bounds bounds;
     assets::NameMap<render::TextureId> textures;
 };

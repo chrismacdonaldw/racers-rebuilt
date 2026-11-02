@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -38,7 +39,14 @@ struct Stage {
         bindings = std::move(*bound);
     }
 
-    CutscenePlayer Player() { return {frame, bindings, entities, statics, false}; }
+    CutscenePlayer Player(const WorldAnimations& animations = {},
+                          const assets::NameMap<render::Material>& materials = {}) {
+        Result<CutsceneMaterials> tracks =
+            CutsceneMaterials::Create(frame, bindings.models, animations, materials);
+        REQUIRE(tracks.has_value());
+        return {frame, bindings, std::move(*tracks), entities, {.draws = statics, .slots = slots},
+                false};
+    }
 
     void Advance(CutscenePlayer& player, Milliseconds elapsed) {
         player.Advance(elapsed);
@@ -54,6 +62,7 @@ struct Stage {
     assets::CutsceneFrame frame;
     sim::TrackEntitySources entities = test::StageEntities();
     std::array<render::MeshDraw, 2> statics{};
+    std::array<std::uint32_t, 2> slots{0, 1};
     CutsceneBindings bindings;
     TrackEntityDraws jointed{{}, entities};
 };
@@ -79,6 +88,28 @@ TEST_CASE("a static model draws only while its event runs, where the event place
 
     stage.Advance(player, Milliseconds{340});
     CHECK(stage.Draws(player).empty());
+}
+
+TEST_CASE("a model event runs its material track in its own slot") {
+    assets::CutsceneModel set = Model("set", false, {.start = 0, .duration = 30});
+    set.materials = {{.world = 0, .animation = 0, .track = 0, .slot = 1}};
+    Stage stage({.length = 30, .models = {set}});
+    const WorldAnimations animations{
+        {{.keys = {{.material = "dull", .frame = 0}, {.material = "shiny", .frame = 3}},
+          .tracks = {{.firstKey = 0, .keyCount = 2, .duration = 6, .framesPerSecond = 30}}}}};
+    const assets::NameMap<render::Material> materials{{"DULL", {.tint = {.r = 0.25F}}},
+                                                      {"SHINY", {.tint = {.r = 0.75F}}}};
+    CutscenePlayer player = stage.Player(animations, materials);
+
+    stage.Advance(player, kFrame);
+    const std::vector<render::MeshDraw> first = stage.Draws(player);
+    REQUIRE(first.size() == 2);
+    CHECK(first[1].material.tint.r == 0.25F);
+    stage.Advance(player, Milliseconds{100});
+    const std::vector<render::MeshDraw> shown = stage.Draws(player);
+    REQUIRE(shown.size() == 2);
+    CHECK(shown[0].material.tint.r == 1.0F);
+    CHECK(shown[1].material.tint.r == 0.75F);
 }
 
 TEST_CASE("a jointed model is placed by its event and animates only while it plays a part") {

@@ -13,6 +13,7 @@ rr_add_module(app
         collision_wireframe.cpp
         cutscene/cutscene_bindings.cpp
         cutscene/cutscene_links.cpp
+        cutscene/cutscene_materials.cpp
         cutscene/cutscene_player.cpp
         cutscene/cutscene_scene.cpp
         cutscene/cutscene_timeline.cpp

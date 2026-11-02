@@ -45,12 +45,12 @@ struct EntityByIndex {
     friend bool operator==(const EntityByIndex&, const EntityByIndex&) = default;
 };
 
-/// Binds `track` of the world's material animation `animation` to the entity's table.
+/// `slot` indexes the materials of the entity's model, in its `GDB` order.
 struct CutsceneMaterialBinding {
     std::size_t world = 0;
     std::size_t animation = 0;
     std::size_t track = 0;
-    std::int32_t start = 0;
+    std::size_t slot = 0;
     std::size_t materialTable = 0;
 
     friend bool operator==(const CutsceneMaterialBinding&,

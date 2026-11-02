@@ -20,6 +20,7 @@ public:
     void Update(std::span<const sim::EntityClock> clocks);
 
     [[nodiscard]] std::span<const render::MeshDraw> Draws() const { return draws_; }
+    [[nodiscard]] std::span<const std::uint32_t> Slots() const { return slots_; }
     [[nodiscard]] DrawSpan SpanOf(std::size_t entity) const { return spans_[entity]; }
 
 private:
@@ -30,6 +31,7 @@ private:
 
     const sim::TrackEntitySources* sources_;
     std::vector<render::MeshDraw> draws_;
+    std::vector<std::uint32_t> slots_;
     std::vector<Part> parts_;
     std::vector<DrawSpan> spans_;
 };

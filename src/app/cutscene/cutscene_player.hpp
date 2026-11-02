@@ -1,10 +1,12 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <vector>
 
 #include "app/cutscene/cutscene_bindings.hpp"
+#include "app/cutscene/cutscene_materials.hpp"
 #include "app/cutscene/cutscene_timeline.hpp"
 #include "app/track_entity_draws.hpp"
 #include "assets/cutscene_timeline.hpp"
@@ -17,12 +19,18 @@
 
 namespace rr::app {
 
+/// `slots[i]` is the material slot of `draws[i]`.
+struct CutsceneStatics {
+    std::span<const render::MeshDraw> draws;
+    std::span<const std::uint32_t> slots;
+};
+
 /// Plays one `CDB` frame. The frame, `sources` and `statics` must outlive it.
 class CutscenePlayer {
 public:
     CutscenePlayer(const assets::CutsceneFrame& frame, CutsceneBindings bindings,
-                   sim::TrackEntitySources& sources, std::span<const render::MeshDraw> statics,
-                   bool isLooping);
+                   CutsceneMaterials materials, sim::TrackEntitySources& sources,
+                   CutsceneStatics statics, bool isLooping);
 
     /// Returns the events that began or ended, as `CutsceneTimeline::Advance` does.
     std::span<const CutsceneEventChange> Advance(Milliseconds elapsed);
@@ -46,8 +54,9 @@ private:
 
     const assets::CutsceneFrame* frame_;
     CutsceneBindings bindings_;
+    CutsceneMaterials materials_;
     sim::TrackEntitySources* sources_;
-    std::span<const render::MeshDraw> statics_;
+    CutsceneStatics statics_;
     std::vector<Transform> placements_;
     CutsceneTimeline timeline_;
     sim::TrackEntities entities_;

@@ -19,7 +19,7 @@ static Result<void> ReadValue(TokenReader& reader, CutsceneMaterialBinding& bind
     return ReadIndex(reader, binding.world)
         .and_then([&] { return ReadIndex(reader, binding.animation); })
         .and_then([&] { return ReadIndex(reader, binding.track); })
-        .and_then([&] { return ReadValue(reader, binding.start); })
+        .and_then([&] { return ReadIndex(reader, binding.slot); })
         .and_then([&] { return ReadIndex(reader, binding.materialTable); });
 }
 
