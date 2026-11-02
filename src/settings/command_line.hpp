@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <optional>
 #include <span>
 #include <string>
@@ -21,6 +22,7 @@ struct CommandLine {
     std::optional<std::string> imageDumpFolder;
     std::optional<std::string> track;
     std::optional<std::string> race;
+    std::optional<std::size_t> players;
     std::optional<std::string> recordFile;
     std::optional<std::string> replayFile;
     std::optional<std::string> importSaveFile;
@@ -28,8 +30,8 @@ struct CommandLine {
 };
 
 /// Accepts `--game-path <folder>`, `--set key=value`, `--dump-images <folder>`,
-/// `--track <RACECxRy>`, `--race <RACECxRy>`, `--record <file>`, `--replay <file>` and
-/// `--import-save <file>`, each also as `--flag=value`.
+/// `--track <RACECxRy>`, `--race <RACECxRy>`, `--players <count>`, `--record <file>`,
+/// `--replay <file>` and `--import-save <file>`, each also as `--flag=value`.
 /// `args` excludes the program name.
 [[nodiscard]] Result<CommandLine> ParseCommandLine(std::span<const std::string_view> args);
 

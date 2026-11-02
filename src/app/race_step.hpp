@@ -12,9 +12,9 @@ namespace rr::app {
 
 inline constexpr std::size_t kPlayerSlot = 0;
 
-/// `controls` holds one entry per racer. The player's entry is replaced by `input`.
+/// `controls` holds one entry per racer. The first `players` entries come from `input`.
 void StepRace(sim::RaceSession& session, const sim::InputFrame& input,
-              std::span<sim::RacerControls> controls);
+              std::span<sim::RacerControls> controls, std::size_t players = 1);
 
 /// Replaces the racers in `out` and its state hash, leaving the camera alone.
 void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out);

@@ -44,12 +44,12 @@ Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs&
     if (!codes) {
         return std::unexpected(std::move(codes.error()));
     }
-    slots = std::min(slots, codes->size());
-    if (playerRacer >= slots) {
+    if (playerRacer >= codes->size()) {
         return Fail(ErrorCode::InvalidData,
                     std::format("{} has no grid slot {} for the player", setup.track, playerRacer));
     }
     std::swap(codes->front(), codes->at(playerRacer));
+    slots = std::min(slots, codes->size());
     std::vector<Slot> loaded;
     for (const std::string& code : std::span(*codes).first(slots)) {
         Result<std::unique_ptr<RacerAssets>> assets = LoadSlot(vfs, loader, *catalog, code);

@@ -56,8 +56,9 @@ public:
     [[nodiscard]] SDL_GPUDevice* Device() const { return device_.get(); }
     [[nodiscard]] SDL_GPUTextureFormat ColorFormat() const { return colorFormat_; }
 
-    /// Lines, quads and sprites past their maximums are dropped.
-    [[nodiscard]] Result<void> Draw(const RenderView& view);
+    [[nodiscard]] Result<void> Draw(const RenderView& view) { return Draw(std::span(&view, 1)); }
+    /// Sprites cover the whole window, after every scene. Items past their maximums are dropped.
+    [[nodiscard]] Result<void> Draw(std::span<const RenderView> views);
 
 private:
     static constexpr std::size_t kBlendModeCount = 3;
@@ -89,6 +90,13 @@ private:
         std::span<const std::byte> bytes;
     };
 
+    struct ViewRange {
+        std::size_t firstLine = 0;
+        std::size_t lineCount = 0;
+        std::size_t firstQuadBatch = 0;
+        std::size_t quadBatchCount = 0;
+    };
+
     explicit Renderer(std::unique_ptr<SDL_GPUDevice, DeviceDeleter> device);
 
     Result<void> CreatePipelines();
@@ -97,12 +105,14 @@ private:
     Result<StreamBuffer> CreateStream(std::size_t sizeBytes);
     Result<GpuTransferBuffer> Stage(std::span<const std::span<const std::byte>> parts);
     Result<void> UploadBuffers(std::span<const UploadPart> parts);
-    Result<void> UploadFrame(SDL_GPUCommandBuffer* commands, std::span<const DebugLine> lines,
-                             std::span<const QuadDraw> quads, std::span<const SpriteDraw> sprites);
+    void GatherViews(std::span<const RenderView> views);
+    Result<void> UploadFrame(SDL_GPUCommandBuffer* commands, std::span<const RenderView> views);
     Result<void> EnsureSceneTargets(std::uint32_t widthPx, std::uint32_t heightPx);
     [[nodiscard]] bool IsScaled() const { return resolutionScale_ != 1.0F; }
-    void DrawScene(SDL_GPUCommandBuffer* commands, const RenderView& view, std::size_t lineCount,
-                   SDL_GPUTexture* target);
+    void DrawScenes(SDL_GPUCommandBuffer* commands, std::span<const RenderView> views,
+                    SDL_GPUTexture* target) const;
+    void DrawScene(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, const RenderView& view,
+                   const ViewRange& range) const;
     void DrawSprites(SDL_GPUCommandBuffer* commands, SDL_GPUTexture* swapchain,
                      std::uint32_t widthPx, std::uint32_t heightPx) const;
     void DrawOverlay(SDL_GPUCommandBuffer* commands, SDL_GPUTexture* swapchain);
@@ -114,7 +124,7 @@ private:
     void DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, const MeshDraw& draw,
                   const glm::mat4& viewProjection, const Lighting& lighting,
                   SDL_GPUGraphicsPipeline*& bound) const;
-    void DrawLines(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, std::size_t lineCount,
+    void DrawLines(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, const ViewRange& range,
                    const glm::mat4& viewProjection) const;
 
     std::unique_ptr<SDL_GPUDevice, DeviceDeleter> device_;
@@ -141,6 +151,10 @@ private:
     std::vector<SpriteBatch> spriteBatches_;
     std::vector<QuadVertex> quadVertices_;
     std::vector<SpriteBatch> quadBatches_;
+    std::vector<QuadVertex> viewQuadVertices_;
+    std::vector<SpriteBatch> viewQuadBatches_;
+    std::vector<SpriteDraw> sprites_;
+    std::vector<ViewRange> viewRanges_;
     AssetTable<Mesh, MeshId> meshes_;
     AssetTable<GpuTexture, TextureId> textures_;
 };

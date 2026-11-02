@@ -70,6 +70,14 @@ void Interpolate(const RenderSnapshot& previous, const RenderSnapshot& current, 
     out.simStateHash = current.simStateHash;
     out.camera.transform =
         Blend(previous.camera.transform, current.camera.transform, current.camera.flags, alpha);
+    out.otherPlayerCameras = current.otherPlayerCameras;
+    if (previous.otherPlayerCameras.size() == current.otherPlayerCameras.size()) {
+        for (std::size_t i = 0; i < out.otherPlayerCameras.size(); ++i) {
+            const CameraSnapshot& now = current.otherPlayerCameras[i];
+            out.otherPlayerCameras[i].transform =
+                Blend(previous.otherPlayerCameras[i].transform, now.transform, now.flags, alpha);
+        }
+    }
 }
 
 }

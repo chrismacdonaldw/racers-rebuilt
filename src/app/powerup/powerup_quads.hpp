@@ -16,6 +16,7 @@ namespace rr::app {
 
 [[nodiscard]] std::span<const std::string_view> PowerupQuadMaterials();
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 class PowerupQuads {
 public:
     explicit PowerupQuads(const assets::NameMap<render::Material>& materials);

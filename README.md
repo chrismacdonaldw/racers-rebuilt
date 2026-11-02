@@ -189,6 +189,7 @@ Out-of-range values are clamped. Unknown keys are kept when the file is saved.
 | `--set <key>=<value>` | Override a setting for this run only. Repeatable. |
 | `--track <folder>` | Open a race track instead of the main menu, by its `GAMEDATA` folder, e.g. `RACEC0R0` |
 | `--race <folder>` | Start a race on a track instead of the main menu, by its `GAMEDATA` folder. Can't be combined with `--track`. |
+| `--players 2` | With `--race`, race two players against each other in split screen, with no computer racers |
 
 ```powershell
 .\racers-rebuilt.exe --set video.vsync=false --set video.fps_cap=60

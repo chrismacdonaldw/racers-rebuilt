@@ -398,6 +398,10 @@ std::uint64_t HashSnapshot(const RenderSnapshot& snapshot) {
     }
     hash = MixTransform(hash, snapshot.camera.transform);
     hash = Mix(hash, static_cast<std::uint8_t>(snapshot.camera.flags));
+    for (const CameraSnapshot& camera : snapshot.otherPlayerCameras) {
+        hash = MixTransform(hash, camera.transform);
+        hash = Mix(hash, static_cast<std::uint8_t>(camera.flags));
+    }
     return Mix(hash, snapshot.simStateHash);
 }
 

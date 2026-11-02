@@ -50,6 +50,19 @@ TEST_CASE("the command line takes a track to race on") {
     CHECK_FALSE(commandLine->track.has_value());
 }
 
+TEST_CASE("the command line takes a player count") {
+    constexpr std::array<std::string_view, 4> kArgs{"--race", "RACEC0R0", "--players", "2"};
+    constexpr std::array<std::string_view, 1> kNone{"--players=0"};
+    constexpr std::array<std::string_view, 1> kWord{"--players=two"};
+
+    Result<CommandLine> commandLine = ParseCommandLine(kArgs);
+
+    REQUIRE(commandLine.has_value());
+    CHECK(commandLine->players == 2U);
+    CHECK_FALSE(ParseCommandLine(kNone).has_value());
+    CHECK_FALSE(ParseCommandLine(kWord).has_value());
+}
+
 TEST_CASE("the command line takes a replay to record or play") {
     constexpr std::array<std::string_view, 3> kArgs{"--record", "a.rrr", "--replay=b.rrr"};
 

@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <utility>
 
-#include "app/track_space.hpp"
 #include "app/voice_reactions.hpp"
 #include "sim/powerup/dropped_trap.hpp"
 #include "sim/powerup/grapple_effect.hpp"
@@ -201,7 +200,6 @@ void PowerupSounds::HearEffects(const sim::RaceSession& session, const Listener&
 
 void PowerupSounds::HearFlights(const sim::RaceSession& session, const Listener& listener,
                                 audio::Mixer& mixer) {
-    const Vector3 ear = ToGame(listener.position);
     std::array<std::optional<Vector3>, kFlightLoops.size()> nearest{};
     std::array<float, kFlightLoops.size()> nearestDistance{};
     nearestDistance.fill(kFlightRange.max * kFlightRange.max);
@@ -213,9 +211,9 @@ void PowerupSounds::HearFlights(const sim::RaceSession& session, const Listener&
             continue;
         }
         const Vector3 position = effect.effect->Pose().position;
-        const Vector3 offset = position - ear;
-        if (Dot(offset, offset) < nearestDistance.at(*flight)) {
-            nearestDistance.at(*flight) = Dot(offset, offset);
+        const float distanceSquared = DistanceSquaredToNearestEar(listener, position);
+        if (distanceSquared < nearestDistance.at(*flight)) {
+            nearestDistance.at(*flight) = distanceSquared;
             nearest.at(*flight) = position;
         }
     }

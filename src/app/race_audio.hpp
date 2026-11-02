@@ -65,8 +65,12 @@ public:
     RaceAudio& operator=(RaceAudio&&) = delete;
     ~RaceAudio();
 
-    /// Call after each session tick. `camera` is the player's, in engine space.
-    void Hear(const sim::RaceSession& session, const Transform& camera, Milliseconds elapsed);
+    /// Call after each session tick. With several `cameras`, the nearest rival's engine is silent.
+    void Hear(const sim::RaceSession& session, std::span<const Transform> cameras,
+              Milliseconds elapsed);
+    void Hear(const sim::RaceSession& session, const Transform& camera, Milliseconds elapsed) {
+        Hear(session, std::span(&camera, 1), elapsed);
+    }
 
     /// Silences every loop until the next `Hear`.
     void StopLoops();
