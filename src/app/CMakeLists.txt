@@ -114,6 +114,7 @@ rr_add_module(app
         racer/racer_draws.cpp
         racer/racer_fx.cpp
         racer/racer_grid.cpp
+        racer/posed_draws.cpp
         racer/racer_visuals.cpp
         racer/skid_marks.cpp
         racer/skid_trail.cpp
@@ -128,6 +129,8 @@ rr_add_module(app
         startup_settings.cpp
         startup_timer.cpp
         test_scene.cpp
+        time_trial/ghost_car.cpp
+        time_trial/ghost_cars.cpp
         time_trial/time_trial_race.cpp
         time_trial/time_trial_run.cpp
         time_trial/trial_records.cpp

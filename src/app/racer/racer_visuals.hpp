@@ -3,16 +3,15 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
-#include <vector>
 
 #include "app/racer/animation_player.hpp"
 #include "app/racer/body_lean.hpp"
+#include "app/racer/posed_draws.hpp"
 #include "app/racer/racer_assets.hpp"
 #include "app/racer/racer_draws.hpp"
 #include "core/result.hpp"
 #include "core/transform.hpp"
 #include "render/render_view.hpp"
-#include "sim/animation/skeleton_pose.hpp"
 #include "sim/render_snapshot.hpp"
 
 namespace rr::app {
@@ -27,19 +26,9 @@ public:
     void Update(const Transform& wheels, const sim::RacerSnapshot& motion, float elapsedMs);
 
     /// In engine space.
-    [[nodiscard]] std::span<const render::MeshDraw> Draws() const { return parts_.draws; }
+    [[nodiscard]] std::span<const render::MeshDraw> Draws() const { return parts_.posed.Draws(); }
 
 private:
-    struct Group {
-        std::size_t first = 0;
-        std::size_t count = 0;
-    };
-
-    struct Animated {
-        sim::SkeletonPose pose;
-        AnimationPlayer player;
-    };
-
     struct WheelParts {
         std::size_t forward = 0;
         std::size_t reverse = 0;
@@ -53,19 +42,16 @@ private:
     };
 
     struct Parts {
-        Animated wheels;
-        Animated driver;
+        AnimatedSkeleton wheels;
+        AnimatedSkeleton driver;
         WheelParts wheelParts;
         DriverParts driverParts;
-        std::vector<render::MeshDraw> draws;
-        std::vector<std::uint16_t> joints;
-        Group wheelDraws;
-        Group bodyDraws;
-        Group driverDraws;
+        PosedDraws posed;
+        PosedDraws::Group wheelDraws;
+        PosedDraws::Group bodyDraws;
+        PosedDraws::Group driverDraws;
         Vector3 seat;
         float mass = 0.0F;
-
-        Group Append(const ModelDraws& model);
     };
 
     [[nodiscard]] static Result<WheelParts> FindWheelParts(const AnimationPlayer& player);
@@ -76,7 +62,6 @@ private:
     void Spin(float forwardSpeed, float elapsedMs);
     void Drive(const sim::RacerSnapshot& motion, float elapsedMs);
     void Steer(float turnRadius);
-    void Place(Group group, const Transform& entity, std::span<const Transform> nodes);
 
     Parts parts_;
     BodyLean lean_;

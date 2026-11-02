@@ -34,6 +34,7 @@
 #include "app/racer_effect_tools.hpp"
 #include "app/scene.hpp"
 #include "app/sound_banks.hpp"
+#include "app/time_trial/ghost_cars.hpp"
 #include "app/time_trial/time_trial_race.hpp"
 #include "app/time_trial/time_trial_run.hpp"
 #include "app/track_entity_draws.hpp"
@@ -66,7 +67,7 @@ public:
     void JoinCircuit(CircuitLeg leg);
 
     /// Races one run of `run`, which must outlive the scene.
-    void JoinTimeTrial(TimeTrialRun& run);
+    void JoinTimeTrial(TimeTrialRun& run, assets::TrackLoader& loader);
     void AdoptHudFonts(std::string_view language, UiFonts fonts);
 
     void ApplySettings(const settings::Registry& settings) override;
@@ -132,6 +133,7 @@ private:
     PauseMenu pause_;
     std::optional<CircuitLeg> circuit_;
     std::optional<TimeTrialRace> trial_;
+    std::optional<GhostCars> ghostCars_;
     std::optional<std::string> next_;
     std::vector<sim::RacerControls> controls_;
     std::size_t chosenRacer_ = 0;

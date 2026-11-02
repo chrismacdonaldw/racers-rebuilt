@@ -51,8 +51,20 @@ using EffectModels = assets::NameMap<EffectModel>;
 [[nodiscard]] render::UvOffset ScrolledBy(const assets::TextureScroll& scroll, float elapsedMs);
 
 /// `assets` must outlive the models.
-[[nodiscard]] Result<EffectModels> UploadPowerupModels(render::Renderer& renderer,
-                                                       const EffectAssets& assets);
+[[nodiscard]] Result<EffectModels> UploadEffectModels(render::Renderer& renderer,
+                                                      const EffectAssets& assets);
+
+// NOLINTNEXTLINE(bugprone-exception-escape)
+struct EffectModelSet {
+    std::unique_ptr<EffectAssets> assets;
+    EffectModels models;
+};
+
+/// Loads and uploads the entities of a world in `GAMEDATA/COMMON`.
+[[nodiscard]] Result<EffectModelSet> LoadEffectModels(render::Renderer& renderer,
+                                                      const assets::Vfs& vfs,
+                                                      assets::TrackLoader& loader,
+                                                      std::string_view world);
 
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct PowerupModelSet {

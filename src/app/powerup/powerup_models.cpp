@@ -116,7 +116,7 @@ Result<EffectAssets> LoadPowerupAssets(const assets::Vfs& vfs, assets::TrackLoad
     return LoadEffectAssets(vfs, loader, kPowerupWorld);
 }
 
-Result<EffectModels> UploadPowerupModels(render::Renderer& renderer, const EffectAssets& assets) {
+Result<EffectModels> UploadEffectModels(render::Renderer& renderer, const EffectAssets& assets) {
     EffectModels models;
     for (const auto& [name, files] : assets.entities) {
         const auto geometry = assets.models.models.find(assets::ToUpperAscii(files.geometry));
@@ -137,6 +137,20 @@ Result<EffectModels> UploadPowerupModels(render::Renderer& renderer, const Effec
     return models;
 }
 
+Result<EffectModelSet> LoadEffectModels(render::Renderer& renderer, const assets::Vfs& vfs,
+                                        assets::TrackLoader& loader, std::string_view world) {
+    EffectModelSet set;
+    return LoadEffectAssets(vfs, loader, world)
+        .and_then([&](EffectAssets loaded) {
+            set.assets = std::make_unique<EffectAssets>(std::move(loaded));
+            return UploadEffectModels(renderer, *set.assets);
+        })
+        .transform([&](EffectModels models) {
+            set.models = std::move(models);
+            return std::move(set);
+        });
+}
+
 render::UvOffset ScrolledBy(const assets::TextureScroll& scroll, float elapsedMs) {
     const float seconds = elapsedMs / kMsPerSecond;
     return {.u = Wrapped(scroll.uPerSecond * seconds), .v = Wrapped(scroll.vPerSecond * seconds)};
@@ -151,7 +165,7 @@ PowerupModelSet LoadPowerupModels(render::Renderer& renderer, const assets::Vfs&
         LoadPowerupAssets(vfs, loader)
             .and_then([&](EffectAssets assets) {
                 set.assets = std::make_unique<EffectAssets>(std::move(assets));
-                return UploadPowerupModels(renderer, *set.assets);
+                return UploadEffectModels(renderer, *set.assets);
             })
             .and_then([&](EffectModels models) {
                 set.models = std::move(models);
