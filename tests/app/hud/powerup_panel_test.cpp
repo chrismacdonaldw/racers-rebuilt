@@ -66,6 +66,15 @@ TEST_CASE("the power-up panel shows the held colour's item and white level") {
     CHECK(out[3].bounds.y == doctest::Approx(406.0F));
 }
 
+TEST_CASE("a split-screen panel sits at the bottom of its player's half") {
+    std::vector<render::SpriteDraw> out;
+
+    LayoutPowerupPanel({.heldColour = assets::BrickColour::Red}, PanelImages(), out, 240.0F);
+
+    REQUIRE_FALSE(out.empty());
+    CHECK(out[0].bounds.y == doctest::Approx(166.0F));
+}
+
 TEST_CASE("each colour picks its own items and tint") {
     const std::vector<UiImage> images = PanelImages();
 

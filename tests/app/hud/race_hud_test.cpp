@@ -157,10 +157,9 @@ TEST_CASE("the lap counter and lap time sit top right, right of their labels") {
     const Fonts fonts;
     RaceHud hud(EnglishStrings(), fonts.Hud());
     const test::RingRace race(3, 3);
-    const auto names = Names();
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 0, names, {}, texts);
+    hud.Layout(race.clock, race.progress, 0, texts);
 
     const float lapTimeX = 640.0F - (11.0F / 8.0F * 70.0F);
     CHECK(XOf(texts, u"0:00:00") == doctest::Approx(lapTimeX));
@@ -177,10 +176,9 @@ TEST_CASE("the place digit ends where its suffix starts, top left") {
     const std::array<Vector3, 3> positions{Vector3{.x = -9.0F}, Vector3{.x = -8.0F},
                                            Vector3{.x = -7.0F}};
     race.progress.Rank(race.graph, positions);
-    const auto names = Names();
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 0, names, {}, texts);
+    hud.Layout(race.clock, race.progress, 0, texts);
 
     const auto digit = std::ranges::find_if(
         texts, [](const HudText& item) { return item.font == HudFont::Numbers; });
@@ -196,10 +194,9 @@ TEST_CASE("the countdown is centred, yellow and in the number font") {
     test::RingRace race(1, 3);
     race.clock.Advance(Milliseconds{2001}, false);
     race.clock.Advance(Milliseconds{2500}, false);
-    const auto names = Names();
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 0, names, {}, texts);
+    hud.Layout(race.clock, race.progress, 0, texts);
 
     const HudText one = LastNumbers(texts);
     const float scale = 0.9F;
@@ -209,6 +206,79 @@ TEST_CASE("the countdown is centred, yellow and in the number font") {
     CHECK(one.y ==
           doctest::Approx(7.0F + 42.0F - (static_cast<float>(kNumberHeight) * scale / 4.0F)));
     CHECK(one.tint.b == 0.0F);
+}
+
+TEST_CASE("one player's HUD fills the screen and two players' split it top and bottom") {
+    const HudPlacement full = PlacementFor(0, 1);
+    const HudPlacement top = PlacementFor(0, 2);
+    const HudPlacement bottom = PlacementFor(1, 2);
+
+    CHECK(full.top == 0.0F);
+    CHECK(full.bottom == 480.0F);
+    CHECK(full.textScale == 1.0F);
+    CHECK(top.top == 0.0F);
+    CHECK(top.bottom == 240.0F);
+    CHECK(bottom.top == 240.0F);
+    CHECK(bottom.bottom == 480.0F);
+    CHECK(bottom.textScale == doctest::Approx(0.9F));
+    CHECK(bottom.bannerScale == doctest::Approx(0.8F));
+}
+
+struct SplitLayout {
+    SplitLayout() {
+        test::RingRace race(3, 3);
+        const std::array<Vector3, 3> positions{Vector3{.x = -9.0F}, Vector3{.x = -8.0F},
+                                               Vector3{.x = -7.0F}};
+        race.progress.Rank(race.graph, positions);
+        hud.Layout(race.clock, race.progress, 0, texts);
+    }
+
+    Fonts fonts;
+    RaceHud hud{EnglishStrings(), fonts.Hud(), PlacementFor(1, 2)};
+    std::vector<HudText> texts;
+};
+
+TEST_CASE("a split HUD's lap row shrinks and measures y from the half's top") {
+    const SplitLayout split;
+    const std::vector<HudText>& texts = split.texts;
+
+    const float lapTimeX = 640.0F - (11.0F / 8.0F * 70.0F * 0.9F);
+    CHECK(XOf(texts, u"0:00:00") == doctest::Approx(lapTimeX));
+    CHECK(YOf(texts, u"0:00:00") == doctest::Approx(247.0F));
+    CHECK(Find(texts, u"0:00:00").value_or(HudText{}).scale == doctest::Approx(0.9F));
+    CHECK(XOf(texts, u"LAP") == doctest::Approx(lapTimeX - 56.0F));
+}
+
+TEST_CASE("a split HUD's place shrinks and keeps its suffix's x") {
+    const SplitLayout split;
+    const std::vector<HudText>& texts = split.texts;
+
+    CHECK(XOf(texts, u"RD") == doctest::Approx(69.0F));
+    CHECK(YOf(texts, u"RD") == doctest::Approx(247.0F));
+    const auto digit = std::ranges::find_if(
+        texts, [](const HudText& item) { return item.font == HudFont::Numbers; });
+    REQUIRE(digit != texts.end());
+    CHECK(digit->x == doctest::Approx(64.0F - 18.0F));
+    CHECK(digit->scale == doctest::Approx(0.9F));
+}
+
+TEST_CASE("a split HUD's countdown shrinks and sits under its half's rows") {
+    const Fonts fonts;
+    RaceHud hud(EnglishStrings(), fonts.Hud(), PlacementFor(1, 2));
+    test::RingRace race(1, 3);
+    race.clock.Advance(Milliseconds{2001}, false);
+    race.clock.Advance(Milliseconds{2500}, false);
+    std::vector<HudText> texts;
+
+    hud.Layout(race.clock, race.progress, 0, texts);
+
+    const HudText one = LastNumbers(texts);
+    const float scale = 0.9F * 0.8F;
+    CHECK(one.text == u"1");
+    CHECK(one.scale == doctest::Approx(scale));
+    CHECK(one.x == doctest::Approx(320.0F - (static_cast<float>(kNumberWidth) * scale / 2.0F)));
+    const float gapY = 240.0F + 7.0F + (21.0F / 8.0F * 16.0F * 0.9F);
+    CHECK(one.y == doctest::Approx(gapY - (static_cast<float>(kNumberHeight) * scale / 4.0F)));
 }
 
 TEST_CASE("the results table lists each racer with its gap to the winner") {
@@ -228,7 +298,8 @@ TEST_CASE("the results table lists each racer with its gap to the winner") {
     const auto names = Names();
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 1, names, {}, texts);
+    hud.Layout(race.clock, race.progress, 1, texts);
+    hud.LayoutResults(race.clock, race.progress, 1, names, {}, texts);
 
     CHECK(YOf(texts, u"ANN DROID") == doctest::Approx(132.0F));
     CHECK(XOf(texts, u"ANN DROID") == doctest::Approx(50.0F));
@@ -261,7 +332,7 @@ TEST_CASE("a circuit race's results add each racer's points for its place") {
     const std::array<std::int32_t, 3> before{40, 0, 5};
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 0, names, before, texts);
+    hud.LayoutResults(race.clock, race.progress, 0, names, before, texts);
 
     CHECK(YOf(texts, u"ANN DROID") == doctest::Approx(132.0F));
     CHECK(XOf(texts, u"30") == doctest::Approx(450.0F));
@@ -279,7 +350,7 @@ TEST_CASE("the player's results row blinks off for 150 ms of every 400") {
     std::vector<HudText> texts;
 
     race.clock.Advance(Milliseconds{100}, false);
-    hud.Layout(race.clock, race.progress, 0, names, before, texts);
+    hud.LayoutResults(race.clock, race.progress, 0, names, before, texts);
 
     CHECK_FALSE(Find(texts, u"ROCKET RACER").has_value());
     CHECK(Find(texts, u"ANN DROID").has_value());
@@ -294,7 +365,7 @@ TEST_CASE("after the race view, the circuit view ranks racers on their new total
     const std::array<std::int32_t, 3> before{40, 0, 5};
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, 0, names, before, texts);
+    hud.LayoutResults(race.clock, race.progress, 0, names, before, texts);
 
     CHECK(YOf(texts, u"CIRCUIT") == doctest::Approx(60.0F));
     CHECK(YOf(texts, u"ROCKET RACER") == doctest::Approx(132.0F));

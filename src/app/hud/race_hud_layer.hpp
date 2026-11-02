@@ -20,11 +20,11 @@
 
 namespace rr::app {
 
-/// One racer's HUD in the chosen language, ready to draw.
+/// Each player's HUD in the chosen language, ready to draw. The players drive the first slots.
 class RaceHudLayer {
 public:
     /// `nameIndexes` are lines in `DRIVERS.SRF`. `renderer` and `vfs` must outlive the layer.
-    RaceHudLayer(render::Renderer& renderer, const assets::Vfs& vfs, std::size_t racer,
+    RaceHudLayer(render::Renderer& renderer, const assets::Vfs& vfs, std::size_t players,
                  std::vector<std::int32_t> nameIndexes);
 
     /// Loads only when `language` changes. The HUD stays hidden while its files fail to load.
@@ -36,23 +36,22 @@ public:
     void Tick(const sim::RaceSession& session, Milliseconds elapsed);
     void TickPause(Milliseconds elapsed);
 
-    /// Valid until the next call. `cover` sits between the HUD and the `pause` dialog.
-    [[nodiscard]] std::span<const render::SpriteDraw> Draw(const sim::RaceSession& session,
-                                                           const sim::RacerSnapshot& racer,
-                                                           std::optional<render::SpriteDraw> cover,
-                                                           std::optional<PauseView> pause);
+    /// Valid until the next call. Each `covers` entry fills its player's half over their HUD.
+    [[nodiscard]] std::span<const render::SpriteDraw> Draw(
+        const sim::RaceSession& session, std::span<const sim::RacerSnapshot> racers,
+        std::span<const std::optional<render::SpriteDraw>> covers, std::optional<PauseView> pause);
 
 private:
     render::Renderer* renderer_;
     const assets::Vfs* vfs_;
-    std::size_t racer_;
+    std::size_t players_;
     std::vector<std::int32_t> nameIndexes_;
     std::vector<std::int32_t> circuitPoints_;
     std::string language_;
     UiFonts fonts_;
     std::vector<std::u16string> names_;
     std::vector<UiImage> images_;
-    std::optional<RaceHud> hud_;
+    std::vector<RaceHud> huds_;
     std::vector<HudText> texts_;
     std::vector<render::SpriteDraw> sprites_;
 };
