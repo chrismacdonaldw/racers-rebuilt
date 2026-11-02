@@ -67,12 +67,14 @@ TEST_CASE("the screens that don't exist yet only report it") {
     CHECK(menu.Focus() == OptionsRow::Credits);
 }
 
-TEST_CASE("player 1 controls opens the controls screen") {
+TEST_CASE("each player's controls button opens that player's controls screen") {
     OptionsMenu menu(OptionValues{});
 
     CHECK(Press(menu, {MenuAction::Down, MenuAction::Down, MenuAction::Down,
-                       MenuAction::Confirm}) == OptionsRequest::Controls);
+                       MenuAction::Confirm}) == OptionsRequest::Player1Controls);
     CHECK(menu.Focus() == OptionsRow::Player1);
+    CHECK(Press(menu, {MenuAction::Down, MenuAction::Confirm}) == OptionsRequest::Player2Controls);
+    CHECK(menu.Focus() == OptionsRow::Player2);
 }
 
 TEST_CASE("a selector steps its value and stops at either end") {

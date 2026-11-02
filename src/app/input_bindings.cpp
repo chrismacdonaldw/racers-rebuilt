@@ -127,9 +127,14 @@ void DeclareInputSettings(settings::Registry& registry) {
     };
     declare(kActionBindings);
     declare(kMenuBindings);
-    for (const KeyBinding& binding : kPlayer2KeyBindings) {
-        registry.Declare(binding.keys);
+    declare(kPlayer2Bindings);
+}
+
+std::span<const Binding<sim::Action>> RaceBindingsOf(std::size_t player) {
+    if (player == 0) {
+        return kActionBindings;
     }
+    return kPlayer2Bindings;
 }
 
 template <typename Action>
@@ -156,26 +161,15 @@ InputBindings::BoundInputs<Action> InputBindings::Bind(const settings::Registry&
     return bound;
 }
 
-std::vector<InputBindings::Bound<SDL_Keycode, sim::Action>> InputBindings::BindPlayer2(
-    const settings::Registry& registry) {
-    std::vector<Bound<SDL_Keycode, sim::Action>> bound;
-    for (const KeyBinding& binding : kPlayer2KeyBindings) {
-        for (const SDL_Keycode key : KeysNamed(registry.Get(binding.keys), binding.keys.key)) {
-            bound.push_back({.input = key, .action = binding.action});
-        }
-    }
-    return bound;
-}
-
 InputBindings::InputBindings(const settings::Registry& registry)
     : race_(Bind<sim::Action>(registry, kActionBindings)),
       menu_(Bind<sim::MenuAction>(registry, kMenuBindings)),
-      player2Keys_(BindPlayer2(registry)) {}
+      player2_(Bind<sim::Action>(registry, kPlayer2Bindings)) {}
 
 void InputBindings::Rebind(const settings::Registry& registry, sim::InputLatch& latch) {
     race_ = Bind<sim::Action>(registry, kActionBindings);
     menu_ = Bind<sim::MenuAction>(registry, kMenuBindings);
-    player2Keys_ = BindPlayer2(registry);
+    player2_ = Bind<sim::Action>(registry, kPlayer2Bindings);
     heldKeys_.clear();
     heldButtons_.clear();
     heldTriggers_.clear();
@@ -291,7 +285,7 @@ void InputBindings::LatchHeldActions(sim::InputLatch& latch) const {
 std::size_t InputBindings::PlayerOfKey(SDL_Keycode key) const {
     constexpr auto kKey = &Bound<SDL_Keycode, sim::Action>::input;
     const bool isPlayer2 = playerCount_ > 1 && !std::ranges::contains(race_.keys, key, kKey) &&
-                           std::ranges::contains(player2Keys_, key, kKey);
+                           std::ranges::contains(player2_.keys, key, kKey);
     return isPlayer2 ? 1 : 0;
 }
 
@@ -306,9 +300,10 @@ bool InputBindings::IsHeld(std::size_t player, sim::Action action) const {
         return PlayerOfKey(key) == player && std::ranges::contains(heldKeys_, key);
     };
     const auto ownsPad = [&](SDL_JoystickID pad) { return PlayerOfPad(pad) == player; };
-    return AnyHeld(player == 0 ? race_.keys : player2Keys_, action, isKeyHeld) ||
-           AnyPadHeld(race_.buttons, heldButtons_, action, ownsPad) ||
-           AnyPadHeld(race_.triggers, heldTriggers_, action, ownsPad);
+    const BoundInputs<sim::Action>& bound = player == 0 ? race_ : player2_;
+    return AnyHeld(bound.keys, action, isKeyHeld) ||
+           AnyPadHeld(bound.buttons, heldButtons_, action, ownsPad) ||
+           AnyPadHeld(bound.triggers, heldTriggers_, action, ownsPad);
 }
 
 }

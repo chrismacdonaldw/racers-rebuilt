@@ -17,7 +17,7 @@
 namespace rr::app {
 namespace {
 
-constexpr std::size_t kPlayerOneTitleLine = 0x17;
+constexpr std::size_t kFirstTitleLine = 0x17;
 constexpr std::size_t kFirstActionLine = 0x69;
 constexpr std::size_t kFinishLine = 0x1E;
 constexpr std::size_t kListeningState = 3;
@@ -51,18 +51,20 @@ std::array<std::u16string, kControlRows> ShownNames(const ControlNames& names) {
 }
 
 Result<std::unique_ptr<ControlsScene>> ControlsScene::Create(render::Renderer& renderer,
-                                                             const assets::Vfs& vfs) {
+                                                             const assets::Vfs& vfs,
+                                                             std::size_t player) {
     Result<ControlsLook> look = LoadControlsLook(renderer, vfs);
     if (!look) {
         return std::unexpected(std::move(look.error()));
     }
-    return std::unique_ptr<ControlsScene>(new ControlsScene(renderer, vfs, std::move(*look)));
+    return std::unique_ptr<ControlsScene>(
+        new ControlsScene(renderer, vfs, std::move(*look), player));
 }
 
 void ControlsScene::ApplySettings(const settings::Registry& settings) {
     static_cast<void>(text_.Apply(*renderer_, *vfs_, settings));
-    keyboardNames_ = ReadControlNames(settings, ControlsDevice::Keyboard);
-    gamepadNames_ = ReadControlNames(settings, ControlsDevice::Gamepad);
+    keyboardNames_ = ReadControlNames(settings, player_, ControlsDevice::Keyboard);
+    gamepadNames_ = ReadControlNames(settings, player_, ControlsDevice::Gamepad);
     keyboardShown_ = ShownNames(keyboardNames_);
     gamepadShown_ = ShownNames(gamepadNames_);
 }
@@ -85,8 +87,9 @@ void ControlsScene::HandleEvent(const SDL_Event& event) {
         return;
     }
     if (pressed->device == menu_.Device()) {
-        std::ranges::move(RebindChanges(DeviceNames(), menu_.Device(), *row, pressed->name),
-                          std::back_inserter(changes_));
+        std::ranges::move(
+            RebindChanges(DeviceNames(), player_, menu_.Device(), *row, pressed->name),
+            std::back_inserter(changes_));
     }
     menu_.StopListening();
 }
@@ -114,7 +117,7 @@ void ControlsScene::Snapshot(sim::RenderSnapshot& out) const {
 void ControlsScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpolated) {
     sprites_.clear();
     DrawPictures(std::span(&look_.backdrop, 1), sprites_);
-    DrawBanner(text_, look_.banner, text_.Line(kPlayerOneTitleLine), look_.backdrop,
+    DrawBanner(text_, look_.banner, text_.Line(kFirstTitleLine + player_), look_.backdrop,
                look_.bannerTop, sprites_);
     DrawDevicePicker();
     DrawRows();
@@ -127,8 +130,9 @@ void ControlsScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpola
     }
 }
 
-ControlsScene::ControlsScene(render::Renderer& renderer, const assets::Vfs& vfs, ControlsLook look)
-    : renderer_(&renderer), vfs_(&vfs), look_(std::move(look)) {}
+ControlsScene::ControlsScene(render::Renderer& renderer, const assets::Vfs& vfs, ControlsLook look,
+                             std::size_t player)
+    : renderer_(&renderer), vfs_(&vfs), look_(std::move(look)), player_(player) {}
 
 const ControlNames& ControlsScene::DeviceNames() const {
     return menu_.Device() == ControlsDevice::Keyboard ? keyboardNames_ : gamepadNames_;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>
@@ -18,12 +19,13 @@
 
 namespace rr::app {
 
-/// The original's player 1 controls screen, rebinding the race actions' keys and buttons.
+/// The original's controls screen, rebinding one player's race keys and buttons.
 class ControlsScene final : public Scene {
 public:
     /// `renderer` and `vfs` must outlive the scene.
     [[nodiscard]] static Result<std::unique_ptr<ControlsScene>> Create(render::Renderer& renderer,
-                                                                       const assets::Vfs& vfs);
+                                                                       const assets::Vfs& vfs,
+                                                                       std::size_t player);
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
@@ -34,7 +36,8 @@ public:
     void Render(const sim::RenderSnapshot& interpolated) override;
 
 private:
-    ControlsScene(render::Renderer& renderer, const assets::Vfs& vfs, ControlsLook look);
+    ControlsScene(render::Renderer& renderer, const assets::Vfs& vfs, ControlsLook look,
+                  std::size_t player);
 
     [[nodiscard]] const ControlNames& DeviceNames() const;
     void DrawDevicePicker();
@@ -43,6 +46,7 @@ private:
     render::Renderer* renderer_;
     const assets::Vfs* vfs_;
     ControlsLook look_;
+    std::size_t player_;
     ControlsMenu menu_;
     MenuText text_;
     ControlNames keyboardNames_;
