@@ -26,6 +26,7 @@ struct MenuTextStyle {
 struct ImageButtonLook {
     std::array<MenuButtonState, assets::kControlStates> states;
     BoxSize image;
+    assets::SoundIds sounds{};
 };
 
 struct ArrowImages {

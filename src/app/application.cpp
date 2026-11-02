@@ -25,6 +25,7 @@
 #include "app/menu/controls_scene.hpp"
 #include "app/menu/main_menu_scene.hpp"
 #include "app/menu/menu_scenes.hpp"
+#include "app/menu/menu_sounds.hpp"
 #include "app/menu/options_scene.hpp"
 #include "app/menu/race_setup_scene.hpp"
 #include "app/music_folder_source.hpp"
@@ -275,18 +276,21 @@ Application::Application(Parts parts)
 
 Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std::string>& scene) {
     if (!scene || *scene == kMainMenuScene) {
-        return MainMenuScene::Create(renderer_, vfs_, std::exchange(unlockNotice_, false))
+        return MainMenuScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_),
+                                     std::exchange(unlockNotice_, false))
             .transform(ToScene<MainMenuScene>);
     }
     if (*scene == kOptionsScene) {
-        return OptionsScene::Create(renderer_, vfs_).transform(ToScene<OptionsScene>);
+        return OptionsScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_))
+            .transform(ToScene<OptionsScene>);
     }
     if (*scene == kControlsScene || *scene == kPlayer2ControlsScene) {
         const std::size_t player = *scene == kPlayer2ControlsScene ? 1 : 0;
         return ControlsScene::Create(renderer_, vfs_, player).transform(ToScene<ControlsScene>);
     }
     if (const std::optional<RaceSetupMode> mode = RaceSetupModeOf(*scene)) {
-        return RaceSetupScene::Create(renderer_, vfs_, *mode, UnlockedCircuits(ProgressFile()))
+        return RaceSetupScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_),
+                                      *mode, UnlockedCircuits(ProgressFile()))
             .transform(ToScene<RaceSetupScene>);
     }
     if (IsAwardScene(*scene)) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -10,14 +11,17 @@
 #include <vector>
 
 #include "app/menu/menu_page.hpp"
+#include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/menu/race_setup_menu.hpp"
 #include "app/scene.hpp"
 #include "assets/menu_layout.hpp"
+#include "assets/menu_styles.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 #include "render/render_view.hpp"
 #include "render/renderer.hpp"
+#include "sim/input_frame.hpp"
 
 namespace rr::app {
 
@@ -25,12 +29,19 @@ enum class RaceSetupMode : std::uint8_t { SingleRace, Circuit, Versus };
 
 [[nodiscard]] std::optional<RaceSetupMode> RaceSetupModeOf(std::string_view scene);
 
+struct RaceSetupLook {
+    std::vector<MenuPicture> pictures;
+    std::array<MenuButtonState, assets::kControlStates> states;
+    std::array<assets::SoundIds, static_cast<std::size_t>(RaceSetupRow::Count)> rowSounds{};
+    assets::CarouselSounds scrollSounds{};
+};
+
 /// Picks a track or circuit and the players' racers over the main menu's backdrop, then races.
 class RaceSetupScene final : public Scene {
 public:
     /// `renderer` and `vfs` must outlive the scene.
     [[nodiscard]] static Result<std::unique_ptr<RaceSetupScene>> Create(
-        render::Renderer& renderer, const assets::Vfs& vfs, RaceSetupMode mode,
+        render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds, RaceSetupMode mode,
         const std::set<std::string>& unlockedCircuits);
 
     void ApplySettings(const settings::Registry& settings) override;
@@ -40,11 +51,10 @@ public:
     void Render(const sim::RenderSnapshot& interpolated) override;
 
 private:
-    using ButtonStates = std::array<MenuButtonState, assets::kControlStates>;
+    RaceSetupScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
+                   RaceSetupMode mode, RaceSetupLook look, RaceSetupMenu menu);
 
-    RaceSetupScene(render::Renderer& renderer, const assets::Vfs& vfs, RaceSetupMode mode,
-                   std::vector<MenuPicture> pictures, ButtonStates states, RaceSetupMenu menu);
-
+    void PlaySounds(const sim::InputFrame& input, RaceSetupRow focusBefore) const;
     [[nodiscard]] std::vector<std::u16string> CourseNames() const;
     void DrawRow(RaceSetupRow row, std::u16string_view label, std::u16string_view value);
     [[nodiscard]] std::u16string_view RacerName(std::size_t racer) const;
@@ -52,9 +62,9 @@ private:
 
     render::Renderer* renderer_;
     const assets::Vfs* vfs_;
+    MenuSounds sounds_;
     RaceSetupMode mode_;
-    std::vector<MenuPicture> pictures_;
-    ButtonStates states_;
+    RaceSetupLook look_;
     RaceSetupMenu menu_;
     MenuText text_;
     std::vector<std::u16string> raceNames_;

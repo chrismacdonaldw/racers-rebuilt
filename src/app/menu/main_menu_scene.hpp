@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "app/menu/menu_page.hpp"
+#include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/menu/message_dialog.hpp"
 #include "app/scene.hpp"
@@ -23,6 +24,7 @@ public:
     /// `renderer` and `vfs` must outlive the scene.
     [[nodiscard]] static Result<std::unique_ptr<MainMenuScene>> Create(render::Renderer& renderer,
                                                                        const assets::Vfs& vfs,
+                                                                       MenuSounds sounds,
                                                                        bool showsUnlockNotice);
 
     void ApplySettings(const settings::Registry& settings) override;
@@ -32,14 +34,16 @@ public:
     void Render(const sim::RenderSnapshot& interpolated) override;
 
 private:
-    MainMenuScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuPage page,
-                  std::optional<MessageDialog> notice);
+    MainMenuScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
+                  MenuPage page, std::optional<MessageDialog> notice);
 
+    void MoveFocus(std::size_t focus);
     void Choose(const MenuButton& button);
     void DrawButton(const MenuButton& button, std::size_t state);
 
     render::Renderer* renderer_;
     const assets::Vfs* vfs_;
+    MenuSounds sounds_;
     MenuPage page_;
     std::vector<render::Rect> buttonBounds_;
     MenuText text_;

@@ -54,6 +54,7 @@ rr_add_module(app
         menu/menu_files.cpp
         menu/menu_focus.cpp
         menu/menu_page.cpp
+        menu/menu_sounds.cpp
         menu/menu_text.cpp
         menu/menu_widgets.cpp
         menu/message_dialog.cpp

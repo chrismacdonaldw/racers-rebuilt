@@ -8,6 +8,7 @@
 
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_scenes.hpp"
+#include "app/menu/menu_sounds.hpp"
 #include "app/race_settings.hpp"
 #include "core/log.hpp"
 
@@ -16,6 +17,11 @@ namespace {
 
 constexpr std::string_view kScreen = "MAINMENU";
 constexpr std::string_view kTitleFont = "fontmenu";
+constexpr std::string_view kCourseSelector = "imagecon";
+constexpr std::string_view kRacerSelector = "textcont";
+constexpr std::string_view kRaceButton = "buttonch";
+constexpr std::string_view kBackButton = "buttonla";
+constexpr std::string_view kPicker = "picker";
 constexpr std::size_t kCircuitTitleLine = 13;
 constexpr std::size_t kSingleRaceTitleLine = 14;
 constexpr std::size_t kVersusTitleLine = 0x19;
@@ -35,6 +41,8 @@ constexpr float kValueLeft = 230.0F;
 constexpr float kTitleTop = 118.0F;
 constexpr float kChampionTop = 278.0F;
 constexpr std::array kRowTops{178.0F, 218.0F, 258.0F, 358.0F, 418.0F};
+constexpr std::array kScrollSteps{std::pair{sim::MenuAction::Left, -1},
+                                  std::pair{sim::MenuAction::Right, 1}};
 
 std::u16string Widen(std::string_view text) {
     std::u16string wide;
@@ -80,6 +88,16 @@ std::size_t TitleLine(RaceSetupMode mode) {
     return kSingleRaceTitleLine;
 }
 
+RaceSetupLook LookOf(const MenuFiles& files, std::vector<MenuPicture> pictures) {
+    return {
+        .pictures = std::move(pictures),
+        .states = TextButtonStates(files),
+        .rowSounds = {SelectorSounds(files, kCourseSelector), SelectorSounds(files, kRacerSelector),
+                      SelectorSounds(files, kRacerSelector), GameButtonSounds(files, kRaceButton),
+                      GameButtonSounds(files, kBackButton)},
+        .scrollSounds = ScrollSounds(files, kPicker)};
+}
+
 Result<std::vector<CourseChoice>> LoadCourses(const assets::Vfs& vfs, RaceSetupMode mode,
                                               const std::set<std::string>& unlockedCircuits) {
     return mode == RaceSetupMode::Circuit ? LoadCircuitChoices(vfs, unlockedCircuits)
@@ -102,7 +120,7 @@ std::optional<RaceSetupMode> RaceSetupModeOf(std::string_view scene) {
 }
 
 Result<std::unique_ptr<RaceSetupScene>> RaceSetupScene::Create(
-    render::Renderer& renderer, const assets::Vfs& vfs, RaceSetupMode mode,
+    render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds, RaceSetupMode mode,
     const std::set<std::string>& unlockedCircuits) {
     Result<MenuFiles> files = ReadMenuFiles(vfs, kScreen);
     Result<MenuPage> page = files.and_then([&](const MenuFiles& read) {
@@ -114,7 +132,7 @@ Result<std::unique_ptr<RaceSetupScene>> RaceSetupScene::Create(
         return std::unexpected(std::move(courses.error()));
     }
     return std::unique_ptr<RaceSetupScene>(new RaceSetupScene(
-        renderer, vfs, mode, std::move(page->pictures), TextButtonStates(*files),
+        renderer, vfs, sounds, mode, LookOf(*files, std::move(page->pictures)),
         RaceSetupMenu(std::move(*courses), mode == RaceSetupMode::Versus ? kVersusPlayers : 1)));
 }
 
@@ -149,7 +167,10 @@ std::optional<std::string> RaceSetupScene::TakeNextScene() {
 }
 
 void RaceSetupScene::Tick(const sim::InputFrame& input) {
-    if (std::optional<std::string> next = menu_.Tick(input, rules_)) {
+    const RaceSetupRow focusBefore = menu_.Focus();
+    std::optional<std::string> next = menu_.Tick(input, rules_);
+    PlaySounds(input, focusBefore);
+    if (next) {
         next_ = std::move(next);
     }
 }
@@ -162,7 +183,7 @@ void RaceSetupScene::Snapshot(sim::RenderSnapshot& out) const {
 
 void RaceSetupScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpolated) {
     sprites_.clear();
-    DrawPictures(pictures_, sprites_);
+    DrawPictures(look_.pictures, sprites_);
     const bool isCircuit = mode_ == RaceSetupMode::Circuit;
     const bool isVersus = mode_ == RaceSetupMode::Versus;
     DrawLabel(text_, {.font = std::string(kTitleFont)}, text_.Line(TitleLine(mode_)), kLeft,
@@ -187,15 +208,41 @@ void RaceSetupScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpol
 }
 
 RaceSetupScene::RaceSetupScene(render::Renderer& renderer, const assets::Vfs& vfs,
-                               RaceSetupMode mode, std::vector<MenuPicture> pictures,
-                               ButtonStates states, RaceSetupMenu menu)
+                               MenuSounds sounds, RaceSetupMode mode, RaceSetupLook look,
+                               RaceSetupMenu menu)
     : renderer_(&renderer),
       vfs_(&vfs),
+      sounds_(sounds),
       mode_(mode),
-      pictures_(std::move(pictures)),
-      states_(std::move(states)),
+      look_(std::move(look)),
       menu_(std::move(menu)),
       courseNames_(CourseNames()) {}
+
+void RaceSetupScene::PlaySounds(const sim::InputFrame& input, RaceSetupRow focusBefore) const {
+    const auto soundsOf = [&](RaceSetupRow row) {
+        const bool isDisabled = row == RaceSetupRow::Race && menu_.Course().isLocked;
+        return isDisabled ? assets::SoundIds{} : look_.rowSounds.at(static_cast<std::size_t>(row));
+    };
+    if (input.WasPressed(sim::MenuAction::Back)) {
+        sounds_.Confirm(soundsOf(RaceSetupRow::Back));
+        return;
+    }
+    const RaceSetupRow focus = menu_.Focus();
+    if (focus != focusBefore) {
+        sounds_.MoveHighlight(soundsOf(focusBefore), soundsOf(focus));
+    }
+    if (focus == RaceSetupRow::Course || focus == RaceSetupRow::Racer ||
+        focus == RaceSetupRow::SecondRacer) {
+        for (const auto& [action, step] : kScrollSteps) {
+            if (input.WasPressed(action)) {
+                sounds_.Scroll(look_.scrollSounds, step);
+            }
+        }
+    }
+    if (input.WasPressed(sim::MenuAction::Confirm)) {
+        sounds_.Confirm(soundsOf(focus));
+    }
+}
 
 std::vector<std::u16string> RaceSetupScene::CourseNames() const {
     std::vector<std::u16string> names;
@@ -215,8 +262,8 @@ void RaceSetupScene::DrawRow(RaceSetupRow row, std::u16string_view label,
         state = isFocused ? kDisabledFocusedState : kDisabledState;
     }
     const float top = kRowTops.at(static_cast<std::size_t>(row));
-    DrawLabel(text_, states_.at(state), label, kLeft, top, sprites_);
-    DrawLabel(text_, states_.at(state), value, kValueLeft, top, sprites_);
+    DrawLabel(text_, look_.states.at(state), label, kLeft, top, sprites_);
+    DrawLabel(text_, look_.states.at(state), value, kValueLeft, top, sprites_);
 }
 
 std::u16string_view RaceSetupScene::RacerName(std::size_t racer) const {
@@ -225,7 +272,7 @@ std::u16string_view RaceSetupScene::RacerName(std::size_t racer) const {
 }
 
 void RaceSetupScene::DrawChampion() {
-    const MenuButtonState& state = states_.at(kNormalState);
+    const MenuButtonState& state = look_.states.at(kNormalState);
     DrawLabel(text_, state, OneLine(text_.Line(kHostingLine)), kLeft, kChampionTop, sprites_);
     DrawLabel(text_, state, OneLine(text_.Line(kFirstChampionLine + menu_.Course().circuitIndex)),
               kValueLeft, kChampionTop, sprites_);

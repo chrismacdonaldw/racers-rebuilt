@@ -68,13 +68,14 @@ std::optional<DialogLook> WarningLook(render::Renderer& renderer, const assets::
 }
 
 Result<std::unique_ptr<OptionsScene>> OptionsScene::Create(render::Renderer& renderer,
-                                                           const assets::Vfs& vfs) {
+                                                           const assets::Vfs& vfs,
+                                                           MenuSounds sounds) {
     Result<OptionsLook> look = LoadOptionsLook(renderer, vfs);
     if (!look) {
         return std::unexpected(std::move(look.error()));
     }
     return std::unique_ptr<OptionsScene>(
-        new OptionsScene(renderer, vfs, std::move(*look), WarningLook(renderer, vfs)));
+        new OptionsScene(renderer, vfs, sounds, std::move(*look), WarningLook(renderer, vfs)));
 }
 
 void OptionsScene::ApplySettings(const settings::Registry& settings) {
@@ -133,10 +134,11 @@ void OptionsScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpolat
     }
 }
 
-OptionsScene::OptionsScene(render::Renderer& renderer, const assets::Vfs& vfs, OptionsLook look,
-                           std::optional<DialogLook> warningLook)
+OptionsScene::OptionsScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
+                           OptionsLook look, std::optional<DialogLook> warningLook)
     : renderer_(&renderer),
       vfs_(&vfs),
+      sounds_(sounds),
       look_(std::move(look)),
       warningLook_(std::move(warningLook)),
       driverName_(DriverName(renderer)) {}
@@ -145,7 +147,7 @@ void OptionsScene::TickWarning(const sim::InputFrame& input) {
     if (!warning_) {
         return;
     }
-    warning_->Tick(input);
+    warning_->Tick(input, sounds_);
     if (warning_->IsClosed()) {
         warning_.reset();
         menu_.Proceed();

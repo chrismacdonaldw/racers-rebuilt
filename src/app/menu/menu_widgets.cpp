@@ -68,7 +68,8 @@ Result<ImageButtonLook> LoadImageButton(MenuImageCache& images, const MenuFiles&
     if (found == nullptr || !found->button.images) {
         return Fail(ErrorCode::NotFound, std::format("there's no button style {}", style));
     }
-    ImageButtonLook look{.states = ButtonStates(files, style)};
+    ImageButtonLook look{.states = ButtonStates(files, style),
+                         .sounds = found->icon.sounds.value_or(assets::SoundIds{})};
     for (std::size_t state = 0; state < assets::kControlStates; ++state) {
         Result<UiImage> image = images.Upload(found->button.images->at(state));
         if (!image) {

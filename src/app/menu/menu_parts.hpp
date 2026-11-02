@@ -27,6 +27,7 @@ struct MenuButton {
     std::size_t textLine = 0;
     render::Rect bounds;
     std::array<MenuButtonState, assets::kControlStates> states;
+    assets::SoundIds sounds{};
 };
 
 }

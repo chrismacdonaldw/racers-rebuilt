@@ -67,6 +67,16 @@ const assets::TextStyle* MenuFiles::FindTextStyle(std::string_view name) const {
                         [&](const assets::MenuStyles& style) { return style.FindText(name); });
 }
 
+const assets::CarouselStyle* MenuFiles::FindCarouselStyle(std::string_view name) const {
+    return FindInStyles(styles,
+                        [&](const assets::MenuStyles& style) { return style.FindCarousel(name); });
+}
+
+const assets::SelectorStyle* MenuFiles::FindSelectorStyle(std::string_view name) const {
+    return FindInStyles(styles,
+                        [&](const assets::MenuStyles& style) { return style.FindSelector(name); });
+}
+
 const assets::GameButtonStyle* MenuFiles::FindGameButtonStyle(std::string_view name) const {
     return FindInStyles(
         styles, [&](const assets::MenuStyles& style) { return style.FindGameButton(name); });
