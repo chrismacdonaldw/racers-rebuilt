@@ -24,7 +24,6 @@ constexpr std::size_t kOptionsLine = 0x10;
 constexpr std::size_t kFirstDigitLine = 0x60;
 constexpr std::size_t kStereoLine = 0xA7;
 constexpr std::size_t kMonoLine = 0xA8;
-constexpr float kBannerMargin = 20.0F;
 constexpr float kHalf = 0.5F;
 constexpr char16_t kLineFeed = u'\n';
 constexpr render::Color kValueColor{
@@ -112,7 +111,7 @@ void OptionsScene::Snapshot(sim::RenderSnapshot& out) const {
 void OptionsScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpolated) {
     sprites_.clear();
     DrawPictures(std::span(&look_.backdrop, 1), sprites_);
-    DrawBanner();
+    DrawTitle();
     DrawButtons();
     DrawLabels();
     for (const OptionsSelector& selector : look_.selectors) {
@@ -177,16 +176,9 @@ void OptionsScene::Respond(OptionsRequest request, const OptionValues& before) {
     }
 }
 
-void OptionsScene::DrawBanner() {
-    const std::u16string_view title = text_.Line(TitleLine(menu_.Page()));
-    if (const UiFont* font = text_.Font(look_.banner.font)) {
-        const float right = look_.backdrop.bounds.width - kBannerMargin;
-        LayoutText(*font, title,
-                   {.x = right - TextWidth(*font, title),
-                    .y = look_.bannerTop,
-                    .tint = look_.banner.color},
-                   sprites_);
-    }
+void OptionsScene::DrawTitle() {
+    DrawBanner(text_, look_.banner, text_.Line(TitleLine(menu_.Page())), look_.backdrop,
+               look_.bannerTop, sprites_);
 }
 
 void OptionsScene::DrawButtons() {
@@ -200,18 +192,9 @@ void OptionsScene::DrawButtons() {
             }
             continue;
         }
-        const MenuButtonState& look = look_.backButton.at(state);
-        sprites_.push_back({.texture = look.image,
-                            .bounds = {.x = button.bounds.x,
-                                       .y = button.bounds.y,
-                                       .width = look_.backImage.width,
-                                       .height = look_.backImage.height},
-                            .tint = look.imageTint});
-        const UiFont* font = text_.Font(look.font);
-        const float textHeight = font != nullptr ? static_cast<float>(font->heightPx) : 0.0F;
-        DrawLabel(text_, look, text_.Line(isMain ? kMainMenuLine : kOptionsLine),
-                  button.bounds.x + look_.backImage.width,
-                  button.bounds.y + ((look_.backImage.height - textHeight) * kHalf), sprites_);
+        DrawImageButton(text_, look_.backButton, state,
+                        text_.Line(isMain ? kMainMenuLine : kOptionsLine),
+                        {.x = button.bounds.x, .y = button.bounds.y}, sprites_);
     }
 }
 
@@ -241,22 +224,19 @@ void OptionsScene::DrawLabels() {
 
 void OptionsScene::DrawSelector(const OptionsSelector& selector) {
     const bool isFocused = menu_.Focus() == selector.row;
-    sprites_.push_back(
-        {.texture = (isFocused ? look_.previous.focused : look_.previous.normal).texture,
-         .bounds = selector.previous});
-    sprites_.push_back({.texture = (isFocused ? look_.next.focused : look_.next.normal).texture,
-                        .bounds = selector.next});
+    const SelectorPlace& place = selector.place;
+    DrawSelectorArrows(look_.arrows, place, isFocused, sprites_);
     const bool isDriver = selector.row == OptionsRow::Driver;
-    const OptionsText& look = isDriver ? look_.driver : look_.label;
+    const MenuTextStyle& look = isDriver ? look_.driver : look_.label;
     const UiFont* font = text_.Font(look.font);
     if (font == nullptr) {
         return;
     }
     const std::u16string_view value = ValueText(selector.row);
-    const float left = selector.previous.x + selector.previous.width;
-    const float centre = (left + selector.next.x) * kHalf;
+    const float left = place.previous.x + place.previous.width;
+    const float centre = (left + place.next.x) * kHalf;
     const float top =
-        selector.bounds.y + ((selector.bounds.height - static_cast<float>(font->heightPx)) * kHalf);
+        place.bounds.y + ((place.bounds.height - static_cast<float>(font->heightPx)) * kHalf);
     const render::Color valueTint = isFocused ? kFocusedValueColor : kValueColor;
     LayoutText(*font, value,
                {.x = centre - (TextWidth(*font, value) * kHalf),

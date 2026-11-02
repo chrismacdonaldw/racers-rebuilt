@@ -7,6 +7,7 @@
 
 #include "app/menu/dialog_layout.hpp"
 #include "app/menu/menu_parts.hpp"
+#include "app/menu/menu_widgets.hpp"
 #include "app/menu/options_menu.hpp"
 #include "app/ui_text/ui_image.hpp"
 #include "assets/menu_layout.hpp"
@@ -16,11 +17,6 @@
 #include "render/renderer.hpp"
 
 namespace rr::app {
-
-struct OptionsText {
-    std::string font;
-    render::Color color;
-};
 
 struct OptionsButton {
     OptionsRow row = OptionsRow::Game;
@@ -35,12 +31,9 @@ struct OptionsLabel {
     float y = 0.0F;
 };
 
-/// The arrows sit at their own image sizes.
 struct OptionsSelector {
     OptionsRow row = OptionsRow::Opponents;
-    render::Rect bounds;
-    render::Rect previous;
-    render::Rect next;
+    SelectorPlace place;
 };
 
 struct OptionsSlider {
@@ -48,26 +41,19 @@ struct OptionsSlider {
     render::Rect bounds;
 };
 
-struct ArrowImages {
-    UiImage normal;
-    UiImage focused;
-};
-
 struct OptionsLook {
     MenuPicture backdrop;
     float bannerTop = 0.0F;
-    OptionsText banner;
-    OptionsText label;
-    OptionsText driver;
+    MenuTextStyle banner;
+    MenuTextStyle label;
+    MenuTextStyle driver;
     std::array<MenuButtonState, assets::kControlStates> textButton;
-    std::array<MenuButtonState, assets::kControlStates> backButton;
-    BoxSize backImage;
+    ImageButtonLook backButton;
     std::vector<OptionsButton> buttons;
     std::vector<OptionsLabel> labels;
     std::vector<OptionsSelector> selectors;
     std::vector<OptionsSlider> sliders;
-    ArrowImages previous;
-    ArrowImages next;
+    SelectorArrows arrows;
     UiImage stepDown;
     UiImage stepUp;
     UiImage rail;

@@ -37,7 +37,7 @@ private:
 
     void TickWarning(const sim::InputFrame& input);
     void Respond(OptionsRequest request, const OptionValues& before);
-    void DrawBanner();
+    void DrawTitle();
     void DrawButtons();
     void DrawLabels();
     void DrawSelector(const OptionsSelector& selector);
