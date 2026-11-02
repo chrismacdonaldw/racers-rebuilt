@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(racers-rebuilt VERSION 0.1.0 LANGUAGES CXX)
+project(racers-rebuilt VERSION 0.3.0 LANGUAGES CXX)
 
 option(RR_BUILD_TESTS "Build the unit test executable" ON)
 option(RR_BUILD_TOOLS "Build developer tools such as jam-dump" ON)

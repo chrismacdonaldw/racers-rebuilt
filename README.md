@@ -20,7 +20,7 @@ racers-rebuilt is a reimplementation of LEGO Racers for 64-bit Windows. It reads
 > **No game files are included.** racers-rebuilt needs an installed copy of the original PC game.
 
 > [!NOTE]
-> v0.1.0 is a track viewer that opens on a test scene. Pick a race track under **Developer → Scenes** in the overlay, or start with `--track`. A pace car drives the track's racing line, with a chase camera behind it.
+> v0.3.0 plays single races and circuits from the main menu, against AI drivers, with power-ups, hazards and saved trophies. The car builder, garage, time trials, mirrored circuits, versus, options screens and cutscenes aren't in yet.
 
 ## Features
 
