@@ -29,6 +29,9 @@
 
 namespace rr::app {
 
+class RaceScene;
+struct RaceSceneSetup;
+
 // NOLINTNEXTLINE(bugprone-exception-escape)
 class Application {
 public:
@@ -64,6 +67,9 @@ private:
     [[nodiscard]] Result<std::unique_ptr<Scene>> CreateCircuitRace(std::string_view scene,
                                                                    assets::TrackLoader& loader,
                                                                    Nanoseconds started);
+    [[nodiscard]] Result<std::unique_ptr<RaceScene>> LoadRace(const RaceSceneSetup& setup,
+                                                              assets::TrackLoader& loader,
+                                                              Nanoseconds started);
     [[nodiscard]] Result<std::unique_ptr<Scene>> CreateRace(const std::string& track);
     [[nodiscard]] std::filesystem::path ProgressFile() const;
     [[nodiscard]] Result<void> OpenScene(const std::optional<std::string>& scene);

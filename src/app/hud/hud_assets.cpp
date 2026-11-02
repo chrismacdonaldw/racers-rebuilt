@@ -30,12 +30,17 @@ std::string HudFolder(std::string_view language) {
     return assets::JoinGamePath(kCommonFolder, language);
 }
 
+Result<std::vector<std::u16string>> ReadGameStrings(const assets::Vfs& vfs,
+                                                    std::string_view language) {
+    return ReadStrings(vfs, HudFolder(language), kGameStrings);
+}
+
 Result<HudLanguage> LoadHudLanguage(const assets::Vfs& vfs, std::string_view language) {
-    const std::string folder = HudFolder(language);
     Result<HudStrings> strings =
-        ReadStrings(vfs, folder, kGameStrings)
-            .and_then([](const std::vector<std::u16string>& game) { return ReadHudStrings(game); });
-    Result<std::vector<std::u16string>> names = ReadStrings(vfs, folder, kDriverNames);
+        ReadGameStrings(vfs, language).and_then([](const std::vector<std::u16string>& game) {
+            return ReadHudStrings(game);
+        });
+    Result<std::vector<std::u16string>> names = ReadStrings(vfs, HudFolder(language), kDriverNames);
     if (!strings || !names) {
         return std::unexpected(std::move(strings ? names.error() : strings.error()));
     }

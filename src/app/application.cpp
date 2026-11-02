@@ -29,6 +29,7 @@
 #include "app/menu/race_setup_scene.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/pacing_presets.hpp"
+#include "app/race_loading_screen.hpp"
 #include "app/race_scene.hpp"
 #include "app/race_scene_name.hpp"
 #include "app/race_settings.hpp"
@@ -306,11 +307,7 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std:
     assets::TrackLoader loader(vfs_, pool);
     if (IsRaceScene(*scene)) {
         return ParseRaceScene(*scene)
-            .and_then([&](const RaceSceneSetup& setup) {
-                return RaceScene::Create(
-                    {.renderer = &renderer_, .mixer = &mixer_, .banks = &soundBanks_}, vfs_, loader,
-                    setup, seed_, started);
-            })
+            .and_then([&](const RaceSceneSetup& setup) { return LoadRace(setup, loader, started); })
             .transform(ToScene<RaceScene>);
     }
     if (IsCircuitScene(*scene)) {
@@ -327,15 +324,29 @@ Result<std::unique_ptr<Scene>> Application::CreateCircuitRace(std::string_view s
         return assets::RaceCatalog::Load(vfs_).and_then(
             [&](const assets::RaceCatalog& catalog) { return CircuitLeg::Create(catalog, setup); });
     });
-    Result<std::unique_ptr<RaceScene>> race = leg.and_then([&](const CircuitLeg& joined) {
-        return RaceScene::Create({.renderer = &renderer_, .mixer = &mixer_, .banks = &soundBanks_},
-                                 vfs_, loader, joined.Race(), seed_, started);
-    });
+    Result<std::unique_ptr<RaceScene>> race = leg.and_then(
+        [&](const CircuitLeg& joined) { return LoadRace(joined.Race(), loader, started); });
     if (!race) {
         return std::unexpected(std::move(race.error()));
     }
     (*race)->JoinCircuit(std::move(*leg));
     return ToScene<RaceScene>(std::move(*race));
+}
+
+Result<std::unique_ptr<RaceScene>> Application::LoadRace(const RaceSceneSetup& setup,
+                                                         assets::TrackLoader& loader,
+                                                         Nanoseconds started) {
+    const std::string language = SelectedLanguage(settings_);
+    const std::unique_ptr<RaceLoadingScreen> loading =
+        OpenLoadingScreen(renderer_, vfs_, setup.track, language);
+    Result<std::unique_ptr<RaceScene>> race =
+        RaceScene::Create({.renderer = &renderer_, .mixer = &mixer_, .banks = &soundBanks_}, vfs_,
+                          loader, setup, seed_, started);
+    if (race && loading) {
+        loading->Show(1.0F);
+        (*race)->AdoptHudFonts(language, std::move(*loading).TakeFonts());
+    }
+    return race;
 }
 
 std::filesystem::path Application::ProgressFile() const {
