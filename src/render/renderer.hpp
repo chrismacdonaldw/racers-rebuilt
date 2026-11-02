@@ -130,7 +130,7 @@ private:
     void DrawMeshes(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, const RenderView& view,
                     const glm::mat4& viewProjection) const;
     void DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, const MeshDraw& draw,
-                  const glm::mat4& viewProjection, const Lighting& lighting,
+                  const glm::mat4& viewProjection, const Color& ambient,
                   SDL_GPUGraphicsPipeline*& bound) const;
     void DrawLines(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, const ViewRange& range,
                    const glm::mat4& viewProjection) const;

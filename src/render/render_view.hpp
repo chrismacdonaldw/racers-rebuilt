@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <optional>
@@ -70,9 +71,20 @@ struct MeshDraw {
     bool isStatic = false;
 };
 
-/// One directional light, in engine space. `ambient` scales each material's own ambient.
+inline constexpr std::size_t kMaxDirectionalLights = 7;
+
+/// `direction` is in engine space, the way the light travels.
+struct DirectionalLight {
+    Vector3 direction;
+    Color color;
+};
+
+inline constexpr DirectionalLight kDefaultLight{
+    .direction = {.x = -0.36F, .y = -0.86F, .z = -0.36F}};
+
+/// `ambient` scales each material's own ambient. At most `kMaxDirectionalLights` lights.
 struct Lighting {
-    Vector3 direction{.x = -0.36F, .y = -0.86F, .z = -0.36F};
+    std::span<const DirectionalLight> lights{&kDefaultLight, 1};
     Color ambient;
 };
 
