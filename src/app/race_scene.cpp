@@ -22,7 +22,9 @@
 #include "app/powerup_tools.hpp"
 #include "app/race_step.hpp"
 #include "app/racer/racer_fx.hpp"
+#include "app/track_map.hpp"
 #include "app/track_model.hpp"
+#include "app/track_space.hpp"
 #include "assets/circuit_database.hpp"
 #include "core/log.hpp"
 #include "platform/clock.hpp"
@@ -33,6 +35,7 @@ namespace {
 
 constexpr std::uint64_t kHashPrime = 1099511628211ULL;
 constexpr Milliseconds kCircuitResultsTime{5000};
+constexpr std::size_t kChampionSlot = 1;
 
 std::size_t SlotCount(const RaceSceneSetup& setup, std::size_t gridSize) {
     return setup.players > 1 ? setup.players : gridSize;
@@ -86,6 +89,15 @@ std::vector<T> PerSlot(const RacerGrid& racers, std::size_t slots,
         values[i] = (racers.*value)(i);
     }
     return values;
+}
+
+RaceAudioSetup AudioSetup(const sim::RaceTrack& raceTrack, std::span<const std::int32_t> voiceBanks,
+                          std::uint64_t seed) {
+    return {.racerCount = voiceBanks.size(),
+            .player = kPlayerSlot,
+            .seed = seed,
+            .ambience = raceTrack.events.table.sounds,
+            .voiceBanks = voiceBanks};
 }
 
 std::unique_ptr<RaceAudio> LoadAudio(const RaceOutputs& outputs, const assets::Vfs& vfs,
@@ -154,13 +166,10 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                               raceTrack->entities);
     GhostTrail ghostTrail(model->draws, model->entityDraws, raceTrack->entities);
     WaterScroll waterScroll(raceTrack->hazards, model->entityDraws);
-    std::unique_ptr<RaceAudio> audio = LoadAudio(
-        outputs, vfs, track,
-        {.racerCount = session->Racers().size(),
-         .player = kPlayerSlot,
-         .seed = seed,
-         .ambience = raceTrack->events.table.sounds,
-         .voiceBanks = PerSlot(*racers, session->Racers().size(), &RacerGrid::VoiceBank)});
+    const std::vector<std::int32_t> voiceBanks =
+        PerSlot(*racers, session->Racers().size(), &RacerGrid::VoiceBank);
+    std::unique_ptr<RaceAudio> audio =
+        LoadAudio(outputs, vfs, track, AudioSetup(*raceTrack, voiceBanks, seed));
     std::optional<RaceParticles> particles =
         LoadParticles(renderer, vfs, loader, track, raceTrack->collision.surfaces);
     return std::unique_ptr<RaceScene>(
@@ -183,6 +192,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                        .session = std::move(*session),
                        .audio = std::move(audio),
                        .particles = std::move(particles),
+                       .map = LoadTrackMap(vfs, track, setup.isMirrored, model->textures),
                        .started = started}));
 }
 
@@ -200,6 +210,7 @@ RaceScene::RaceScene(Parts parts)
       triggerRings_(parts_.session.Triggers()) {
     draws_ = parts_.trackDraws;
     draws_.insert(draws_.end(), parts_.racers.Draws().begin(), parts_.racers.Draws().end());
+    hud_.SetMap(parts_.map);
 }
 
 void RaceScene::ApplySettings(const settings::Registry& settings) {
@@ -314,6 +325,22 @@ void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float elap
     draws_.insert(draws_.end(), powerupVisuals_.Draws().begin(), powerupVisuals_.Draws().end());
 }
 
+MapView RaceScene::PlayerMapView(const sim::RenderSnapshot& interpolated) {
+    mapMarkers_.clear();
+    for (std::size_t slot = interpolated.racers.size(); slot-- > 0;) {
+        if (slot != kPlayerSlot) {
+            mapMarkers_.push_back(
+                {.position = ToGame(interpolated.entities[slot].transform.position),
+                 .isChampion = slot == kChampionSlot});
+        }
+    }
+    const Transform player = TransformToGame(interpolated.entities[kPlayerSlot].transform);
+    return {.player = player.position,
+            .playerForward = Rotate(player.rotation, {.x = 1.0F}),
+            .viewDirection = cameras_.ViewDirection(0),
+            .markers = mapMarkers_};
+}
+
 void RaceScene::GatherCarMarks(const sim::RenderSnapshot& interpolated, float simMs) {
     carMarks_.clear();
     shadows_.Append(interpolated.entities, interpolated.racers, carLooks_, *parts_.world,
@@ -384,8 +411,9 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
             flashes.at(player) = WarpFlash(start->phaseLeftMs);
         }
     }
-    views_.front().sprites = hud_.Draw(parts_.session, interpolated.racers,
-                                       std::span(flashes).first(cameras_.Count()), PauseShown());
+    views_.front().sprites =
+        hud_.Draw(parts_.session, interpolated.racers, PlayerMapView(interpolated),
+                  std::span(flashes).first(cameras_.Count()), PauseShown());
     Result<void> drawn = parts_.renderer->Draw(views_);
     if (!drawn) {
         log::Error("{}", drawn.error().message);

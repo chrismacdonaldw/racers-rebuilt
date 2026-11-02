@@ -33,6 +33,7 @@ rr_add_module(assets
         path_index.cpp
         race_catalog.cpp
         race_list.cpp
+        race_map.cpp
         race_route.cpp
         race_voices.cpp
         racer_catalog.cpp

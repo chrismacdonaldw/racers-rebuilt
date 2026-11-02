@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <span>
 
 #include "core/transform.hpp"
@@ -88,13 +89,23 @@ struct Rect {
     float height = 0.0F;
 };
 
-/// `bounds` is in UI coordinates and `uv` in texture coordinates.
+/// Sprites list corners top left, top right, bottom left, bottom right. Triangles repeat the last.
+struct SpriteCorner {
+    float x = 0.0F;
+    float y = 0.0F;
+    float u = 0.0F;
+    float v = 0.0F;
+    Color tint;
+};
+
+/// `bounds` is in UI coordinates and `uv` in texture coordinates; `corners` overrides both.
 struct SpriteDraw {
     TextureId texture = kWhiteTexture;
     Rect bounds;
     Rect uv{.width = 1.0F, .height = 1.0F};
     Color tint;
     BlendMode blend = BlendMode::Alpha;
+    std::optional<std::array<SpriteCorner, 4>> corners;
 };
 
 /// Corners go top left, top right, bottom left, bottom right, matching `uv`.

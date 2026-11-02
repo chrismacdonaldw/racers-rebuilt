@@ -28,6 +28,11 @@ struct PauseView {
     std::size_t focus = 0;
 };
 
+struct HudRacer {
+    std::size_t slot = 0;
+    bool isGhost = false;
+};
+
 /// In UI units. Rows measure their y from `top`.
 struct HudPlacement {
     float top = 0.0F;
@@ -49,8 +54,8 @@ public:
               Milliseconds elapsed);
 
     /// Replaces `out` without allocating once warm.
-    void Layout(const sim::RaceClock& clock, const sim::RaceProgress& progress, std::size_t racer,
-                std::vector<HudText>& out);
+    void Layout(const sim::RaceClock& clock, const sim::RaceProgress& progress,
+                const HudRacer& racer, std::vector<HudText>& out);
 
     void TickPause(Milliseconds elapsed);
 

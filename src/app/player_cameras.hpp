@@ -6,6 +6,7 @@
 
 #include "app/race_camera.hpp"
 #include "core/transform.hpp"
+#include "core/vector3.hpp"
 #include "render/camera.hpp"
 #include "render/render_view.hpp"
 #include "sim/race/race_session.hpp"
@@ -36,6 +37,10 @@ public:
 
     /// In engine space, as of the last `Follow`.
     [[nodiscard]] std::span<const Transform> Poses() const { return poses_; }
+
+    [[nodiscard]] Vector3 ViewDirection(std::size_t player) const {
+        return cameras_.at(player).ViewDirection();
+    }
 
     /// Needs the racers already in `out`.
     void Snapshot(sim::RenderSnapshot& out) const;

@@ -50,6 +50,9 @@ public:
     /// In engine space.
     [[nodiscard]] Transform Pose() const;
 
+    /// Flat and in game space. Look back doesn't turn it.
+    [[nodiscard]] Vector3 ViewDirection() const;
+
 private:
     enum class Mode : std::uint8_t { Chase, Cockpit, Finish };
 

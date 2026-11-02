@@ -20,6 +20,17 @@ void BatchSprites(std::span<const SpriteDraw> sprites, std::vector<SpriteVertex>
     vertices.clear();
     batches.clear();
     for (const SpriteDraw& sprite : sprites) {
+        AddToBatches(batches, sprite.texture, sprite.blend);
+        if (sprite.corners) {
+            for (const SpriteCorner& corner : *sprite.corners) {
+                vertices.push_back({.x = corner.x,
+                                    .y = corner.y,
+                                    .u = corner.u,
+                                    .v = corner.v,
+                                    .color = corner.tint});
+            }
+            continue;
+        }
         const Rect& at = sprite.bounds;
         const Rect& uv = sprite.uv;
         const float right = at.x + at.width;
@@ -32,7 +43,6 @@ void BatchSprites(std::span<const SpriteDraw> sprites, std::vector<SpriteVertex>
              {.x = right, .y = at.y, .u = uvRight, .v = uv.y, .color = sprite.tint},
              {.x = at.x, .y = bottom, .u = uv.x, .v = uvBottom, .color = sprite.tint},
              {.x = right, .y = bottom, .u = uvRight, .v = uvBottom, .color = sprite.tint}});
-        AddToBatches(batches, sprite.texture, sprite.blend);
     }
 }
 

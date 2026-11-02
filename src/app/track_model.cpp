@@ -232,7 +232,9 @@ Result<TrackModel> UploadTrack(render::Renderer& renderer, const assets::TrackAs
             builder.Place(*world, entity, true);
         }
     }
-    return std::move(builder).Finish();
+    TrackModel model = std::move(builder).Finish();
+    model.textures = std::move(*textures);
+    return model;
 }
 
 Result<std::vector<render::MeshDraw>> UploadModel(render::Renderer& renderer,

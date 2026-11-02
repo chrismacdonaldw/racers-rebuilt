@@ -336,6 +336,13 @@ void RaceCamera::Smooth(const Shot& raw, float elapsedMs, bool isCut) {
              .rotation = Nlerp(raw.rotation, shot_.rotation, Ease(rotationLag_, elapsedMs))};
 }
 
+Vector3 RaceCamera::ViewDirection() const {
+    if (mode_ == Mode::Finish) {
+        return viewDirection_;
+    }
+    return Flat(Rotate(shot_.rotation, kForward), viewDirection_);
+}
+
 Transform RaceCamera::Pose() const {
     const Vector3 forward = Rotate(shot_.rotation, kForward);
     const Vector3 up = Rotate(shot_.rotation, kUp);
