@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <format>
+#include <iterator>
 #include <optional>
 #include <set>
 #include <span>
@@ -17,7 +18,6 @@ namespace {
 
 constexpr std::string_view kCommonFolder = "GAMEDATA/COMMON";
 constexpr std::string_view kMirroredKey = "|mirrored";
-constexpr std::size_t kBytesPerPixel = 4;
 
 using NameSet = std::set<std::string, std::less<>>;
 
@@ -197,27 +197,6 @@ Result<NameMap<typename AssetCache<T>::Handle>> LoadByName(
         byName.emplace(name, std::move(*handle++));
     }
     return byName;
-}
-
-void FlipRows(ImageAsset& image) {
-    const std::size_t rowBytes = std::size_t{image.widthPx} * kBytesPerPixel;
-    const std::span<std::byte> pixels = image.rgba;
-    for (std::size_t top = 0, bottom = image.heightPx; top + 1 < bottom; ++top, --bottom) {
-        std::ranges::swap_ranges(pixels.subspan(top * rowBytes, rowBytes),
-                                 pixels.subspan((bottom - 1) * rowBytes, rowBytes));
-    }
-}
-
-Result<ImageAsset> DecodeTexture(std::span<const std::byte> bytes,
-                                 const TextureDefinition& definition) {
-    Result<ImageAsset> image = DecodeImage(bytes, definition.fileKind);
-    if (image && definition.colorKey) {
-        ApplyColorKey(*image, *definition.colorKey);
-    }
-    if (image && definition.flipsVertically) {
-        FlipRows(*image);
-    }
-    return image;
 }
 
 std::string ImageKey(const std::string& path, const TextureDefinition& definition) {
@@ -431,6 +410,13 @@ std::vector<std::string> ListRaceTracks(const Vfs& vfs) {
     }
     std::ranges::sort(tracks);
     return tracks;
+}
+
+void MergeTrackAssets(TrackAssets& into, TrackAssets from) {
+    into.models.merge(from.models);
+    into.materials.merge(from.materials);
+    into.textures.merge(from.textures);
+    std::ranges::move(from.missingTextures, std::back_inserter(into.missingTextures));
 }
 
 }

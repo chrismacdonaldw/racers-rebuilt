@@ -45,4 +45,7 @@ struct DriverPartCatalog {
 /// Expressions outside 0 to 5 get the default face.
 [[nodiscard]] std::string FaceMaterial(std::string_view prefix, std::int32_t expression);
 
+/// The expression a bare suffix such as `happy` names in any case, else 0.
+[[nodiscard]] std::int32_t FaceExpression(std::string_view suffix);
+
 }

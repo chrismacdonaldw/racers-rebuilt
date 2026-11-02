@@ -103,6 +103,17 @@ TEST_CASE("the expression picks the face material suffix") {
     CHECK(FaceMaterial("kk_", -1) == "kk_dflt");
 }
 
+TEST_CASE("a bare expression suffix names its expression in any case") {
+    CHECK(FaceExpression("dflt") == 0);
+    CHECK(FaceExpression("angry") == 1);
+    CHECK(FaceExpression("Blink") == 2);
+    CHECK(FaceExpression("HAPPY") == 3);
+    CHECK(FaceExpression("sad") == 4);
+    CHECK(FaceExpression("suprz") == 5);
+    CHECK(FaceExpression("lh_happy") == 0);
+    CHECK(FaceExpression("rblink") == 0);
+}
+
 std::vector<std::size_t> ListSizes(const DriverPartCatalog& catalog) {
     return {catalog.hats.size(),       catalog.faces.parts.size(), catalog.torsos.parts.size(),
             catalog.legs.parts.size(), catalog.headParts.size(),   catalog.bodies.size(),

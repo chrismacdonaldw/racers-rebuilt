@@ -1,9 +1,13 @@
 #include "assets/driver_parts.hpp"
 
+#include <algorithm>
 #include <array>
 #include <format>
+#include <iterator>
+#include <string>
 #include <utility>
 
+#include "assets/game_path.hpp"
 #include "assets/token_schema.hpp"
 
 namespace rr::assets {
@@ -96,6 +100,15 @@ std::string FaceMaterial(std::string_view prefix, std::int32_t expression) {
         isKnown ? kExpressionSuffixes.at(static_cast<std::size_t>(expression))
                 : kExpressionSuffixes.front();
     return std::format("{}{}", prefix, suffix);
+}
+
+std::int32_t FaceExpression(std::string_view suffix) {
+    const std::string upper = ToUpperAscii(suffix);
+    const auto found = std::ranges::find_if(
+        kExpressionSuffixes, [&](std::string_view known) { return ToUpperAscii(known) == upper; });
+    return found == kExpressionSuffixes.end()
+               ? 0
+               : static_cast<std::int32_t>(std::distance(kExpressionSuffixes.begin(), found));
 }
 
 }

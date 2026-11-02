@@ -46,6 +46,10 @@ struct TextureDefinition {
 [[nodiscard]] Result<ImageAsset> DecodeImage(std::span<const std::byte> bytes,
                                              TextureFileKind kind);
 
+/// Keys out the definition's colour and flips the rows when it asks.
+[[nodiscard]] Result<ImageAsset> DecodeTexture(std::span<const std::byte> bytes,
+                                               const TextureDefinition& definition);
+
 void ApplyColorKey(ImageAsset& image, ColorKey key);
 
 }
