@@ -1,22 +1,43 @@
 #include "settings/toml_file.hpp"
 
+#include <algorithm>
 #include <format>
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 
 #include "core/utf8_path.hpp"
 
 namespace rr::settings {
+namespace {
 
-Result<toml::table> ReadTomlFile(const std::filesystem::path& path) {
+std::string LeadingComments(std::string_view text) {
+    std::size_t end = 0;
+    bool hasComment = false;
+    while (end < text.size()) {
+        const std::size_t next = std::min(text.find('\n', end), text.size() - 1) + 1;
+        const std::string_view line = text.substr(end, next - end);
+        const std::size_t first = line.find_first_not_of(" \t\r\n");
+        if (first != std::string_view::npos && line[first] != '#') {
+            break;
+        }
+        hasComment = hasComment || first != std::string_view::npos;
+        end = next;
+    }
+    return hasComment ? std::string(text.substr(0, end)) : std::string();
+}
+
+}
+
+Result<TomlFile> ReadTomlFile(const std::filesystem::path& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
         std::error_code error;
         if (!std::filesystem::exists(path, error)) {
-            return toml::table{};
+            return TomlFile{};
         }
         return Fail(ErrorCode::Io, std::format("can't read {}", Utf8FromPath(path)));
     }
@@ -28,19 +49,18 @@ Result<toml::table> ReadTomlFile(const std::filesystem::path& path) {
                     std::format("{} line {}: {}", fileName, parsed.error().source().begin.line,
                                 parsed.error().description()));
     }
-    return std::move(parsed).table();
+    return TomlFile{.table = std::move(parsed).table(), .leadingComments = LeadingComments(text)};
 }
 
-Result<void> WriteTomlFile(const toml::table& table, const std::filesystem::path& path,
-                           std::string_view header) {
+Result<void> WriteTomlFile(const TomlFile& file, const std::filesystem::path& path) {
     std::error_code error;
     std::filesystem::create_directories(path.parent_path(), error);
     std::filesystem::path temporary = path;
     temporary += ".tmp";
     {
-        std::ofstream file(temporary, std::ios::binary | std::ios::trunc);
-        file << header << table << '\n';
-        if (!file) {
+        std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
+        out << file.leadingComments << file.table << '\n';
+        if (!out) {
             return Fail(ErrorCode::Io, std::format("can't write {}", Utf8FromPath(temporary)));
         }
     }

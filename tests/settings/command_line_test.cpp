@@ -60,6 +60,15 @@ TEST_CASE("the command line takes a replay to record or play") {
     CHECK(commandLine->replayFile == "b.rrr");
 }
 
+TEST_CASE("the command line takes an original save to import") {
+    constexpr std::array<std::string_view, 1> kArgs{"--import-save=Save/0/LEGORac1"};
+
+    Result<CommandLine> commandLine = ParseCommandLine(kArgs);
+
+    REQUIRE(commandLine.has_value());
+    CHECK(commandLine->importSaveFile == "Save/0/LEGORac1");
+}
+
 TEST_CASE("the command line rejects unknown options and missing values") {
     constexpr std::array<std::string_view, 1> kUnknown{"--fullscreen"};
     constexpr std::array<std::string_view, 1> kMissing{"--game-path"};

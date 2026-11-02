@@ -93,11 +93,11 @@ toml::table ToToml(const Registry& registry) {
 
 Result<void> LoadSettings(Registry& registry, const std::filesystem::path& path) {
     return ReadTomlFile(path).transform(
-        [&](const toml::table& table) { AssignAll(registry, table, Utf8FromPath(path)); });
+        [&](const TomlFile& file) { AssignAll(registry, file.table, Utf8FromPath(path)); });
 }
 
 Result<void> SaveSettings(const Registry& registry, const std::filesystem::path& path) {
-    return WriteTomlFile(ToToml(registry), path);
+    return WriteTomlFile({.table = ToToml(registry), .leadingComments = {}}, path);
 }
 
 }

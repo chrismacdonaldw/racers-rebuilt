@@ -23,12 +23,13 @@ struct CommandLine {
     std::optional<std::string> race;
     std::optional<std::string> recordFile;
     std::optional<std::string> replayFile;
+    std::optional<std::string> importSaveFile;
     std::vector<SettingOverride> overrides;
 };
 
 /// Accepts `--game-path <folder>`, `--set key=value`, `--dump-images <folder>`,
-/// `--track <RACECxRy>`, `--race <RACECxRy>`, `--record <file>` and `--replay <file>`, each also
-/// as `--flag=value`.
+/// `--track <RACECxRy>`, `--race <RACECxRy>`, `--record <file>`, `--replay <file>` and
+/// `--import-save <file>`, each also as `--flag=value`.
 /// `args` excludes the program name.
 [[nodiscard]] Result<CommandLine> ParseCommandLine(std::span<const std::string_view> args);
 

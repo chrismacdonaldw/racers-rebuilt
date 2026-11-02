@@ -76,6 +76,20 @@ TEST_CASE("hand-written progress skips the values that don't parse") {
     CHECK(progress->bestTimes.at("RACEC0R1") == TrackRecords{.race = BestTime{.ms = 90000}});
 }
 
+TEST_CASE("saving progress keeps hand-written comments and unknown keys") {
+    const test::TempFolder folder;
+    const std::filesystem::path path = folder.Path() / "progress.toml";
+    WriteText(path, "# mine\n\nunlocked_circuits = [\"c1\"]\nnote = \"hi\"\n");
+
+    REQUIRE(SaveProgress(Played(), path).has_value());
+    REQUIRE(SaveProgress(Played(), path).has_value());
+
+    const std::string text = ReadText(path);
+    CHECK(text.starts_with("# mine\n\n"));
+    CHECK(text.find("note = 'hi'") != std::string::npos);
+    CHECK(LoadProgress(path) == Played());
+}
+
 TEST_CASE("a progress file that isn't TOML fails") {
     const test::TempFolder folder;
     const std::filesystem::path path = folder.Path() / "progress.toml";

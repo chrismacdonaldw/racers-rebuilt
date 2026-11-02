@@ -22,6 +22,7 @@ constexpr std::array kTextFlags{
     TextFlag{.flag = "--race", .field = &CommandLine::race},
     TextFlag{.flag = "--record", .field = &CommandLine::recordFile},
     TextFlag{.flag = "--replay", .field = &CommandLine::replayFile},
+    TextFlag{.flag = "--import-save", .field = &CommandLine::importSaveFile},
 };
 
 struct FlagValue {

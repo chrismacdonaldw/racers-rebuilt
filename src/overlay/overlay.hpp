@@ -26,9 +26,9 @@ struct DeveloperStats {
     std::string_view startupSummary;
 };
 
-struct SceneChoice {
+struct MenuChoice {
     std::string name;
-    std::function<void()> open;
+    std::function<void()> choose;
 };
 
 /// ImGui state is global, so only one may exist. `window` and `renderer` must outlive it.
@@ -50,7 +50,8 @@ public:
     /// Does nothing while hidden. Returns the setting keys whose edit finished, to persist.
     [[nodiscard]] std::vector<std::string> Build(settings::Registry& registry,
                                                  const DeveloperStats& stats,
-                                                 std::span<const SceneChoice> scenes,
+                                                 std::span<const MenuChoice> scenes,
+                                                 std::span<const MenuChoice> saveImports,
                                                  const RacerTools& racerTools);
 
     void Prepare(SDL_GPUCommandBuffer* commands) override;

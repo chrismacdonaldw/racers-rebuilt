@@ -17,6 +17,7 @@
 #include "app/circuit_awards.hpp"
 #include "app/circuit_leg.hpp"
 #include "app/extensions.hpp"
+#include "app/game_settings.hpp"
 #include "app/gameplay_fingerprint.hpp"
 #include "app/input_bindings.hpp"
 #include "app/menu/award_scene.hpp"
@@ -29,6 +30,7 @@
 #include "app/race_scene_name.hpp"
 #include "app/race_settings.hpp"
 #include "app/replay_session.hpp"
+#include "app/save_import.hpp"
 #include "app/sprite_test_scene.hpp"
 #include "app/startup_settings.hpp"
 #include "app/test_scene.hpp"
@@ -151,6 +153,11 @@ Result<platform::FramePacer> CreatePacer(const platform::PacingConfig& pacing) {
     return platform::FramePacer(std::move(*timer), pacing);
 }
 
+std::filesystem::path OriginalInstall(const GameBoot& boot) {
+    return PathFromUtf8(
+        boot.commandLine.gamePath.value_or(std::string(boot.settings.Get(kGamePath))));
+}
+
 }
 
 Result<Application> Application::Create(GameBoot boot) {
@@ -186,6 +193,7 @@ Result<Application> Application::Create(GameBoot boot) {
     return Application({.sdl = std::move(boot.sdl),
                         .settings = std::move(boot.settings),
                         .settingsFile = std::move(boot.settingsFile),
+                        .originalInstall = OriginalInstall(boot),
                         .extensions = std::move(boot.extensions),
                         .vfs = std::move(boot.vfs),
                         .mixer = std::move(*mixer),
@@ -248,7 +256,8 @@ Result<void> Application::Run() {
 }
 
 void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
-    const std::vector<overlay::SceneChoice> scenes = SceneChoices();
+    const std::vector<overlay::MenuChoice> scenes = SceneChoices();
+    const std::vector<overlay::MenuChoice> saveImports = SaveImportChoices();
     Nanoseconds lastFrame = platform::Now();
     FrameStats frame;
     std::string askedMusic;
@@ -269,7 +278,7 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
                            {.frameTime = std::chrono::duration_cast<FloatSeconds>(now - lastFrame),
                             .ticksPerFrame = frame.tickCount,
                             .startupSummary = startupSummary_},
-                           scenes, racerTools));
+                           scenes, saveImports, racerTools));
         lastFrame = now;
         frame = frameLoop_.RunFrame(now);
         OpenNextScene();
@@ -284,6 +293,7 @@ Application::Application(Parts parts)
     : sdl_(std::move(parts.sdl)),
       settings_(std::move(parts.settings)),
       settingsFile_(std::move(parts.settingsFile)),
+      originalInstall_(std::move(parts.originalInstall)),
       extensions_(std::move(parts.extensions)),
       vfs_(std::move(parts.vfs)),
       mixer_(std::move(parts.mixer)),
@@ -380,17 +390,17 @@ Result<void> Application::SwitchScene(const SceneFactory& create) {
     return {};
 }
 
-std::vector<overlay::SceneChoice> Application::SceneChoices() {
+std::vector<overlay::MenuChoice> Application::SceneChoices() {
     const auto choice = [this](std::string name, SceneFactory create) {
-        return overlay::SceneChoice{.name = std::move(name),
-                                    .open = [this, create = std::move(create)] {
-                                        const Result<void> opened = SwitchScene(create);
-                                        if (!opened) {
-                                            log::Error("{}", opened.error().message);
-                                        }
-                                    }};
+        return overlay::MenuChoice{.name = std::move(name),
+                                   .choose = [this, create = std::move(create)] {
+                                       const Result<void> opened = SwitchScene(create);
+                                       if (!opened) {
+                                           log::Error("{}", opened.error().message);
+                                       }
+                                   }};
     };
-    std::vector<overlay::SceneChoice> choices{
+    std::vector<overlay::MenuChoice> choices{
         choice("Test scene",
                [this] { return TestScene::Create(renderer_).transform(ToScene<TestScene>); }),
         choice("Sprite test",
@@ -403,6 +413,21 @@ std::vector<overlay::SceneChoice> Application::SceneChoices() {
             choice(track, std::bind_front(&Application::CreateScene, this, std::optional(track))));
         choices.push_back(choice(std::format("{} race", track),
                                  std::bind_front(&Application::CreateRace, this, track)));
+    }
+    return choices;
+}
+
+std::vector<overlay::MenuChoice> Application::SaveImportChoices() {
+    std::vector<overlay::MenuChoice> choices;
+    for (std::filesystem::path& file : FindOriginalSaves(originalInstall_)) {
+        std::string name = Utf8FromPath(file.parent_path().lexically_relative(originalInstall_));
+        choices.push_back({.name = std::move(name), .choose = [this, file = std::move(file)] {
+                               const Result<bool> imported =
+                                   ImportOriginalSave(file, ProgressFile(), vfs_);
+                               if (!imported) {
+                                   log::Error("{}", imported.error().message);
+                               }
+                           }});
     }
     return choices;
 }

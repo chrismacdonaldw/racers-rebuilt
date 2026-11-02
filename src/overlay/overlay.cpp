@@ -34,14 +34,17 @@ void DrawStats(const DeveloperStats& stats, Nanoseconds overlayCost) {
                            stats.startupSummary.data() + stats.startupSummary.size());
 }
 
-void DrawScenes(std::span<const SceneChoice> scenes) {
-    if (!ImGui::BeginMenu("Scenes")) {
+void DrawChoices(const char* menu, std::span<const MenuChoice> choices, const char* empty) {
+    if (!ImGui::BeginMenu(menu)) {
         return;
     }
-    for (const SceneChoice& scene : scenes) {
-        if (ImGui::MenuItem(scene.name.c_str())) {
-            scene.open();
+    for (const MenuChoice& choice : choices) {
+        if (ImGui::MenuItem(choice.name.c_str())) {
+            choice.choose();
         }
+    }
+    if (choices.empty()) {
+        ImGui::MenuItem(empty, nullptr, false, false);
     }
     ImGui::EndMenu();
 }
@@ -82,7 +85,8 @@ void Overlay::Toggle() {
 }
 
 std::vector<std::string> Overlay::Build(settings::Registry& registry, const DeveloperStats& stats,
-                                        std::span<const SceneChoice> scenes,
+                                        std::span<const MenuChoice> scenes,
+                                        std::span<const MenuChoice> saveImports,
                                         const RacerTools& racerTools) {
     if (!input_.IsOpen()) {
         return {};
@@ -101,10 +105,14 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
                 ImGui::EndMenu();
             }
         }
+        if (ImGui::BeginMenu("Progress")) {
+            DrawChoices("Import original save", saveImports, "No saves in the game folder");
+            ImGui::EndMenu();
+        }
         if (ImGui::BeginMenu(std::string(kDeveloperCategory).c_str())) {
             DrawStats(stats, lastFrameCost_);
             ImGui::Separator();
-            DrawScenes(scenes);
+            DrawChoices("Scenes", scenes, "No scenes");
             DrawRacerTools(racerTools);
             const auto developer =
                 std::ranges::find(menus, kDeveloperCategory, &SettingMenu::category);

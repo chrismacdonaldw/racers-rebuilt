@@ -41,6 +41,7 @@ private:
         platform::SdlContext sdl;
         settings::Registry settings;
         std::filesystem::path settingsFile;
+        std::filesystem::path originalInstall;
         Extensions extensions;
         assets::Vfs vfs;
         audio::Mixer mixer;
@@ -67,7 +68,8 @@ private:
     [[nodiscard]] std::filesystem::path ProgressFile() const;
     [[nodiscard]] Result<void> OpenScene(const std::optional<std::string>& scene);
     [[nodiscard]] Result<void> SwitchScene(const SceneFactory& create);
-    [[nodiscard]] std::vector<overlay::SceneChoice> SceneChoices();
+    [[nodiscard]] std::vector<overlay::MenuChoice> SceneChoices();
+    [[nodiscard]] std::vector<overlay::MenuChoice> SaveImportChoices();
     void RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music);
     void OpenNextScene();
     void CyclePacing();
@@ -77,6 +79,7 @@ private:
     platform::SdlContext sdl_;
     settings::Registry settings_;
     std::filesystem::path settingsFile_;
+    std::filesystem::path originalInstall_;
     Extensions extensions_;
     assets::Vfs vfs_;
     audio::Mixer mixer_;
