@@ -47,6 +47,15 @@ TEST_CASE("only gold and silver open the next circuit, and only once") {
     CHECK_FALSE(OpensNewCircuit({}, {.name = "c6"}, CircuitAward::Gold));
 }
 
+TEST_CASE("an award shows the player's grid driver and the boss in slot 1") {
+    const assets::CircuitEntry circuit{.name = "c0", .grid = {"DA", "CR", "KK"}};
+
+    CHECK(DriversOf(circuit, 2).player == "KK");
+    CHECK(DriversOf(circuit, 2).champion == "CR");
+    CHECK(DriversOf(circuit, 7).player.empty());
+    CHECK(DriversOf({.name = "c9"}, 0).champion.empty());
+}
+
 TEST_CASE("an award that adds nothing leaves progress unchanged") {
     Progress progress = Granted(CircuitAward::Gold);
 

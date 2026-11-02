@@ -7,6 +7,7 @@
 #include "app/cutscene/cutscene_bindings.hpp"
 #include "app/cutscene/cutscene_materials.hpp"
 #include "app/cutscene/cutscene_particles.hpp"
+#include "app/cutscene/cutscene_racer.hpp"
 #include "app/cutscene/cutscene_resources.hpp"
 #include "app/cutscene/cutscene_screen.hpp"
 #include "app/cutscene/cutscene_sounds.hpp"
@@ -14,6 +15,7 @@
 #include "app/frame_loop.hpp"
 #include "app/track_model.hpp"
 #include "assets/game_path.hpp"
+#include "assets/racer_catalog.hpp"
 #include "core/log.hpp"
 #include "render/ui_layout.hpp"
 
@@ -96,6 +98,20 @@ Result<std::unique_ptr<assets::CutsceneEffectsAsset>> ReadEffects(const assets::
     return std::make_unique<assets::CutsceneEffectsAsset>(std::move(*effects));
 }
 
+void DropDriverLegVariants(const assets::Vfs& vfs, const CutscenePlay& play,
+                           const assets::CutsceneFrame& frame, CutsceneBindings& bindings) {
+    if (play.driver.empty()) {
+        return;
+    }
+    const Result<assets::RacerFiles> racer = assets::RacerCatalog::Load(vfs).and_then(
+        [&](const assets::RacerCatalog& catalog) { return catalog.Find(play.driver); });
+    if (!racer) {
+        log::Warn("{}, {} keeps its stand-in racer", racer.error().message, NameOf(play));
+        return;
+    }
+    DropLegVariants(frame, bindings.models, racer->driver.legsIndex);
+}
+
 struct SceneWorld {
     std::span<const assets::WorldAsset* const> worlds;
     std::span<const NamedDraws> statics;
@@ -148,6 +164,9 @@ Result<SceneEffects> LoadEffects(const RaceOutputs& outputs, const assets::Vfs& 
                                  const CutscenePlay& path, std::string_view language,
                                  const assets::CutsceneFrame& frame, const SceneWorld& world) {
     Result<std::unique_ptr<assets::CutsceneEffectsAsset>> asset = ReadEffects(vfs, path);
+    if (asset) {
+        HideTexts(**asset, path.hiddenTexts);
+    }
     Result<EffectParts> parts = asset.and_then([&](const auto& effects) {
         return LoadEffectParts(outputs, vfs, path.folder, language, world, *effects);
     });
@@ -212,6 +231,9 @@ Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(const RaceOutputs& 
         sources.and_then([&](const sim::TrackEntitySources& loaded) {
             return BindCutscene(frame, worlds, model->entityDraws, loaded);
         });
+    if (bindings) {
+        DropDriverLegVariants(vfs, play, frame, *bindings);
+    }
     Result<CutsceneLooks> looks = bindings.and_then([&](const CutsceneBindings& bound) {
         return LoadLooks(vfs, play.folder, worlds, frame, bound.models, model->materials);
     });

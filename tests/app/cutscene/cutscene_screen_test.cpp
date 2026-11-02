@@ -22,6 +22,10 @@ TEST_CASE("a cutscene screen name round trips with and without a next scene") {
     CHECK(CutsceneScreenName(intro) == "screen:circuit3>circuit:c2:racer=1");
     CHECK(ParseCutsceneScreen(CutsceneScreenName(legal)) == legal);
     CHECK(ParseCutsceneScreen(CutsceneScreenName(intro)) == intro);
+    const CutsceneScreenSetup award{
+        .menu = "c_award1", .driver = "JT", .next = "screen:wincar:driver=CR"};
+    CHECK(CutsceneScreenName(award) == "screen:c_award1:driver=JT>screen:wincar:driver=CR");
+    CHECK(ParseCutsceneScreen(CutsceneScreenName(award)) == award);
     CHECK(IsCutsceneScreen("screen:legal"));
     CHECK_FALSE(IsCutsceneScreen("cutscene:LEGAL/SPLASH1"));
 }
@@ -121,6 +125,26 @@ TEST_CASE("award screens can't be skipped, and the Rocket Racer win leads to the
           "END looping=false skippable=false music='rrcar' next=screen:credits");
     CHECK(Play(*vfs, "screen:credits>menu:options") ==
           "CREDITS looping=false skippable=true music='credits' next=menu:options");
+}
+
+std::string Racer(const assets::Vfs& vfs, std::string_view scene) {
+    const Result<CutscenePlay> play = ScreenPlay(vfs, scene);
+    REQUIRE(play.has_value());
+    std::string racer = std::format("driver='{}' hides", play->driver);
+    for (const std::string& text : play->hiddenTexts) {
+        racer += std::format(" {}", text);
+    }
+    return racer;
+}
+
+TEST_CASE("only racer screens take a driver, and wincar shows only its champion's name") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    CHECK(Racer(*vfs, "screen:wincar:driver=KK") ==
+          "driver='KK' hides textCR textBB textJT textGM textBVB");
+    CHECK(Racer(*vfs, "screen:winvvcar:driver=KK") == "driver='' hides");
 }
 
 }

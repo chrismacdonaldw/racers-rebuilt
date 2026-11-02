@@ -4,6 +4,7 @@
 #include <format>
 #include <iterator>
 #include <optional>
+#include <span>
 #include <utility>
 
 #include "app/cutscene/cutscene_screen.hpp"
@@ -26,13 +27,17 @@ constexpr std::string_view kRaceNamesFolder = "MENUDATA";
 constexpr std::string_view kRaceNames = "CIRCUIT.SRF";
 constexpr std::size_t kTrialCircuits = 3;
 
-std::string CircuitStart(const RaceSceneSetup& race) {
+std::string CircuitStart(const RaceSceneSetup& race, std::span<const RacerChoice> racers) {
     std::string circuit = CircuitSceneName({.race = race});
     const std::optional<std::string> intro = CircuitIntro(race.circuit);
     if (race.players != 1 || !intro) {
         return circuit;
     }
-    return CutsceneScreenName({.menu = *intro, .next = circuit});
+    const bool showsRacer = FindCutsceneScreen(*intro).value_or(CutsceneScreen{}).showsRacer;
+    return CutsceneScreenName(
+        {.menu = *intro,
+         .driver = showsRacer && race.racer < racers.size() ? racers[race.racer].code : "",
+         .next = circuit});
 }
 
 std::size_t Wrap(std::size_t value, int step, std::size_t count) {
@@ -240,7 +245,7 @@ std::optional<std::string> RaceSetupMenu::Confirm(const RaceSceneSetup& rules) {
             race.racer = racer_;
             race.players = players_;
             race.secondRacer = secondRacer_;
-            return race.track.empty() ? CircuitStart(race) : RaceSceneName(race);
+            return race.track.empty() ? CircuitStart(race, Course().racers) : RaceSceneName(race);
         case RaceSetupRow::Back:
             return std::string(kMainMenuScene);
         default:

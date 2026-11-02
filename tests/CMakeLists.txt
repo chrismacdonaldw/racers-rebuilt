@@ -10,6 +10,7 @@ add_executable(racers-rebuilt-tests
     app/cutscene/cutscene_overlay_test.cpp
     app/cutscene/cutscene_particles_test.cpp
     app/cutscene/cutscene_player_test.cpp
+    app/cutscene/cutscene_racer_test.cpp
     app/cutscene/cutscene_retail_scene_test.cpp
     app/cutscene/cutscene_screen_test.cpp
     app/cutscene/cutscene_sounds_test.cpp

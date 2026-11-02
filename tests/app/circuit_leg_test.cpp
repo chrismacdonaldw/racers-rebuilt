@@ -41,7 +41,7 @@ assets::RaceCatalog Catalog() {
 }
 
 std::string Award(std::string circuit, sim::CircuitAward award) {
-    return AwardSceneName({.circuit = std::move(circuit), .award = award});
+    return AwardSceneName({.circuit = std::move(circuit), .award = award, .racer = 2});
 }
 
 CircuitSceneSetup Start(std::string circuit) {
