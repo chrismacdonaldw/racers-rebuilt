@@ -25,6 +25,9 @@ namespace rr::assets {
 
 /// Fails outside 0 to 255.
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, std::uint8_t& value);
+
+/// Fails outside 0 to 65535.
+[[nodiscard]] Result<void> ReadValue(TokenReader& reader, std::uint16_t& value);
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, float& value);
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, Milliseconds& value);
 [[nodiscard]] Result<void> ReadValue(TokenReader& reader, std::string& value);

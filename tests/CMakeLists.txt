@@ -137,6 +137,9 @@ add_executable(racers-rebuilt-tests
     assets/original_save_test.cpp
     assets/part_library_test.cpp
     assets/model_survey_test.cpp
+    assets/part_sets_test.cpp
+    assets/piece_catalog_test.cpp
+    assets/piece_library_test.cpp
     assets/race_catalog_test.cpp
     assets/race_list_test.cpp
     assets/race_map_test.cpp

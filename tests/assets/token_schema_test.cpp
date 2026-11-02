@@ -108,6 +108,19 @@ TEST_CASE("a value of the wrong type fails") {
           ErrorCode::InvalidData);
 }
 
+TEST_CASE("unsigned values fail outside their range") {
+    const std::vector bytes = Bytes({0x0E, 0xFF, 0xFF, 0x0D, 0xFF, 0xFF, 0x0E, 0x00, 0x01});
+    TokenReader reader(bytes);
+    std::uint16_t wide = 0;
+    std::uint16_t negative = 0;
+    std::uint8_t narrow = 0;
+
+    CHECK(ReadValue(reader, wide).has_value());
+    CHECK(wide == 0xFFFF);
+    CHECK_FALSE(ReadValue(reader, negative).has_value());
+    CHECK_FALSE(ReadValue(reader, narrow).has_value());
+}
+
 TEST_CASE("a block without its closing brace fails") {
     const std::vector bytes = Bytes({0x05, 0x2B});
     TokenReader reader(bytes);

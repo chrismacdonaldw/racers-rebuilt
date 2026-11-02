@@ -1,0 +1,46 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <string_view>
+#include <vector>
+
+#include "assets/piece_library.hpp"
+#include "assets/vfs.hpp"
+#include "core/result.hpp"
+
+namespace rr::assets {
+
+enum class PieceDetail : std::uint8_t {
+    Menu,
+    Race,
+};
+
+/// Indexes into the catalogue's pieces and colours.
+struct PartChoice {
+    std::size_t piece = 0;
+    std::uint8_t colour = 0;
+
+    friend bool operator==(const PartChoice&, const PartChoice&) = default;
+};
+
+struct CatalogPartSet {
+    std::size_t chassis = 0;
+    std::string chassisName;
+    std::vector<PartChoice> choices;
+};
+
+struct PieceCatalog {
+    PieceLibrary library;
+    std::vector<std::string> colours;
+    std::vector<CatalogPartSet> partSets;
+
+    /// Fails when a set's chassis, piece or colour isn't in the library or the colour list.
+    [[nodiscard]] static Result<PieceCatalog> Load(const Vfs& vfs, PieceDetail detail);
+};
+
+/// Swaps the `.leg` extension `CRSTMGR.LEB` lists for the binary `.LEB`.
+[[nodiscard]] std::string BinaryPartSetFile(std::string_view listed);
+
+}

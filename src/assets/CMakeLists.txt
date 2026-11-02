@@ -36,7 +36,10 @@ rr_add_module(assets
         mirror.cpp
         original_save.cpp
         part_library.cpp
+        part_sets.cpp
         path_index.cpp
+        piece_catalog.cpp
+        piece_library.cpp
         race_catalog.cpp
         race_list.cpp
         race_map.cpp
