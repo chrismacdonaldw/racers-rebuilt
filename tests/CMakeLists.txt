@@ -13,8 +13,11 @@ add_executable(racers-rebuilt-tests
     app/hazard/water_scroll_test.cpp
     app/hidden_models_test.cpp
     app/hud/hud_assets_test.cpp
+    app/hud/hud_gadget_test.cpp
+    app/hud/hud_shapes_test.cpp
     app/hud/hud_strings_test.cpp
     app/hud/hud_text_test.cpp
+    app/hud/minimap_test.cpp
     app/hud/place_pulse_test.cpp
     app/hud/powerup_panel_test.cpp
     app/hud/race_hud_session_test.cpp
@@ -119,6 +122,7 @@ add_executable(racers-rebuilt-tests
     assets/model_survey_test.cpp
     assets/race_catalog_test.cpp
     assets/race_list_test.cpp
+    assets/race_map_test.cpp
     assets/race_route_test.cpp
     assets/race_voices_test.cpp
     assets/racer_catalog_test.cpp

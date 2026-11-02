@@ -100,6 +100,7 @@ private:
         sim::RaceSession session;
         std::unique_ptr<RaceAudio> audio;
         std::optional<RaceParticles> particles;
+        std::optional<TrackMap> map;
         Nanoseconds started{};
     };
 
@@ -115,6 +116,7 @@ private:
     void GatherCarMarks(const sim::RenderSnapshot& interpolated, float simMs);
     [[nodiscard]] render::RenderView PlayerView(const sim::RenderSnapshot& interpolated,
                                                 std::size_t player, float elapsedMs);
+    [[nodiscard]] MapView PlayerMapView(const sim::RenderSnapshot& interpolated);
     void DrawDebugLines();
 
     Parts parts_;
@@ -139,6 +141,7 @@ private:
     std::array<std::vector<render::QuadDraw>, sim::kMaxPlayers> playerQuads_;
     std::array<std::vector<render::MeshDraw>, sim::kMaxPlayers> tubeDraws_;
     std::vector<render::RenderView> views_;
+    std::vector<MapMarker> mapMarkers_;
     bool showsCheckpoints_ = false;
     bool showsCollision_ = false;
     bool showsTriggers_ = false;

@@ -25,8 +25,11 @@ rr_add_module(app
         hazard/hazard_sounds.cpp
         hidden_models.cpp
         hud/hud_assets.cpp
+        hud/hud_gadget.cpp
+        hud/hud_shapes.cpp
         hud/hud_strings.cpp
         hud/hud_text.cpp
+        hud/minimap.cpp
         hud/place_pulse.cpp
         hud/powerup_panel.cpp
         hud/race_hud.cpp
@@ -110,6 +113,7 @@ rr_add_module(app
         startup_timer.cpp
         test_scene.cpp
         track_entity_draws.cpp
+        track_map.cpp
         track_model.cpp
         track_space.cpp
         track_viewer_scene.cpp

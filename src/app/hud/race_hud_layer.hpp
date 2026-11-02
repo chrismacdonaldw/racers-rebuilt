@@ -8,6 +8,8 @@
 #include <string_view>
 #include <vector>
 
+#include "app/hud/hud_gadget.hpp"
+#include "app/hud/minimap.hpp"
 #include "app/hud/race_hud.hpp"
 #include "app/ui_text/ui_font.hpp"
 #include "app/ui_text/ui_image.hpp"
@@ -36,13 +38,16 @@ public:
     /// Shows the circuit results from `before`, each racer's points before this race.
     void SetCircuitPoints(std::span<const std::int32_t> before);
 
+    void SetMap(std::optional<TrackMap> map);
+
     void Tick(const sim::RaceSession& session, Milliseconds elapsed);
     void TickPause(Milliseconds elapsed);
 
     /// Valid until the next call. Each `covers` entry fills its player's half over their HUD.
     [[nodiscard]] std::span<const render::SpriteDraw> Draw(
         const sim::RaceSession& session, std::span<const sim::RacerSnapshot> racers,
-        std::span<const std::optional<render::SpriteDraw>> covers, std::optional<PauseView> pause);
+        const MapView& firstPlayerMap, std::span<const std::optional<render::SpriteDraw>> covers,
+        std::optional<PauseView> pause);
 
 private:
     render::Renderer* renderer_;
@@ -55,6 +60,7 @@ private:
     std::vector<std::u16string> names_;
     std::vector<UiImage> images_;
     std::vector<RaceHud> huds_;
+    HudGadget gadget_;
     std::vector<HudText> texts_;
     std::vector<render::SpriteDraw> sprites_;
 };

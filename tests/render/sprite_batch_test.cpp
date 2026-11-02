@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -69,6 +70,27 @@ TEST_CASE("corners carry the bounds, texture coordinates and tint") {
     CHECK(bottomRight.u == 1.0F);
     CHECK(bottomRight.v == 0.5F);
     CHECK(bottomRight.color.r == 0.5F);
+}
+
+TEST_CASE("set corners replace the bounds, texture coordinates and tint") {
+    const SpriteDraw sprite{.texture = kTile,
+                            .bounds = {.width = 30.0F, .height = 40.0F},
+                            .corners = std::array{SpriteCorner{.x = 1.0F, .u = 0.5F},
+                                                  SpriteCorner{.x = 2.0F, .tint = {.g = 0.5F}},
+                                                  SpriteCorner{.y = 3.0F, .v = 0.25F},
+                                                  SpriteCorner{.y = 3.0F, .v = 0.25F}}};
+
+    const Batched batched = Batch({{.texture = kIcon}, sprite});
+
+    REQUIRE(batched.vertices.size() == std::size_t{2} * kVerticesPerSprite);
+    REQUIRE(batched.batches.size() == 2);
+    CHECK(batched.batches[1].texture == kTile);
+    CHECK(batched.batches[1].firstSprite == 1);
+    CHECK(batched.vertices[4].x == 1.0F);
+    CHECK(batched.vertices[4].u == 0.5F);
+    CHECK(batched.vertices[5].color.g == 0.5F);
+    CHECK(batched.vertices[6].v == 0.25F);
+    CHECK(batched.vertices[7].y == 3.0F);
 }
 
 TEST_CASE("sprite indices make two triangles over each sprite's corners") {

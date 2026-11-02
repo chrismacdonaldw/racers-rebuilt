@@ -6,6 +6,7 @@
 #include "app/hud/powerup_panel.hpp"
 #include "app/screen_fill.hpp"
 #include "core/log.hpp"
+#include "sim/physics/racer.hpp"
 
 namespace rr::app {
 namespace {
@@ -72,7 +73,15 @@ void RaceHudLayer::SetCircuitPoints(std::span<const std::int32_t> before) {
     circuitPoints_.assign(before.begin(), before.end());
 }
 
+void RaceHudLayer::SetMap(std::optional<TrackMap> map) {
+    gadget_ = HudGadget(map);
+}
+
 void RaceHudLayer::Tick(const sim::RaceSession& session, Milliseconds elapsed) {
+    const sim::Racer& first = session.Racers()[0];
+    if (!first.Status().isGhost) {
+        gadget_.Tick(first.Body().derived.forwardSpeed);
+    }
     for (std::size_t player = 0; player < huds_.size(); ++player) {
         huds_[player].Tick(session.Clock(), session.Progress(), player, elapsed);
     }
@@ -86,15 +95,23 @@ void RaceHudLayer::TickPause(Milliseconds elapsed) {
 
 std::span<const render::SpriteDraw> RaceHudLayer::Draw(
     const sim::RaceSession& session, std::span<const sim::RacerSnapshot> racers,
-    std::span<const std::optional<render::SpriteDraw>> covers, std::optional<PauseView> pause) {
+    const MapView& firstPlayerMap, std::span<const std::optional<render::SpriteDraw>> covers,
+    std::optional<PauseView> pause) {
     sprites_.clear();
     for (std::size_t player = 0; player < players_; ++player) {
         const HudPlacement placement = PlacementFor(player, players_);
         if (player < huds_.size()) {
             RaceHud& hud = huds_[player];
-            hud.Layout(session.Clock(), session.Progress(), player, texts_);
+            const bool isGhost = racers[player].isGhost;
+            hud.Layout(session.Clock(), session.Progress(), {.slot = player, .isGhost = isGhost},
+                       texts_);
             DrawHudText(texts_, hud.Fonts(), sprites_);
-            LayoutPowerupPanel(racers[player], images_, sprites_, placement.bottom);
+            if (!isGhost) {
+                LayoutPowerupPanel(racers[player], images_, sprites_, placement.bottom);
+            }
+            if (!isGhost && players_ == 1) {
+                gadget_.Draw(firstPlayerMap, images_, sprites_);
+            }
         }
         if (player < covers.size() && covers[player]) {
             render::SpriteDraw cover = *covers[player];

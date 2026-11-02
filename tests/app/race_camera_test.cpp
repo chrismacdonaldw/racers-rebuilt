@@ -198,4 +198,21 @@ TEST_CASE("the finish view swings round to face the car") {
     CheckNear(Gaze(camera), {.x = -Cosine(20.0F), .z = -Sine(20.0F)});
 }
 
+TEST_CASE("the map's view direction is the flattened gaze, even looking back") {
+    RaceCamera camera(CarFacing(kQuarterTurn));
+
+    camera.SetLookBack(true);
+
+    CheckNear(camera.ViewDirection(), {.y = 1.0F});
+}
+
+TEST_CASE("the map keeps the chase heading while the finish view swings round") {
+    RaceCamera camera(CarFacing(0.0F));
+
+    camera.SetView(CameraView::Finish, false);
+    Drive(camera, CarFacing(0.0F), 5000.0F);
+
+    CheckNear(camera.ViewDirection(), {.x = 1.0F});
+}
+
 }

@@ -74,13 +74,15 @@ void RaceHud::Tick(const sim::RaceClock& clock, const sim::RaceProgress& progres
 }
 
 void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progress,
-                     std::size_t racer, std::vector<HudText>& out) {
+                     const HudRacer& racer, std::vector<HudText>& out) {
     out.clear();
     pool_.Clear();
-    const HudValues values = ReadHudValues(clock, progress, racer);
-    AddLap(values, out);
-    AddPlace(values.place, out);
-    if (values.isWrongWay) {
+    const HudValues values = ReadHudValues(clock, progress, racer.slot);
+    if (!racer.isGhost) {
+        AddLap(values, out);
+        AddPlace(values.place, out);
+    }
+    if (values.isWrongWay && !racer.isGhost) {
         const float wrongWayY =
             placement_.top + ((placement_.bottom - placement_.top) * kWrongWayFraction);
         out.push_back(Centered(strings_.wrongWay, wrongWayY, {}, placement_.textScale));

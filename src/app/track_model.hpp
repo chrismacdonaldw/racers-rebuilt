@@ -38,6 +38,7 @@ struct TrackModel {
     std::vector<NamedDraws> entityDraws;
     assets::NameMap<JointedModel> animatedModels;
     Bounds bounds;
+    assets::NameMap<render::TextureId> textures;
 };
 
 [[nodiscard]] Result<assets::NameMap<render::TextureId>> UploadTextures(
