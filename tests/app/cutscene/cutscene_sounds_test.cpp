@@ -160,9 +160,12 @@ TEST_CASE("a transform's links start and stop overlay effects") {
                    .starts = false}}};
     audio::Mixer mixer = HeadlessMixer();
     CutsceneEffectPlayer player(
-        frame, effects, CutsceneSounds(mixer, {}, {}),
-        CutsceneOverlay(
-            effects, {.images = {{.texture = render::TextureId{2}, .widthPx = 4, .heightPx = 4}}}));
+        frame, effects,
+        {.sounds = CutsceneSounds(mixer, {}, {}),
+         .overlay = CutsceneOverlay(
+             effects, {.images = {{.texture = render::TextureId{2}, .widthPx = 4, .heightPx = 4}}}),
+         .tints = CutsceneTints({}, {}),
+         .particles = CutsceneParticles({}, {})});
     const auto drawn = [&] {
         std::vector<render::SpriteDraw> out;
         player.Draw({.width = 640.0F, .height = 480.0F}, out);

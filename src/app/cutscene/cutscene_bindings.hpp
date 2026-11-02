@@ -36,6 +36,12 @@ struct CutsceneBindings {
     std::vector<CameraBinding> cameras;
 };
 
+/// Fails on a name no world has. A model without draws binds to nothing.
+[[nodiscard]] Result<ModelBinding> BindEntity(const assets::EntityByName& entity,
+                                              std::span<const assets::WorldAsset* const> worlds,
+                                              std::span<const NamedDraws> statics,
+                                              const sim::TrackEntitySources& entities);
+
 /// Searches the worlds in order, ignoring case. Fails on a name no world has, as the original does.
 [[nodiscard]] Result<CutsceneBindings> BindCutscene(
     const assets::CutsceneFrame& frame, std::span<const assets::WorldAsset* const> worlds,

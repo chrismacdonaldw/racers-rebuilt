@@ -123,13 +123,14 @@ render::Lighting CutscenePlayer::Lighting(std::vector<render::DirectionalLight>&
                                : render::Color{.r = 0.0F, .g = 0.0F, .b = 0.0F}};
 }
 
-void CutscenePlayer::AppendDraws(const TrackEntityDraws& jointed,
+void CutscenePlayer::AppendDraws(const TrackEntityDraws& jointed, const CutsceneTints& tints,
                                  std::vector<render::MeshDraw>& out) const {
     for (std::size_t model = 0; model < bindings_.models.size(); ++model) {
         if (!timeline_.IsActive({.kind = CutsceneEventKind::Model, .index = model})) {
             continue;
         }
         const ModelBinding& binding = bindings_.models[model];
+        const std::size_t modelFirst = out.size();
         if (binding.staticDraws) {
             const DrawSpan span = *binding.staticDraws;
             const std::size_t first = out.size();
@@ -151,6 +152,7 @@ void CutscenePlayer::AppendDraws(const TrackEntityDraws& jointed,
             materials_.Apply(model, std::span(out).subspan(first),
                              jointed.Slots().subspan(span.first, span.count));
         }
+        tints.Apply(binding, std::span(out).subspan(modelFirst));
     }
 }
 

@@ -52,25 +52,15 @@ Result<ModelBinding> BindName(const assets::CutsceneModel& event, const assets::
                               std::span<const assets::WorldAsset* const> worlds,
                               std::span<const NamedDraws> statics,
                               const sim::TrackEntitySources& entities) {
-    if (model.isJointed) {
-        const std::optional<std::size_t> jointed = FindJointed(entities, model.name);
-        if (!jointed) {
-            return Fail(ErrorCode::NotFound,
-                        std::format("unable to find jointed model {}", model.name));
-        }
-        return CheckPart(entities, *jointed, event.part, event.name).transform([&] {
-            return ModelBinding{.jointed = jointed};
+    return BindEntity(model, worlds, statics, entities)
+        .and_then([&](const ModelBinding& bound) -> Result<ModelBinding> {
+            if (!bound.jointed) {
+                return bound;
+            }
+            return CheckPart(entities, *bound.jointed, event.part, event.name).transform([&] {
+                return bound;
+            });
         });
-    }
-    if (!HasModelEntity(worlds, model.name)) {
-        return Fail(ErrorCode::NotFound, std::format("unable to find model {}", model.name));
-    }
-    const auto drawn = std::ranges::find_if(
-        statics, [&](const NamedDraws& draws) { return SameName(draws.entity, model.name); });
-    if (drawn == statics.end()) {
-        return ModelBinding{};
-    }
-    return ModelBinding{.staticDraws = drawn->span};
 }
 
 Result<ModelBinding> BindIndex(const assets::EntityByIndex& model,
@@ -121,6 +111,29 @@ Result<CameraBinding> BindCamera(const assets::CutsceneCamera& event,
     return Fail(ErrorCode::NotFound, std::format("unable to find named camera {}", event.camera));
 }
 
+}
+
+Result<ModelBinding> BindEntity(const assets::EntityByName& entity,
+                                std::span<const assets::WorldAsset* const> worlds,
+                                std::span<const NamedDraws> statics,
+                                const sim::TrackEntitySources& entities) {
+    if (entity.isJointed) {
+        const std::optional<std::size_t> jointed = FindJointed(entities, entity.name);
+        if (!jointed) {
+            return Fail(ErrorCode::NotFound,
+                        std::format("unable to find jointed model {}", entity.name));
+        }
+        return ModelBinding{.jointed = jointed};
+    }
+    if (!HasModelEntity(worlds, entity.name)) {
+        return Fail(ErrorCode::NotFound, std::format("unable to find model {}", entity.name));
+    }
+    const auto drawn = std::ranges::find_if(
+        statics, [&](const NamedDraws& draws) { return SameName(draws.entity, entity.name); });
+    if (drawn == statics.end()) {
+        return ModelBinding{};
+    }
+    return ModelBinding{.staticDraws = drawn->span};
 }
 
 Result<CutsceneBindings> BindCutscene(const assets::CutsceneFrame& frame,

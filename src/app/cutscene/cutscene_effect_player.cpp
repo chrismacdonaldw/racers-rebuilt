@@ -6,39 +6,63 @@ namespace rr::app {
 
 CutsceneEffectPlayer::CutsceneEffectPlayer(const assets::CutsceneFrame& frame,
                                            const assets::CutsceneEffectsAsset& effects,
-                                           CutsceneSounds sounds, CutsceneOverlay overlay)
-    : frame_(&frame),
-      effects_(&effects),
-      sounds_(std::move(sounds)),
-      overlay_(std::move(overlay)) {}
+                                           CutsceneEffects parts)
+    : frame_(&frame), effects_(&effects), parts_(std::move(parts)) {}
 
 void CutsceneEffectPlayer::Advance(std::span<const CutsceneEventChange> changes,
                                    Milliseconds elapsed) {
     commands_.clear();
     DispatchLinks(*frame_, effects_->links, changes, commands_);
     for (const EffectCommand& command : commands_) {
-        if (command.kind == assets::EffectKind::Sound) {
-            if (command.starts) {
-                sounds_.Start(command.effect);
-            } else {
-                sounds_.Stop(command.effect);
-            }
-        } else if (command.starts) {
-            overlay_.Start(command.kind, command.effect);
-        } else {
-            overlay_.Stop(command.kind, command.effect);
-        }
+        Run(command);
     }
-    overlay_.Advance(elapsed);
+    parts_.particles.Update(elapsed);
+    parts_.overlay.Advance(elapsed);
 }
 
 void CutsceneEffectPlayer::StopAll() {
-    sounds_.StopAll();
+    parts_.tints.StopAll();
+    parts_.sounds.StopAll();
     for (std::size_t text = 0; text < effects_->texts.size(); ++text) {
-        overlay_.Stop(assets::EffectKind::Text, text);
+        parts_.overlay.Stop(assets::EffectKind::Text, text);
     }
     for (std::size_t image = 0; image < effects_->images.size(); ++image) {
-        overlay_.Stop(assets::EffectKind::Image, image);
+        parts_.overlay.Stop(assets::EffectKind::Image, image);
+    }
+}
+
+void CutsceneEffectPlayer::Run(const EffectCommand& command) {
+    switch (command.kind) {
+        case assets::EffectKind::Tint:
+            if (command.starts) {
+                parts_.tints.Start(command.effect);
+            } else {
+                parts_.tints.Stop(command.effect);
+            }
+            return;
+        case assets::EffectKind::Sound:
+            if (command.starts) {
+                parts_.sounds.Start(command.effect);
+            } else {
+                parts_.sounds.Stop(command.effect);
+            }
+            return;
+        case assets::EffectKind::Particle:
+            if (command.starts) {
+                parts_.particles.Start(command.effect, command.position, command.axes);
+            } else {
+                parts_.particles.Stop(command.effect);
+            }
+            return;
+        case assets::EffectKind::Fade:
+        case assets::EffectKind::Text:
+        case assets::EffectKind::Image:
+            if (command.starts) {
+                parts_.overlay.Start(command.kind, command.effect);
+            } else {
+                parts_.overlay.Stop(command.kind, command.effect);
+            }
+            return;
     }
 }
 
