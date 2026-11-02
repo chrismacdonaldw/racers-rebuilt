@@ -18,11 +18,12 @@ struct RaceSceneSetup {
     sim::RespawnRule respawn;
     std::size_t racer = 0;
     sim::AiDriving aiDriving = sim::AiDriving::Route;
+    bool isMirrored = false;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
 };
 
-/// Such as `race:RACEC0R0:respawn=3000:racer=2`. Unset `circuit` and route `ai` are left out.
+/// Such as `race:RACEC0R0:respawn=3000:racer=2`. Unset `circuit`, mirror and `ai` are left out.
 [[nodiscard]] std::string RaceSceneName(const RaceSceneSetup& setup);
 
 [[nodiscard]] bool IsRaceScene(std::string_view scene);

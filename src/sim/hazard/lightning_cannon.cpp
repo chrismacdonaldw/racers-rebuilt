@@ -5,6 +5,7 @@
 #include <numbers>
 
 #include "core/assert.hpp"
+#include "core/mirror.hpp"
 #include "sim/powerup/powerup_system.hpp"
 
 namespace rr::sim {
@@ -34,7 +35,8 @@ void LightningCannon::Tick(HazardContext& context) {
         (std::cos(2.0F * std::numbers::pi_v<float> * kDipsPerPeriod * share) * verticalRange) +
         verticalBase;
     const Vector3 direction =
-        Normalized({.x = std::cos(yaw), .y = std::sin(yaw), .z = dip}, {.x = 1.0F});
+        MirroredYIf(context.isMirrored,
+                    Normalized({.x = std::cos(yaw), .y = std::sin(yaw), .z = dip}, {.x = 1.0F}));
     const Vector3 from =
         entity ? context.entities->NodeWorld(*entity, kRootNode).position - kBelowRoot : source;
     *context.aim = {.source = from, .target = from + direction, .direction = direction};

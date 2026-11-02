@@ -110,6 +110,8 @@ public:
     HazardRig& operator=(HazardRig&&) = delete;
     ~HazardRig() = default;
 
+    void MirrorTrack() { isMirrored_ = true; }
+
     void Hear(assets::EventId id, sim::EventEdge edge,
               std::optional<Vector3> position = std::nullopt) {
         Hear({.id = id, .edge = edge, .position = position});
@@ -209,7 +211,8 @@ private:
                 .elapsed = kRigTick,
                 .world = &world_,
                 .explosions = &explosions_,
-                .effects = &effects_};
+                .effects = &effects_,
+                .isMirrored = isMirrored_};
     }
 
     void MeasureReaches() {
@@ -236,6 +239,7 @@ private:
     sim::Explosions spikes_{sim::kSpikeExplosion, sim::kSpikeExplosionCount};
     sim::WeaponEvents weapons_{64};
     sim::PowerupContext effects_;
+    bool isMirrored_ = false;
 };
 
 }

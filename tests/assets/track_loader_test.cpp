@@ -19,6 +19,8 @@ namespace rr::assets {
 namespace {
 
 using test::Bytes;
+using test::Floats;
+using test::Ints;
 using test::Join;
 using test::ListHeader;
 using test::Text;
@@ -30,6 +32,35 @@ std::vector<std::byte> NameList(std::uint8_t field, std::string_view name) {
 std::vector<std::byte> OneEntryLibrary(std::string_view name) {
     return Join(
         {Bytes({0x27}), ListHeader(1), Bytes({0x27}), Text(name), Bytes({0x05, 0x06, 0x06})});
+}
+
+std::vector<std::byte> OneTriangleModel() {
+    return Join({
+        Bytes({0x27}),
+        ListHeader(1),
+        Text("mat"),
+        Bytes({0x06}),
+        Bytes({0x2A}),
+        ListHeader(3),
+        Floats({0, 0, 0, 0, 0}),
+        Ints({0, 0, 0, 0}),
+        Floats({1, 0, 0, 0, 0}),
+        Ints({0, 0, 0, 0}),
+        Floats({0, 1, 0, 0, 0}),
+        Ints({0, 0, 0, 0}),
+        Bytes({0x06}),
+        Bytes({0x2D}),
+        ListHeader(1),
+        Ints({0, 1, 2}),
+        Bytes({0x06}),
+        Bytes({0x2E}),
+        ListHeader(2),
+        Bytes({0x31}),
+        Ints({0, 0, 3}),
+        Bytes({0x2D}),
+        Ints({0, 1}),
+        Bytes({0x06}),
+    });
 }
 
 std::vector<std::byte> OnePixelTga() {
@@ -106,6 +137,45 @@ TEST_CASE_FIXTURE(TrackFixture, "models load the files they name without worlds"
     CHECK(loaded->materials.contains("PAINT"));
     CHECK(loaded->materials.contains("GLASS"));
     CHECK(loaded->textures.contains("WOOD"));
+}
+
+TEST_CASE_FIXTURE(TrackFixture, "a mirrored load reflects its models") {
+    Write("gamedata/racex/kart.gdb", OneTriangleModel());
+    const std::array models{ModelFiles{.materials = "", .textures = "", .geometry = "kart"}};
+
+    const Result<TrackAssets> mirrored =
+        Mount().and_then([&] { return loader_.LoadModels("gamedata/racex", models, true); });
+
+    REQUIRE(mirrored.has_value());
+    const GeometryAsset& model = *mirrored->models.at("KART");
+    CHECK(model.vertices[2].position == Vector3{.y = -1.0F});
+    CHECK(model.indices == std::vector<std::uint32_t>{0, 2, 1});
+}
+
+TEST_CASE_FIXTURE(TrackFixture, "mirrored files are cached apart from plain ones") {
+    const Result<TrackAssets> plain = Load();
+    const Result<TrackAssets> mirrored = loader_.Load("gamedata/racex", true);
+    const Result<TrackAssets> mirroredAgain = loader_.Load("gamedata/racex", true);
+
+    REQUIRE(plain.has_value());
+    REQUIRE(mirrored.has_value());
+    REQUIRE(mirroredAgain.has_value());
+    CHECK(plain->worlds.front() != mirrored->worlds.front());
+    CHECK(mirrored->worlds.front() == mirroredAgain->worlds.front());
+}
+
+TEST_CASE_FIXTURE(TrackFixture, "a mirrored load leaves the sky world and its models as authored") {
+    Write("gamedata/racex/backgrd.wdb", NameList(0x2A, "sky"));
+    Write("gamedata/racex/track.wdb", NameList(0x2A, "kart"));
+    Write("gamedata/racex/sky.gdb", OneTriangleModel());
+    Write("gamedata/racex/kart.gdb", OneTriangleModel());
+
+    const Result<TrackAssets> mirrored =
+        Mount().and_then([&] { return loader_.Load("gamedata/racex", true); });
+
+    REQUIRE(mirrored.has_value());
+    CHECK(mirrored->models.at("SKY")->vertices[2].position == Vector3{.y = 1.0F});
+    CHECK(mirrored->models.at("KART")->vertices[2].position == Vector3{.y = -1.0F});
 }
 
 TEST_CASE_FIXTURE(TrackFixture, "a missing texture file is skipped and named") {

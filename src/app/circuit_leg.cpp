@@ -35,8 +35,10 @@ Result<CircuitLeg> CircuitLeg::Create(const assets::RaceCatalog& catalog,
         return Fail(ErrorCode::InvalidData, std::format("circuit {} has no race left from race {}",
                                                         setup.race.circuit, setup.standing.race));
     }
+    const assets::RaceEntry& entry = catalog.Races()[*races[*run.Race()]];
     RaceSceneSetup race = setup.race;
-    race.track = assets::ToUpperAscii(catalog.Races()[*races[*run.Race()]].folder);
+    race.track = assets::ToUpperAscii(entry.folder);
+    race.isMirrored = entry.isMirrored;
     return CircuitLeg(run, setup.race, std::move(race));
 }
 

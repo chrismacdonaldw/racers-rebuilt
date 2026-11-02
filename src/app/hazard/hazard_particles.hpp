@@ -31,8 +31,8 @@ private:
 
     void Follow(const sim::RaceSession& session, const sim::HazardState& state,
                 const Transform& camera, SlotEmitter& emitter, render::ParticleBank& bank);
-    void Smoke(const sim::TrackEntities& entities, std::size_t vent, SlotEmitter& emitter,
-               render::ParticleBank& bank);
+    void Smoke(const sim::TrackEntities& entities, std::size_t vent, bool isMirrored,
+               SlotEmitter& emitter, render::ParticleBank& bank);
     void Snow(const Transform& camera, SlotEmitter& emitter, render::ParticleBank& bank);
     static void Keep(SlotEmitter& emitter, std::string_view name,
                      const render::EmitterPlacement& placement, render::ParticleBank& bank);

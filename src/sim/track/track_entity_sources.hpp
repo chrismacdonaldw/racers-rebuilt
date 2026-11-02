@@ -41,6 +41,7 @@ struct TrackEntitySources {
 
 /// Looks files up in the track folder, then in `GAMEDATA/COMMON`.
 [[nodiscard]] Result<TrackEntitySources> LoadTrackEntities(const assets::Vfs& vfs,
-                                                           std::string_view track);
+                                                           std::string_view track,
+                                                           bool isMirrored = false);
 
 }

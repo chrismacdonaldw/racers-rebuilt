@@ -44,12 +44,13 @@ public:
     TrackLoader(const Vfs& vfs, LoaderPool& pool) : vfs_(&vfs), pool_(&pool) {}
 
     /// Loads every WDB in `folder` and the files they name, looked up in `folder`, then in
-    /// `GAMEDATA/COMMON`.
-    [[nodiscard]] Result<TrackAssets> Load(std::string_view folder);
+    /// `GAMEDATA/COMMON`. A mirrored load reflects all but the sky world and its models.
+    [[nodiscard]] Result<TrackAssets> Load(std::string_view folder, bool isMirrored = false);
 
     /// Looks names up as `Load` does, without any worlds, skipping empty ones.
     [[nodiscard]] Result<TrackAssets> LoadModels(std::string_view folder,
-                                                 std::span<const ModelFiles> models);
+                                                 std::span<const ModelFiles> models,
+                                                 bool isMirrored = false);
 
     /// Drops cached files that no loaded track still uses.
     void Prune();
@@ -59,7 +60,7 @@ private:
 
     [[nodiscard]] Result<TrackAssets> LoadNamed(const NameResolver& resolver,
                                                 std::vector<AssetCache<WorldAsset>::Handle> worlds,
-                                                const Names& names);
+                                                const Names& names, bool isMirrored);
 
     const Vfs* vfs_;
     LoaderPool* pool_;

@@ -43,6 +43,14 @@ TEST_CASE("a race scene name records a circuit other than the track's home circu
     CHECK(ParseRaceScene("race:RACEC1R0:respawn=3000").value_or(circuit).circuit.empty());
 }
 
+TEST_CASE("a race scene name marks a mirrored race") {
+    const RaceSceneSetup mirrored{.track = "RACEC0R0", .respawn = {}, .isMirrored = true};
+
+    CHECK(RaceSceneName(mirrored) == "race:RACEC0R0:respawn=3000:racer=0:mirrored");
+    CHECK(ParseRaceScene(RaceSceneName(mirrored)) == mirrored);
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:mirrored=no").has_value());
+}
+
 TEST_CASE("a malformed race scene name is rejected") {
     for (const std::string_view scene :
          {"RACEC0R0", "race:RACEC0R0", "race::respawn=3000", "race:RACEC0R0:respawn=0",

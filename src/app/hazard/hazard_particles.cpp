@@ -7,6 +7,7 @@
 #include <variant>
 
 #include "app/track_space.hpp"
+#include "core/mirror.hpp"
 
 namespace rr::app {
 namespace {
@@ -61,13 +62,14 @@ void HazardParticles::Follow(const sim::RaceSession& session, const sim::HazardS
         const float frame = entities.Frame(*blob->entity);
         for (const sim::LavaWindow& window : sim::kLavaWindows) {
             if (emitter.wait == Milliseconds{0} && window.start < frame && frame < window.end) {
-                Puff(emitter, kLavaSmoke, At(window.splash), bank);
+                Puff(emitter, kLavaSmoke, At(MirroredYIf(session.IsMirrored(), window.splash)),
+                     bank);
                 emitter.wait = kLavaSmokeWait;
             }
         }
     } else if (const auto* vent = std::get_if<sim::SmokeVent>(&state);
                vent != nullptr && vent->entity) {
-        Smoke(entities, *vent->entity, emitter, bank);
+        Smoke(entities, *vent->entity, session.IsMirrored(), emitter, bank);
     } else if (std::holds_alternative<sim::Snowfall>(state)) {
         if (session.Tints().Of(player_)) {
             Stop(emitter, bank);
@@ -77,12 +79,12 @@ void HazardParticles::Follow(const sim::RaceSession& session, const sim::HazardS
     }
 }
 
-void HazardParticles::Smoke(const sim::TrackEntities& entities, std::size_t vent,
+void HazardParticles::Smoke(const sim::TrackEntities& entities, std::size_t vent, bool isMirrored,
                             SlotEmitter& emitter, render::ParticleBank& bank) {
     const Transform node = entities.NodeWorld(vent, kVentNode);
     const auto pick = static_cast<std::size_t>(random_.Next() * kVentOffsets.size());
-    Keep(emitter, kVentSmoke, At(node.position + Rotate(node.rotation, kVentOffsets.at(pick))),
-         bank);
+    const Vector3 offset = MirroredYIf(isMirrored, kVentOffsets.at(pick));
+    Keep(emitter, kVentSmoke, At(node.position + Rotate(node.rotation, offset)), bank);
 }
 
 void HazardParticles::Snow(const Transform& camera, SlotEmitter& emitter,

@@ -90,6 +90,7 @@ public:
     [[nodiscard]] const Hazards& TrackHazards() const { return hazards_; }
     [[nodiscard]] const EventResources& Resources() const { return resources_; }
     [[nodiscard]] const RacerTints& Tints() const { return tints_; }
+    [[nodiscard]] bool IsMirrored() const { return course_.isMirrored; }
     [[nodiscard]] std::span<const AiTaunter> Taunters() const { return taunts_; }
     [[nodiscard]] const std::optional<RouteDriver>& DriverOf(std::size_t racer) const {
         return drivers_.at(racer);

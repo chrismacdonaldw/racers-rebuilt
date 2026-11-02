@@ -8,6 +8,7 @@
 
 #include "assets/stored_rotation.hpp"
 #include "assets/token_schema.hpp"
+#include "core/mirror.hpp"
 
 namespace rr::assets {
 namespace {
@@ -82,14 +83,6 @@ Result<RoutePoint> DecodePoint(const PackedPoint& packed) {
         });
 }
 
-Vector3 Mirrored(const Vector3& position) {
-    return {.x = position.x, .y = -position.y, .z = position.z};
-}
-
-Quaternion Mirrored(const Quaternion& rotation) {
-    return {.w = -rotation.w, .x = rotation.x, .y = -rotation.y, .z = rotation.z};
-}
-
 Result<RaceRoute> Decode(const StoredRoute& stored) {
     if (stored.loopPoint < 0 ||
         std::cmp_greater_equal(stored.loopPoint + 1, stored.points.size())) {
@@ -132,13 +125,13 @@ Result<RaceRoute> ParseRaceRoute(std::span<const std::byte> bytes) {
 }
 
 RaceRoute Mirrored(RaceRoute route) {
-    route.startPosition = Mirrored(route.startPosition);
-    route.startRotation = Mirrored(route.startRotation);
-    route.loopPosition = Mirrored(route.loopPosition);
-    route.loopRotation = Mirrored(route.loopRotation);
+    route.startPosition = MirroredY(route.startPosition);
+    route.startRotation = MirroredY(route.startRotation);
+    route.loopPosition = MirroredY(route.loopPosition);
+    route.loopRotation = MirroredY(route.loopRotation);
     for (RoutePoint& point : route.points) {
-        point.offset = Mirrored(point.offset);
-        point.rotation = Mirrored(point.rotation);
+        point.offset = MirroredY(point.offset);
+        point.rotation = MirroredY(point.rotation);
         std::swap(point.widthLeft, point.widthRight);
     }
     return route;

@@ -1,5 +1,6 @@
 #include "sim/hazard/lava_blob.hpp"
 
+#include "core/mirror.hpp"
 #include "sim/powerup/weapon_hits.hpp"
 
 namespace rr::sim {
@@ -29,7 +30,8 @@ void LavaBlob::Tick(HazardContext& context) {
     for (const LavaWindow& window : kLavaWindows) {
         for (const float edge : {window.start, window.end}) {
             if (IsJustPast(frame, edge)) {
-                context.events->FireStartAndEnd(kLavaBlobEvent, window.splash);
+                context.events->FireStartAndEnd(kLavaBlobEvent,
+                                                MirroredYIf(context.isMirrored, window.splash));
                 eventWait = kEventWait;
                 isBubbling = edge == window.end;
             }

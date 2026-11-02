@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "core/assert.hpp"
+#include "core/mirror.hpp"
 #include "sim/powerup/powerup_system.hpp"
 
 namespace rr::sim {
@@ -23,8 +24,9 @@ void WarpPad::Hear(const TrackEvent& event, HazardContext& context) {
     if (status.isGhost || status.isWarping) {
         return;
     }
-    *context.aim = {
-        .source = kTarget, .target = kTarget, .direction = Normalized(kHeading, kHeading)};
+    const Vector3 target = MirroredYIf(context.isMirrored, kTarget);
+    const Vector3 heading = MirroredYIf(context.isMirrored, kHeading);
+    *context.aim = {.source = target, .target = target, .direction = Normalized(heading, heading)};
     context.effects->powerups->Fire({.racer = *event.racer,
                                      .colour = assets::BrickColour::Green,
                                      .level = kWarpLevel,
