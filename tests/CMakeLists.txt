@@ -223,6 +223,8 @@ add_executable(racers-rebuilt-tests
     sim/ai/rubber_band_test.cpp
     sim/animation/part_clock_test.cpp
     sim/animation/skeleton_pose_test.cpp
+    sim/car_build/built_car_test.cpp
+    sim/car_build/car_data_test.cpp
     sim/collision/collision_mesh_test.cpp
     sim/collision/collision_world_test.cpp
     sim/collision/racer_worlds_test.cpp

@@ -1,5 +1,6 @@
 #include "assets/original_save.hpp"
 
+#include <algorithm>
 #include <format>
 #include <numeric>
 #include <utility>
@@ -21,6 +22,9 @@ constexpr std::size_t kScoreSize = 0x40;
 constexpr std::size_t kRaceTimeOffset = 0x20;
 constexpr std::size_t kNameUnits = 14;
 constexpr std::size_t kLookOffset = 0x01C;
+constexpr std::size_t kChassisOffset = 0x021;
+constexpr std::size_t kChassisLength = 8;
+constexpr std::size_t kCarOffset = 0x029;
 constexpr std::size_t kTrophyOffset = 0x22B;
 constexpr unsigned kExpressionMask = 0x7FU;
 constexpr std::uint16_t kMagic = 0x524C;
@@ -57,6 +61,23 @@ std::uint8_t U8At(std::span<const std::byte> data, std::size_t offset) {
     return static_cast<std::uint8_t>(ByteAt(data, offset));
 }
 
+std::string ChassisAt(std::span<const std::byte> record) {
+    std::string chassis;
+    for (const std::byte letter : record.subspan(kChassisOffset, kChassisLength)) {
+        if (letter == std::byte{0}) {
+            break;
+        }
+        chassis.push_back(static_cast<char>(letter));
+    }
+    return chassis;
+}
+
+CarData CarAt(std::span<const std::byte> record) {
+    CarData car{};
+    std::ranges::copy(record.subspan(kCarOffset, kCarDataSize), car.begin());
+    return car;
+}
+
 SavedRacer RacerAt(std::span<const std::byte> record) {
     return {
         .name = NameAt(record, 0),
@@ -66,6 +87,8 @@ SavedRacer RacerAt(std::span<const std::byte> record) {
                  .torso = U8At(record, kLookOffset + 3),
                  .expression =
                      static_cast<std::uint8_t>(ByteAt(record, kLookOffset + 4) & kExpressionMask)},
+        .chassis = ChassisAt(record),
+        .car = CarAt(record),
         .trophies = U16At(record, kTrophyOffset),
     };
 }

@@ -10,6 +10,8 @@ rr_add_module(sim
         ai/rubber_band.cpp
         animation/part_clock.cpp
         animation/skeleton_pose.cpp
+        car_build/built_car.cpp
+        car_build/car_grid.cpp
         collision/collision_mesh.cpp
         collision/collision_world.cpp
         collision/racer_worlds.cpp

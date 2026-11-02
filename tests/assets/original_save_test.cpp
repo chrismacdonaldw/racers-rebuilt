@@ -65,21 +65,34 @@ TEST_CASE("a save with a bad checksum, a stray byte or no LR fails") {
     CHECK_FALSE(ParseOriginalSave(test::SaveBytes().Byte(2, 1).File()).has_value());
 }
 
-TEST_CASE("the retail saves hold one racer and none") {
+TEST_CASE("the first retail save holds one racer and their car") {
     const std::optional<std::filesystem::path> game = test::GameFolder();
     if (!game) {
         return;
     }
 
-    const Result<OriginalSave> first = ParseOriginalSave(ReadFile(*game / "Save/0/LEGORac1"));
-    const Result<OriginalSave> second = ParseOriginalSave(ReadFile(*game / "Save/1/LEGORac1"));
+    const Result<OriginalSave> save = ParseOriginalSave(ReadFile(*game / "Save/0/LEGORac1"));
 
-    REQUIRE(first.has_value());
-    REQUIRE(second.has_value());
-    CHECK(*first ==
-          OriginalSave{.racers = {{.name = u"OLDGAMESDOWNL",
-                                   .look = {.face = 14, .hat = 0, .legs = 5, .torso = 7}}}});
-    CHECK(*second == OriginalSave{});
+    REQUIRE(save.has_value());
+    REQUIRE(save->racers.size() == 1);
+    const SavedRacer& racer = save->racers.front();
+    CHECK(racer == SavedRacer{.name = u"OLDGAMESDOWNL",
+                              .look = {.face = 14, .hat = 0, .legs = 5, .torso = 7},
+                              .chassis = "ddchas0",
+                              .car = racer.car});
+    CHECK(racer.car != CarData{});
+}
+
+TEST_CASE("the second retail save is empty") {
+    const std::optional<std::filesystem::path> game = test::GameFolder();
+    if (!game) {
+        return;
+    }
+
+    const Result<OriginalSave> save = ParseOriginalSave(ReadFile(*game / "Save/1/LEGORac1"));
+
+    REQUIRE(save.has_value());
+    CHECK(*save == OriginalSave{});
 }
 
 }
