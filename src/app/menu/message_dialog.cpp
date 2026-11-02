@@ -13,6 +13,7 @@
 #include "app/frame_loop.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_page.hpp"
+#include "app/menu/menu_widgets.hpp"
 #include "app/ui_text/text_layout.hpp"
 
 namespace rr::app {
@@ -75,22 +76,11 @@ Result<void> LoadMessage(const MenuFiles& files, DialogLook& look) {
 }
 
 Result<void> LoadButton(MenuImageCache& images, const MenuFiles& files, DialogLook& look) {
-    const assets::GameButtonStyle* style = files.FindGameButtonStyle(kButtonStyle);
-    if (style == nullptr || !style->button.images) {
-        return Fail(ErrorCode::NotFound, std::format("there's no button style {}", kButtonStyle));
-    }
-    look.button = ButtonStates(files, kButtonStyle);
-    for (std::size_t state = 0; state < assets::kControlStates; ++state) {
-        Result<UiImage> image = images.Upload(style->button.images->at(state));
-        if (!image) {
-            return std::unexpected(std::move(image.error()));
-        }
-        look.button.at(state).image = image->texture;
-        if (state == 0) {
-            look.buttonImage = SizeOf(*image);
-        }
-    }
-    return {};
+    return LoadImageButton(images, files, kButtonStyle)
+        .transform([&](const ImageButtonLook& button) {
+            look.button = button.states;
+            look.buttonImage = button.image;
+        });
 }
 
 void PushVisible(const render::SpriteDraw& sprite, std::vector<render::SpriteDraw>& out) {

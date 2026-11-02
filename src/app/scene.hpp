@@ -1,5 +1,7 @@
 #pragma once
 
+#include <SDL3/SDL_events.h>
+
 #include <optional>
 #include <string>
 #include <string_view>
@@ -42,6 +44,9 @@ public:
 
     /// Settings for the application to store and save after this frame. Each is taken once.
     [[nodiscard]] virtual std::vector<SettingChange> TakeSettingChanges() { return {}; }
+
+    /// Every event as it arrives, between ticks. Replays don't record what it changes.
+    virtual void HandleEvent([[maybe_unused]] const SDL_Event& event) {}
 
     /// Only built while the overlay shows. Its actions take effect on the next `Tick`.
     [[nodiscard]] virtual overlay::RacerTools OverlayRacerTools() { return {}; }

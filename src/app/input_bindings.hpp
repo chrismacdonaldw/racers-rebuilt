@@ -5,7 +5,9 @@
 #include <SDL3/SDL_keycode.h>
 
 #include <array>
+#include <cstdint>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -68,7 +70,20 @@ inline constexpr std::array kMenuBindings{
                "input.buttons.menu_back", "Escape,Backspace", "b"),
 };
 
+inline constexpr std::int16_t kTriggerPressed = 16000;
+inline constexpr SDL_Keycode kToggleOverlayKey = SDLK_F1;
+inline constexpr SDL_Keycode kCyclePacingKey = SDLK_F9;
+
 void DeclareInputSettings(settings::Registry& registry);
+
+/// SDL's name, with each comma spelled `Comma` so it fits a comma-separated list.
+[[nodiscard]] std::string KeyBindingName(SDL_Keycode key);
+
+/// Reads names from `KeyBindingName` and plain SDL names alike.
+[[nodiscard]] SDL_Keycode KeyFromBindingName(std::string_view name);
+
+/// The names in a bindings setting, trimmed, without empty ones.
+[[nodiscard]] std::vector<std::string> SplitBindingNames(std::string_view list);
 
 /// An action stays held while any of its keys, buttons or triggers is down.
 class InputBindings {

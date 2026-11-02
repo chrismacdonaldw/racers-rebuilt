@@ -22,6 +22,7 @@
 #include "app/input_bindings.hpp"
 #include "app/menu/award_scene.hpp"
 #include "app/menu/award_scene_name.hpp"
+#include "app/menu/controls_scene.hpp"
 #include "app/menu/main_menu_scene.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/options_scene.hpp"
@@ -56,8 +57,6 @@ constexpr const char* kWindowTitle = "racers-rebuilt";
 constexpr int kWindowWidthPx = 1280;
 constexpr int kWindowHeightPx = 720;
 constexpr std::string_view kMusicFolderName = "music";
-constexpr SDL_Keycode kCyclePacingKey = SDLK_F9;
-constexpr SDL_Keycode kToggleOverlayKey = SDLK_F1;
 
 template <typename T>
 std::unique_ptr<Scene> ToScene(std::unique_ptr<T> scene) {
@@ -181,6 +180,9 @@ Result<void> Application::Run() {
     events_.Observe([this, &gamepads, &bindings](const SDL_Event& event) {
         gamepads.Handle(event);
         bindings.Handle(event, frameLoop_.Input());
+        if (Scene* scene = frameLoop_.Scenes().Top(); scene != nullptr) {
+            scene->HandleEvent(event);
+        }
     });
     audio::MusicPlayer music =
         CreateMusicPlayer(mixer_, vfs_, settingsFile_.parent_path() / kMusicFolderName,
@@ -270,6 +272,9 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std:
     }
     if (*scene == kOptionsScene) {
         return OptionsScene::Create(renderer_, vfs_).transform(ToScene<OptionsScene>);
+    }
+    if (*scene == kControlsScene) {
+        return ControlsScene::Create(renderer_, vfs_).transform(ToScene<ControlsScene>);
     }
     if (*scene == kSingleRaceScene || *scene == kCircuitRaceScene) {
         const RaceSetupMode mode =
