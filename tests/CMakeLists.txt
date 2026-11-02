@@ -51,6 +51,7 @@ add_executable(racers-rebuilt-tests
     app/positional_sound_test.cpp
     app/quad_shapes_test.cpp
     app/race_audio_test.cpp
+    app/race_camera_test.cpp
     app/voice_reactions_test.cpp
     app/race_determinism_test.cpp
     app/race_music_test.cpp

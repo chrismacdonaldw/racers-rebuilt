@@ -26,6 +26,7 @@
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/race_setup_scene.hpp"
 #include "app/music_folder_source.hpp"
+#include "app/pacing_presets.hpp"
 #include "app/race_scene.hpp"
 #include "app/race_scene_name.hpp"
 #include "app/race_settings.hpp"
@@ -57,46 +58,9 @@ constexpr std::string_view kMusicFolderName = "music";
 constexpr SDL_Keycode kCyclePacingKey = SDLK_F9;
 constexpr SDL_Keycode kToggleOverlayKey = SDLK_F1;
 
-constexpr std::array kPacingPresets{
-    platform::PacingConfig{.mode = platform::PresentMode::Vsync},
-    platform::PacingConfig{.mode = platform::PresentMode::Capped, .fpsCap = 30},
-    platform::PacingConfig{.mode = platform::PresentMode::Capped, .fpsCap = 60},
-    platform::PacingConfig{.mode = platform::PresentMode::Capped, .fpsCap = 144},
-    platform::PacingConfig{.mode = platform::PresentMode::Uncapped},
-};
-
 template <typename T>
 std::unique_ptr<Scene> ToScene(std::unique_ptr<T> scene) {
     return scene;
-}
-
-bool IsSamePacing(const platform::PacingConfig& a, const platform::PacingConfig& b) {
-    return a.mode == b.mode && (a.mode != platform::PresentMode::Capped || a.fpsCap == b.fpsCap);
-}
-
-platform::PacingConfig NextPacingPreset(const platform::PacingConfig& current) {
-    const auto match = std::ranges::find_if(
-        kPacingPresets,
-        [&](const platform::PacingConfig& preset) { return IsSamePacing(preset, current); });
-    const std::size_t next = match == kPacingPresets.end()
-                                 ? 0
-                                 : (static_cast<std::size_t>(match - kPacingPresets.begin()) + 1) %
-                                       kPacingPresets.size();
-    return kPacingPresets.at(next);
-}
-
-void LogPacing(const platform::PacingConfig& pacing) {
-    switch (pacing.mode) {
-        case platform::PresentMode::Vsync:
-            log::Info("pacing: VSync");
-            break;
-        case platform::PresentMode::Capped:
-            log::Info("pacing: capped at {} FPS", pacing.fpsCap);
-            break;
-        case platform::PresentMode::Uncapped:
-            log::Info("pacing: uncapped");
-            break;
-    }
 }
 
 audio::MusicPlayer CreateMusicPlayer(audio::Mixer& mixer, const assets::Vfs& vfs,
@@ -142,15 +106,6 @@ Result<std::optional<std::string>> StartupScene(const settings::CommandLine& com
     }
     return commandLine.race ? std::optional(RaceNamed(*commandLine.race, settings))
                             : commandLine.track;
-}
-
-Result<platform::FramePacer> CreatePacer(const platform::PacingConfig& pacing) {
-    Result<platform::FrameTimer> timer = platform::FrameTimer::Create();
-    if (!timer) {
-        return std::unexpected(std::move(timer.error()));
-    }
-    LogPacing(pacing);
-    return platform::FramePacer(std::move(*timer), pacing);
 }
 
 std::filesystem::path OriginalInstall(const GameBoot& boot) {

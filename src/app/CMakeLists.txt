@@ -52,6 +52,7 @@ rr_add_module(app
         menu/race_setup_menu.cpp
         menu/race_setup_scene.cpp
         music_folder_source.cpp
+        pacing_presets.cpp
         orbiting_cube.cpp
         pace_car.cpp
         particle_assets.cpp
@@ -69,6 +70,7 @@ rr_add_module(app
         powerup_tools.cpp
         quad_shapes.cpp
         race_audio.cpp
+        race_camera.cpp
         voice_reactions.cpp
         race_music.cpp
         race_particles.cpp

@@ -23,7 +23,6 @@
 #include "app/race_step.hpp"
 #include "app/racer/racer_fx.hpp"
 #include "app/track_model.hpp"
-#include "app/track_space.hpp"
 #include "assets/circuit_database.hpp"
 #include "core/log.hpp"
 #include "platform/clock.hpp"
@@ -166,7 +165,7 @@ RaceScene::RaceScene(Parts parts)
       skids_(parts_.racerFx, parts_.racers.Skids(kPlayerSlot)),
       powerupVisuals_(parts_.powerups.models),
       powerupQuads_(parts_.powerups.quadMaterials),
-      chase_(PlayerCar()),
+      camera_(SubjectOf(parts_.session.Racers()[kPlayerSlot])),
       hud_(*parts_.renderer, *parts_.vfs, kPlayerSlot,
            PerSlot(parts_.racers, parts_.session.Racers().size(), &RacerGrid::NameIndex)),
       controls_(parts_.session.Racers().size()),
@@ -244,16 +243,12 @@ void RaceScene::Tick(const sim::InputFrame& input) {
     StepRace(parts_.session, input, controls_);
     hud_.Tick(parts_.session, kSimTick);
     parts_.waterScroll.Tick(kSimTick);
-    if (parts_.session.WasRespawned(kPlayerSlot)) {
-        chase_.JumpTo(PlayerCar());
-    } else {
-        chase_.Follow(PlayerCar());
-    }
+    FollowPlayer();
     if (parts_.audio) {
-        parts_.audio->Hear(parts_.session, chase_.Pose(PlayerCar()), kSimTick);
+        parts_.audio->Hear(parts_.session, camera_.Pose(), kSimTick);
     }
     if (parts_.particles) {
-        parts_.particles->Tick(parts_.session, chase_.Pose(PlayerCar()), kSimTick);
+        parts_.particles->Tick(parts_.session, camera_.Pose(), kSimTick);
     }
 }
 
@@ -263,7 +258,7 @@ SceneMusic RaceScene::Music() const {
 
 void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
     SnapshotRace(parts_.session, out);
-    out.camera = {.transform = chase_.Pose(PlayerCar()), .flags = out.entities[kPlayerSlot].flags};
+    out.camera = {.transform = camera_.Pose(), .flags = out.entities[kPlayerSlot].flags};
     if (pause_.IsOpen()) {
         out.simStateHash = (out.simStateHash * kHashPrime) ^ pause_.StateHash();
     }
@@ -341,8 +336,17 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     }
 }
 
-Transform RaceScene::PlayerCar() const {
-    return CarToEngine(parts_.session.Racers()[kPlayerSlot].Pose());
+void RaceScene::FollowPlayer() {
+    const sim::Racer& player = std::as_const(parts_.session).Racers()[kPlayerSlot];
+    if (parts_.session.WasRespawned(kPlayerSlot) || player.Events().hasWarpLanded) {
+        camera_.Cut();
+    }
+    const bool hasFinished = parts_.session.Progress().OfRacer(kPlayerSlot).finishPlace.has_value();
+    if (hasFinished && camera_.View() != CameraView::Finish && !player.Status().isGhost &&
+        !player.Status().isWarping) {
+        camera_.SetView(CameraView::Finish, false);
+    }
+    camera_.Follow(SubjectOf(player), static_cast<float>(kSimTick.count()));
 }
 
 void RaceScene::TickPause(const sim::InputFrame& input) {
