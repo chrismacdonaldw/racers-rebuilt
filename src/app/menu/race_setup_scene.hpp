@@ -5,11 +5,11 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
-#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "app/menu/best_time_panel.hpp"
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
@@ -21,11 +21,12 @@
 #include "core/result.hpp"
 #include "render/render_view.hpp"
 #include "render/renderer.hpp"
+#include "settings/progress.hpp"
 #include "sim/input_frame.hpp"
 
 namespace rr::app {
 
-enum class RaceSetupMode : std::uint8_t { SingleRace, Circuit, Versus };
+enum class RaceSetupMode : std::uint8_t { SingleRace, Circuit, Versus, TimeTrial };
 
 [[nodiscard]] std::optional<RaceSetupMode> RaceSetupModeOf(std::string_view scene);
 
@@ -42,7 +43,7 @@ public:
     /// `renderer` and `vfs` must outlive the scene.
     [[nodiscard]] static Result<std::unique_ptr<RaceSetupScene>> Create(
         render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds, RaceSetupMode mode,
-        const std::set<std::string>& unlockedCircuits);
+        const settings::Progress& progress);
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] SceneMusic Music() const override { return {.start = MusicStart::Keep}; }
@@ -60,6 +61,8 @@ private:
     void DrawRow(RaceSetupRow row, std::u16string_view label, std::u16string_view value);
     [[nodiscard]] std::u16string_view RacerName(std::size_t racer) const;
     void DrawChampion();
+    void ShowBestTimes();
+    void DrawBestTimes();
 
     render::Renderer* renderer_;
     const assets::Vfs* vfs_;
@@ -71,6 +74,8 @@ private:
     std::vector<std::u16string> raceNames_;
     std::vector<std::u16string> courseNames_;
     std::vector<std::vector<std::u16string>> racerNames_;
+    settings::Progress progress_;
+    BestTimePanel bestTimes_;
     RaceSceneSetup rules_;
     std::optional<std::string> next_;
     std::vector<render::SpriteDraw> sprites_;

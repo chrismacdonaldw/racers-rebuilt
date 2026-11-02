@@ -2,10 +2,12 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <set>
 #include <span>
 #include <string_view>
 #include <utility>
 
+#include "app/frame_loop.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_sounds.hpp"
@@ -25,6 +27,7 @@ constexpr std::string_view kPicker = "picker";
 constexpr std::size_t kCircuitTitleLine = 13;
 constexpr std::size_t kSingleRaceTitleLine = 14;
 constexpr std::size_t kVersusTitleLine = 0x19;
+constexpr std::size_t kTimeTrialTitleLine = 0x0F;
 constexpr std::size_t kPlayerOneLine = 0x56;
 constexpr std::size_t kPlayerTwoLine = 0x57;
 constexpr std::size_t kVersusPlayers = 2;
@@ -41,6 +44,10 @@ constexpr float kValueLeft = 230.0F;
 constexpr float kTitleTop = 118.0F;
 constexpr float kChampionTop = 278.0F;
 constexpr std::array kRowTops{178.0F, 218.0F, 258.0F, 358.0F, 418.0F};
+constexpr float kBestTypeTop = 268.0F;
+constexpr float kBestTimeTop = 308.0F;
+constexpr float kTrialStatusLeft = 251.0F;
+constexpr float kTrialStatusTop = 414.0F;
 constexpr std::array kScrollSteps{std::pair{sim::MenuAction::Left, -1},
                                   std::pair{sim::MenuAction::Right, 1}};
 
@@ -82,6 +89,8 @@ std::size_t TitleLine(RaceSetupMode mode) {
             return kCircuitTitleLine;
         case RaceSetupMode::Versus:
             return kVersusTitleLine;
+        case RaceSetupMode::TimeTrial:
+            return kTimeTrialTitleLine;
         case RaceSetupMode::SingleRace:
             return kSingleRaceTitleLine;
     }
@@ -100,8 +109,14 @@ RaceSetupLook LookOf(const MenuFiles& files, std::vector<MenuPicture> pictures) 
 
 Result<std::vector<CourseChoice>> LoadCourses(const assets::Vfs& vfs, RaceSetupMode mode,
                                               const std::set<std::string>& unlockedCircuits) {
-    return mode == RaceSetupMode::Circuit ? LoadCircuitChoices(vfs, unlockedCircuits)
-                                          : LoadTrackChoices(vfs);
+    switch (mode) {
+        case RaceSetupMode::Circuit:
+            return LoadCircuitChoices(vfs, unlockedCircuits);
+        case RaceSetupMode::TimeTrial:
+            return LoadTrialChoices(vfs, unlockedCircuits);
+        default:
+            return LoadTrackChoices(vfs);
+    }
 }
 
 }
@@ -116,24 +131,32 @@ std::optional<RaceSetupMode> RaceSetupModeOf(std::string_view scene) {
     if (scene == kVersusRaceScene) {
         return RaceSetupMode::Versus;
     }
+    if (scene == kTimeTrialScene) {
+        return RaceSetupMode::TimeTrial;
+    }
     return std::nullopt;
 }
 
-Result<std::unique_ptr<RaceSetupScene>> RaceSetupScene::Create(
-    render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds, RaceSetupMode mode,
-    const std::set<std::string>& unlockedCircuits) {
+Result<std::unique_ptr<RaceSetupScene>> RaceSetupScene::Create(render::Renderer& renderer,
+                                                               const assets::Vfs& vfs,
+                                                               MenuSounds sounds,
+                                                               RaceSetupMode mode,
+                                                               const settings::Progress& progress) {
     Result<MenuFiles> files = ReadMenuFiles(vfs, kScreen);
     Result<MenuPage> page = files.and_then([&](const MenuFiles& read) {
         return BuildMenuPage(renderer, vfs, read, std::span<const ButtonLine>{});
     });
-    Result<std::vector<CourseChoice>> courses =
-        page.and_then([&](const MenuPage&) { return LoadCourses(vfs, mode, unlockedCircuits); });
+    Result<std::vector<CourseChoice>> courses = page.and_then(
+        [&](const MenuPage&) { return LoadCourses(vfs, mode, progress.unlockedCircuits); });
     if (!courses) {
         return std::unexpected(std::move(courses.error()));
     }
-    return std::unique_ptr<RaceSetupScene>(new RaceSetupScene(
+    auto scene = std::unique_ptr<RaceSetupScene>(new RaceSetupScene(
         renderer, vfs, sounds, mode, LookOf(*files, std::move(page->pictures)),
         RaceSetupMenu(std::move(*courses), mode == RaceSetupMode::Versus ? kVersusPlayers : 1)));
+    scene->progress_ = progress;
+    scene->ShowBestTimes();
+    return scene;
 }
 
 void RaceSetupScene::ApplySettings(const settings::Registry& settings) {
@@ -144,6 +167,7 @@ void RaceSetupScene::ApplySettings(const settings::Registry& settings) {
     if (mode_ == RaceSetupMode::Versus) {
         rules_.lapCount = settings.Get(kVersusLaps);
     }
+    rules_.isTimeTrial = mode_ == RaceSetupMode::TimeTrial;
     if (!text_.Apply(*renderer_, *vfs_, settings)) {
         return;
     }
@@ -168,8 +192,13 @@ std::optional<std::string> RaceSetupScene::TakeNextScene() {
 
 void RaceSetupScene::Tick(const sim::InputFrame& input) {
     const RaceSetupRow focusBefore = menu_.Focus();
+    const std::size_t courseBefore = menu_.CourseIndex();
     std::optional<std::string> next = menu_.Tick(input, rules_);
     PlaySounds(input, focusBefore);
+    if (menu_.CourseIndex() != courseBefore) {
+        ShowBestTimes();
+    }
+    bestTimes_.Tick(kSimTick);
     if (next) {
         next_ = std::move(next);
     }
@@ -198,6 +227,9 @@ void RaceSetupScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpol
     }
     if (isCircuit) {
         DrawChampion();
+    }
+    if (mode_ == RaceSetupMode::TimeTrial) {
+        DrawBestTimes();
     }
     DrawRow(RaceSetupRow::Race, text_.Line(kRaceLine), {});
     DrawRow(RaceSetupRow::Back, text_.Line(kBackLine), {});
@@ -276,6 +308,23 @@ void RaceSetupScene::DrawChampion() {
     DrawLabel(text_, state, OneLine(text_.Line(kHostingLine)), kLeft, kChampionTop, sprites_);
     DrawLabel(text_, state, OneLine(text_.Line(kFirstChampionLine + menu_.Course().circuitIndex)),
               kValueLeft, kChampionTop, sprites_);
+}
+
+void RaceSetupScene::ShowBestTimes() {
+    const CourseChoice& course = menu_.Course();
+    const auto records = progress_.bestTimes.find(course.track);
+    bestTimes_.Show(
+        records == progress_.bestTimes.end() ? settings::TrackRecords{} : records->second,
+        progress_.beatenRecords.contains(static_cast<std::int32_t>(course.race)));
+}
+
+void RaceSetupScene::DrawBestTimes() {
+    const MenuButtonState& state = look_.states.at(kNormalState);
+    const BestTimeRows rows = bestTimes_.Rows(text_);
+    DrawLabel(text_, state, rows.type, kLeft, kBestTypeTop, sprites_);
+    DrawLabel(text_, state, rows.name, kValueLeft, kBestTypeTop, sprites_);
+    DrawLabel(text_, state, rows.time, kValueLeft, kBestTimeTop, sprites_);
+    DrawLabel(text_, state, rows.status, kTrialStatusLeft, kTrialStatusTop, sprites_);
 }
 
 }

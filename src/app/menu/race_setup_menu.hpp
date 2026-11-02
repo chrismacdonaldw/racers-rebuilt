@@ -21,11 +21,12 @@ struct RacerChoice {
     std::int32_t nameIndex = -1;
 };
 
-/// A single race's track, or a whole circuit when `track` is empty.
+/// A single race's track, or a whole circuit when `track` is empty. `race` indexes the race list.
 struct CourseChoice {
     std::string track;
     std::string circuit;
     std::size_t circuitIndex = 0;
+    std::size_t race = 0;
     std::int32_t nameLine = -1;
     std::vector<RacerChoice> racers;
     bool isLocked = false;
@@ -33,6 +34,10 @@ struct CourseChoice {
 
 /// Unmirrored circuit races in circuit order, each with its circuit's grid.
 [[nodiscard]] Result<std::vector<CourseChoice>> LoadTrackChoices(const assets::Vfs& vfs);
+
+/// The unmirrored races of the first three circuits, locked with their circuit.
+[[nodiscard]] Result<std::vector<CourseChoice>> LoadTrialChoices(
+    const assets::Vfs& vfs, const std::set<std::string>& unlocked);
 
 /// Every circuit with a race. The first is open even when `unlocked` doesn't name it.
 [[nodiscard]] Result<std::vector<CourseChoice>> LoadCircuitChoices(

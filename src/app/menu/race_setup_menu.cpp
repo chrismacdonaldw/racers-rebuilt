@@ -23,6 +23,7 @@ constexpr std::string_view kDriverFolder = "GAMEDATA/COMMON";
 constexpr std::string_view kDriverNames = "DRIVERS.SRF";
 constexpr std::string_view kRaceNamesFolder = "MENUDATA";
 constexpr std::string_view kRaceNames = "CIRCUIT.SRF";
+constexpr std::size_t kTrialCircuits = 3;
 
 std::size_t Wrap(std::size_t value, int step, std::size_t count) {
     const auto signedCount = static_cast<std::ptrdiff_t>(count);
@@ -73,6 +74,7 @@ std::vector<CourseChoice> TrackChoicesOf(const Catalogs& catalogs, std::size_t c
         if (race != nullptr && !race->isMirrored) {
             CourseChoice& choice = choices.emplace_back(base);
             choice.track = assets::ToUpperAscii(race->folder);
+            choice.race = *slot;
             choice.nameLine = race->nameLine.value_or(-1);
         }
     }
@@ -82,6 +84,10 @@ std::vector<CourseChoice> TrackChoicesOf(const Catalogs& catalogs, std::size_t c
 RaceSetupRow Stepped(RaceSetupRow row, int step) {
     return static_cast<RaceSetupRow>(
         Wrap(static_cast<std::size_t>(row), step, static_cast<std::size_t>(kRowCount)));
+}
+
+bool IsLocked(const CourseChoice& choice, const std::set<std::string>& unlocked) {
+    return choice.circuitIndex != 0 && !unlocked.contains(choice.circuit);
 }
 
 bool HasRaces(const assets::RaceCatalog& races, std::size_t circuit) {
@@ -107,6 +113,26 @@ Result<std::vector<CourseChoice>> LoadTrackChoices(const assets::Vfs& vfs) {
     return choices;
 }
 
+Result<std::vector<CourseChoice>> LoadTrialChoices(const assets::Vfs& vfs,
+                                                   const std::set<std::string>& unlocked) {
+    Result<Catalogs> catalogs = LoadCatalogs(vfs);
+    if (!catalogs) {
+        return std::unexpected(std::move(catalogs.error()));
+    }
+    std::vector<CourseChoice> choices;
+    const std::size_t circuits = std::min(kTrialCircuits, catalogs->races.Circuits().size());
+    for (std::size_t circuit = 0; circuit < circuits; ++circuit) {
+        for (CourseChoice& choice : TrackChoicesOf(*catalogs, circuit)) {
+            choice.isLocked = IsLocked(choice, unlocked);
+            choices.push_back(std::move(choice));
+        }
+    }
+    if (choices.empty()) {
+        return Fail(ErrorCode::NotFound, "no time trial circuit has an unmirrored race");
+    }
+    return choices;
+}
+
 Result<std::vector<CourseChoice>> LoadCircuitChoices(const assets::Vfs& vfs,
                                                      const std::set<std::string>& unlocked) {
     Result<Catalogs> catalogs = LoadCatalogs(vfs);
@@ -117,7 +143,7 @@ Result<std::vector<CourseChoice>> LoadCircuitChoices(const assets::Vfs& vfs,
     for (std::size_t circuit = 0; circuit < catalogs->races.Circuits().size(); ++circuit) {
         if (HasRaces(catalogs->races, circuit)) {
             CourseChoice& choice = choices.emplace_back(CircuitChoice(*catalogs, circuit));
-            choice.isLocked = circuit != 0 && !unlocked.contains(choice.circuit);
+            choice.isLocked = IsLocked(choice, unlocked);
         }
     }
     if (choices.empty()) {
