@@ -31,6 +31,17 @@ PlayerCameras::PlayerCameras(const sim::RaceSession& session, std::size_t player
     }
 }
 
+void PlayerCameras::CycleView(std::size_t player, const sim::RaceSession& session) {
+    const bool hasFinished = session.Progress().OfRacer(player).finishPlace.has_value();
+    if (session.Clock().Phase() != sim::RacePhase::Intro && !hasFinished) {
+        cameras_.at(player).CycleView();
+    }
+}
+
+void PlayerCameras::SetLookBack(std::size_t player, bool isLookingBack) {
+    cameras_.at(player).SetLookBack(isLookingBack);
+}
+
 void PlayerCameras::Follow(const sim::RaceSession& session) {
     const bool isSplitScreen = cameras_.size() > 1;
     for (std::size_t slot = 0; slot < cameras_.size(); ++slot) {

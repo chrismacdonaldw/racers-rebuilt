@@ -14,7 +14,8 @@ namespace {
 constexpr std::string_view kMagic = "RRRP";
 constexpr std::string_view kWhat = "replay";
 constexpr std::size_t kMaxTicks = 8'000'000;
-static_assert(kActionCount <= 8, "a replay stores each player's actions in one byte");
+constexpr std::uint16_t kByteActionsVersion = 5;
+static_assert(kActionCount <= 16, "a replay stores each player's actions in two bytes");
 constexpr unsigned long kActionMask = (1UL << kActionCount) - 1;
 constexpr unsigned long kMenuActionMask = (1UL << kMenuActionCount) - 1;
 
@@ -42,28 +43,32 @@ void AppendFrames(std::vector<std::byte>& out, const std::vector<InputFrame>& fr
     for (const Run& run : runs) {
         AppendU32(out, run.length);
         for (const PlayerInput& player : run.frame.players) {
-            AppendU8(out, static_cast<std::uint8_t>(player.held.to_ulong()));
-            AppendU8(out, static_cast<std::uint8_t>(player.pressed.to_ulong()));
-            AppendU8(out, static_cast<std::uint8_t>(player.released.to_ulong()));
+            AppendU16(out, static_cast<std::uint16_t>(player.held.to_ulong()));
+            AppendU16(out, static_cast<std::uint16_t>(player.pressed.to_ulong()));
+            AppendU16(out, static_cast<std::uint16_t>(player.released.to_ulong()));
             AppendU8(out, std::bit_cast<std::uint8_t>(player.steerLeftAxis));
         }
         AppendU8(out, static_cast<std::uint8_t>(run.frame.menuPressed.to_ulong()));
     }
 }
 
-Result<std::bitset<kActionCount>> ReadActions(assets::ByteReader& reader) {
-    return reader.ReadU8().and_then([](std::uint8_t bits) -> Result<std::bitset<kActionCount>> {
-        if ((bits & ~kActionMask) != 0) {
+Result<std::bitset<kActionCount>> ReadActions(assets::ByteReader& reader, std::uint16_t version) {
+    const Result<std::uint16_t> bits =
+        version == kByteActionsVersion
+            ? reader.ReadU8().transform([](std::uint8_t byte) { return std::uint16_t{byte}; })
+            : reader.ReadU16();
+    return bits.and_then([](std::uint16_t read) -> Result<std::bitset<kActionCount>> {
+        if ((read & ~kActionMask) != 0) {
             return Fail(ErrorCode::InvalidData, "replay names an unknown action");
         }
-        return std::bitset<kActionCount>(bits);
+        return std::bitset<kActionCount>(read);
     });
 }
 
-Result<PlayerInput> ReadPlayer(assets::ByteReader& reader) {
+Result<PlayerInput> ReadPlayer(assets::ByteReader& reader, std::uint16_t version) {
     PlayerInput player;
     for (std::bitset<kActionCount>* actions : {&player.held, &player.pressed, &player.released}) {
-        Result<std::bitset<kActionCount>> read = ReadActions(reader);
+        Result<std::bitset<kActionCount>> read = ReadActions(reader, version);
         if (!read) {
             return std::unexpected(std::move(read.error()));
         }
@@ -75,7 +80,7 @@ Result<PlayerInput> ReadPlayer(assets::ByteReader& reader) {
     });
 }
 
-Result<Run> ReadRun(assets::ByteReader& reader) {
+Result<Run> ReadRun(assets::ByteReader& reader, std::uint16_t version) {
     Run run;
     Result<std::uint32_t> length = reader.ReadU32();
     if (!length || *length == 0) {
@@ -83,7 +88,7 @@ Result<Run> ReadRun(assets::ByteReader& reader) {
     }
     run.length = *length;
     for (PlayerInput& player : run.frame.players) {
-        Result<PlayerInput> read = ReadPlayer(reader);
+        Result<PlayerInput> read = ReadPlayer(reader, version);
         if (!read) {
             return std::unexpected(std::move(read.error()));
         }
@@ -100,7 +105,7 @@ Result<Run> ReadRun(assets::ByteReader& reader) {
     return run;
 }
 
-Result<std::vector<InputFrame>> ReadFrames(assets::ByteReader& reader) {
+Result<std::vector<InputFrame>> ReadFrames(assets::ByteReader& reader, std::uint16_t version) {
     Result<std::uint32_t> runCount = reader.ReadU32();
     if (!runCount) {
         return std::unexpected(std::move(runCount.error()));
@@ -108,7 +113,7 @@ Result<std::vector<InputFrame>> ReadFrames(assets::ByteReader& reader) {
     std::vector<InputFrame> frames;
     std::size_t ticksLeft = kMaxTicks;
     for (std::uint32_t i = 0; i < *runCount; ++i) {
-        Result<Run> run = ReadRun(reader);
+        Result<Run> run = ReadRun(reader, version);
         if (!run) {
             return std::unexpected(std::move(run.error()));
         }
@@ -137,7 +142,7 @@ Result<std::vector<std::string>> ReadGameplay(assets::ByteReader& reader) {
     return entries;
 }
 
-Result<Replay> ReadBody(assets::ByteReader& reader) {
+Result<Replay> ReadBody(assets::ByteReader& reader, std::uint16_t version) {
     Replay replay;
     Result<std::string> buildVersion = ReadText(reader);
     Result<std::string> scene =
@@ -146,7 +151,7 @@ Result<Replay> ReadBody(assets::ByteReader& reader) {
     Result<std::vector<std::string>> gameplay =
         seed.and_then([&](auto) { return ReadGameplay(reader); });
     Result<std::vector<InputFrame>> frames =
-        gameplay.and_then([&](const auto&) { return ReadFrames(reader); });
+        gameplay.and_then([&](const auto&) { return ReadFrames(reader, version); });
     if (!frames) {
         return std::unexpected(std::move(frames.error()));
     }
@@ -177,12 +182,13 @@ std::vector<std::byte> EncodeReplay(const Replay& replay) {
 }
 
 Result<Replay> DecodeReplay(std::span<const std::byte> bytes) {
-    Result<assets::ByteReader> reader = OpenChecked(bytes, kMagic, kReplayFormatVersion, kWhat);
+    Result<CheckedBytes> checked =
+        OpenChecked(bytes, kMagic, kOldestReplayFormatVersion, kReplayFormatVersion, kWhat);
     Result<Replay> replay =
-        reader.and_then([](assets::ByteReader& body) { return ReadBody(body); });
-    if (replay && reader->Remaining() != 0) {
-        return Fail(ErrorCode::InvalidData,
-                    std::format("replay has {} bytes after its last input", reader->Remaining()));
+        checked.and_then([](CheckedBytes& body) { return ReadBody(body.reader, body.version); });
+    if (replay && checked->reader.Remaining() != 0) {
+        return Fail(ErrorCode::InvalidData, std::format("replay has {} bytes after its last input",
+                                                        checked->reader.Remaining()));
     }
     return replay;
 }

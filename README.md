@@ -155,6 +155,8 @@ Each `<action>` has a key and a button default. The left stick always steers.
 | `use_powerup` | `Return` | `x` |
 | `pause` | `Escape` | `start` |
 | `toggle_display` | `M` | `back` |
+| `change_camera` | `Right Ctrl` | `y` |
+| `look_back` | `Right Alt` | `rightstick` |
 | `menu_up` | `Up` | `dpup` |
 | `menu_down` | `Down` | `dpdown` |
 | `menu_left` | `Left` | `dpleft` |
@@ -174,6 +176,8 @@ The keys follow the original's first keyboard set. In a two-player race, player 
 | `use_powerup` | `Left Alt` |
 | `pause` | None, since player 1's pause keys pause for both |
 | `toggle_display` | `E` |
+| `change_camera` | `Q` |
+| `look_back` | `Z` |
 
 ```toml
 [video]

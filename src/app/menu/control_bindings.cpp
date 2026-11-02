@@ -63,8 +63,7 @@ ControlNames ReadControlNames(const settings::Registry& settings, std::size_t pl
                               ControlsDevice device) {
     ControlNames names;
     for (std::size_t row = 0; row < kControlRows; ++row) {
-        const std::optional<sim::Action> action = kControlActions.at(row);
-        if (const auto* spec = action ? SpecFor(*action, player, device) : nullptr) {
+        if (const auto* spec = SpecFor(kControlActions.at(row), player, device)) {
             names.at(row) = SplitBindingNames(settings.Get(*spec));
         }
     }
@@ -76,8 +75,7 @@ std::vector<SettingChange> RebindChanges(const ControlNames& names, std::size_t 
                                          std::string_view input) {
     std::vector<SettingChange> changes;
     for (std::size_t other = 0; other < kControlRows; ++other) {
-        const std::optional<sim::Action> action = kControlActions.at(other);
-        const auto* spec = action ? SpecFor(*action, player, device) : nullptr;
+        const auto* spec = SpecFor(kControlActions.at(other), player, device);
         if (spec == nullptr) {
             continue;
         }

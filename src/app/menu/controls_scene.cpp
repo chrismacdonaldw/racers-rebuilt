@@ -99,9 +99,6 @@ void ControlsScene::Tick(const sim::InputFrame& input) {
         case ControlsRequest::Leave:
             next_ = std::string(kOptionsScene);
             return;
-        case ControlsRequest::NotBuilt:
-            log::Info("controls: that action doesn't exist yet");
-            return;
         case ControlsRequest::Listen:
         case ControlsRequest::None:
             return;

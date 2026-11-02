@@ -448,7 +448,9 @@ std::vector<std::byte> EncodeSnapshotHashes(std::span<const std::uint64_t> hashe
 }
 
 Result<std::vector<std::uint64_t>> DecodeSnapshotHashes(std::span<const std::byte> bytes) {
-    Result<assets::ByteReader> reader = OpenChecked(bytes, kMagic, kVersion, "snapshot hashes");
+    Result<assets::ByteReader> reader =
+        OpenChecked(bytes, kMagic, kVersion, kVersion, "snapshot hashes")
+            .transform([](const CheckedBytes& checked) { return checked.reader; });
     if (!reader) {
         return std::unexpected(std::move(reader.error()));
     }

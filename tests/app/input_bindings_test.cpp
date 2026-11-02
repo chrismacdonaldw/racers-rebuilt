@@ -243,17 +243,17 @@ TEST_CASE("pads drive players in the order they connected") {
 
 TEST_CASE("player 2's pad drives with player 2's buttons, and its start pauses") {
     settings::Registry registry = DefaultRegistry();
-    registry.Set(kPlayer2Bindings[0].buttons, "y");
+    registry.Set(kPlayer2Bindings[0].buttons, "leftstick");
     InputBindings bindings(registry);
     sim::InputLatch latch;
     ConnectTwoPads(bindings, latch);
     bindings.SetPlayerCount(2, latch);
 
-    bindings.Handle(Button(SDL_EVENT_GAMEPAD_BUTTON_DOWN, SDL_GAMEPAD_BUTTON_NORTH, kSecondPad),
-                    latch);
+    bindings.Handle(
+        Button(SDL_EVENT_GAMEPAD_BUTTON_DOWN, SDL_GAMEPAD_BUTTON_LEFT_STICK, kSecondPad), latch);
     bindings.Handle(Button(SDL_EVENT_GAMEPAD_BUTTON_DOWN, SDL_GAMEPAD_BUTTON_START, kSecondPad),
                     latch);
-    bindings.Handle(Button(SDL_EVENT_GAMEPAD_BUTTON_DOWN, SDL_GAMEPAD_BUTTON_NORTH, kFirstPad),
+    bindings.Handle(Button(SDL_EVENT_GAMEPAD_BUTTON_DOWN, SDL_GAMEPAD_BUTTON_LEFT_STICK, kFirstPad),
                     latch);
     const sim::InputFrame frame = latch.TakeFrame();
 

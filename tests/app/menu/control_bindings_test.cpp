@@ -47,7 +47,7 @@ SDL_Event Axis(SDL_GamepadAxis axis, std::int16_t value) {
     return event;
 }
 
-TEST_CASE("the controls rows read each device's own bindings, rows without an action empty") {
+TEST_CASE("the controls rows read each device's own bindings") {
     const settings::Registry registry = DefaultRegistry();
 
     const ControlNames keys = ReadControlNames(registry, kPlayer1, ControlsDevice::Keyboard);
@@ -55,7 +55,7 @@ TEST_CASE("the controls rows read each device's own bindings, rows without an ac
 
     CHECK(keys[kTurnLeftRow] == std::vector<std::string>{"Left"});
     CHECK(buttons[kAccelerateRow] == std::vector<std::string>{"a", "righttrigger"});
-    CHECK(keys[kCameraRow].empty());
+    CHECK(keys[kCameraRow] == std::vector<std::string>{"Right Ctrl"});
     CHECK(keys[kDisplayRow] == std::vector<std::string>{"M"});
     CHECK(buttons[kDisplayRow] == std::vector<std::string>{"back"});
 }

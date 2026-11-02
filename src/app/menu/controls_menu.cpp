@@ -65,9 +65,6 @@ ControlsRequest ControlsMenu::Choose() {
     if (!row) {
         return ControlsRequest::None;
     }
-    if (!kControlActions.at(*row)) {
-        return ControlsRequest::NotBuilt;
-    }
     listening_ = row;
     return ControlsRequest::Listen;
 }
