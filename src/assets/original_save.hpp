@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "assets/driver_look.hpp"
 #include "core/result.hpp"
 
 namespace rr::assets {
@@ -20,6 +21,14 @@ struct SavedTime {
     friend bool operator==(const SavedTime&, const SavedTime&) = default;
 };
 
+struct SavedRacer {
+    std::u16string name;
+    DriverLook look;
+    std::uint16_t trophies = 0;
+
+    friend bool operator==(const SavedRacer&, const SavedRacer&) = default;
+};
+
 /// A 0 ms time is no record. Trophies are 2 bits per circuit, from 1 gold to 3 bronze.
 struct OriginalSave {
     std::uint8_t partSets = 0;
@@ -27,7 +36,7 @@ struct OriginalSave {
     std::uint16_t beatenRecords = 0;
     std::array<SavedTime, kSavedRaces> bestLaps;
     std::array<SavedTime, kSavedRaces> bestRaces;
-    std::vector<std::uint16_t> driverTrophies;
+    std::vector<SavedRacer> racers;
 
     friend bool operator==(const OriginalSave&, const OriginalSave&) = default;
 };

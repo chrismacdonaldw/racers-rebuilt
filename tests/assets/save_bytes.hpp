@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -42,6 +43,17 @@ public:
         std::vector<std::byte>& record = records_.emplace_back(kSaveRecordSize);
         SetU16(record, 0x22B, trophies);
         header_[2] = std::byte{static_cast<std::uint8_t>(records_.size())};
+        return *this;
+    }
+
+    SaveBytes& Racer(std::u16string_view name, std::array<std::uint8_t, 5> look) {
+        std::vector<std::byte>& record = records_.back();
+        for (std::size_t unit = 0; unit < name.size(); ++unit) {
+            SetU16(record, unit * 2, name[unit]);
+        }
+        for (std::size_t field = 0; field < look.size(); ++field) {
+            record[0x1C + field] = std::byte{look.at(field)};
+        }
         return *this;
     }
 

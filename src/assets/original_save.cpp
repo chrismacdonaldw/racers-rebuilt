@@ -19,8 +19,10 @@ constexpr std::size_t kBeatenRecordsOffset = 0x007;
 constexpr std::size_t kScoresOffset = 0x009;
 constexpr std::size_t kScoreSize = 0x40;
 constexpr std::size_t kRaceTimeOffset = 0x20;
-constexpr std::size_t kHolderUnits = 14;
+constexpr std::size_t kNameUnits = 14;
+constexpr std::size_t kLookOffset = 0x01C;
 constexpr std::size_t kTrophyOffset = 0x22B;
+constexpr unsigned kExpressionMask = 0x7FU;
 constexpr std::uint16_t kMagic = 0x524C;
 
 unsigned ByteAt(std::span<const std::byte> data, std::size_t offset) {
@@ -35,16 +37,37 @@ std::uint32_t U32At(std::span<const std::byte> data, std::size_t offset) {
     return U16At(data, offset) | (static_cast<std::uint32_t>(U16At(data, offset + 2)) << 16U);
 }
 
-SavedTime TimeAt(std::span<const std::byte> data, std::size_t offset) {
-    SavedTime time{.ms = U32At(data, offset)};
-    for (std::size_t unit = 0; unit < kHolderUnits; ++unit) {
-        const std::uint16_t letter = U16At(data, offset + 4 + (unit * 2));
+std::u16string NameAt(std::span<const std::byte> data, std::size_t offset) {
+    std::u16string name;
+    for (std::size_t unit = 0; unit < kNameUnits; ++unit) {
+        const std::uint16_t letter = U16At(data, offset + (unit * 2));
         if (letter == 0) {
             break;
         }
-        time.holder.push_back(static_cast<char16_t>(letter));
+        name.push_back(static_cast<char16_t>(letter));
     }
-    return time;
+    return name;
+}
+
+SavedTime TimeAt(std::span<const std::byte> data, std::size_t offset) {
+    return {.ms = U32At(data, offset), .holder = NameAt(data, offset + 4)};
+}
+
+std::uint8_t U8At(std::span<const std::byte> data, std::size_t offset) {
+    return static_cast<std::uint8_t>(ByteAt(data, offset));
+}
+
+SavedRacer RacerAt(std::span<const std::byte> record) {
+    return {
+        .name = NameAt(record, 0),
+        .look = {.face = U8At(record, kLookOffset),
+                 .hat = U8At(record, kLookOffset + 1),
+                 .legs = U8At(record, kLookOffset + 2),
+                 .torso = U8At(record, kLookOffset + 3),
+                 .expression =
+                     static_cast<std::uint8_t>(ByteAt(record, kLookOffset + 4) & kExpressionMask)},
+        .trophies = U16At(record, kTrophyOffset),
+    };
 }
 
 Result<std::vector<std::byte>> BlockData(std::span<const std::byte> file, std::size_t first,
@@ -70,23 +93,23 @@ Result<std::vector<std::byte>> BlockData(std::span<const std::byte> file, std::s
     return data;
 }
 
-Result<std::vector<std::uint16_t>> DriverTrophies(std::span<const std::byte> file,
-                                                  std::size_t count, std::size_t firstOffset) {
+Result<std::vector<SavedRacer>> Racers(std::span<const std::byte> file, std::size_t count,
+                                       std::size_t firstOffset) {
     if (firstOffset % kBlockSize != 0) {
         return Fail(ErrorCode::InvalidData,
                     std::format("the first save record at {} isn't on a block", firstOffset));
     }
-    std::vector<std::uint16_t> trophies;
-    trophies.reserve(count);
+    std::vector<SavedRacer> racers;
+    racers.reserve(count);
     for (std::size_t record = 0; record < count; ++record) {
         const Result<std::vector<std::byte>> data =
             BlockData(file, (firstOffset / kBlockSize) + (record * kRecordBlocks), kRecordBlocks);
         if (!data) {
             return std::unexpected(data.error());
         }
-        trophies.push_back(U16At(*data, kTrophyOffset));
+        racers.push_back(RacerAt(*data));
     }
-    return trophies;
+    return racers;
 }
 
 }
@@ -104,17 +127,17 @@ Result<OriginalSave> ParseOriginalSave(std::span<const std::byte> bytes) {
     if (U16At(*header, 0) != kMagic) {
         return Fail(ErrorCode::InvalidData, "the save doesn't start with LR");
     }
-    Result<std::vector<std::uint16_t>> trophies = DriverTrophies(
-        bytes, ByteAt(*header, kRecordCountOffset), U16At(*header, kFirstRecordOffset));
-    if (!trophies) {
-        return std::unexpected(std::move(trophies.error()));
+    Result<std::vector<SavedRacer>> racers =
+        Racers(bytes, ByteAt(*header, kRecordCountOffset), U16At(*header, kFirstRecordOffset));
+    if (!racers) {
+        return std::unexpected(std::move(racers.error()));
     }
     OriginalSave save{.partSets = static_cast<std::uint8_t>(ByteAt(*header, kPartSetsOffset)),
                       .circuits = static_cast<std::uint8_t>(ByteAt(*header, kCircuitsOffset)),
                       .beatenRecords = U16At(*header, kBeatenRecordsOffset),
                       .bestLaps = {},
                       .bestRaces = {},
-                      .driverTrophies = std::move(*trophies)};
+                      .racers = std::move(*racers)};
     for (std::size_t race = 0; race < kSavedRaces; ++race) {
         const std::size_t score = kScoresOffset + (race * kScoreSize);
         save.bestLaps.at(race) = TimeAt(*header, score);

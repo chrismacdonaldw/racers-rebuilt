@@ -136,7 +136,8 @@ bool MergeTimes(settings::Progress& progress, const assets::OriginalSave& save,
 bool MergeTrophies(settings::Progress& progress, const assets::OriginalSave& save,
                    const assets::RaceCatalog& catalog) {
     bool changed = false;
-    for (const std::uint16_t trophies : save.driverTrophies) {
+    for (const assets::SavedRacer& racer : save.racers) {
+        const unsigned trophies = racer.trophies;
         for (std::size_t circuit = 0; circuit < catalog.Circuits().size(); ++circuit) {
             const unsigned held = (trophies >> (circuit * kTrophyBits)) & kTrophyMask;
             if (held != 0) {
