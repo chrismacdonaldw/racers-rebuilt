@@ -6,7 +6,7 @@ cbuffer DrawUniforms : register(b0, space1)
 
 cbuffer JointUniforms : register(b1, space1)
 {
-    float4x4 joints[40];
+    float4x4 joints[64];
 };
 
 struct VertexInput
@@ -29,7 +29,7 @@ struct VertexOutput
 VertexOutput main(VertexInput input)
 {
     VertexOutput output;
-    float4x4 placed = mul(model, joints[min(input.joint.x, 39u)]);
+    float4x4 placed = mul(model, joints[min(input.joint.x, 63u)]);
     output.position = mul(viewProjection, mul(placed, float4(input.position, 1.0)));
     output.normal = mul((float3x3)placed, input.normal);
     output.uv = input.uv;

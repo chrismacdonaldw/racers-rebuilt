@@ -61,7 +61,7 @@ struct Material {
     VertexColorTransform vertexColors;
 };
 
-inline constexpr std::size_t kMaxJoints = 40;
+inline constexpr std::size_t kMaxJoints = 64;
 
 /// `joints`, relative to `transform`, place each vertex by its joint. Empty draws it rigidly.
 struct MeshDraw {
