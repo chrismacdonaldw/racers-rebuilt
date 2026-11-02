@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -43,5 +44,10 @@ struct TrackEntitySources {
 [[nodiscard]] Result<TrackEntitySources> LoadTrackEntities(const assets::Vfs& vfs,
                                                            std::string_view track,
                                                            bool isMirrored = false);
+
+/// Loads only the named worlds, in order, from `folder`, then from `GAMEDATA/COMMON`.
+[[nodiscard]] Result<TrackEntitySources> LoadWorldEntities(const assets::Vfs& vfs,
+                                                           std::string_view folder,
+                                                           std::span<const std::string> worlds);
 
 }

@@ -320,12 +320,40 @@ Result<TrackAssets> TrackLoader::Load(std::string_view folder, bool isMirrored) 
     if (!resolver) {
         return std::unexpected(std::move(resolver.error()));
     }
-    const Loading loading{
-        .vfs = vfs_, .pool = pool_, .resolver = &*resolver, .isMirrored = isMirrored};
-    std::vector<Request> files = resolver->LocalFilesWithExtension(".WDB");
-    for (Request& file : files) {
-        file.isMirrored = isMirrored && IsMirroredWorld(file.path);
+    std::vector<std::string> paths;
+    for (Request& file : resolver->LocalFilesWithExtension(".WDB")) {
+        paths.push_back(std::move(file.path));
     }
+    return LoadWorldFiles(*resolver, paths, isMirrored);
+}
+
+Result<TrackAssets> TrackLoader::LoadWorlds(std::string_view folder,
+                                            std::span<const std::string> worlds) {
+    Result<NameResolver> resolver = NameResolver::Create(*vfs_, folder);
+    if (!resolver) {
+        return std::unexpected(std::move(resolver.error()));
+    }
+    std::vector<std::string> paths;
+    for (const std::string& world : worlds) {
+        Result<std::string> path = resolver->Resolve(world + ".WDB");
+        if (!path) {
+            return std::unexpected(std::move(path.error()));
+        }
+        paths.push_back(std::move(*path));
+    }
+    return LoadWorldFiles(*resolver, paths, false);
+}
+
+Result<TrackAssets> TrackLoader::LoadWorldFiles(const NameResolver& resolver,
+                                                std::span<const std::string> paths,
+                                                bool isMirrored) {
+    std::vector<Request> files;
+    for (const std::string& path : paths) {
+        files.push_back(
+            {.key = path, .path = path, .isMirrored = isMirrored && IsMirroredWorld(path)});
+    }
+    const Loading loading{
+        .vfs = vfs_, .pool = pool_, .resolver = &resolver, .isMirrored = isMirrored};
     Result<Handles<WorldAsset>> worlds =
         LoadMirrorable<WorldAsset>(loading, worlds_, files, ParseWorld, MirrorY);
     if (!worlds) {
@@ -341,7 +369,7 @@ Result<TrackAssets> TrackLoader::Load(std::string_view folder, bool isMirrored) 
         InsertAllUpper(names.materialLibraries, world->materialLibraries);
         InsertAllUpper(names.textureDatabases, world->textureLists);
     }
-    return LoadNamed(*resolver, std::move(*worlds), names, isMirrored);
+    return LoadNamed(resolver, std::move(*worlds), names, isMirrored);
 }
 
 Result<TrackAssets> TrackLoader::LoadModels(std::string_view folder,
