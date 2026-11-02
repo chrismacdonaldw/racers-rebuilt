@@ -11,6 +11,7 @@ rr_add_module(app
         circuit_awards.cpp
         circuit_leg.cpp
         collision_wireframe.cpp
+        cutscene/cutscene_bindings.cpp
         cutscene/cutscene_links.cpp
         cutscene/cutscene_timeline.cpp
         extensions.cpp

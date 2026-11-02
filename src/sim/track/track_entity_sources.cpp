@@ -102,7 +102,6 @@ public:
 
     [[nodiscard]] TrackEntitySources Finish() && { return std::move(sources_); }
 
-private:
     [[nodiscard]] Result<std::string> Resolve(std::string_view name,
                                               std::string_view extension) const {
         const std::string file = std::format("{}{}", assets::ToUpperAscii(name), extension);
@@ -116,6 +115,7 @@ private:
                     std::format("{} isn't in {} or {}", file, folder_, kCommonFolder));
     }
 
+private:
     template <typename Asset, typename Parse>
     Result<std::size_t> Intern(std::string_view name, std::string_view extension,
                                std::map<std::string, std::size_t>& indices,
@@ -205,24 +205,51 @@ private:
     TrackEntitySources sources_;
 };
 
+Result<EntityLoader> CreateLoader(const assets::Vfs& vfs, const std::string& folder,
+                                  bool isMirrored) {
+    return vfs.List(folder).transform([&](std::vector<assets::VfsEntry> local) {
+        return EntityLoader(vfs, folder, std::move(local),
+                            vfs.List(kCommonFolder).value_or(std::vector<assets::VfsEntry>{}),
+                            isMirrored);
+    });
 }
 
-Result<TrackEntitySources> LoadTrackEntities(const assets::Vfs& vfs, std::string_view track,
-                                             bool isMirrored) {
-    const std::string folder = std::format("GAMEDATA/{}", assets::ToUpperAscii(track));
-    Result<std::vector<assets::VfsEntry>> local = vfs.List(folder);
-    if (!local) {
-        return std::unexpected(std::move(local.error()));
-    }
-    EntityLoader loader(vfs, folder, std::move(*local),
-                        vfs.List(kCommonFolder).value_or(std::vector<assets::VfsEntry>{}),
-                        isMirrored);
-    for (const std::string& world : loader.Worlds()) {
-        if (Result<void> added = loader.AddWorld(world); !added) {
+Result<TrackEntitySources> AddWorlds(EntityLoader& loader, std::span<const std::string> paths) {
+    for (const std::string& path : paths) {
+        if (Result<void> added = loader.AddWorld(path); !added) {
             return std::unexpected(std::move(added.error()));
         }
     }
     return std::move(loader).Finish();
+}
+
+}
+
+Result<TrackEntitySources> LoadTrackEntities(const assets::Vfs& vfs, std::string_view track,
+                                             bool isMirrored) {
+    Result<EntityLoader> loader =
+        CreateLoader(vfs, std::format("GAMEDATA/{}", assets::ToUpperAscii(track)), isMirrored);
+    if (!loader) {
+        return std::unexpected(std::move(loader.error()));
+    }
+    return AddWorlds(*loader, loader->Worlds());
+}
+
+Result<TrackEntitySources> LoadWorldEntities(const assets::Vfs& vfs, std::string_view folder,
+                                             std::span<const std::string> worlds) {
+    Result<EntityLoader> loader = CreateLoader(vfs, assets::ToUpperAscii(folder), false);
+    if (!loader) {
+        return std::unexpected(std::move(loader.error()));
+    }
+    std::vector<std::string> paths;
+    for (const std::string& world : worlds) {
+        Result<std::string> path = loader->Resolve(world, kWorldExtension);
+        if (!path) {
+            return std::unexpected(std::move(path.error()));
+        }
+        paths.push_back(std::move(*path));
+    }
+    return AddWorlds(*loader, paths);
 }
 
 }

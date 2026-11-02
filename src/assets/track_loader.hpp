@@ -47,6 +47,10 @@ public:
     /// `GAMEDATA/COMMON`. A mirrored load reflects all but the sky world and its models.
     [[nodiscard]] Result<TrackAssets> Load(std::string_view folder, bool isMirrored = false);
 
+    /// Loads only the named worlds, in their order, then the files they name, as `Load` does.
+    [[nodiscard]] Result<TrackAssets> LoadWorlds(std::string_view folder,
+                                                 std::span<const std::string> worlds);
+
     /// Looks names up as `Load` does, without any worlds, skipping empty ones.
     [[nodiscard]] Result<TrackAssets> LoadModels(std::string_view folder,
                                                  std::span<const ModelFiles> models,
@@ -58,6 +62,9 @@ public:
 private:
     struct Names;
 
+    [[nodiscard]] Result<TrackAssets> LoadWorldFiles(const NameResolver& resolver,
+                                                     std::span<const std::string> paths,
+                                                     bool isMirrored);
     [[nodiscard]] Result<TrackAssets> LoadNamed(const NameResolver& resolver,
                                                 std::vector<AssetCache<WorldAsset>::Handle> worlds,
                                                 const Names& names, bool isMirrored);
