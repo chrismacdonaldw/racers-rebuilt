@@ -1,21 +1,35 @@
 #include "assets/token_schema.hpp"
 
+#include <limits>
 #include <utility>
 
 namespace rr::assets {
+namespace {
+
+template <typename Narrow>
+Result<void> ReadUnsigned(TokenReader& reader, Narrow& value) {
+    return reader.ReadInt().and_then([&value](std::int32_t read) -> Result<void> {
+        if (!std::in_range<Narrow>(read)) {
+            return Fail(ErrorCode::InvalidData, std::format("{} is outside 0 to {}", read,
+                                                            +std::numeric_limits<Narrow>::max()));
+        }
+        value = static_cast<Narrow>(read);
+        return {};
+    });
+}
+
+}
 
 Result<void> ReadValue(TokenReader& reader, std::int32_t& value) {
     return reader.ReadInt().transform([&value](std::int32_t read) { value = read; });
 }
 
 Result<void> ReadValue(TokenReader& reader, std::uint8_t& value) {
-    return reader.ReadInt().and_then([&value](std::int32_t read) -> Result<void> {
-        if (!std::in_range<std::uint8_t>(read)) {
-            return Fail(ErrorCode::InvalidData, std::format("{} is outside 0 to 255", read));
-        }
-        value = static_cast<std::uint8_t>(read);
-        return {};
-    });
+    return ReadUnsigned(reader, value);
+}
+
+Result<void> ReadValue(TokenReader& reader, std::uint16_t& value) {
+    return ReadUnsigned(reader, value);
 }
 
 Result<void> ReadValue(TokenReader& reader, float& value) {
