@@ -65,6 +65,7 @@ private:
 
     [[nodiscard]] Result<std::unique_ptr<Scene>> CreateScene(
         const std::optional<std::string>& requested);
+    [[nodiscard]] Result<std::unique_ptr<Scene>> CreateWorldScene(std::string_view scene);
     [[nodiscard]] Result<std::unique_ptr<Scene>> CreateCircuitRace(std::string_view scene,
                                                                    assets::TrackLoader& loader,
                                                                    Nanoseconds started);

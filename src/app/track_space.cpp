@@ -76,6 +76,14 @@ Transform LookAt(const Vector3& eye, const Vector3& target) {
             .rotation = {.w = rotation.w, .x = rotation.x, .y = rotation.y, .z = rotation.z}};
 }
 
+Transform ViewToEngine(const Transform& game) {
+    const glm::vec3 forward = ToGlm(ToEngine(Rotate(game.rotation, {.x = 1.0F})));
+    const glm::vec3 up = ToGlm(ToEngine(Rotate(game.rotation, {.z = 1.0F})));
+    const glm::quat rotation = glm::quatLookAt(glm::normalize(forward), glm::normalize(up));
+    return {.position = ToEngine(game.position),
+            .rotation = {.w = rotation.w, .x = rotation.x, .y = rotation.y, .z = rotation.z}};
+}
+
 void Bounds::Add(const Vector3& point) {
     if (isEmpty) {
         min = point;
