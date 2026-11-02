@@ -2,42 +2,48 @@
 
 namespace rr::sim {
 
-void InputLatch::Press(Action action) {
-    const std::size_t index = InputFrame::Index(action);
-    if (pending_.held.test(index)) {
+void InputLatch::Press(std::size_t player, Action action) {
+    PlayerInput& input = pending_.players.at(player);
+    const std::size_t index = PlayerInput::Index(action);
+    if (input.held.test(index)) {
         return;
     }
-    pending_.held.set(index);
-    pending_.pressed.set(index);
+    input.held.set(index);
+    input.pressed.set(index);
 }
 
-void InputLatch::Release(Action action) {
-    const std::size_t index = InputFrame::Index(action);
-    if (!pending_.held.test(index)) {
+void InputLatch::Release(std::size_t player, Action action) {
+    PlayerInput& input = pending_.players.at(player);
+    const std::size_t index = PlayerInput::Index(action);
+    if (!input.held.test(index)) {
         return;
     }
-    pending_.held.reset(index);
-    pending_.released.set(index);
+    input.held.reset(index);
+    input.released.set(index);
 }
 
 void InputLatch::Press(MenuAction action) {
     pending_.menuPressed.set(InputFrame::Index(action));
 }
 
-void InputLatch::SetSteerLeftAxis(std::int8_t value) {
-    pending_.steerLeftAxis = value;
+void InputLatch::SetSteerLeftAxis(std::size_t player, std::int8_t value) {
+    pending_.players.at(player).steerLeftAxis = value;
 }
 
 void InputLatch::ReleaseAll() {
-    pending_.released |= pending_.held;
-    pending_.held.reset();
-    pending_.steerLeftAxis = 0;
+    for (PlayerInput& input : pending_.players) {
+        input.released |= input.held;
+        input.held.reset();
+        input.steerLeftAxis = 0;
+    }
 }
 
 InputFrame InputLatch::TakeFrame() {
     const InputFrame frame = pending_;
-    pending_.pressed.reset();
-    pending_.released.reset();
+    for (PlayerInput& input : pending_.players) {
+        input.pressed.reset();
+        input.released.reset();
+    }
     pending_.menuPressed.reset();
     return frame;
 }

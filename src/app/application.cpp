@@ -188,6 +188,9 @@ Result<void> Application::Run() {
         CreateMusicPlayer(mixer_, vfs_, settingsFile_.parent_path() / kMusicFolderName,
                           extensions_.mods.Enabled(settings_));
     AttachEnhancements(extensions_, frameLoop_.Hooks(), settings_);
+    frameLoop_.Hooks().Subscribe<mods::SceneEntered>([this, &bindings](const mods::SceneEntered&) {
+        bindings.SetPlayerCount(frameLoop_.Scenes().Top()->PlayerCount(), frameLoop_.Input());
+    });
     settings_.Observe([this, &bindings](std::string_view key) {
         frameLoop_.Hooks().Emit(mods::SettingChanged{.key = key, .settings = settings_});
         if (Scene* scene = frameLoop_.Scenes().Top(); scene != nullptr) {
@@ -200,8 +203,7 @@ Result<void> Application::Run() {
             ApplyVolumes(settings_, mixer_);
         }
         if (key.starts_with("input.")) {
-            frameLoop_.Input().ReleaseAll();
-            bindings = InputBindings(settings_);
+            bindings.Rebind(settings_, frameLoop_.Input());
         }
     });
 

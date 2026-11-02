@@ -7,7 +7,7 @@ constexpr float kAxisScale = 127.0F;
 
 }
 
-RacerControls ControlsFrom(const InputFrame& input) {
+RacerControls ControlsFrom(const PlayerInput& input) {
     return {.isLeftHeld = input.IsHeld(Action::SteerLeft),
             .isRightHeld = input.IsHeld(Action::SteerRight),
             .isThrottleHeld = input.IsHeld(Action::Accelerate),

@@ -72,9 +72,9 @@ void Run(TickTap& tap, std::unique_ptr<Scene> scene, const std::vector<Nanosecon
     for (const Nanoseconds now : frames) {
         for (; next != script.end() && next->at <= now; ++next) {
             if (next->isDown) {
-                loop.Input().Press(next->action);
+                loop.Input().Press(0, next->action);
             } else {
-                loop.Input().Release(next->action);
+                loop.Input().Release(0, next->action);
             }
         }
         static_cast<void>(loop.RunFrame(now));

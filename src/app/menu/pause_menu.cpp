@@ -17,15 +17,15 @@ Row Stepped(Row row, const sim::InputFrame& input) {
 
 std::optional<PauseRow> PauseMenu::Tick(const sim::InputFrame& input) {
     if (!isOpen_) {
-        isOpen_ = input.WasPressed(sim::Action::Pause);
+        isOpen_ = input.WasAnyPressed(sim::Action::Pause);
         focus_ = PauseRow::Resume;
         return std::nullopt;
     }
     if (confirm_) {
         return TickConfirm(input);
     }
-    if (input.WasPressed(sim::Action::Pause) ||
-        (input.WasPressed(sim::MenuAction::Back) && !input.IsHeld(sim::Action::Pause))) {
+    if (input.WasAnyPressed(sim::Action::Pause) ||
+        (input.WasPressed(sim::MenuAction::Back) && !input.IsAnyHeld(sim::Action::Pause))) {
         Close();
         return std::nullopt;
     }

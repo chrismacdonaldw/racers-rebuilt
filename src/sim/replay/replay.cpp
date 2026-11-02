@@ -35,15 +35,17 @@ std::vector<Run> ToRuns(const std::vector<InputFrame>& frames) {
     return runs;
 }
 
-void AppendStream(std::vector<std::byte>& out, const std::vector<InputFrame>& frames) {
+void AppendFrames(std::vector<std::byte>& out, const std::vector<InputFrame>& frames) {
     const std::vector<Run> runs = ToRuns(frames);
     AppendU32(out, static_cast<std::uint32_t>(runs.size()));
     for (const Run& run : runs) {
         AppendU32(out, run.length);
-        AppendU8(out, static_cast<std::uint8_t>(run.frame.held.to_ulong()));
-        AppendU8(out, static_cast<std::uint8_t>(run.frame.pressed.to_ulong()));
-        AppendU8(out, static_cast<std::uint8_t>(run.frame.released.to_ulong()));
-        AppendU8(out, std::bit_cast<std::uint8_t>(run.frame.steerLeftAxis));
+        for (const PlayerInput& player : run.frame.players) {
+            AppendU8(out, static_cast<std::uint8_t>(player.held.to_ulong()));
+            AppendU8(out, static_cast<std::uint8_t>(player.pressed.to_ulong()));
+            AppendU8(out, static_cast<std::uint8_t>(player.released.to_ulong()));
+            AppendU8(out, std::bit_cast<std::uint8_t>(player.steerLeftAxis));
+        }
         AppendU8(out, static_cast<std::uint8_t>(run.frame.menuPressed.to_ulong()));
     }
 }
@@ -57,6 +59,21 @@ Result<std::bitset<kActionCount>> ReadActions(assets::ByteReader& reader) {
     });
 }
 
+Result<PlayerInput> ReadPlayer(assets::ByteReader& reader) {
+    PlayerInput player;
+    for (std::bitset<kActionCount>* actions : {&player.held, &player.pressed, &player.released}) {
+        Result<std::bitset<kActionCount>> read = ReadActions(reader);
+        if (!read) {
+            return std::unexpected(std::move(read.error()));
+        }
+        *actions = *read;
+    }
+    return reader.ReadU8().transform([&player](std::uint8_t axis) {
+        player.steerLeftAxis = std::bit_cast<std::int8_t>(axis);
+        return player;
+    });
+}
+
 Result<Run> ReadRun(assets::ByteReader& reader) {
     Run run;
     Result<std::uint32_t> length = reader.ReadU32();
@@ -64,19 +81,13 @@ Result<Run> ReadRun(assets::ByteReader& reader) {
         return Fail(ErrorCode::InvalidData, "replay has an empty input run");
     }
     run.length = *length;
-    for (std::bitset<kActionCount>* actions :
-         {&run.frame.held, &run.frame.pressed, &run.frame.released}) {
-        Result<std::bitset<kActionCount>> read = ReadActions(reader);
+    for (PlayerInput& player : run.frame.players) {
+        Result<PlayerInput> read = ReadPlayer(reader);
         if (!read) {
             return std::unexpected(std::move(read.error()));
         }
-        *actions = *read;
+        player = *read;
     }
-    Result<std::uint8_t> axis = reader.ReadU8();
-    if (!axis) {
-        return std::unexpected(std::move(axis.error()));
-    }
-    run.frame.steerLeftAxis = std::bit_cast<std::int8_t>(*axis);
     Result<std::uint8_t> menu = reader.ReadU8();
     if (!menu) {
         return std::unexpected(std::move(menu.error()));
@@ -88,12 +99,13 @@ Result<Run> ReadRun(assets::ByteReader& reader) {
     return run;
 }
 
-Result<std::vector<InputFrame>> ReadStream(assets::ByteReader& reader, std::size_t& ticksLeft) {
+Result<std::vector<InputFrame>> ReadFrames(assets::ByteReader& reader) {
     Result<std::uint32_t> runCount = reader.ReadU32();
     if (!runCount) {
         return std::unexpected(std::move(runCount.error()));
     }
     std::vector<InputFrame> frames;
+    std::size_t ticksLeft = kMaxTicks;
     for (std::uint32_t i = 0; i < *runCount; ++i) {
         Result<Run> run = ReadRun(reader);
         if (!run) {
@@ -132,23 +144,16 @@ Result<Replay> ReadBody(assets::ByteReader& reader) {
     Result<std::uint64_t> seed = scene.and_then([&](const auto&) { return ReadU64(reader); });
     Result<std::vector<std::string>> gameplay =
         seed.and_then([&](auto) { return ReadGameplay(reader); });
-    Result<std::uint8_t> racerCount =
-        gameplay.and_then([&](const auto&) { return reader.ReadU8(); });
-    if (!racerCount) {
-        return std::unexpected(std::move(racerCount.error()));
+    Result<std::vector<InputFrame>> frames =
+        gameplay.and_then([&](const auto&) { return ReadFrames(reader); });
+    if (!frames) {
+        return std::unexpected(std::move(frames.error()));
     }
     replay.buildVersion = std::move(*buildVersion);
     replay.scene = std::move(*scene);
     replay.seed = *seed;
     replay.gameplay = std::move(*gameplay);
-    std::size_t ticksLeft = kMaxTicks;
-    for (std::uint8_t i = 0; i < *racerCount; ++i) {
-        Result<std::vector<InputFrame>> stream = ReadStream(reader, ticksLeft);
-        if (!stream) {
-            return std::unexpected(std::move(stream.error()));
-        }
-        replay.racers.push_back(std::move(*stream));
-    }
+    replay.frames = std::move(*frames);
     return replay;
 }
 
@@ -165,10 +170,7 @@ std::vector<std::byte> EncodeReplay(const Replay& replay) {
     for (const std::string& entry : replay.gameplay) {
         AppendText(out, entry);
     }
-    AppendU8(out, static_cast<std::uint8_t>(replay.racers.size()));
-    for (const std::vector<InputFrame>& frames : replay.racers) {
-        AppendStream(out, frames);
-    }
+    AppendFrames(out, replay.frames);
     AppendChecksum(out);
     return out;
 }
@@ -179,7 +181,7 @@ Result<Replay> DecodeReplay(std::span<const std::byte> bytes) {
         reader.and_then([](assets::ByteReader& body) { return ReadBody(body); });
     if (replay && reader->Remaining() != 0) {
         return Fail(ErrorCode::InvalidData,
-                    std::format("replay has {} bytes after its last stream", reader->Remaining()));
+                    std::format("replay has {} bytes after its last input", reader->Remaining()));
     }
     return replay;
 }

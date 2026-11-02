@@ -13,7 +13,8 @@ constexpr float kSpinRadiansPerTick = 0.03F;
 constexpr Vector3 kUp{.y = 1.0F};
 
 float Axis(const sim::InputFrame& input, sim::Action negative, sim::Action positive) {
-    return (input.IsHeld(positive) ? 1.0F : 0.0F) - (input.IsHeld(negative) ? 1.0F : 0.0F);
+    return (input.players[0].IsHeld(positive) ? 1.0F : 0.0F) -
+           (input.players[0].IsHeld(negative) ? 1.0F : 0.0F);
 }
 
 }

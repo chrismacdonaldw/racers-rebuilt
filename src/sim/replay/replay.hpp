@@ -11,7 +11,7 @@
 
 namespace rr::sim {
 
-inline constexpr std::uint16_t kReplayFormatVersion = 4;
+inline constexpr std::uint16_t kReplayFormatVersion = 5;
 inline constexpr std::size_t kMaxGameplayEntries = 255;
 
 /// `scene` is the name of the scene that ran, or empty for the test scene.
@@ -20,7 +20,7 @@ struct Replay {
     std::string scene;
     std::uint64_t seed = 0;
     std::vector<std::string> gameplay;
-    std::vector<std::vector<InputFrame>> racers;
+    std::vector<InputFrame> frames;
 
     friend bool operator==(const Replay&, const Replay&) = default;
 };

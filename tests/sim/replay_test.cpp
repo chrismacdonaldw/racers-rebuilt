@@ -20,21 +20,25 @@ constexpr std::size_t kChecksumBytes = 8;
 InputFrame Held(std::initializer_list<Action> actions) {
     InputFrame frame;
     for (const Action action : actions) {
-        frame.held.set(InputFrame::Index(action));
+        frame.players[0].held.set(PlayerInput::Index(action));
     }
     return frame;
 }
 
 Replay SampleReplay() {
     InputFrame tap = Held({Action::Accelerate});
-    tap.pressed.set(InputFrame::Index(Action::Accelerate));
+    tap.players[0].pressed.set(PlayerInput::Index(Action::Accelerate));
     std::vector<InputFrame> frames(30, InputFrame{});
     frames.push_back(tap);
     frames.insert(frames.end(), 50, Held({Action::Accelerate}));
     frames.insert(frames.end(), 20, Held({Action::Accelerate, Action::SteerLeft}));
     InputFrame stick = Held({Action::Accelerate});
-    stick.steerLeftAxis = -90;
+    stick.players[0].steerLeftAxis = -90;
     frames.insert(frames.end(), 10, stick);
+    InputFrame second = Held({Action::Accelerate});
+    second.players[1].held.set(PlayerInput::Index(Action::Brake));
+    second.players[1].steerLeftAxis = 64;
+    frames.insert(frames.end(), 5, second);
     InputFrame menu;
     menu.menuPressed.set(InputFrame::Index(MenuAction::Confirm));
     frames.push_back(menu);
@@ -42,7 +46,7 @@ Replay SampleReplay() {
             .scene = "RACEC0R0",
             .seed = 0x1234'5678'9ABC'DEF0ULL,
             .gameplay = {"race.example=true", "mod:example@1.0.0"},
-            .racers = {frames}};
+            .frames = frames};
 }
 
 std::vector<std::byte> Resealed(std::vector<std::byte> bytes) {
@@ -51,20 +55,20 @@ std::vector<std::byte> Resealed(std::vector<std::byte> bytes) {
     return bytes;
 }
 
-std::vector<std::byte> TwoLongStreams() {
-    constexpr std::uint8_t kRacers = 2;
-    constexpr std::uint32_t kTicksPerRacer = 5'000'000;
+std::vector<std::byte> TwoLongRuns() {
+    constexpr std::uint32_t kRuns = 2;
+    constexpr std::uint32_t kTicksPerRun = 5'000'000;
+    constexpr std::size_t kBytesPerFrame = (4 * kMaxPlayers) + 1;
     std::vector<std::byte> bytes;
     AppendHeader(bytes, "RRRP", kReplayFormatVersion);
     AppendText(bytes, "");
     AppendText(bytes, "");
     AppendU64(bytes, 0);
     AppendU8(bytes, 0);
-    AppendU8(bytes, kRacers);
-    for (std::uint8_t racer = 0; racer < kRacers; ++racer) {
-        AppendU32(bytes, 1);
-        AppendU32(bytes, kTicksPerRacer);
-        bytes.insert(bytes.end(), 4, std::byte{0});
+    AppendU32(bytes, kRuns);
+    for (std::uint32_t run = 0; run < kRuns; ++run) {
+        AppendU32(bytes, kTicksPerRun);
+        bytes.insert(bytes.end(), kBytesPerFrame, std::byte{0});
     }
     AppendChecksum(bytes);
     return bytes;
@@ -81,12 +85,13 @@ TEST_CASE("a replay survives encoding") {
 
 TEST_CASE("an hour of input fits in under 1 MB") {
     Replay replay{.buildVersion = "0.1.0"};
-    std::vector<InputFrame>& frames = replay.racers.emplace_back();
+    std::vector<InputFrame>& frames = replay.frames;
     constexpr std::size_t kTicksPerChange = 17;
     for (std::size_t tick = 0; tick < kTicksPerHour; ++tick) {
         const std::size_t step = tick / kTicksPerChange;
         InputFrame frame = Held({Action::Accelerate});
-        frame.held.set(InputFrame::Index(step % 2 == 0 ? Action::SteerLeft : Action::SteerRight));
+        frame.players[0].held.set(
+            PlayerInput::Index(step % 2 == 0 ? Action::SteerLeft : Action::SteerRight));
         frames.push_back(frame);
     }
 
@@ -123,10 +128,10 @@ TEST_CASE("a damaged replay is rejected") {
         bytes[good.size() - kChecksumBytes - 4] = std::byte{0xFF};
         CHECK_FALSE(DecodeReplay(Resealed(bytes)).has_value());
     }
-    SUBCASE("streams that add up to too many ticks") {
-        CHECK_FALSE(DecodeReplay(TwoLongStreams()).has_value());
+    SUBCASE("runs that add up to too many ticks") {
+        CHECK_FALSE(DecodeReplay(TwoLongRuns()).has_value());
     }
-    SUBCASE("bytes after the last stream") {
+    SUBCASE("bytes after the last run") {
         std::vector<std::byte> bytes = good;
         bytes.insert(bytes.end() - kChecksumBytes, std::byte{0});
         CHECK_FALSE(DecodeReplay(Resealed(bytes)).has_value());
@@ -140,7 +145,7 @@ TEST_CASE("recording keeps menu presses") {
 
     recorder.Record(frame, RenderSnapshot{});
 
-    CHECK(recorder.Recorded().racers.front().front() == frame);
+    CHECK(recorder.Recorded().frames.front() == frame);
 }
 
 }

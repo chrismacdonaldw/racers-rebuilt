@@ -5,6 +5,7 @@
 #include <SDL3/SDL_keycode.h>
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <string>
@@ -40,19 +41,42 @@ template <typename Action>
 /// Values are comma-separated SDL key names, or SDL gamepad button and trigger names.
 inline constexpr std::array kActionBindings{
     BindingFor(sim::Action::Accelerate, "Accelerate", "input.keys.accelerate",
-               "input.buttons.accelerate", "Up,W", "a,righttrigger"),
-    BindingFor(sim::Action::Brake, "Brake", "input.keys.brake", "input.buttons.brake", "Down,S",
+               "input.buttons.accelerate", "Up", "a,righttrigger"),
+    BindingFor(sim::Action::Brake, "Brake", "input.keys.brake", "input.buttons.brake", "Down",
                "b,lefttrigger"),
     BindingFor(sim::Action::SteerLeft, "Steer left", "input.keys.steer_left",
-               "input.buttons.steer_left", "Left,A", "dpleft"),
+               "input.buttons.steer_left", "Left", "dpleft"),
     BindingFor(sim::Action::SteerRight, "Steer right", "input.keys.steer_right",
-               "input.buttons.steer_right", "Right,D", "dpright"),
-    BindingFor(sim::Action::Drift, "Drift", "input.keys.drift", "input.buttons.drift",
-               "Left Shift,Right Shift", "rightshoulder,leftshoulder"),
+               "input.buttons.steer_right", "Right", "dpright"),
+    BindingFor(sim::Action::Drift, "Drift", "input.keys.drift", "input.buttons.drift", "Space",
+               "rightshoulder,leftshoulder"),
     BindingFor(sim::Action::UsePowerup, "Use powerup", "input.keys.use_powerup",
-               "input.buttons.use_powerup", "Space", "x"),
+               "input.buttons.use_powerup", "Return", "x"),
     BindingFor(sim::Action::Pause, "Pause", "input.keys.pause", "input.buttons.pause", "Escape",
                "start"),
+};
+
+struct KeyBinding {
+    sim::Action action;
+    settings::SettingSpec<std::string_view> keys;
+};
+
+[[nodiscard]] constexpr KeyBinding Player2KeysFor(sim::Action action, std::string_view name,
+                                                  std::string_view key, std::string_view keys) {
+    return {.action = action,
+            .keys = {.key = key, .defaultValue = keys, .label = name, .category = "Keyboard"}};
+}
+
+/// Player 2's keys in a two-player race. Pads all use the gamepad bindings above.
+inline constexpr std::array kPlayer2KeyBindings{
+    Player2KeysFor(sim::Action::Accelerate, "Player 2 accelerate", "input.p2.keys.accelerate", "W"),
+    Player2KeysFor(sim::Action::Brake, "Player 2 brake", "input.p2.keys.brake", "X"),
+    Player2KeysFor(sim::Action::SteerLeft, "Player 2 steer left", "input.p2.keys.steer_left", "A"),
+    Player2KeysFor(sim::Action::SteerRight, "Player 2 steer right", "input.p2.keys.steer_right",
+                   "D"),
+    Player2KeysFor(sim::Action::Drift, "Player 2 drift", "input.p2.keys.drift", "Left Shift"),
+    Player2KeysFor(sim::Action::UsePowerup, "Player 2 use powerup", "input.p2.keys.use_powerup",
+                   "Left Alt"),
 };
 
 inline constexpr std::array kMenuBindings{
@@ -85,11 +109,14 @@ void DeclareInputSettings(settings::Registry& registry);
 /// The names in a bindings setting, trimmed, without empty ones.
 [[nodiscard]] std::vector<std::string> SplitBindingNames(std::string_view list);
 
-/// An action stays held while any of its keys, buttons or triggers is down.
+/// With two players, keys only player 2 binds drive player 2. Pads go in connection order.
 class InputBindings {
 public:
     explicit InputBindings(const settings::Registry& registry);
 
+    /// Keeps the player count and the pad order, and lets go of everything held.
+    void Rebind(const settings::Registry& registry, sim::InputLatch& latch);
+    void SetPlayerCount(std::size_t count, sim::InputLatch& latch);
     void Handle(const SDL_Event& event, sim::InputLatch& latch);
 
 private:
@@ -97,6 +124,14 @@ private:
     struct Bound {
         Input input;
         Action action;
+    };
+
+    template <typename Input>
+    struct PadInput {
+        SDL_JoystickID pad;
+        Input input;
+
+        friend bool operator==(const PadInput&, const PadInput&) = default;
     };
 
     template <typename Action>
@@ -110,17 +145,27 @@ private:
     static BoundInputs<Action> Bind(const settings::Registry& registry,
                                     std::span<const Binding<Action>> bindings);
 
+    static std::vector<Bound<SDL_Keycode, sim::Action>> BindPlayer2(
+        const settings::Registry& registry);
+
     void HandleKey(const SDL_KeyboardEvent& event, sim::InputLatch& latch);
     void HandleButton(const SDL_GamepadButtonEvent& event, sim::InputLatch& latch);
     void HandleAxis(const SDL_GamepadAxisEvent& event, sim::InputLatch& latch);
+    void AddPad(SDL_JoystickID pad);
+    void RemovePad(SDL_JoystickID pad, sim::InputLatch& latch);
     void LatchHeldActions(sim::InputLatch& latch) const;
-    [[nodiscard]] bool IsHeld(sim::Action action) const;
+    [[nodiscard]] std::size_t PlayerOfKey(SDL_Keycode key) const;
+    [[nodiscard]] std::size_t PlayerOfPad(SDL_JoystickID pad) const;
+    [[nodiscard]] bool IsHeld(std::size_t player, sim::Action action) const;
 
     BoundInputs<sim::Action> race_;
     BoundInputs<sim::MenuAction> menu_;
+    std::vector<Bound<SDL_Keycode, sim::Action>> player2Keys_;
+    std::size_t playerCount_ = 1;
+    std::vector<SDL_JoystickID> pads_;
     std::vector<SDL_Keycode> heldKeys_;
-    std::vector<SDL_GamepadButton> heldButtons_;
-    std::array<bool, SDL_GAMEPAD_AXIS_COUNT> isTriggerHeld_{};
+    std::vector<PadInput<SDL_GamepadButton>> heldButtons_;
+    std::vector<PadInput<SDL_GamepadAxis>> heldTriggers_;
 };
 
 }

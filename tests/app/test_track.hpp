@@ -114,8 +114,9 @@ private:
 [[nodiscard]] inline sim::InputFrame ScriptedInput(std::uint64_t tick) {
     using enum sim::Action;
     const std::uint64_t ms = tick * static_cast<std::uint64_t>(app::kSimTick.count());
-    sim::InputFrame input;
-    const auto hold = [&](sim::Action action) { input.held.set(sim::InputFrame::Index(action)); };
+    sim::InputFrame frame;
+    sim::PlayerInput& input = frame.players[0];
+    const auto hold = [&](sim::Action action) { input.held.set(sim::PlayerInput::Index(action)); };
     hold(Accelerate);
     if (ms % 9000 < 1500) {
         hold(SteerLeft);
@@ -130,7 +131,7 @@ private:
     if (ms % static_cast<std::uint64_t>(kUseEvery.count()) < 100) {
         hold(UsePowerup);
     }
-    return input;
+    return frame;
 }
 
 /// Each colour at each level in turn, given to the player as every other use press comes round.
@@ -150,15 +151,16 @@ private:
 [[nodiscard]] inline sim::Replay ScriptedReplay(Milliseconds duration) {
     const auto ticks = static_cast<std::uint64_t>(duration / app::kSimTick);
     std::vector<sim::InputFrame> frames;
-    sim::InputFrame previous;
+    sim::PlayerInput previous;
     for (std::uint64_t tick = 0; tick < ticks; ++tick) {
-        sim::InputFrame input = ScriptedInput(tick);
+        sim::InputFrame frame = ScriptedInput(tick);
+        sim::PlayerInput& input = frame.players[0];
         input.pressed = input.held & ~previous.held;
         input.released = previous.held & ~input.held;
-        frames.push_back(input);
+        frames.push_back(frame);
         previous = input;
     }
-    return {.buildVersion = "test", .scene = "test-track", .seed = 8, .racers = {frames}};
+    return {.buildVersion = "test", .scene = "test-track", .seed = 8, .frames = frames};
 }
 
 }

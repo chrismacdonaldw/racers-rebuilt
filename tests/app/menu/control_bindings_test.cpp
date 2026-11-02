@@ -50,7 +50,7 @@ TEST_CASE("the controls rows read each device's own bindings, rows without an ac
     const ControlNames keys = ReadControlNames(registry, ControlsDevice::Keyboard);
     const ControlNames buttons = ReadControlNames(registry, ControlsDevice::Gamepad);
 
-    CHECK(keys[kTurnLeftRow] == std::vector<std::string>{"Left", "A"});
+    CHECK(keys[kTurnLeftRow] == std::vector<std::string>{"Left"});
     CHECK(buttons[kAccelerateRow] == std::vector<std::string>{"a", "righttrigger"});
     CHECK(keys[kCameraRow].empty());
 }
@@ -59,19 +59,19 @@ TEST_CASE("a new binding replaces the row's list and comes off the device's othe
     const ControlNames keys = ReadControlNames(DefaultRegistry(), ControlsDevice::Keyboard);
 
     const std::vector<SettingChange> changes =
-        RebindChanges(keys, ControlsDevice::Keyboard, kBrakeRow, "w");
+        RebindChanges(keys, ControlsDevice::Keyboard, kBrakeRow, "up");
 
     REQUIRE(changes.size() == 2);
     CHECK(changes[0].key == "input.keys.accelerate");
-    CHECK(changes[0].value == settings::SettingValue{std::string("Up")});
+    CHECK(changes[0].value == settings::SettingValue{std::string()});
     CHECK(changes[1].key == "input.keys.brake");
-    CHECK(changes[1].value == settings::SettingValue{std::string("w")});
+    CHECK(changes[1].value == settings::SettingValue{std::string("up")});
 }
 
 TEST_CASE("binding a row its one input again changes nothing") {
     const ControlNames keys = ReadControlNames(DefaultRegistry(), ControlsDevice::Keyboard);
 
-    CHECK(RebindChanges(keys, ControlsDevice::Keyboard, kPowerupRow, "Space").empty());
+    CHECK(RebindChanges(keys, ControlsDevice::Keyboard, kPowerupRow, "Return").empty());
 }
 
 TEST_CASE("pressed keys are named as the settings name them, the original's system keys refused") {

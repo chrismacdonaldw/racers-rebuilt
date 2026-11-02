@@ -16,6 +16,6 @@ struct RacerControls {
     friend constexpr bool operator==(const RacerControls&, const RacerControls&) = default;
 };
 
-[[nodiscard]] RacerControls ControlsFrom(const InputFrame& input);
+[[nodiscard]] RacerControls ControlsFrom(const PlayerInput& input);
 
 }
