@@ -51,6 +51,9 @@ public:
     /// Scales the volume of each voice on `bus` before its curve, as the game's sliders do.
     void SetVolume(Bus bus, float volume);
 
+    /// Mono plays the average of both channels on each.
+    void SetStereo(bool isStereo);
+
     /// Drops cues once every effect voice is busy.
     void Play(std::span<const SoundCue> cues);
 

@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "audio/music_player.hpp"
 #include "overlay/racer_tools.hpp"
@@ -16,6 +17,11 @@ namespace rr::app {
 struct SceneMusic {
     std::string_view track;
     audio::Repeat repeat = audio::Repeat::Loop;
+};
+
+struct SettingChange {
+    std::string key;
+    settings::SettingValue value;
 };
 
 class Scene {
@@ -33,6 +39,9 @@ public:
 
     /// A scene name for the application to open after this frame. Each request is taken once.
     [[nodiscard]] virtual std::optional<std::string> TakeNextScene() { return std::nullopt; }
+
+    /// Settings for the application to store and save after this frame. Each is taken once.
+    [[nodiscard]] virtual std::vector<SettingChange> TakeSettingChanges() { return {}; }
 
     /// Only built while the overlay shows. Its actions take effect on the next `Tick`.
     [[nodiscard]] virtual overlay::RacerTools OverlayRacerTools() { return {}; }

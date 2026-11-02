@@ -21,28 +21,12 @@ constexpr std::size_t kFirstImageColor = 1;
 constexpr std::size_t kFirstTextColor = 7;
 constexpr float kChannelMax = 255.0F;
 
-struct Point {
-    float x = 0.0F;
-    float y = 0.0F;
-};
-
 const assets::MenuElement* FindById(const assets::MenuLayout& layout, std::int32_t id) {
     const auto element = std::ranges::find(layout.elements, id, &assets::MenuElement::id);
     return element == layout.elements.end() ? nullptr : &*element;
 }
 
-Point OriginOf(const assets::MenuLayout& layout, const assets::MenuElement& element) {
-    Point origin;
-    const assets::MenuElement* at = &element;
-    for (std::size_t depth = 0; at != nullptr && depth <= layout.elements.size(); ++depth) {
-        origin.x += static_cast<float>(at->widget.rect.left);
-        origin.y += static_cast<float>(at->widget.rect.top);
-        at = FindById(layout, at->parentId);
-    }
-    return origin;
-}
-
-render::Rect BoundsOf(const assets::MenuRect& rect, Point origin, const UiImage& image) {
+render::Rect BoundsOf(const assets::MenuRect& rect, MenuPoint origin, const UiImage& image) {
     const bool takesImageSize = rect.right == 0 && rect.bottom == 0;
     return {.x = origin.x,
             .y = origin.y,
@@ -88,7 +72,7 @@ public:
           style_(StyleNamed(files, kTextButtonStyle)) {}
 
     Result<void> Add(const assets::MenuElement& element, std::span<const ButtonLine> labels) {
-        const Point origin = OriginOf(files_->layout, element);
+        const MenuPoint origin = OriginOf(files_->layout, element);
         if (const auto* image = std::get_if<assets::ImageElement>(&element.body)) {
             return AddPicture(element, *image, origin);
         }
@@ -105,7 +89,7 @@ public:
 
 private:
     Result<void> AddPicture(const assets::MenuElement& element, const assets::ImageElement& image,
-                            Point origin) {
+                            MenuPoint origin) {
         const assets::ImageStyle* style = files_->FindImageStyle(element.name);
         const std::string_view name =
             !image.image.empty() || style == nullptr ? std::string_view(image.image) : style->image;
@@ -121,7 +105,7 @@ private:
     }
 
     Result<void> AddButton(const assets::MenuElement& element, const assets::GameButtonElement& own,
-                           Point origin, std::size_t textLine) {
+                           MenuPoint origin, std::size_t textLine) {
         MenuButton button{.name = element.name, .textLine = textLine};
         for (std::size_t state = 0; state < assets::kControlStates; ++state) {
             Result<UiImage> image = images_.Upload(PickName(own.images, style_.images, state));
@@ -144,6 +128,17 @@ private:
     MenuPage page_;
 };
 
+}
+
+MenuPoint OriginOf(const assets::MenuLayout& layout, const assets::MenuElement& element) {
+    MenuPoint origin;
+    const assets::MenuElement* at = &element;
+    for (std::size_t depth = 0; at != nullptr && depth <= layout.elements.size(); ++depth) {
+        origin.x += static_cast<float>(at->widget.rect.left);
+        origin.y += static_cast<float>(at->widget.rect.top);
+        at = FindById(layout, at->parentId);
+    }
+    return origin;
 }
 
 Result<UiImage> MenuImageCache::Upload(std::string_view name) {

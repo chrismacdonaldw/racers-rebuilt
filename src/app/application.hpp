@@ -72,6 +72,7 @@ private:
     [[nodiscard]] std::vector<overlay::MenuChoice> SaveImportChoices();
     void RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music);
     void OpenNextScene();
+    void StoreSceneSettings();
     void CyclePacing();
     void ApplyVideo();
     void Persist(const std::vector<std::string>& keys);

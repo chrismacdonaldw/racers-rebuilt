@@ -33,6 +33,8 @@ add_executable(racers-rebuilt-tests
     app/menu/dialog_layout_test.cpp
     app/menu/menu_files_test.cpp
     app/menu/menu_focus_test.cpp
+    app/menu/option_settings_test.cpp
+    app/menu/options_menu_test.cpp
     app/menu/pause_menu_test.cpp
     app/menu/race_setup_menu_test.cpp
     app/music_folder_source_test.cpp

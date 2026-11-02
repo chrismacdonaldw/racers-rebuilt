@@ -54,6 +54,14 @@ std::size_t IndexOf(Bus bus) {
     return static_cast<std::size_t>(bus);
 }
 
+void DownmixToMono(std::span<float> interleavedStereo) noexcept {
+    for (std::size_t sample = 0; sample + 1 < interleavedStereo.size(); sample += kChannelCount) {
+        const float average = (interleavedStereo[sample] + interleavedStereo[sample + 1]) * 0.5F;
+        interleavedStereo[sample] = average;
+        interleavedStereo[sample + 1] = average;
+    }
+}
+
 std::unexpected<Error> CantStart(ma_result result) {
     return Fail(ErrorCode::Platform,
                 std::format("can't start audio: {}", ma_result_description(result)));
@@ -69,9 +77,13 @@ struct Mixer::State {
     State& operator=(State&&) = delete;
 
     static void LimitMix(void* userData, float* frames, ma_uint64 frameCount) {
-        if (std::optional<PeakLimiter>& limiter = static_cast<State*>(userData)->limiter) {
-            limiter->Process(
-                std::span(frames, static_cast<std::size_t>(frameCount) * kChannelCount));
+        auto* state = static_cast<State*>(userData);
+        const std::span mix(frames, static_cast<std::size_t>(frameCount) * kChannelCount);
+        if (!state->isStereo.load(std::memory_order_relaxed)) {
+            DownmixToMono(mix);
+        }
+        if (std::optional<PeakLimiter>& limiter = state->limiter) {
+            limiter->Process(mix);
         }
     }
 
@@ -88,6 +100,7 @@ struct Mixer::State {
     }
 
     std::atomic<std::uint64_t> allocationCount{0};
+    std::atomic<bool> isStereo{true};
     ma_engine engine{};
     bool hasEngine = false;
     std::array<float, kBusCount> volumes{1.0F, 1.0F, 1.0F};
@@ -167,6 +180,10 @@ void Mixer::SetVolume(Bus bus, float volume) {
             state_->effects[slot].SetBusVolume(volume);
         }
     }
+}
+
+void Mixer::SetStereo(bool isStereo) {
+    state_->isStereo.store(isStereo, std::memory_order_relaxed);
 }
 
 void Mixer::Play(std::span<const SoundCue> cues) {

@@ -48,6 +48,10 @@ rr_add_module(app
         menu/menu_page.cpp
         menu/menu_text.cpp
         menu/message_dialog.cpp
+        menu/option_settings.cpp
+        menu/options_look.cpp
+        menu/options_menu.cpp
+        menu/options_scene.cpp
         menu/pause_menu.cpp
         menu/race_setup_menu.cpp
         menu/race_setup_scene.cpp

@@ -27,10 +27,26 @@ inline constexpr settings::SettingSpec<bool> kPhysicsAi{
     .label = "Computer racers drive with the car physics",
     .category = "Race"};
 
+inline constexpr settings::SettingSpec<int> kOpponents{
+    .key = "race.opponents",
+    .defaultValue = 5,
+    .range = settings::SettingRange<int>{.min = 0, .max = 5},
+    .label = "Computer racers in a single race",
+    .category = "Race"};
+
+inline constexpr settings::SettingSpec<int> kVersusLaps{
+    .key = "race.versus_laps",
+    .defaultValue = 3,
+    .range = settings::SettingRange<int>{.min = 1, .max = 5},
+    .label = "Laps in a versus race",
+    .category = "Race"};
+
 inline void DeclareRaceSettings(settings::Registry& registry) {
     registry.Declare(kRespawn);
     registry.Declare(kRespawnSeconds);
     registry.Declare(kPhysicsAi);
+    registry.Declare(kOpponents);
+    registry.Declare(kVersusLaps);
 }
 
 [[nodiscard]] inline sim::RespawnRule RespawnRuleFrom(const settings::Registry& registry) {

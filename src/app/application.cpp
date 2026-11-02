@@ -24,6 +24,7 @@
 #include "app/menu/award_scene_name.hpp"
 #include "app/menu/main_menu_scene.hpp"
 #include "app/menu/menu_scenes.hpp"
+#include "app/menu/options_scene.hpp"
 #include "app/menu/race_setup_scene.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/pacing_presets.hpp"
@@ -236,6 +237,7 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
                            scenes, saveImports, racerTools));
         lastFrame = now;
         frame = frameLoop_.RunFrame(now);
+        StoreSceneSettings();
         OpenNextScene();
         if (const Scene* top = frameLoop_.Scenes().Top(); top != nullptr) {
             FollowSceneMusic(music, top->Music(), askedMusic);
@@ -265,6 +267,9 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std:
     if (!scene || *scene == kMainMenuScene) {
         return MainMenuScene::Create(renderer_, vfs_, std::exchange(unlockNotice_, false))
             .transform(ToScene<MainMenuScene>);
+    }
+    if (*scene == kOptionsScene) {
+        return OptionsScene::Create(renderer_, vfs_).transform(ToScene<OptionsScene>);
     }
     if (*scene == kSingleRaceScene || *scene == kCircuitRaceScene) {
         const RaceSetupMode mode =
@@ -403,6 +408,23 @@ void Application::OpenNextScene() {
     if (!opened) {
         log::Error("{}", opened.error().message);
     }
+}
+
+void Application::StoreSceneSettings() {
+    Scene* scene = frameLoop_.Scenes().Top();
+    if (scene == nullptr) {
+        return;
+    }
+    std::vector<std::string> keys;
+    for (SettingChange& change : scene->TakeSettingChanges()) {
+        const Result<void> stored = settings_.Assign(change.key, std::move(change.value));
+        if (!stored) {
+            log::Error("{}", stored.error().message);
+            continue;
+        }
+        keys.push_back(std::move(change.key));
+    }
+    Persist(keys);
 }
 
 void Application::CyclePacing() {
