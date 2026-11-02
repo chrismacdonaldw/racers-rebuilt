@@ -69,13 +69,13 @@ Result<bool> SaveAward(const std::filesystem::path& file, const assets::Vfs& vfs
     return settings::SaveProgress(*progress, file).transform([&] { return opens; });
 }
 
-std::set<std::string> UnlockedCircuits(const std::filesystem::path& file) {
+settings::Progress ReadProgress(const std::filesystem::path& file) {
     Result<settings::Progress> progress = settings::LoadProgress(file);
     if (!progress) {
-        log::Warn("{}, only the first circuit is open", progress.error().message);
+        log::Warn("{}, starting from a fresh game's progress", progress.error().message);
         return {};
     }
-    return std::move(progress->unlockedCircuits);
+    return std::move(*progress);
 }
 
 }

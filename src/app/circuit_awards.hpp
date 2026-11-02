@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include <set>
 #include <string>
 #include <string_view>
 
@@ -28,6 +27,6 @@ bool GrantAward(settings::Progress& progress, const assets::CircuitEntry& circui
                                      const AwardSceneSetup& award);
 
 /// Logs a file that doesn't parse and treats it as a fresh game.
-[[nodiscard]] std::set<std::string> UnlockedCircuits(const std::filesystem::path& file);
+[[nodiscard]] settings::Progress ReadProgress(const std::filesystem::path& file);
 
 }

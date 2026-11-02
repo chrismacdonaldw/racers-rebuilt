@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <format>
 #include <initializer_list>
 #include <optional>
@@ -119,6 +120,16 @@ std::vector<CourseChoice> Circuits() {
             {.circuit = "c1", .circuitIndex = 1, .racers = {{.code = "c"}}, .isLocked = true}};
 }
 
+TEST_CASE("time trial setup builds the time trial scene name from its choices") {
+    RaceSetupMenu menu(Tracks());
+
+    const std::optional<std::string> next =
+        Press(menu, {MenuAction::Down, MenuAction::Right, MenuAction::Down, MenuAction::Confirm},
+              {.respawn = {.timeout = Milliseconds{3000}}, .isTimeTrial = true});
+
+    CHECK(next == "trial:RACEC0R1:respawn=3000:racer=1");
+}
+
 TEST_CASE("circuit setup builds the circuit scene name from its first race") {
     RaceSetupMenu menu(Circuits());
 
@@ -193,6 +204,35 @@ TEST_CASE("single race takes a track's grid from the circuit it's listed under")
     CHECK(tracks->front().track == "RACEC0R1");
     CHECK(tracks->front().circuit == "c0");
     CHECK(tracks->front().racers.at(1).code == "CR");
+}
+
+TEST_CASE("time trials offer the races of the first three circuits, locked with them") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+
+    const Result<std::vector<CourseChoice>> tracks = LoadTrialChoices(*vfs, {"c2"});
+
+    REQUIRE(tracks.has_value());
+    CHECK(tracks->size() == 12);
+    CHECK(std::ranges::all_of(*tracks, [](const CourseChoice& track) {
+        return track.isLocked == (track.circuit == "c1") && track.circuitIndex < 3;
+    }));
+}
+
+TEST_CASE("a time trial race keeps its race-list index") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+
+    const Result<std::vector<CourseChoice>> tracks = LoadTrialChoices(*vfs, {});
+
+    REQUIRE(tracks.has_value());
+    const auto racec0r0 = std::ranges::find(*tracks, "RACEC0R0", &CourseChoice::track);
+    REQUIRE(racec0r0 != tracks->end());
+    CHECK(racec0r0->race == 5);
 }
 
 std::vector<std::string> Describe(const std::vector<CourseChoice>& circuits) {

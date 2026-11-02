@@ -70,7 +70,7 @@ TEST_CASE("gold on the first retail circuit opens the second after a restart") {
                                                    .partSets = {0},
                                                    .trophies = {{"c0", Trophy::Gold}}});
     const Result<std::vector<CourseChoice>> circuits =
-        LoadCircuitChoices(*vfs, UnlockedCircuits(file));
+        LoadCircuitChoices(*vfs, ReadProgress(file).unlockedCircuits);
     REQUIRE(circuits.has_value());
     CHECK_FALSE(circuits->at(1).isLocked);
 }

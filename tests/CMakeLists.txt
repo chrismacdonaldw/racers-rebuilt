@@ -40,6 +40,7 @@ add_executable(racers-rebuilt-tests
     app/loop_sidecar_test.cpp
     app/menu/award_scene_name_test.cpp
     app/menu/award_scene_test.cpp
+    app/menu/best_time_panel_test.cpp
     app/menu/control_bindings_test.cpp
     app/menu/controls_menu_test.cpp
     app/scene_music_test.cpp
@@ -183,6 +184,7 @@ add_executable(racers-rebuilt-tests
     core/quaternion_test.cpp
     core/result_test.cpp
     core/transform_test.cpp
+    core/utf16_text_test.cpp
     core/utf8_path_test.cpp
     mods/hook_registry_test.cpp
     mods/mod_list_test.cpp
