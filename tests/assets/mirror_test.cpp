@@ -178,6 +178,26 @@ TEST_CASE("mirrored hazards reflect their cannon, ship and lightning positions")
     CHECK(std::get<LightningCannon>(hazards[2].payload).source == kMirroredPoint);
 }
 
+TEST_CASE("a mirrored model reflects its vertices and swaps each triangle's last two corners") {
+    GeometryAsset geometry{
+        .vertices = {{.position = kPoint, .normal = {.y = 1.0F}, .u = 0.5F},
+                     {.normal = {.x = 0.6F, .y = -0.8F}},
+                     {}},
+        .indices = {0, 1, 2, 2, 1, 0},
+        .ranges = {{.firstIndex = 0, .indexCount = 6, .joint = 3}},
+    };
+    const std::vector<GeometryRange> ranges = geometry.ranges;
+
+    MirrorY(geometry);
+
+    CHECK(geometry.vertices[0].position == kMirroredPoint);
+    CHECK(geometry.vertices[0].normal == Vector3{.y = -1.0F});
+    CHECK(geometry.vertices[0].u == 0.5F);
+    CHECK(geometry.vertices[1].normal == Vector3{.x = 0.6F, .y = 0.8F});
+    CHECK(geometry.indices == std::vector<std::uint32_t>{0, 2, 1, 2, 0, 1});
+    CHECK(geometry.ranges == ranges);
+}
+
 TEST_CASE("every world but the sky world mirrors") {
     CHECK_FALSE(IsMirroredWorld("GAMEDATA/RACEC0R0/BACKGRD.WDB"));
     CHECK_FALSE(IsMirroredWorld("backgrd.wdb"));

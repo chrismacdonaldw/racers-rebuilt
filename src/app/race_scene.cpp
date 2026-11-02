@@ -101,7 +101,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                                                      std::uint64_t seed, Nanoseconds started) {
     render::Renderer& renderer = *outputs.renderer;
     const std::string& track = setup.track;
-    Result<TrackModel> model = loader.Load(std::format("GAMEDATA/{}", track))
+    Result<TrackModel> model = loader.Load(std::format("GAMEDATA/{}", track), setup.isMirrored)
                                    .and_then([&](const assets::TrackAssets& assets) {
                                        return UploadTrack(renderer, assets);
                                    });

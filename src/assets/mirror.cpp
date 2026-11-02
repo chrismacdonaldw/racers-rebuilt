@@ -1,5 +1,6 @@
 #include "assets/mirror.hpp"
 
+#include <cstddef>
 #include <optional>
 #include <span>
 #include <utility>
@@ -153,6 +154,16 @@ void MirrorY(std::vector<Hazard>& hazards) {
         } else if (auto* lightning = std::get_if<LightningCannon>(&hazard.payload)) {
             Mirror(lightning->source);
         }
+    }
+}
+
+void MirrorY(GeometryAsset& geometry) {
+    for (GeometryVertex& vertex : geometry.vertices) {
+        Mirror(vertex.position);
+        Mirror(vertex.normal);
+    }
+    for (std::size_t corner = 0; corner + 2 < geometry.indices.size(); corner += 3) {
+        std::swap(geometry.indices[corner + 1], geometry.indices[corner + 2]);
     }
 }
 

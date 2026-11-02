@@ -10,11 +10,13 @@
 
 #include "assets/game_path.hpp"
 #include "assets/geometry_database.hpp"
+#include "assets/mirror.hpp"
 
 namespace rr::assets {
 namespace {
 
 constexpr std::string_view kCommonFolder = "GAMEDATA/COMMON";
+constexpr std::string_view kMirroredKey = "|mirrored";
 constexpr std::size_t kBytesPerPixel = 4;
 
 using NameSet = std::set<std::string, std::less<>>;
@@ -25,9 +27,13 @@ using Handles = std::vector<typename AssetCache<T>::Handle>;
 template <typename T>
 using Parser = std::function<Result<T>(std::size_t, std::span<const std::byte>)>;
 
+template <typename T>
+using Mirror = void (*)(T&);
+
 struct Request {
     std::string key;
     std::string path;
+    bool isMirrored = false;
 };
 
 template <typename T>
@@ -139,20 +145,49 @@ struct Loading {
     const Vfs* vfs = nullptr;
     LoaderPool* pool = nullptr;
     const NameResolver* resolver = nullptr;
+    bool isMirrored = false;
+    const NameSet* unmirrored = nullptr;
 };
+
+bool MirrorsName(const Loading& loading, const std::string& name) {
+    return loading.isMirrored &&
+           (loading.unmirrored == nullptr || !loading.unmirrored->contains(name));
+}
+
+template <typename T>
+Result<Handles<T>> LoadMirrorable(const Loading& loading, AssetCache<T>& cache,
+                                  std::vector<Request> requests,
+                                  Result<T> (*parse)(std::span<const std::byte>),
+                                  Mirror<T> mirror) {
+    for (Request& request : requests) {
+        request.isMirrored = request.isMirrored && mirror != nullptr;
+        if (request.isMirrored) {
+            request.key += kMirroredKey;
+        }
+    }
+    return LoadAll<T>(
+        *loading.vfs, *loading.pool, cache, requests,
+        [parse, mirror, &requests](std::size_t index, std::span<const std::byte> bytes) {
+            Result<T> parsed = parse(bytes);
+            if (parsed && requests[index].isMirrored) {
+                mirror(*parsed);
+            }
+            return parsed;
+        });
+}
 
 template <typename T>
 Result<NameMap<typename AssetCache<T>::Handle>> LoadByName(
     const Loading& loading, AssetCache<T>& cache, const NameSet& names, std::string_view extension,
-    Result<T> (*parse)(std::span<const std::byte>)) {
+    Result<T> (*parse)(std::span<const std::byte>), Mirror<T> mirror = nullptr) {
     Result<Handles<T>> handles =
-        loading.resolver->ResolveAll(names, extension)
-            .and_then([&](const std::vector<Request>& requests) {
-                return LoadAll<T>(*loading.vfs, *loading.pool, cache, requests,
-                                  [parse](std::size_t, std::span<const std::byte> bytes) {
-                                      return parse(bytes);
-                                  });
-            });
+        loading.resolver->ResolveAll(names, extension).and_then([&](std::vector<Request> requests) {
+            auto name = names.begin();
+            for (Request& request : requests) {
+                request.isMirrored = MirrorsName(loading, *name++);
+            }
+            return LoadMirrorable<T>(loading, cache, std::move(requests), parse, mirror);
+        });
     if (!handles) {
         return std::unexpected(std::move(handles.error()));
     }
@@ -275,32 +310,42 @@ void InsertAllUpper(NameSet& names, std::span<const std::string> source) {
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct TrackLoader::Names {
     NameSet models;
+    NameSet skyModels;
     NameSet materialLibraries;
     NameSet textureDatabases;
 };
 
-Result<TrackAssets> TrackLoader::Load(std::string_view folder) {
+Result<TrackAssets> TrackLoader::Load(std::string_view folder, bool isMirrored) {
     Result<NameResolver> resolver = NameResolver::Create(*vfs_, folder);
     if (!resolver) {
         return std::unexpected(std::move(resolver.error()));
     }
-    Result<Handles<WorldAsset>> worlds = LoadAll<WorldAsset>(
-        *vfs_, *pool_, worlds_, resolver->LocalFilesWithExtension(".WDB"),
-        [](std::size_t, std::span<const std::byte> bytes) { return ParseWorld(bytes); });
+    const Loading loading{
+        .vfs = vfs_, .pool = pool_, .resolver = &*resolver, .isMirrored = isMirrored};
+    std::vector<Request> files = resolver->LocalFilesWithExtension(".WDB");
+    for (Request& file : files) {
+        file.isMirrored = isMirrored && IsMirroredWorld(file.path);
+    }
+    Result<Handles<WorldAsset>> worlds =
+        LoadMirrorable<WorldAsset>(loading, worlds_, files, ParseWorld, MirrorY);
     if (!worlds) {
         return std::unexpected(std::move(worlds.error()));
     }
     Names names;
-    for (const AssetCache<WorldAsset>::Handle& world : *worlds) {
+    for (std::size_t i = 0; i < worlds->size(); ++i) {
+        const AssetCache<WorldAsset>::Handle& world = (*worlds)[i];
         InsertAllUpper(names.models, world->models);
+        if (!IsMirroredWorld(files[i].path)) {
+            InsertAllUpper(names.skyModels, world->models);
+        }
         InsertAllUpper(names.materialLibraries, world->materialLibraries);
         InsertAllUpper(names.textureDatabases, world->textureLists);
     }
-    return LoadNamed(*resolver, std::move(*worlds), names);
+    return LoadNamed(*resolver, std::move(*worlds), names, isMirrored);
 }
 
 Result<TrackAssets> TrackLoader::LoadModels(std::string_view folder,
-                                            std::span<const ModelFiles> models) {
+                                            std::span<const ModelFiles> models, bool isMirrored) {
     Result<NameResolver> resolver = NameResolver::Create(*vfs_, folder);
     if (!resolver) {
         return std::unexpected(std::move(resolver.error()));
@@ -311,14 +356,18 @@ Result<TrackAssets> TrackLoader::LoadModels(std::string_view folder,
         InsertUpper(names.materialLibraries, files.materials);
         InsertUpper(names.textureDatabases, files.textures);
     }
-    return LoadNamed(*resolver, {}, names);
+    return LoadNamed(*resolver, {}, names, isMirrored);
 }
 
 Result<TrackAssets> TrackLoader::LoadNamed(const NameResolver& resolver, Handles<WorldAsset> worlds,
-                                           const Names& names) {
-    const Loading loading{.vfs = vfs_, .pool = pool_, .resolver = &resolver};
+                                           const Names& names, bool isMirrored) {
+    const Loading loading{.vfs = vfs_,
+                          .pool = pool_,
+                          .resolver = &resolver,
+                          .isMirrored = isMirrored,
+                          .unmirrored = &names.skyModels};
     Result<NameMap<AssetCache<GeometryAsset>::Handle>> models =
-        LoadByName<GeometryAsset>(loading, models_, names.models, ".GDB", ParseGeometry);
+        LoadByName<GeometryAsset>(loading, models_, names.models, ".GDB", ParseGeometry, MirrorY);
     Result<NameMap<MaterialAsset>> materials = models.and_then([&](const auto&) {
         return LoadMaterials(loading, materialLibraries_, names.materialLibraries);
     });

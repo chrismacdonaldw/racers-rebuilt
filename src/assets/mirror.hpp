@@ -10,6 +10,7 @@
 #include "assets/checkpoints.hpp"
 #include "assets/collision_mesh.hpp"
 #include "assets/event_table.hpp"
+#include "assets/geometry_asset.hpp"
 #include "assets/hazard_list.hpp"
 #include "assets/skeleton_database.hpp"
 #include "assets/start_grid.hpp"
@@ -31,6 +32,8 @@ void MirrorY(BrickLayout& bricks);
 void MirrorY(std::vector<TargetPoint>& targets);
 void MirrorY(EventTableAsset& table);
 void MirrorY(std::vector<Hazard>& hazards);
+/// Also swaps each triangle's winding, so faces keep facing out.
+void MirrorY(GeometryAsset& geometry);
 
 /// False for the sky world, `BACKGRD.WDB`, which mirrored tracks leave as authored.
 [[nodiscard]] bool IsMirroredWorld(std::string_view path);
