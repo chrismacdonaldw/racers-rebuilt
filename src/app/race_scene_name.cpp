@@ -9,6 +9,7 @@
 #include <system_error>
 
 #include "assets/circuit_database.hpp"
+#include "assets/game_path.hpp"
 #include "core/duration.hpp"
 #include "sim/input_frame.hpp"
 
@@ -17,6 +18,7 @@ namespace {
 
 constexpr std::string_view kRacePrefix = "race:";
 constexpr std::string_view kCircuitPrefix = "circuit:";
+constexpr std::string_view kTrialPrefix = "trial:";
 constexpr std::string_view kRespawnKey = "respawn";
 constexpr std::string_view kRacerKey = "racer";
 constexpr std::string_view kCircuitKey = "circuit";
@@ -180,6 +182,9 @@ std::string AiField(const RaceSceneSetup& setup) {
 }
 
 std::string RaceSceneName(const RaceSceneSetup& setup) {
+    if (setup.isTimeTrial) {
+        return std::format("{}{}{}", kTrialPrefix, setup.track, RulesFields(setup));
+    }
     std::string name = std::format("{}{}{}", kRacePrefix, setup.track, RulesFields(setup));
     if (!setup.circuit.empty()) {
         name += std::format(":{}={}", kCircuitKey, setup.circuit);
@@ -213,6 +218,21 @@ bool IsRaceScene(std::string_view scene) {
 
 Result<RaceSceneSetup> ParseRaceScene(std::string_view scene) {
     return ParseScene(scene, kRacePrefix, &RaceSceneSetup::track, ReadRaceField);
+}
+
+bool IsTrialScene(std::string_view scene) {
+    return scene.starts_with(kTrialPrefix);
+}
+
+Result<RaceSceneSetup> ParseTrialScene(std::string_view scene) {
+    return ParseScene(scene, kTrialPrefix, &RaceSceneSetup::track,
+                      [](Field, RaceSceneSetup&) { return false; })
+        .transform([](RaceSceneSetup setup) {
+            setup.track = assets::ToUpperAscii(setup.track);
+            setup.isTimeTrial = true;
+            setup.opponents = 0;
+            return setup;
+        });
 }
 
 std::string CircuitSceneName(const CircuitSceneSetup& setup) {

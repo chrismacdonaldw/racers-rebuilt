@@ -25,6 +25,18 @@ TEST_CASE("a race scene name carries its track, respawn rule and racer") {
     CHECK_FALSE(IsRaceScene("RACEC0R0"));
 }
 
+TEST_CASE("a time trial scene name races the player alone over 3 laps") {
+    const RaceSceneSetup trial{
+        .track = "RACEC0R0", .respawn = {}, .racer = 2, .opponents = 0, .isTimeTrial = true};
+
+    CHECK(RaceSceneName(trial) == "trial:RACEC0R0:respawn=3000:racer=2");
+    CHECK(ParseTrialScene(RaceSceneName(trial)) == trial);
+    CHECK(IsTrialScene(RaceSceneName(trial)));
+    CHECK_FALSE(IsRaceScene(RaceSceneName(trial)));
+    CHECK(ParseTrialScene("trial:racec0r0:respawn=3000:racer=2") == trial);
+    CHECK_FALSE(ParseTrialScene("trial:RACEC0R0:respawn=3000:laps=5"));
+}
+
 TEST_CASE("a race scene name records physics-driven computer racers") {
     const RaceSceneSetup physics{
         .track = "RACEC0R0", .respawn = {}, .aiDriving = sim::AiDriving::Physics};

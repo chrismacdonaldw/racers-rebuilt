@@ -102,11 +102,14 @@ std::span<const assets::RaceRoute> RoutesFor(const RaceCourse& course, std::size
 
 Result<RaceSession> RaceSession::Create(const RaceSetup& setup, const RaceCourse& course) {
     RR_ASSERT(course.checkpoints != nullptr && course.world != nullptr);
-    if (setup.racers.size() > course.grid.size()) {
-        return Fail(ErrorCode::InvalidData, std::format("{} racers on a grid of {}",
-                                                        setup.racers.size(), course.grid.size()));
+    if (setup.firstSlot + setup.racers.size() > course.grid.size()) {
+        return Fail(ErrorCode::InvalidData,
+                    std::format("{} racers from slot {} on a grid of {}", setup.racers.size(),
+                                setup.firstSlot, course.grid.size()));
     }
-    return RaceSession(setup, course);
+    RaceCourse shifted = course;
+    shifted.grid = course.grid.subspan(setup.firstSlot);
+    return RaceSession(setup, shifted);
 }
 
 RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
@@ -146,7 +149,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
         const RacerEntry& entry = setup.racers[i];
         Racer& racer = racers_.emplace_back(entry.chassis, entry.build, course.grid[i]);
         racer.HoldAtStart();
-        const std::span<const assets::RaceRoute> routes = RoutesFor(course, i);
+        const std::span<const assets::RaceRoute> routes = RoutesFor(course, setup.firstSlot + i);
         drivers_.emplace_back();
         if (!entry.isPlayer && !routes.empty()) {
             const assets::RaceRoute& route =

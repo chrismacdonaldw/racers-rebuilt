@@ -77,6 +77,14 @@ void RaceHudLayer::SetMap(std::optional<TrackMap> map) {
     gadgets_.assign(players_, HudGadget(map));
 }
 
+void RaceHudLayer::SetTimeTrial(const sim::TimeTrialGhosts& ghosts) {
+    trial_ = &ghosts;
+}
+
+std::u16string_view RaceHudLayer::RacerName(std::size_t slot) const {
+    return slot < names_.size() ? std::u16string_view(names_[slot]) : std::u16string_view{};
+}
+
 void RaceHudLayer::CycleGadget(std::size_t player) {
     if (player < gadgets_.size()) {
         gadgets_[player].Cycle();
@@ -111,8 +119,8 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(
         if (player < huds_.size()) {
             RaceHud& hud = huds_[player];
             const bool isGhost = racers[player].isGhost;
-            hud.Layout(session.Clock(), session.Progress(), {.slot = player, .isGhost = isGhost},
-                       texts_);
+            hud.Layout(session.Clock(), session.Progress(),
+                       {.slot = player, .isGhost = isGhost, .trial = trial_}, texts_);
             DrawHudText(texts_, hud.Fonts(), sprites_);
             if (!isGhost) {
                 LayoutPowerupPanel(racers[player], images_, sprites_, placement.bottom);
@@ -135,7 +143,7 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(
     }
     RaceHud& first = huds_.front();
     texts_.clear();
-    if (players_ == 1) {
+    if (players_ == 1 && trial_ == nullptr) {
         first.LayoutResults(session.Clock(), session.Progress(), 0, names_, circuitPoints_, texts_);
     }
     DrawHudText(texts_, first.Fonts(), sprites_);

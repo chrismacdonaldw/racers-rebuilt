@@ -27,12 +27,15 @@
 #include "app/race_audio.hpp"
 #include "app/race_particles.hpp"
 #include "app/race_scene_name.hpp"
+#include "app/race_scene_parts.hpp"
 #include "app/racer/car_shadows.hpp"
 #include "app/racer/racer_grid.hpp"
 #include "app/racer/skid_marks.hpp"
 #include "app/racer_effect_tools.hpp"
 #include "app/scene.hpp"
 #include "app/sound_banks.hpp"
+#include "app/time_trial/time_trial_race.hpp"
+#include "app/time_trial/time_trial_run.hpp"
 #include "app/track_entity_draws.hpp"
 #include "app/trigger_spheres.hpp"
 #include "assets/track_loader.hpp"
@@ -52,13 +55,6 @@
 
 namespace rr::app {
 
-/// Where a race draws and plays. Each must outlive the scene.
-struct RaceOutputs {
-    render::Renderer* renderer = nullptr;
-    audio::Mixer* mixer = nullptr;
-    SoundBanks* banks = nullptr;
-};
-
 /// The players drive the first slots. One player races a full grid, and two race alone.
 class RaceScene final : public Scene {
 public:
@@ -68,6 +64,9 @@ public:
 
     /// Results, restart and quit then lead wherever the circuit goes next.
     void JoinCircuit(CircuitLeg leg);
+
+    /// Races one run of `run`, which must outlive the scene.
+    void JoinTimeTrial(TimeTrialRun& run);
     void AdoptHudFonts(std::string_view language, UiFonts fonts);
 
     void ApplySettings(const settings::Registry& settings) override;
@@ -108,6 +107,9 @@ private:
     explicit RaceScene(Parts parts);
 
     void TickPause(const sim::InputFrame& input);
+    void TickTrialQuestion(TimeTrialRace& trial, const sim::InputFrame& input);
+    void Hush();
+    [[nodiscard]] bool IsTrialAsking() const;
     void LeaveAfterResults(const sim::InputFrame& input);
     [[nodiscard]] overlay::RacerActionGroup EffectTools();
     [[nodiscard]] overlay::RacerActionGroup PowerupTools();
@@ -129,6 +131,7 @@ private:
     RaceHudLayer hud_;
     PauseMenu pause_;
     std::optional<CircuitLeg> circuit_;
+    std::optional<TimeTrialRace> trial_;
     std::optional<std::string> next_;
     std::vector<sim::RacerControls> controls_;
     std::size_t chosenRacer_ = 0;

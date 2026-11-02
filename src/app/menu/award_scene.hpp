@@ -27,6 +27,10 @@ public:
                                                                     const assets::Vfs& vfs,
                                                                     sim::CircuitAward award);
 
+    /// Stands in for `winvvcar` with its music over the bare backdrop.
+    [[nodiscard]] static Result<std::unique_ptr<AwardScene>> CreateRecordsUnlock(
+        render::Renderer& renderer, const assets::Vfs& vfs);
+
     [[nodiscard]] SceneMusic Music() const override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
     void Tick(const sim::InputFrame& input) override;
@@ -34,11 +38,11 @@ public:
     void Render(const sim::RenderSnapshot& interpolated) override;
 
 private:
-    AwardScene(render::Renderer& renderer, sim::CircuitAward award,
+    AwardScene(render::Renderer& renderer, std::string_view music,
                std::vector<MenuPicture> pictures, std::optional<UiImage> trophy);
 
     render::Renderer* renderer_;
-    sim::CircuitAward award_;
+    std::string_view music_;
     std::vector<MenuPicture> pictures_;
     std::optional<UiImage> trophy_;
     std::optional<std::string> next_;

@@ -19,6 +19,7 @@
 #include "render/renderer.hpp"
 #include "sim/race/race_session.hpp"
 #include "sim/render_snapshot.hpp"
+#include "sim/time_trial/time_trial_ghosts.hpp"
 
 namespace rr::app {
 
@@ -39,6 +40,12 @@ public:
     void SetCircuitPoints(std::span<const std::int32_t> before);
 
     void SetMap(std::optional<TrackMap> map);
+
+    /// Shows TOTAL and the gap to `ghosts`, which must outlive the layer, and no results.
+    void SetTimeTrial(const sim::TimeTrialGhosts& ghosts);
+
+    /// Empty until the HUD's language loads.
+    [[nodiscard]] std::u16string_view RacerName(std::size_t slot) const;
     void CycleGadget(std::size_t player);
 
     void Tick(const sim::RaceSession& session, Milliseconds elapsed);
@@ -56,6 +63,7 @@ private:
     std::size_t players_;
     std::vector<std::int32_t> nameIndexes_;
     std::vector<std::int32_t> circuitPoints_;
+    const sim::TimeTrialGhosts* trial_ = nullptr;
     std::string language_;
     UiFonts fonts_;
     std::vector<std::u16string> names_;

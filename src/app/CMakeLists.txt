@@ -97,6 +97,7 @@ rr_add_module(app
         race_particles.cpp
         race_scene.cpp
         race_scene_name.cpp
+        race_scene_parts.cpp
         race_step.cpp
         racer_effect_tools.cpp
         racer/animation_player.cpp
@@ -119,9 +120,13 @@ rr_add_module(app
         sound_banks.cpp
         save_import.cpp
         sprite_test_scene.cpp
+        startup_scene.cpp
         startup_settings.cpp
         startup_timer.cpp
         test_scene.cpp
+        time_trial/time_trial_race.cpp
+        time_trial/time_trial_run.cpp
+        time_trial/trial_records.cpp
         track_entity_draws.cpp
         track_map.cpp
         track_model.cpp

@@ -13,6 +13,7 @@
 #include "app/frame_loop.hpp"
 #include "app/game_boot.hpp"
 #include "app/sound_banks.hpp"
+#include "app/time_trial/time_trial_run.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
 #include "audio/mixer.hpp"
@@ -63,10 +64,14 @@ private:
     explicit Application(Parts parts);
 
     [[nodiscard]] Result<std::unique_ptr<Scene>> CreateScene(
-        const std::optional<std::string>& scene);
+        const std::optional<std::string>& requested);
     [[nodiscard]] Result<std::unique_ptr<Scene>> CreateCircuitRace(std::string_view scene,
                                                                    assets::TrackLoader& loader,
                                                                    Nanoseconds started);
+    [[nodiscard]] Result<std::unique_ptr<Scene>> CreateTrialRace(std::string_view scene,
+                                                                 assets::TrackLoader& loader,
+                                                                 Nanoseconds started);
+    [[nodiscard]] std::string EndTimeTrial();
     [[nodiscard]] Result<std::unique_ptr<RaceScene>> LoadRace(const RaceSceneSetup& setup,
                                                               assets::TrackLoader& loader,
                                                               Nanoseconds started);
@@ -100,6 +105,7 @@ private:
     std::uint64_t seed_ = 0;
     bool isQuitting_ = false;
     bool unlockNotice_ = false;
+    std::optional<TimeTrialRun> trial_;
     std::optional<std::filesystem::path> recordFile_;
     std::optional<std::filesystem::path> replayFile_;
     std::string startupSummary_;

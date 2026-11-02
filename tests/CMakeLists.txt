@@ -91,6 +91,8 @@ add_executable(racers-rebuilt-tests
     app/sound_banks_test.cpp
     app/startup_settings_test.cpp
     app/startup_timer_test.cpp
+    app/time_trial/time_trial_run_test.cpp
+    app/time_trial/trial_records_test.cpp
     app/track_space_test.cpp
     app/ui_text/text_layout_test.cpp
     app/trigger_spheres_test.cpp
@@ -279,6 +281,7 @@ add_executable(racers-rebuilt-tests
     sim/race/race_clock_test.cpp
     sim/race/race_progress_test.cpp
     sim/race/race_session_test.cpp
+    sim/race/race_start_test.cpp
     sim/race/race_sounds_test.cpp
     sim/race/race_track_test.cpp
     sim/race/random_test.cpp

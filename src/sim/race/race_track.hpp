@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string_view>
 #include <vector>
 
@@ -41,8 +42,11 @@ struct RaceTrack {
 /// Views `track` and `world`, which must outlive the course.
 [[nodiscard]] RaceCourse CourseOf(const RaceTrack& track, const CollisionQuery& world);
 
+enum class BrickSet : std::uint8_t { Race, TimeTrial };
+
 /// `track` is a race track folder under `GAMEDATA`, such as `RACEC0R0`.
 [[nodiscard]] Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track,
-                                              bool isMirrored = false);
+                                              bool isMirrored = false,
+                                              BrickSet bricks = BrickSet::Race);
 
 }

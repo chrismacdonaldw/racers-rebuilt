@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <map>
@@ -10,6 +11,8 @@
 #include "core/result.hpp"
 
 namespace rr::settings {
+
+inline constexpr std::size_t kRecordRaces = 12;
 
 enum class Trophy : std::uint8_t { Gold, Silver, Bronze };
 

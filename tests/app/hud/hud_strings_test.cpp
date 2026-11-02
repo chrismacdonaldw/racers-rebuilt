@@ -29,6 +29,7 @@ TEST_CASE("HUD labels come from their game string slots") {
     CHECK(strings->gap == game[0x21]);
     CHECK(strings->wrongWay == game[0x24]);
     CHECK(strings->best == game[0x25]);
+    CHECK(strings->total == game[0x26]);
     CHECK(strings->lap == game[0x27]);
     CHECK(strings->finish == game[0x28]);
     CHECK(strings->go == game[0x29]);
@@ -51,6 +52,8 @@ TEST_CASE("pause labels come from their game string slots") {
     CHECK(strings->sure == game[0x2C]);
     CHECK(strings->yes == game[0x12]);
     CHECK(strings->no == game[0x13]);
+    CHECK(strings->recordStands == std::array{game[0x15], game[0x16]});
+    CHECK(strings->recordBeaten == std::array{game[0x17], game[0x18]});
 }
 
 TEST_CASE("a game string table without every HUD label fails") {
