@@ -66,11 +66,6 @@ constexpr int kWindowWidthPx = 1280;
 constexpr int kWindowHeightPx = 720;
 constexpr std::string_view kMusicFolderName = "music";
 
-template <typename T>
-std::unique_ptr<Scene> ToScene(std::unique_ptr<T> scene) {
-    return scene;
-}
-
 std::filesystem::path OriginalInstall(const GameBoot& boot) {
     return PathFromUtf8(
         boot.commandLine.gamePath.value_or(std::string(boot.settings.Get(kGamePath))));
@@ -123,7 +118,8 @@ Result<Application> Application::Create(GameBoot boot) {
                         .scene = std::move(*scene),
                         .recordFile = boot.commandLine.recordFile.transform(PathFromUtf8),
                         .replayFile = boot.commandLine.replayFile.transform(PathFromUtf8),
-                        .startupSummary = std::move(startupSummary)});
+                        .startupSummary = std::move(startupSummary),
+                        .playerRacer = std::move(boot.playerRacer)});
 }
 
 Result<void> Application::Run() {
@@ -233,7 +229,8 @@ Application::Application(Parts parts)
       scene_(std::move(parts.scene)),
       recordFile_(std::move(parts.recordFile)),
       replayFile_(std::move(parts.replayFile)),
-      startupSummary_(std::move(parts.startupSummary)) {}
+      startupSummary_(std::move(parts.startupSummary)),
+      playerRacer_(std::move(parts.playerRacer)) {}
 
 Result<std::unique_ptr<Scene>> Application::CreateScene(
     const std::optional<std::string>& requested) {
@@ -343,9 +340,10 @@ std::string Application::EndTimeTrial() {
                : std::string(kMainMenuScene);
 }
 
-Result<std::unique_ptr<RaceScene>> Application::LoadRace(const RaceSceneSetup& setup,
+Result<std::unique_ptr<RaceScene>> Application::LoadRace(RaceSceneSetup setup,
                                                          assets::TrackLoader& loader,
                                                          Nanoseconds started) {
+    setup.playerRacer = playerRacer_;
     const std::string language = SelectedLanguage(settings_);
     const std::unique_ptr<RaceLoadingScreen> loading =
         OpenLoadingScreen(renderer_, vfs_, setup.track, language);

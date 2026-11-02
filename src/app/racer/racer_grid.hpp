@@ -8,6 +8,7 @@
 
 #include "app/race_scene_name.hpp"
 #include "app/racer/car_look.hpp"
+#include "app/racer/driver_name.hpp"
 #include "app/racer/racer_assets.hpp"
 #include "app/racer/racer_draws.hpp"
 #include "app/racer/racer_visuals.hpp"
@@ -24,7 +25,7 @@
 
 namespace rr::app {
 
-/// The prebuilt racer in each grid slot of a track's circuit.
+/// The racer in each grid slot of a track's circuit, prebuilt but for a player's own.
 class RacerGrid {
 public:
     /// Takes up to `slots` drivers and swaps the player's slot with 0. `renderer` must outlive it.
@@ -34,6 +35,7 @@ public:
 
     [[nodiscard]] std::size_t Count() const { return slots_.size(); }
     [[nodiscard]] sim::ChassisSpec Chassis(std::size_t slot) const;
+    [[nodiscard]] sim::CarBuild Build(std::size_t slot) const;
     [[nodiscard]] const assets::SkidMarks& Skids(std::size_t slot) const;
     [[nodiscard]] sim::PowerupHabits Habits(std::size_t slot) const;
 
@@ -41,10 +43,10 @@ public:
         return slots_.at(slot).localBounds;
     }
 
-    /// The slot driver's line in `DRIVERS.SRF`.
-    [[nodiscard]] std::int32_t NameIndex(std::size_t slot) const;
+    [[nodiscard]] DriverName Name(std::size_t slot) const;
 
-    [[nodiscard]] std::int32_t VoiceBank(std::size_t slot) const;
+    /// In the game's numbering, as from `DriverVoice`.
+    [[nodiscard]] std::int32_t Voice(std::size_t slot) const;
 
     /// Each span holds one entry per slot, poses in engine space. Ghosts are hidden.
     void Update(std::span<const sim::EntitySnapshot> poses,

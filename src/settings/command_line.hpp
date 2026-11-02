@@ -25,6 +25,7 @@ struct CommandLine {
     std::optional<std::size_t> players;
     std::optional<std::string> cutscene;
     std::optional<std::string> shownCar;
+    std::optional<std::string> racer;
     std::optional<std::string> recordFile;
     std::optional<std::string> replayFile;
     std::optional<std::string> importSaveFile;
@@ -33,7 +34,8 @@ struct CommandLine {
 
 /// Accepts `--game-path <folder>`, `--set key=value`, `--dump-images <folder>`,
 /// `--track <RACECxRy>`, `--race <RACECxRy>`, `--players <count>`, `--cutscene <folder>/<file>`,
-/// `--show-car <racer name>`, `--record <file>`, `--replay <file>` and `--import-save <file>`,
+/// `--show-car <racer name>`, `--racer <racer name>`, `--record <file>`, `--replay <file>` and
+/// `--import-save <file>`,
 /// each also as `--flag=value`. `args` excludes the program name.
 [[nodiscard]] Result<CommandLine> ParseCommandLine(std::span<const std::string_view> args);
 

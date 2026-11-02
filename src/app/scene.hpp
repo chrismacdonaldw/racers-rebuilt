@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -68,5 +69,10 @@ public:
 
     virtual void Render(const sim::RenderSnapshot& interpolated) = 0;
 };
+
+template <typename T>
+std::unique_ptr<Scene> ToScene(std::unique_ptr<T> scene) {
+    return scene;
+}
 
 }

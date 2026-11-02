@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -10,6 +11,7 @@
 #include "core/result.hpp"
 #include "platform/sdl_context.hpp"
 #include "settings/command_line.hpp"
+#include "settings/racers.hpp"
 #include "settings/registry.hpp"
 
 namespace rr::app {
@@ -23,9 +25,10 @@ struct GameBoot {
     Extensions extensions;
     platform::SdlContext sdl;
     assets::Vfs vfs;
+    std::optional<settings::Racer> playerRacer;
 };
 
-/// `args` excludes the program name.
+/// `args` excludes the program name. `--racer` must name a racer in `racers.toml` or the game.
 [[nodiscard]] Result<GameBoot> BootGame(std::span<const std::string_view> args);
 
 }

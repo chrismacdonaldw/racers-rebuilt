@@ -34,6 +34,19 @@ Result<JointedAssets> LoadJointed(const assets::Vfs& vfs, std::string_view skele
         });
 }
 
+Result<RacerAssets> LoadRacerJoints(const assets::Vfs& vfs, RacerAssets racer) {
+    const assets::JointedModelFiles& wheels = racer.files.chassis.wheels;
+    return LoadJointed(vfs, wheels.skeleton, wheels.animations)
+        .and_then([&](JointedAssets loaded) {
+            racer.wheels = std::move(loaded);
+            return LoadJointed(vfs, kDriverSkeleton, kDriverSkeleton);
+        })
+        .transform([&](JointedAssets driver) {
+            racer.driver = std::move(driver);
+            return std::move(racer);
+        });
+}
+
 Result<RacerAssets> LoadRacer(const assets::Vfs& vfs, assets::TrackLoader& loader,
                               const assets::RacerCatalog& catalog, std::string_view code) {
     RacerAssets racer;
@@ -46,16 +59,7 @@ Result<RacerAssets> LoadRacer(const assets::Vfs& vfs, assets::TrackLoader& loade
         })
         .and_then([&](assets::TrackAssets models) {
             racer.models = std::move(models);
-            const assets::JointedModelFiles& wheels = racer.files.chassis.wheels;
-            return LoadJointed(vfs, wheels.skeleton, wheels.animations);
-        })
-        .and_then([&](JointedAssets wheels) {
-            racer.wheels = std::move(wheels);
-            return LoadJointed(vfs, kDriverSkeleton, kDriverSkeleton);
-        })
-        .transform([&](JointedAssets driver) {
-            racer.driver = std::move(driver);
-            return std::move(racer);
+            return LoadRacerJoints(vfs, std::move(racer));
         });
 }
 

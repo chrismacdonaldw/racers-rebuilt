@@ -8,13 +8,11 @@
 #include <utility>
 #include <vector>
 
+#include "app/racer/racer_lookup.hpp"
 #include "app/track_model.hpp"
-#include "assets/game_path.hpp"
-#include "assets/original_save.hpp"
 #include "assets/piece_catalog.hpp"
 #include "core/log.hpp"
 #include "core/quaternion.hpp"
-#include "core/utf16_text.hpp"
 #include "sim/car_build/built_car.hpp"
 #include "sim/car_build/car_mesh.hpp"
 
@@ -24,29 +22,10 @@ namespace {
 constexpr sim::EntityId kCarId{1};
 constexpr std::string_view kPieceFolder = "MENUDATA/PIECEDB";
 constexpr std::string_view kCarModel = "CAR";
-constexpr std::array<std::string_view, 2> kRacerFiles{"MENUDATA/DEFAULT.LRS",
-                                                      "MENUDATA/QBUILD.LRS"};
 constexpr float kTurnRadiansPerTick = 0.01F;
 constexpr Vector3 kUp{.y = 1.0F};
 constexpr Transform kCameraTransform{.position = {.y = 5.0F, .z = 14.0F},
                                      .rotation = {.w = 0.9887711F, .x = -0.1494381F}};
-
-Result<assets::CarData> FindCar(const assets::Vfs& vfs, std::string_view name) {
-    const std::string wanted = assets::ToUpperAscii(name);
-    for (const std::string_view file : kRacerFiles) {
-        Result<std::vector<assets::SavedRacer>> racers = vfs.Read(file).and_then(
-            [](const assets::FileData& data) { return assets::ParseRacerFile(data.Bytes()); });
-        if (!racers) {
-            return std::unexpected(std::move(racers.error()));
-        }
-        for (const assets::SavedRacer& racer : *racers) {
-            if (assets::ToUpperAscii(Utf8FromUtf16(racer.name)) == wanted) {
-                return racer.car;
-            }
-        }
-    }
-    return Fail(ErrorCode::NotFound, std::format("no racer named {}", name));
-}
 
 float MiddleHeight(const assets::GeometryAsset& car) {
     const auto [low, high] = std::ranges::minmax(
@@ -55,7 +34,8 @@ float MiddleHeight(const assets::GeometryAsset& car) {
 }
 
 Result<assets::GeometryAsset> BuildCar(const assets::Vfs& vfs, std::string_view name) {
-    const Result<assets::CarData> data = FindCar(vfs, name);
+    const Result<assets::CarData> data =
+        FindGameRacer(vfs, name).transform([](const settings::Racer& racer) { return racer.car; });
     const Result<assets::PieceCatalog> catalog = data.and_then([&](const assets::CarData&) {
         return assets::PieceCatalog::Load(vfs, assets::PieceDetail::Menu);
     });

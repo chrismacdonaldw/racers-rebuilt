@@ -27,6 +27,7 @@ sim::RaceSetup GridSetup(const RaceSceneSetup& scene, const RacerGrid& racers, s
     setup.racers.resize(slots);
     for (std::size_t i = 0; i < slots; ++i) {
         setup.racers[i].chassis = racers.Chassis(i);
+        setup.racers[i].build = racers.Build(i);
         setup.racers[i].localBounds = racers.LocalBounds(i);
         setup.racers[i].habits = racers.Habits(i);
     }
@@ -56,13 +57,13 @@ std::vector<PowerupQuads> PlayerPowerupQuads(const assets::NameMap<render::Mater
     return quads;
 }
 
-RaceAudioSetup AudioSetup(const sim::RaceTrack& raceTrack, std::span<const std::int32_t> voiceBanks,
+RaceAudioSetup AudioSetup(const sim::RaceTrack& raceTrack, std::span<const std::int32_t> voices,
                           std::uint64_t seed) {
-    return {.racerCount = voiceBanks.size(),
+    return {.racerCount = voices.size(),
             .player = kPlayerSlot,
             .seed = seed,
             .ambience = raceTrack.events.table.sounds,
-            .voiceBanks = voiceBanks};
+            .voices = voices};
 }
 
 std::unique_ptr<RaceAudio> LoadRaceAudio(const RaceOutputs& outputs, const assets::Vfs& vfs,

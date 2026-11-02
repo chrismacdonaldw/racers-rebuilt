@@ -1,6 +1,7 @@
 #include "app/hud/race_hud_layer.hpp"
 
 #include <utility>
+#include <variant>
 
 #include "app/hud/hud_assets.hpp"
 #include "app/hud/powerup_panel.hpp"
@@ -13,14 +14,21 @@ namespace {
 
 constexpr render::Color kDialogBackdrop{.r = 0.0F, .g = 0.0F, .b = 0.0F, .a = 64.0F / 255.0F};
 
+std::u16string NameOf(std::span<const std::u16string> driverNames, const DriverName& driver) {
+    if (const auto* own = std::get_if<std::u16string>(&driver)) {
+        return *own;
+    }
+    const std::int32_t index = std::get<std::int32_t>(driver);
+    const auto line = static_cast<std::size_t>(index);
+    return index >= 0 && line < driverNames.size() ? driverNames[line] : std::u16string{};
+}
+
 std::vector<std::u16string> RacerNames(std::span<const std::u16string> driverNames,
-                                       std::span<const std::int32_t> nameIndexes) {
+                                       std::span<const DriverName> drivers) {
     std::vector<std::u16string> names;
-    names.reserve(nameIndexes.size());
-    for (const std::int32_t index : nameIndexes) {
-        const auto line = static_cast<std::size_t>(index);
-        names.push_back(index >= 0 && line < driverNames.size() ? driverNames[line]
-                                                                : std::u16string{});
+    names.reserve(drivers.size());
+    for (const DriverName& driver : drivers) {
+        names.push_back(NameOf(driverNames, driver));
     }
     return names;
 }
@@ -28,8 +36,8 @@ std::vector<std::u16string> RacerNames(std::span<const std::u16string> driverNam
 }
 
 RaceHudLayer::RaceHudLayer(render::Renderer& renderer, const assets::Vfs& vfs, std::size_t players,
-                           std::vector<std::int32_t> nameIndexes)
-    : renderer_(&renderer), vfs_(&vfs), players_(players), nameIndexes_(std::move(nameIndexes)) {}
+                           std::vector<DriverName> drivers)
+    : renderer_(&renderer), vfs_(&vfs), players_(players), drivers_(std::move(drivers)) {}
 
 void RaceHudLayer::SetLanguage(std::string_view language) {
     if (language == language_) {
@@ -63,7 +71,7 @@ void RaceHudLayer::SetLanguage(std::string_view language, UiFonts fonts) {
         }
         images_ = std::move(*images);
     }
-    names_ = RacerNames(text->driverNames, nameIndexes_);
+    names_ = RacerNames(text->driverNames, drivers_);
     for (std::size_t player = 0; player < players_; ++player) {
         huds_.emplace_back(text->strings, *found, PlacementFor(player, players_));
     }

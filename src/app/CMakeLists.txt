@@ -118,12 +118,15 @@ rr_add_module(app
         racer/car_particles.cpp
         racer/car_shadows.cpp
         racer/body_lean.cpp
+        racer/built_racer.cpp
         racer/car_look.cpp
         racer/racer_assets.cpp
         racer/racer_bounds.cpp
         racer/racer_draws.cpp
         racer/racer_fx.cpp
         racer/racer_grid.cpp
+        racer/racer_lookup.cpp
+        racer/racer_models.cpp
         racer/posed_draws.cpp
         racer/racer_visuals.cpp
         racer/skid_marks.cpp

@@ -28,6 +28,8 @@ public:
     /// Matches `code` in any case. Fails when the driver, its champion or its chassis is missing.
     [[nodiscard]] Result<RacerFiles> Find(std::string_view code) const;
 
+    [[nodiscard]] Result<ChassisEntry> FindChassis(std::string_view name) const;
+
 private:
     std::vector<DriverEntry> drivers_;
     std::vector<ChampionEntry> champions_;

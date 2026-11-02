@@ -15,6 +15,7 @@ namespace {
 
 constexpr std::int32_t kFirstCircuitVoice = 1100;
 constexpr std::int32_t kLinesPerDriver = 12;
+constexpr std::int32_t kBuiltVoicePerSlot = 100;
 constexpr std::size_t kCircuitDrivers = 6;
 constexpr std::uint32_t kLinesPerMood = 6;
 constexpr Milliseconds kShortestQuiet{5000};
@@ -37,6 +38,10 @@ std::optional<std::string> CircuitVoicesName(const assets::Vfs& vfs, std::string
 
 std::int32_t DriverVoice(std::int32_t voiceBank) {
     return kFirstCircuitVoice + (voiceBank * kLinesPerDriver);
+}
+
+std::int32_t BuiltCarVoice(std::size_t slot) {
+    return kBuiltCarVoice + (static_cast<std::int32_t>(slot) * kBuiltVoicePerSlot);
 }
 
 std::optional<std::size_t> CircuitDriver(std::int32_t voice) {

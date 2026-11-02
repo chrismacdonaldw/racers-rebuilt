@@ -80,6 +80,18 @@ TEST_CASE("a driver whose champion is missing fails") {
     CHECK_FALSE(catalog->Find("ZZ").has_value());
 }
 
+TEST_CASE("a built racer's chassis is found by name in any case") {
+    const CatalogFixture fixture;
+    const Result<RacerCatalog> catalog = RacerCatalog::Load(fixture.Files());
+    REQUIRE(catalog.has_value());
+
+    const Result<ChassisEntry> chassis = catalog->FindChassis("RRCHAS0");
+
+    REQUIRE(chassis.has_value());
+    CHECK(chassis->shadowTexture == "shadow");
+    CHECK_FALSE(catalog->FindChassis("dachas0").has_value());
+}
+
 TEST_CASE("every retail driver leads to a champion and a chassis") {
     const std::optional<Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {

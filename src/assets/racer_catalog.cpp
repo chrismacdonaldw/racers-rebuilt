@@ -60,12 +60,16 @@ Result<RacerFiles> RacerCatalog::Find(std::string_view code) const {
         })
         .and_then([&](ChampionEntry champion) {
             files.champion = std::move(champion);
-            return FindNamed(chassis_, files.champion.chassis, "CHASSIS.CMB");
+            return FindChassis(files.champion.chassis);
         })
         .transform([&](ChassisEntry chassis) {
             files.chassis = std::move(chassis);
             return std::move(files);
         });
+}
+
+Result<ChassisEntry> RacerCatalog::FindChassis(std::string_view name) const {
+    return FindNamed(chassis_, name, "CHASSIS.CMB");
 }
 
 }

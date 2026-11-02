@@ -1,0 +1,39 @@
+#pragma once
+
+#include "assets/car_data.hpp"
+#include "assets/driver_look.hpp"
+#include "assets/driver_model.hpp"
+#include "assets/driver_parts.hpp"
+#include "assets/geometry_asset.hpp"
+#include "assets/material_library.hpp"
+#include "assets/piece_catalog.hpp"
+#include "assets/track_loader.hpp"
+#include "assets/vfs.hpp"
+#include "core/result.hpp"
+#include "sim/physics/chassis.hpp"
+
+namespace rr::app {
+
+struct BuiltCarModel {
+    assets::GeometryAsset geometry;
+    sim::CarBuild build;
+};
+
+/// Its materials are the pieces' own `MDB`, `LPIECELO` for races and `LPIECEHI` for menus.
+[[nodiscard]] Result<BuiltCarModel> BuildCarModel(const assets::Vfs& vfs,
+                                                  const assets::CarData& car,
+                                                  assets::PieceDetail detail);
+
+[[nodiscard]] Result<assets::DriverPartCatalog> LoadDriverParts(const assets::Vfs& vfs);
+
+/// Menus build on `MENUPART` bodies and races on `GAMEPART`'s `leg_box`.
+[[nodiscard]] Result<assets::GeometryAsset> BuildMinifig(const assets::Vfs& vfs,
+                                                         const assets::DriverPartCatalog& parts,
+                                                         const assets::DriverLook& look,
+                                                         assets::DriverDetail detail);
+
+/// Sets ambient and diffuse to 200 grey on the look's default face, torso and legs materials.
+void GreyMinifigMaterials(assets::NameMap<assets::MaterialAsset>& materials,
+                          const assets::DriverPartCatalog& parts, const assets::DriverLook& look);
+
+}

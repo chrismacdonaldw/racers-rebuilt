@@ -2,14 +2,20 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstdint>
 #include <format>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "app/racer/built_racer.hpp"
 #include "app/racer/racer_draws.hpp"
+#include "app/racer/racer_lookup.hpp"
+#include "app/racer/racer_models.hpp"
 #include "app/racer/racer_visuals.hpp"
 #include "assets/archive_survey.hpp"
 #include "assets/game_path.hpp"
@@ -83,6 +89,89 @@ TEST_CASE("every prebuilt racer's car and driver load and pose") {
     }
 
     test::CheckSurvey(racers, 24);
+}
+
+std::vector<assets::SavedRacer> GameRacers(const assets::Vfs& vfs) {
+    std::vector<assets::SavedRacer> racers;
+    for (const char* file : {"MENUDATA/DEFAULT.LRS", "MENUDATA/QBUILD.LRS"}) {
+        const Result<std::vector<assets::SavedRacer>> saved = vfs.Read(file).and_then(
+            [](const assets::FileData& data) { return assets::ParseRacerFile(data.Bytes()); });
+        REQUIRE(saved.has_value());
+        racers.insert(racers.end(), saved->begin(), saved->end());
+    }
+    return racers;
+}
+
+TEST_CASE("every game racer's built car and minifig load and pose") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    assets::LoaderPool pool(2);
+    assets::TrackLoader loader(*vfs, pool);
+    const Result<assets::RacerCatalog> catalog = assets::RacerCatalog::Load(*vfs);
+    REQUIRE(catalog.has_value());
+
+    test::Survey racers;
+    for (const assets::SavedRacer& racer : GameRacers(*vfs)) {
+        ++racers.fileCount;
+        const Result<void> posed =
+            LoadBuiltRacer(*vfs, loader, *catalog, RacerFromSave(racer))
+                .and_then([](const RacerAssets& built) { return PoseOnce(built); });
+        if (!posed) {
+            racers.failures.push_back(posed.error().message);
+        }
+    }
+
+    test::CheckSurvey(racers, 28);
+}
+
+Result<RacerAssets> LoadJoanOfKart(const assets::Vfs& vfs, assets::TrackLoader& loader) {
+    const Result<assets::RacerCatalog> catalog = assets::RacerCatalog::Load(vfs);
+    return catalog
+        .and_then([&](const assets::RacerCatalog&) { return FindGameRacer(vfs, "JOAN OF KART"); })
+        .and_then([&](const settings::Racer& racer) {
+            return LoadBuiltRacer(vfs, loader, *catalog, racer);
+        });
+}
+
+const assets::MaterialAsset& DefaultFace(const RacerAssets& racer) {
+    const assets::GeometryAsset& driver =
+        *racer.models.models.at(assets::ToUpperAscii(racer.files.driver.model.geometry));
+    const auto face = std::ranges::find_if(
+        driver.materials, [](const std::string& material) { return material.ends_with("dflt"); });
+    REQUIRE(face != driver.materials.end());
+    return racer.models.materials.at(assets::ToUpperAscii(*face));
+}
+
+TEST_CASE("a built racer weighs its bricks and its minifig's parts are grey") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    assets::LoaderPool pool(2);
+    assets::TrackLoader loader(*vfs, pool);
+    const Result<RacerAssets> joan = LoadJoanOfKart(*vfs, loader);
+    REQUIRE(joan.has_value());
+
+    CHECK(joan->build.value_or(sim::CarBuild{}).highPieceCount == 214);
+    CHECK(joan->files.champion.mass == doctest::Approx(joan->files.chassis.baseMass + 214.0F));
+    const assets::MaterialAsset& face = DefaultFace(*joan);
+    CHECK(std::array{face.ambient[0], face.diffuse[2]} == std::array<std::uint8_t, 2>{200, 200});
+}
+
+TEST_CASE("a game racer's car and minifig also build at menu detail") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const Result<settings::Racer> joan = FindGameRacer(*vfs, "JOAN OF KART");
+    const Result<assets::DriverPartCatalog> parts = LoadDriverParts(*vfs);
+    REQUIRE(joan.has_value());
+    REQUIRE(parts.has_value());
+
+    CHECK(BuildMinifig(*vfs, *parts, joan->look, assets::DriverDetail::Menu).has_value());
+    CHECK(BuildCarModel(*vfs, joan->car, assets::PieceDetail::Menu).has_value());
 }
 
 }

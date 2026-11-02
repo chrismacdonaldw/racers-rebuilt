@@ -1,17 +1,24 @@
 #pragma once
 
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <string_view>
 
 #include "core/result.hpp"
+#include "settings/racers.hpp"
 #include "sim/race/circuit_run.hpp"
 #include "sim/race/race_setup.hpp"
 #include "sim/race/respawn.hpp"
 
 namespace rr::app {
 
+inline constexpr int kDefaultLapCount = 3;
+inline constexpr std::size_t kDefaultOpponentCount = 5;
+
 /// Players drive grid slots `racer` then `secondRacer`, two alone. Empty `circuit` means home.
+/// `playerRacer` replaces the first player's driver and car, and isn't part of the name.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 struct RaceSceneSetup {
     std::string track;
     std::string circuit;
@@ -21,10 +28,11 @@ struct RaceSceneSetup {
     bool isMirrored = false;
     std::size_t players = 1;
     std::size_t secondRacer = 1;
-    int lapCount = 3;
-    std::size_t opponents = 5;
+    int lapCount = kDefaultLapCount;
+    std::size_t opponents = kDefaultOpponentCount;
     bool isTimeTrial = false;
     std::size_t firstSlot = 0;
+    std::optional<settings::Racer> playerRacer;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
 };

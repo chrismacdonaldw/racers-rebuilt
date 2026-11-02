@@ -4,14 +4,6 @@
 #include "app/track_viewer_scene.hpp"
 
 namespace rr::app {
-namespace {
-
-template <typename T>
-std::unique_ptr<Scene> ToScene(std::unique_ptr<T> scene) {
-    return scene;
-}
-
-}
 
 Result<std::unique_ptr<Scene>> CreateViewerScene(render::Renderer& renderer, const assets::Vfs& vfs,
                                                  assets::TrackLoader& loader,
