@@ -1,5 +1,6 @@
 #include "app/race_scene_name.hpp"
 
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <format>
@@ -26,6 +27,8 @@ constexpr std::string_view kSecondRacerKey = "racer2";
 constexpr std::string_view kLapsKey = "laps";
 constexpr int kDefaultLaps = RaceSceneSetup{}.lapCount;
 constexpr int kMaxLaps = 9;
+constexpr std::string_view kOpponentsKey = "opponents";
+constexpr std::size_t kDefaultOpponents = RaceSceneSetup{}.opponents;
 constexpr std::string_view kRaceKey = "race";
 constexpr std::string_view kPointsKey = "points";
 constexpr std::string_view kRespawnOff = "off";
@@ -99,6 +102,10 @@ bool ReadRaceField(Field field, RaceSceneSetup& setup) {
     if (field.key == kLapsKey) {
         setup.lapCount = ParseNumber<int>(field.value).value_or(0);
         return setup.lapCount >= 1 && setup.lapCount <= kMaxLaps;
+    }
+    if (field.key == kOpponentsKey) {
+        setup.opponents = ParseNumber<std::size_t>(field.value).value_or(assets::kGridSlots);
+        return setup.opponents < assets::kGridSlots;
     }
     return false;
 }
@@ -187,7 +194,17 @@ std::string RaceSceneName(const RaceSceneSetup& setup) {
     if (setup.lapCount != kDefaultLaps) {
         name += std::format(":{}={}", kLapsKey, setup.lapCount);
     }
+    if (setup.opponents != kDefaultOpponents) {
+        name += std::format(":{}={}", kOpponentsKey, setup.opponents);
+    }
     return name + AiField(setup);
+}
+
+std::size_t RacerCount(const RaceSceneSetup& setup, std::size_t gridSize) {
+    if (setup.players > 1) {
+        return setup.players;
+    }
+    return std::min(gridSize, setup.players + setup.opponents);
 }
 
 bool IsRaceScene(std::string_view scene) {

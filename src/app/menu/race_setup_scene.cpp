@@ -120,6 +120,9 @@ Result<std::unique_ptr<RaceSetupScene>> RaceSetupScene::Create(
 
 void RaceSetupScene::ApplySettings(const settings::Registry& settings) {
     rules_ = {.respawn = RespawnRuleFrom(settings), .aiDriving = AiDrivingFrom(settings)};
+    if (mode_ == RaceSetupMode::SingleRace) {
+        rules_.opponents = static_cast<std::size_t>(settings.Get(kOpponents));
+    }
     if (mode_ == RaceSetupMode::Versus) {
         rules_.lapCount = settings.Get(kVersusLaps);
     }

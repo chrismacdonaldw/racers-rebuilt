@@ -37,10 +37,6 @@ constexpr std::uint64_t kHashPrime = 1099511628211ULL;
 constexpr Milliseconds kCircuitResultsTime{5000};
 constexpr std::size_t kChampionSlot = 1;
 
-std::size_t SlotCount(const RaceSceneSetup& setup, std::size_t gridSize) {
-    return setup.players > 1 ? setup.players : gridSize;
-}
-
 sim::RaceSetup GridSetup(const RaceSceneSetup& scene, const RacerGrid& racers, std::uint64_t seed,
                          std::size_t slots) {
     sim::RaceSetup setup{.track = scene.track,
@@ -146,7 +142,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     Result<sim::RaceTrack> loaded = model.and_then(
         [&](const TrackModel&) { return sim::LoadRaceTrack(vfs, track, setup.isMirrored); });
     Result<RacerGrid> racers = loaded.and_then([&](const sim::RaceTrack& race) {
-        return RacerGrid::Load(renderer, vfs, loader, setup, SlotCount(setup, race.grid.size()));
+        return RacerGrid::Load(renderer, vfs, loader, setup, RacerCount(setup, race.grid.size()));
     });
     Result<BrickModels> bricks =
         racers.and_then([&](const RacerGrid&) { return BrickModels::Load(renderer, loader); });

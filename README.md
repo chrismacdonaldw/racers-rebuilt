@@ -134,6 +134,8 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `enhancements.free_camera_speed` | `40.0` | `1.0` to `400.0` |
 | `race.respawn` | `true` | `true`, `false`. Puts a racer back on the track after it falls off or stays in the air too long. Applies from the next race. |
 | `race.respawn_seconds` | `3` | `1` to `30`. Seconds in the air before a respawn. Applies from the next race. |
+| `race.opponents` | `5` | `0` to `5`. Computer racers in a single race, from the options screen. Applies from the next race. |
+| `race.versus_laps` | `3` | `1` to `5`. Laps in a versus race, from the options screen. |
 | `mods.<id>.enabled` | The mod's `enabled` value | `true`, `false` |
 | `input.keys.<action>` | See below | Comma-separated SDL key names, such as `Up,W` or `Left Shift` |
 | `input.buttons.<action>` | See below | Comma-separated SDL gamepad names: buttons such as `a` or `dpleft`, or `lefttrigger` and `righttrigger` |

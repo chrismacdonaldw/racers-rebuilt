@@ -22,9 +22,13 @@ struct RaceSceneSetup {
     std::size_t players = 1;
     std::size_t secondRacer = 1;
     int lapCount = 3;
+    std::size_t opponents = 5;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
 };
+
+/// A lone player races `opponents` computer racers, and two players race alone.
+[[nodiscard]] std::size_t RacerCount(const RaceSceneSetup& setup, std::size_t gridSize);
 
 /// Such as `race:RACEC0R0:respawn=3000:racer=2`, leaving out fields still at their defaults.
 [[nodiscard]] std::string RaceSceneName(const RaceSceneSetup& setup);
