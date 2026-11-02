@@ -9,6 +9,7 @@ rr_add_module(assets
         chassis_database.cpp
         checkpoints.cpp
         collision_mesh.cpp
+        cutscene_timeline.cpp
         driver_database.cpp
         driver_model.cpp
         driver_parts.cpp
