@@ -66,6 +66,7 @@ add_executable(racers-rebuilt-tests
     app/racer/skid_trail_test.cpp
     app/racer_determinism_test.cpp
     app/replay_session_test.cpp
+    app/save_import_test.cpp
     app/scene_stack_test.cpp
     app/sound_banks_test.cpp
     app/startup_settings_test.cpp
@@ -105,6 +106,7 @@ add_executable(racers-rebuilt-tests
     assets/menu_layout_test.cpp
     assets/menu_styles_test.cpp
     assets/mirror_test.cpp
+    assets/original_save_test.cpp
     assets/model_survey_test.cpp
     assets/race_catalog_test.cpp
     assets/race_list_test.cpp

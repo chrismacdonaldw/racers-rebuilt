@@ -7,8 +7,10 @@
 #include <vector>
 
 #include "app/application.hpp"
+#include "app/circuit_awards.hpp"
 #include "app/game_boot.hpp"
 #include "app/image_dump.hpp"
+#include "app/save_import.hpp"
 #include "core/result.hpp"
 #include "core/utf8_path.hpp"
 #include "platform/fatal_error.hpp"
@@ -19,6 +21,14 @@ rr::Result<void> Run(std::span<const std::string_view> args) {
     rr::Result<rr::app::GameBoot> boot = rr::app::BootGame(args);
     if (!boot) {
         return std::unexpected(std::move(boot.error()));
+    }
+    if (boot->commandLine.importSaveFile) {
+        const rr::Result<bool> imported = rr::app::ImportOriginalSave(
+            rr::PathFromUtf8(*boot->commandLine.importSaveFile),
+            boot->settingsFile.parent_path() / rr::app::kProgressFileName, boot->vfs);
+        if (!imported) {
+            return std::unexpected(imported.error());
+        }
     }
     if (boot->commandLine.imageDumpFolder) {
         return rr::app::DumpImages(boot->vfs, rr::PathFromUtf8(*boot->commandLine.imageDumpFolder));

@@ -1,0 +1,126 @@
+#include "assets/original_save.hpp"
+
+#include <format>
+#include <numeric>
+#include <utility>
+
+namespace rr::assets {
+namespace {
+
+constexpr std::size_t kBlockSize = 128;
+constexpr std::size_t kBlockData = kBlockSize - 1;
+constexpr std::size_t kHeaderBlocks = 9;
+constexpr std::size_t kRecordBlocks = 5;
+constexpr std::size_t kRecordCountOffset = 0x002;
+constexpr std::size_t kFirstRecordOffset = 0x003;
+constexpr std::size_t kPartSetsOffset = 0x005;
+constexpr std::size_t kCircuitsOffset = 0x006;
+constexpr std::size_t kBeatenRecordsOffset = 0x007;
+constexpr std::size_t kScoresOffset = 0x009;
+constexpr std::size_t kScoreSize = 0x40;
+constexpr std::size_t kRaceTimeOffset = 0x20;
+constexpr std::size_t kHolderUnits = 14;
+constexpr std::size_t kTrophyOffset = 0x22B;
+constexpr std::uint16_t kMagic = 0x524C;
+
+unsigned ByteAt(std::span<const std::byte> data, std::size_t offset) {
+    return std::to_integer<unsigned>(data[offset]);
+}
+
+std::uint16_t U16At(std::span<const std::byte> data, std::size_t offset) {
+    return static_cast<std::uint16_t>(ByteAt(data, offset) | (ByteAt(data, offset + 1) << 8U));
+}
+
+std::uint32_t U32At(std::span<const std::byte> data, std::size_t offset) {
+    return U16At(data, offset) | (static_cast<std::uint32_t>(U16At(data, offset + 2)) << 16U);
+}
+
+SavedTime TimeAt(std::span<const std::byte> data, std::size_t offset) {
+    SavedTime time{.ms = U32At(data, offset)};
+    for (std::size_t unit = 0; unit < kHolderUnits; ++unit) {
+        const std::uint16_t letter = U16At(data, offset + 4 + (unit * 2));
+        if (letter == 0) {
+            break;
+        }
+        time.holder.push_back(static_cast<char16_t>(letter));
+    }
+    return time;
+}
+
+Result<std::vector<std::byte>> BlockData(std::span<const std::byte> file, std::size_t first,
+                                         std::size_t count) {
+    if ((first + count) * kBlockSize > file.size()) {
+        return Fail(ErrorCode::InvalidData,
+                    std::format("the save ends before block {}", first + count - 1));
+    }
+    std::vector<std::byte> data;
+    data.reserve(count * kBlockData);
+    for (std::size_t block = first; block < first + count; ++block) {
+        const std::span<const std::byte> bytes = file.subspan(block * kBlockSize, kBlockSize);
+        const unsigned sum = std::accumulate(bytes.begin(), bytes.end() - 1, 0U,
+                                             [](unsigned total, std::byte value) {
+                                                 return total + std::to_integer<unsigned>(value);
+                                             });
+        if ((sum & 0xFFU) != ByteAt(bytes, kBlockData)) {
+            return Fail(ErrorCode::InvalidData,
+                        std::format("save block {} fails its checksum", block));
+        }
+        data.insert(data.end(), bytes.begin(), bytes.end() - 1);
+    }
+    return data;
+}
+
+Result<std::vector<std::uint16_t>> DriverTrophies(std::span<const std::byte> file,
+                                                  std::size_t count, std::size_t firstOffset) {
+    if (firstOffset % kBlockSize != 0) {
+        return Fail(ErrorCode::InvalidData,
+                    std::format("the first save record at {} isn't on a block", firstOffset));
+    }
+    std::vector<std::uint16_t> trophies;
+    trophies.reserve(count);
+    for (std::size_t record = 0; record < count; ++record) {
+        const Result<std::vector<std::byte>> data =
+            BlockData(file, (firstOffset / kBlockSize) + (record * kRecordBlocks), kRecordBlocks);
+        if (!data) {
+            return std::unexpected(data.error());
+        }
+        trophies.push_back(U16At(*data, kTrophyOffset));
+    }
+    return trophies;
+}
+
+}
+
+Result<OriginalSave> ParseOriginalSave(std::span<const std::byte> bytes) {
+    if (bytes.size() % kBlockSize != 0) {
+        return Fail(
+            ErrorCode::InvalidData,
+            std::format("a save is whole {}-byte blocks, not {} bytes", kBlockSize, bytes.size()));
+    }
+    const Result<std::vector<std::byte>> header = BlockData(bytes, 0, kHeaderBlocks);
+    if (!header) {
+        return std::unexpected(header.error());
+    }
+    if (U16At(*header, 0) != kMagic) {
+        return Fail(ErrorCode::InvalidData, "the save doesn't start with LR");
+    }
+    Result<std::vector<std::uint16_t>> trophies = DriverTrophies(
+        bytes, ByteAt(*header, kRecordCountOffset), U16At(*header, kFirstRecordOffset));
+    if (!trophies) {
+        return std::unexpected(std::move(trophies.error()));
+    }
+    OriginalSave save{.partSets = static_cast<std::uint8_t>(ByteAt(*header, kPartSetsOffset)),
+                      .circuits = static_cast<std::uint8_t>(ByteAt(*header, kCircuitsOffset)),
+                      .beatenRecords = U16At(*header, kBeatenRecordsOffset),
+                      .bestLaps = {},
+                      .bestRaces = {},
+                      .driverTrophies = std::move(*trophies)};
+    for (std::size_t race = 0; race < kSavedRaces; ++race) {
+        const std::size_t score = kScoresOffset + (race * kScoreSize);
+        save.bestLaps.at(race) = TimeAt(*header, score);
+        save.bestRaces.at(race) = TimeAt(*header, score + kRaceTimeOffset);
+    }
+    return save;
+}
+
+}
