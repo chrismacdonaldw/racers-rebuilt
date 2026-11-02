@@ -66,7 +66,7 @@ std::string CircuitLeg::Next(const sim::CircuitRun& run) const {
         return CircuitSceneName({.race = rules_, .standing = run.Standing()});
     }
     if (run.Award()) {
-        return AwardSceneName(*run.Award());
+        return AwardSceneName({.circuit = rules_.circuit, .award = *run.Award()});
     }
     return std::string(kMainMenuScene);
 }

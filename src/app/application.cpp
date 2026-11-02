@@ -14,6 +14,7 @@
 
 #include "app/audio_settings.hpp"
 #include "app/audio_startup.hpp"
+#include "app/circuit_awards.hpp"
 #include "app/circuit_leg.hpp"
 #include "app/extensions.hpp"
 #include "app/gameplay_fingerprint.hpp"
@@ -302,12 +303,18 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std:
     if (*scene == kSingleRaceScene || *scene == kCircuitRaceScene) {
         const RaceSetupMode mode =
             *scene == kCircuitRaceScene ? RaceSetupMode::Circuit : RaceSetupMode::SingleRace;
-        return RaceSetupScene::Create(renderer_, vfs_, mode).transform(ToScene<RaceSetupScene>);
+        return RaceSetupScene::Create(renderer_, vfs_, mode, UnlockedCircuits(ProgressFile()))
+            .transform(ToScene<RaceSetupScene>);
     }
     if (IsAwardScene(*scene)) {
         return ParseAwardScene(*scene)
-            .and_then(
-                [&](sim::CircuitAward award) { return AwardScene::Create(renderer_, vfs_, award); })
+            .and_then([&](const AwardSceneSetup& award) {
+                const Result<void> saved = SaveAward(ProgressFile(), vfs_, award);
+                if (!saved) {
+                    log::Warn("{}, progress wasn't saved", saved.error().message);
+                }
+                return AwardScene::Create(renderer_, vfs_, award.award);
+            })
             .transform(ToScene<AwardScene>);
     }
     const Nanoseconds started = platform::Now();
@@ -345,6 +352,10 @@ Result<std::unique_ptr<Scene>> Application::CreateCircuitRace(std::string_view s
     }
     (*race)->JoinCircuit(std::move(*leg));
     return ToScene<RaceScene>(std::move(*race));
+}
+
+std::filesystem::path Application::ProgressFile() const {
+    return settingsFile_.parent_path() / kProgressFileName;
 }
 
 Result<std::unique_ptr<Scene>> Application::CreateRace(const std::string& track) {

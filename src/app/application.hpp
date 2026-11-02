@@ -64,6 +64,7 @@ private:
                                                                    assets::TrackLoader& loader,
                                                                    Nanoseconds started);
     [[nodiscard]] Result<std::unique_ptr<Scene>> CreateRace(const std::string& track);
+    [[nodiscard]] std::filesystem::path ProgressFile() const;
     [[nodiscard]] Result<void> OpenScene(const std::optional<std::string>& scene);
     [[nodiscard]] Result<void> SwitchScene(const SceneFactory& create);
     [[nodiscard]] std::vector<overlay::SceneChoice> SceneChoices();

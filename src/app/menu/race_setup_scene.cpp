@@ -23,7 +23,6 @@ constexpr std::size_t kHostingLine = 0x4A;
 constexpr std::size_t kCircuitNumberLine = 0x4B;
 constexpr std::size_t kFirstChampionLine = 0x4C;
 constexpr std::size_t kFirstNumberLine = 0x61;
-constexpr std::uint32_t kEveryCircuit = ~0U;
 constexpr std::size_t kDisabledState = 0;
 constexpr std::size_t kDisabledFocusedState = 1;
 constexpr float kLeft = 3.0F;
@@ -64,22 +63,23 @@ std::vector<std::vector<std::u16string>> RacerNames(const std::vector<CourseChoi
     return racerNames;
 }
 
-Result<std::vector<CourseChoice>> LoadCourses(const assets::Vfs& vfs, RaceSetupMode mode) {
-    return mode == RaceSetupMode::Circuit ? LoadCircuitChoices(vfs, kEveryCircuit)
+Result<std::vector<CourseChoice>> LoadCourses(const assets::Vfs& vfs, RaceSetupMode mode,
+                                              const std::set<std::string>& unlockedCircuits) {
+    return mode == RaceSetupMode::Circuit ? LoadCircuitChoices(vfs, unlockedCircuits)
                                           : LoadTrackChoices(vfs);
 }
 
 }
 
-Result<std::unique_ptr<RaceSetupScene>> RaceSetupScene::Create(render::Renderer& renderer,
-                                                               const assets::Vfs& vfs,
-                                                               RaceSetupMode mode) {
+Result<std::unique_ptr<RaceSetupScene>> RaceSetupScene::Create(
+    render::Renderer& renderer, const assets::Vfs& vfs, RaceSetupMode mode,
+    const std::set<std::string>& unlockedCircuits) {
     Result<MenuFiles> files = ReadMenuFiles(vfs, kScreen);
     Result<MenuPage> page = files.and_then([&](const MenuFiles& read) {
         return BuildMenuPage(renderer, vfs, read, std::span<const ButtonLine>{});
     });
     Result<std::vector<CourseChoice>> courses =
-        page.and_then([&](const MenuPage&) { return LoadCourses(vfs, mode); });
+        page.and_then([&](const MenuPage&) { return LoadCourses(vfs, mode, unlockedCircuits); });
     if (!courses) {
         return std::unexpected(std::move(courses.error()));
     }

@@ -106,7 +106,7 @@ Result<std::vector<CourseChoice>> LoadTrackChoices(const assets::Vfs& vfs) {
 }
 
 Result<std::vector<CourseChoice>> LoadCircuitChoices(const assets::Vfs& vfs,
-                                                     std::uint32_t unlocked) {
+                                                     const std::set<std::string>& unlocked) {
     Result<Catalogs> catalogs = LoadCatalogs(vfs);
     if (!catalogs) {
         return std::unexpected(std::move(catalogs.error()));
@@ -115,7 +115,7 @@ Result<std::vector<CourseChoice>> LoadCircuitChoices(const assets::Vfs& vfs,
     for (std::size_t circuit = 0; circuit < catalogs->races.Circuits().size(); ++circuit) {
         if (IsRacedUnmirrored(catalogs->races, circuit)) {
             CourseChoice& choice = choices.emplace_back(CircuitChoice(*catalogs, circuit));
-            choice.isLocked = circuit != 0 && ((unlocked >> circuit) & 1U) == 0;
+            choice.isLocked = circuit != 0 && !unlocked.contains(choice.circuit);
         }
     }
     if (choices.empty()) {

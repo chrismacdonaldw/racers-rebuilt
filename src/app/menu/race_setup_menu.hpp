@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -33,9 +34,9 @@ struct CourseChoice {
 /// Unmirrored circuit races in circuit order, each with its circuit's grid.
 [[nodiscard]] Result<std::vector<CourseChoice>> LoadTrackChoices(const assets::Vfs& vfs);
 
-/// Leaves out mirrored circuits. Bit `n` of `unlocked` opens circuit `n`; the first always is.
-[[nodiscard]] Result<std::vector<CourseChoice>> LoadCircuitChoices(const assets::Vfs& vfs,
-                                                                   std::uint32_t unlocked);
+/// Leaves out mirrored circuits. The first circuit is open even when `unlocked` doesn't name it.
+[[nodiscard]] Result<std::vector<CourseChoice>> LoadCircuitChoices(
+    const assets::Vfs& vfs, const std::set<std::string>& unlocked);
 
 [[nodiscard]] Result<std::vector<std::u16string>> ReadRaceNames(const assets::Vfs& vfs,
                                                                 std::string_view language);

@@ -23,6 +23,7 @@ add_executable(racers-rebuilt-tests
     app/hud/race_results_test.cpp
     app/hud/race_time_text_test.cpp
     app/hud/text_pool_test.cpp
+    app/circuit_awards_test.cpp
     app/circuit_leg_test.cpp
     app/free_camera_test.cpp
     app/input_bindings_test.cpp
@@ -157,6 +158,7 @@ add_executable(racers-rebuilt-tests
     render/sprite_batch_test.cpp
     render/ui_layout_test.cpp
     settings/command_line_test.cpp
+    settings/progress_test.cpp
     settings/registry_test.cpp
     settings/settings_file_test.cpp
     sim/ai/ai_grid_test.cpp

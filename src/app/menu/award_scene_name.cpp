@@ -21,24 +21,26 @@ constexpr std::array kAwardNames{AwardName{.award = sim::CircuitAward::Gold, .na
 
 }
 
-std::string AwardSceneName(sim::CircuitAward award) {
-    return std::format("{}{}", kAwardPrefix,
-                       std::ranges::find(kAwardNames, award, &AwardName::award)->name);
+std::string AwardSceneName(const AwardSceneSetup& setup) {
+    return std::format("{}{}:{}", kAwardPrefix, setup.circuit,
+                       std::ranges::find(kAwardNames, setup.award, &AwardName::award)->name);
 }
 
 bool IsAwardScene(std::string_view scene) {
     return scene.starts_with(kAwardPrefix);
 }
 
-Result<sim::CircuitAward> ParseAwardScene(std::string_view scene) {
+Result<AwardSceneSetup> ParseAwardScene(std::string_view scene) {
+    const std::string_view rest = IsAwardScene(scene) ? scene.substr(kAwardPrefix.size()) : "";
+    const std::size_t colon = rest.find(':');
     const auto found =
-        IsAwardScene(scene)
-            ? std::ranges::find(kAwardNames, scene.substr(kAwardPrefix.size()), &AwardName::name)
+        colon != 0 && colon != std::string_view::npos
+            ? std::ranges::find(kAwardNames, rest.substr(colon + 1), &AwardName::name)
             : kAwardNames.end();
     if (found == kAwardNames.end()) {
         return Fail(ErrorCode::InvalidData, std::format("'{}' isn't an award scene", scene));
     }
-    return found->award;
+    return AwardSceneSetup{.circuit = std::string(rest.substr(0, colon)), .award = found->award};
 }
 
 }

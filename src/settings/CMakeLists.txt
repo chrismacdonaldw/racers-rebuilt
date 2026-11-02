@@ -2,7 +2,9 @@ rr_add_module(settings
     SOURCES
         command_line.cpp
         registry.cpp
+        progress.cpp
         settings_file.cpp
+        toml_file.cpp
     DEPENDS
         rr::core
 )
