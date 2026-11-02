@@ -231,8 +231,18 @@ Invoke-Step 'No banned terms in tree, history or branch' {
 
 Invoke-Step 'clang-format' {
     $clangFormat = Find-Tool 'clang-format'
-    if ($clangFormat) {
-        & $clangFormat --dry-run --Werror (Get-TrackedFiles @('*.cpp', '*.hpp'))
+    if (-not $clangFormat) {
+        return
+    }
+    $files = Get-TrackedFiles @('*.cpp', '*.hpp')
+    for ($first = 0; $first -lt $files.Count -and $LASTEXITCODE -eq 0; $first += 100) {
+        $batch = $files[$first..([Math]::Min($first + 100, $files.Count) - 1)]
+        try {
+            & $clangFormat --dry-run --Werror $batch
+        }
+        catch {
+            Fail "clang-format could not run: $_"
+        }
     }
 }
 
