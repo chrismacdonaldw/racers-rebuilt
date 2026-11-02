@@ -57,7 +57,7 @@ float Height(const UiImage& image) {
 }
 
 void LayoutPowerupPanel(const sim::RacerSnapshot& racer, std::span<const UiImage> images,
-                        std::vector<render::SpriteDraw>& out) {
+                        std::vector<render::SpriteDraw>& out, float bottom) {
     const std::size_t level = racer.whiteCount;
     if ((!racer.heldColour && level == 0) || images.size() < kImageCount) {
         return;
@@ -65,7 +65,7 @@ void LayoutPowerupPanel(const sim::RacerSnapshot& racer, std::span<const UiImage
     const ColourLook look = LookOf(racer.heldColour);
     const UiImage& holder = images[kHolder];
     const render::Rect panel{.x = kLeft,
-                             .y = render::kUiHeight - (Height(holder) + kBottomMargin),
+                             .y = bottom - (Height(holder) + kBottomMargin),
                              .width = Width(holder),
                              .height = Height(holder)};
     out.push_back({.texture = holder.texture, .bounds = panel, .tint = kWhite});

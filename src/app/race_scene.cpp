@@ -192,7 +192,7 @@ RaceScene::RaceScene(Parts parts)
       powerupVisuals_(parts_.powerups.models),
       powerupQuads_(PlayerPowerupQuads(parts_.powerups.quadMaterials, parts_.setup.players)),
       cameras_(parts_.session, parts_.setup.players),
-      hud_(*parts_.renderer, *parts_.vfs, kPlayerSlot,
+      hud_(*parts_.renderer, *parts_.vfs, parts_.setup.players,
            PerSlot(parts_.racers, parts_.session.Racers().size(), &RacerGrid::NameIndex)),
       controls_(parts_.session.Racers().size()),
       collisionLines_(BuildCollisionWireframe(parts_.raceTrack->collision)),
@@ -371,11 +371,16 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     for (std::size_t player = 0; player < cameras_.Count(); ++player) {
         views_.push_back(PlayerView(interpolated, player, elapsedMs));
     }
-    const sim::EffectSnapshot* start =
-        FindWarp(interpolated.effects, kPlayerSlot, sim::WarpPhase::Starting);
-    views_.front().sprites =
-        hud_.Draw(parts_.session, interpolated.racers[kPlayerSlot],
-                  start != nullptr ? WarpFlash(start->phaseLeftMs) : std::nullopt, PauseShown());
+    std::array<std::optional<render::SpriteDraw>, sim::kMaxPlayers> flashes{};
+    for (std::size_t player = 0; player < cameras_.Count(); ++player) {
+        const sim::EffectSnapshot* start =
+            FindWarp(interpolated.effects, kPlayerSlot + player, sim::WarpPhase::Starting);
+        if (start != nullptr) {
+            flashes.at(player) = WarpFlash(start->phaseLeftMs);
+        }
+    }
+    views_.front().sprites = hud_.Draw(parts_.session, interpolated.racers,
+                                       std::span(flashes).first(cameras_.Count()), PauseShown());
     Result<void> drawn = parts_.renderer->Draw(views_);
     if (!drawn) {
         log::Error("{}", drawn.error().message);

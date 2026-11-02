@@ -26,16 +26,16 @@ std::vector<std::u16string> RacerNames(std::span<const std::u16string> driverNam
 
 }
 
-RaceHudLayer::RaceHudLayer(render::Renderer& renderer, const assets::Vfs& vfs, std::size_t racer,
+RaceHudLayer::RaceHudLayer(render::Renderer& renderer, const assets::Vfs& vfs, std::size_t players,
                            std::vector<std::int32_t> nameIndexes)
-    : renderer_(&renderer), vfs_(&vfs), racer_(racer), nameIndexes_(std::move(nameIndexes)) {}
+    : renderer_(&renderer), vfs_(&vfs), players_(players), nameIndexes_(std::move(nameIndexes)) {}
 
 void RaceHudLayer::SetLanguage(std::string_view language) {
     if (language == language_) {
         return;
     }
     language_ = language;
-    hud_.reset();
+    huds_.clear();
     Result<HudFonts> found = LoadUiFonts(*renderer_, *vfs_, HudFolder(language_), kHudFontList)
                                  .and_then([&](UiFonts loaded) {
                                      fonts_ = std::move(loaded);
@@ -55,7 +55,9 @@ void RaceHudLayer::SetLanguage(std::string_view language) {
         images_ = std::move(*images);
     }
     names_ = RacerNames(text->driverNames, nameIndexes_);
-    hud_.emplace(std::move(text->strings), *found);
+    for (std::size_t player = 0; player < players_; ++player) {
+        huds_.emplace_back(text->strings, *found, PlacementFor(player, players_));
+    }
 }
 
 void RaceHudLayer::SetCircuitPoints(std::span<const std::int32_t> before) {
@@ -63,35 +65,50 @@ void RaceHudLayer::SetCircuitPoints(std::span<const std::int32_t> before) {
 }
 
 void RaceHudLayer::Tick(const sim::RaceSession& session, Milliseconds elapsed) {
-    if (hud_) {
-        hud_->Tick(session.Clock(), session.Progress(), racer_, elapsed);
+    for (std::size_t player = 0; player < huds_.size(); ++player) {
+        huds_[player].Tick(session.Clock(), session.Progress(), player, elapsed);
     }
 }
 
 void RaceHudLayer::TickPause(Milliseconds elapsed) {
-    if (hud_) {
-        hud_->TickPause(elapsed);
+    for (RaceHud& hud : huds_) {
+        hud.TickPause(elapsed);
     }
 }
 
-std::span<const render::SpriteDraw> RaceHudLayer::Draw(const sim::RaceSession& session,
-                                                       const sim::RacerSnapshot& racer,
-                                                       std::optional<render::SpriteDraw> cover,
-                                                       std::optional<PauseView> pause) {
+std::span<const render::SpriteDraw> RaceHudLayer::Draw(
+    const sim::RaceSession& session, std::span<const sim::RacerSnapshot> racers,
+    std::span<const std::optional<render::SpriteDraw>> covers, std::optional<PauseView> pause) {
     sprites_.clear();
-    if (hud_) {
-        hud_->Layout(session.Clock(), session.Progress(), racer_, names_, circuitPoints_, texts_);
-        DrawHudText(texts_, hud_->Fonts(), sprites_);
-        LayoutPowerupPanel(racer, images_, sprites_);
+    for (std::size_t player = 0; player < players_; ++player) {
+        const HudPlacement placement = PlacementFor(player, players_);
+        if (player < huds_.size()) {
+            RaceHud& hud = huds_[player];
+            hud.Layout(session.Clock(), session.Progress(), player, texts_);
+            DrawHudText(texts_, hud.Fonts(), sprites_);
+            LayoutPowerupPanel(racers[player], images_, sprites_, placement.bottom);
+        }
+        if (player < covers.size() && covers[player]) {
+            render::SpriteDraw cover = *covers[player];
+            if (players_ > 1) {
+                cover.bounds.y = placement.top;
+                cover.bounds.height = placement.bottom - placement.top;
+            }
+            sprites_.push_back(cover);
+        }
     }
-    if (cover) {
-        sprites_.push_back(*cover);
+    if (huds_.empty()) {
+        return sprites_;
     }
-    if (hud_ && pause) {
+    RaceHud& first = huds_.front();
+    texts_.clear();
+    first.LayoutResults(session.Clock(), session.Progress(), 0, names_, circuitPoints_, texts_);
+    DrawHudText(texts_, first.Fonts(), sprites_);
+    if (pause) {
         sprites_.push_back(ScreenFill(kDialogBackdrop));
         texts_.clear();
-        hud_->LayoutPause(*pause, !circuitPoints_.empty(), texts_);
-        DrawHudText(texts_, hud_->Fonts(), sprites_);
+        first.LayoutPause(*pause, !circuitPoints_.empty(), texts_);
+        DrawHudText(texts_, first.Fonts(), sprites_);
     }
     return sprites_;
 }
