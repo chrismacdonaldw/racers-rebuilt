@@ -36,6 +36,7 @@ struct RacerEvents {
     std::optional<TurboLevel> turboStarted;
     std::optional<TurboLevel> turboFaded;
     std::optional<std::uint8_t> scrapeSound;
+    std::optional<Vector3> sparkPoint;
     bool hasDriftStarted = false;
     bool hasWarpEntered = false;
     bool hasWarpLanded = false;
@@ -160,6 +161,7 @@ public:
     [[nodiscard]] bool IsScrapeReady() const { return status_.contact.scrapeCooldownMs == 0; }
     void Scrape(std::uint8_t sound);
     void HoldScrape();
+    void Spark(const Vector3& point);
 
     /// Runs before each `Tick`, drawing from `random` while cursed.
     void RollCurse(Milliseconds elapsed, Random& random);

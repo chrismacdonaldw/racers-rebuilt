@@ -277,6 +277,7 @@ TEST_CASE("a faster first racer scrapes, then both wait 250 ms to scrape again")
 
     Touch(faster, slower);
     REQUIRE(faster.Events().scrapeSound.has_value());
+    CHECK(faster.Events().sparkPoint == PointBetween(faster, slower));
     CHECK(faster.Status().contact.scrapeCooldownMs == 250);
     CHECK(slower.Status().contact.scrapeCooldownMs == 250);
     CHECK(faster.Status().contact.isTouching);
@@ -288,6 +289,20 @@ TEST_CASE("a faster first racer scrapes, then both wait 250 ms to scrape again")
     CHECK(slower.IsScrapeReady());
 }
 
+TEST_CASE("a faster first racer sparks on every touch, even while its scrape waits") {
+    Racer faster = MovingRacerAt({});
+    Racer slower = RacerAt(kBeside);
+    Touch(faster, slower);
+    faster.Tick(kTick, {.isThrottleHeld = true}, test::FlatGround());
+    REQUIRE_FALSE(faster.Events().sparkPoint.has_value());
+
+    Touch(faster, slower);
+
+    CHECK_FALSE(faster.Events().scrapeSound.has_value());
+    CHECK(faster.Events().sparkPoint.has_value());
+    CHECK_FALSE(slower.Events().sparkPoint.has_value());
+}
+
 TEST_CASE("a slower first racer doesn't scrape") {
     Racer slower = RacerAt({});
     Racer faster = MovingRacerAt(kBeside);
@@ -295,6 +310,7 @@ TEST_CASE("a slower first racer doesn't scrape") {
     Touch(slower, faster);
 
     CHECK_FALSE(slower.Events().scrapeSound.has_value());
+    CHECK_FALSE(slower.Events().sparkPoint.has_value());
     CHECK(slower.IsScrapeReady());
 }
 
