@@ -23,14 +23,16 @@ add_executable(racers-rebuilt-tests
     app/hud/race_results_test.cpp
     app/hud/race_time_text_test.cpp
     app/hud/text_pool_test.cpp
+    app/circuit_leg_test.cpp
     app/free_camera_test.cpp
     app/input_bindings_test.cpp
     app/install_discovery_test.cpp
     app/loop_sidecar_test.cpp
+    app/menu/award_scene_name_test.cpp
     app/menu/menu_files_test.cpp
     app/menu/menu_focus_test.cpp
     app/menu/pause_menu_test.cpp
-    app/menu/single_race_menu_test.cpp
+    app/menu/race_setup_menu_test.cpp
     app/music_folder_source_test.cpp
     app/pace_car_test.cpp
     app/particle_assets_test.cpp

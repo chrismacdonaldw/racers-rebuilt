@@ -34,7 +34,7 @@ public:
                 std::vector<HudText>& out);
 
     /// Appends the pause menu's title and rows, highlighting row `focus`.
-    void LayoutPause(std::size_t focus, std::vector<HudText>& out) const;
+    void LayoutPause(std::size_t focus, bool restartsCircuit, std::vector<HudText>& out) const;
 
     [[nodiscard]] const HudFonts& Fonts() const { return fonts_; }
 

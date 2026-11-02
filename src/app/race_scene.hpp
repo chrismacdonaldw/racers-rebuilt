@@ -11,6 +11,7 @@
 
 #include "app/brick_models.hpp"
 #include "app/chase_camera.hpp"
+#include "app/circuit_leg.hpp"
 #include "app/hazard/ghost_trail.hpp"
 #include "app/hazard/water_scroll.hpp"
 #include "app/hidden_models.hpp"
@@ -61,6 +62,9 @@ public:
         const RaceOutputs& outputs, const assets::Vfs& vfs, assets::TrackLoader& loader,
         const RaceSceneSetup& setup, std::uint64_t seed, Nanoseconds started);
 
+    /// Results, restart and quit then lead wherever the circuit goes next.
+    void JoinCircuit(CircuitLeg leg);
+
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
     [[nodiscard]] overlay::RacerTools OverlayRacerTools() override;
@@ -98,6 +102,7 @@ private:
 
     [[nodiscard]] Transform PlayerCar() const;
     void TickPause(const sim::InputFrame& input);
+    void LeaveAfterResults(const sim::InputFrame& input);
     [[nodiscard]] overlay::RacerActionGroup EffectTools();
     [[nodiscard]] overlay::RacerActionGroup PowerupTools();
     void ApplyChosenTools();
@@ -112,6 +117,7 @@ private:
     ChaseCamera chase_;
     RaceHudLayer hud_;
     PauseMenu pause_;
+    std::optional<CircuitLeg> circuit_;
     std::optional<std::string> next_;
     std::vector<sim::RacerControls> controls_;
     std::size_t chosenRacer_ = 0;

@@ -55,6 +55,10 @@ void RaceHudLayer::SetLanguage(std::string_view language) {
     hud_.emplace(std::move(text->strings), *found);
 }
 
+void RaceHudLayer::SetCircuitPoints(std::span<const std::int32_t> before) {
+    circuitPoints_.assign(before.begin(), before.end());
+}
+
 void RaceHudLayer::Tick(const sim::RaceSession& session, Milliseconds elapsed) {
     if (hud_) {
         hud_->Tick(session.Clock(), session.Progress(), racer_, elapsed);
@@ -67,7 +71,7 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(const sim::RaceSession& s
                                                        std::optional<std::size_t> pauseFocus) {
     sprites_.clear();
     if (hud_) {
-        hud_->Layout(session.Clock(), session.Progress(), racer_, names_, {}, texts_);
+        hud_->Layout(session.Clock(), session.Progress(), racer_, names_, circuitPoints_, texts_);
         DrawHudText(texts_, hud_->Fonts(), sprites_);
         LayoutPowerupPanel(racer, images_, sprites_);
     }
@@ -76,7 +80,7 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(const sim::RaceSession& s
     }
     if (hud_ && pauseFocus) {
         texts_.clear();
-        hud_->LayoutPause(*pauseFocus, texts_);
+        hud_->LayoutPause(*pauseFocus, !circuitPoints_.empty(), texts_);
         DrawHudText(texts_, hud_->Fonts(), sprites_);
     }
     return sprites_;

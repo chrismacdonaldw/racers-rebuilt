@@ -55,6 +55,28 @@ TEST_CASE("a malformed race scene name is rejected") {
     }
 }
 
+TEST_CASE("a circuit scene name carries the run's standing") {
+    const CircuitSceneSetup setup{
+        .race = {.circuit = "c2", .respawn = {.isEnabled = false}, .racer = 3},
+        .standing = {.race = 2, .points = {30, 20, 10, 3, 2, 1}}};
+
+    const std::string name = CircuitSceneName(setup);
+
+    CHECK(name == "circuit:c2:respawn=off:racer=3:race=2:points=30,20,10,3,2,1");
+    CHECK(IsCircuitScene(name));
+    CHECK_FALSE(IsRaceScene(name));
+    CHECK(ParseCircuitScene(name) == setup);
+}
+
+TEST_CASE("a circuit scene name needs a circuit, a race in range and six points") {
+    CHECK_FALSE(ParseCircuitScene("circuit::respawn=off:race=0").has_value());
+    CHECK_FALSE(ParseCircuitScene("circuit:c0:respawn=off:race=4").has_value());
+    CHECK_FALSE(ParseCircuitScene("circuit:c0:respawn=off:points=1,2,3").has_value());
+    CHECK_FALSE(ParseCircuitScene("circuit:c0:respawn=off:points=1,2,3,4,5,6,7").has_value());
+    CHECK_FALSE(ParseCircuitScene("race:RACEC0R0:respawn=off:race=0").has_value());
+    CHECK(ParseCircuitScene("circuit:c0:respawn=off").has_value());
+}
+
 TEST_CASE("respawn settings default on after 3 seconds and follow their values") {
     settings::Registry registry;
     DeclareRaceSettings(registry);

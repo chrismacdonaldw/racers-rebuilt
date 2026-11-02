@@ -24,6 +24,7 @@ struct HudStrings {
     std::u16string paused;
     std::u16string resume;
     std::u16string restart;
+    std::u16string restartCircuit;
     std::u16string quit;
 };
 

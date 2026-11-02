@@ -33,6 +33,7 @@ namespace rr::app {
 namespace {
 
 constexpr std::uint64_t kHashPrime = 1099511628211ULL;
+constexpr Milliseconds kCircuitResultsTime{5000};
 
 sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, std::uint64_t seed,
                         std::size_t slots) {
@@ -188,6 +189,11 @@ void RaceScene::ApplySettings(const settings::Registry& settings) {
     hud_.SetLanguage(SelectedLanguage(settings));
 }
 
+void RaceScene::JoinCircuit(CircuitLeg leg) {
+    hud_.SetCircuitPoints(leg.Points());
+    circuit_ = std::move(leg);
+}
+
 std::optional<std::string> RaceScene::TakeNextScene() {
     return std::exchange(next_, std::nullopt);
 }
@@ -240,9 +246,7 @@ void RaceScene::Tick(const sim::InputFrame& input) {
         return;
     }
     ApplyChosenTools();
-    if (ShowsResults(parts_.session.Clock()) && input.WasPressed(sim::MenuAction::Confirm)) {
-        next_ = std::string(kMainMenuScene);
-    }
+    LeaveAfterResults(input);
     StepRace(parts_.session, input, controls_);
     hud_.Tick(parts_.session, kSimTick);
     parts_.waterScroll.Tick(kSimTick);
@@ -351,9 +355,27 @@ void RaceScene::TickPause(const sim::InputFrame& input) {
         parts_.audio->StopLoops();
     }
     if (chosen == PauseRow::Restart) {
-        next_ = RaceSceneName(parts_.setup);
+        next_ = circuit_ ? circuit_->AfterRestart() : RaceSceneName(parts_.setup);
     } else if (chosen == PauseRow::Quit) {
-        next_ = std::string(kMainMenuScene);
+        next_ = circuit_ ? circuit_->AfterQuit() : std::string(kMainMenuScene);
+    }
+}
+
+void RaceScene::LeaveAfterResults(const sim::InputFrame& input) {
+    const sim::RaceClock& clock = parts_.session.Clock();
+    if (!circuit_) {
+        if (ShowsResults(clock) && input.WasPressed(sim::MenuAction::Confirm)) {
+            next_ = std::string(kMainMenuScene);
+        }
+        return;
+    }
+    if (clock.Phase() == sim::RacePhase::Results && clock.PhaseTime() >= kCircuitResultsTime) {
+        std::vector<std::optional<int>> places;
+        places.reserve(parts_.session.Racers().size());
+        for (std::size_t racer = 0; racer < parts_.session.Racers().size(); ++racer) {
+            places.push_back(parts_.session.Progress().OfRacer(racer).finishPlace);
+        }
+        next_ = circuit_->AfterFinish(places);
     }
 }
 

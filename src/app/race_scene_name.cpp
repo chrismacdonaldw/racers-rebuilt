@@ -1,5 +1,6 @@
 #include "app/race_scene_name.hpp"
 
+#include <array>
 #include <charconv>
 #include <format>
 #include <optional>
@@ -13,13 +14,21 @@ namespace rr::app {
 namespace {
 
 constexpr std::string_view kRacePrefix = "race:";
+constexpr std::string_view kCircuitPrefix = "circuit:";
 constexpr std::string_view kRespawnKey = "respawn";
 constexpr std::string_view kRacerKey = "racer";
 constexpr std::string_view kCircuitKey = "circuit";
 constexpr std::string_view kAiKey = "ai";
+constexpr std::string_view kRaceKey = "race";
+constexpr std::string_view kPointsKey = "points";
 constexpr std::string_view kRespawnOff = "off";
 constexpr std::string_view kPhysicsAi = "physics";
 constexpr std::string_view kRouteAi = "route";
+
+struct Field {
+    std::string_view key;
+    std::string_view value;
+};
 
 template <typename T>
 std::optional<T> ParseNumber(std::string_view text) {
@@ -50,45 +59,98 @@ bool ReadAiDriving(std::string_view text, sim::AiDriving& driving) {
     return true;
 }
 
-bool ReadField(std::string_view field, RaceSceneSetup& setup,
-               std::optional<sim::RespawnRule>& respawn) {
-    const std::size_t equals = field.find('=');
-    const std::string_view key = field.substr(0, equals);
-    const std::string_view value =
-        equals == std::string_view::npos ? std::string_view{} : field.substr(equals + 1);
-    if (key == kRespawnKey) {
-        respawn = ParseRespawn(value);
+bool ReadPoints(std::string_view text, sim::CircuitStanding& standing) {
+    std::size_t slot = 0;
+    for (const auto part : std::views::split(text, ',')) {
+        const std::optional<std::int32_t> points =
+            ParseNumber<std::int32_t>(std::string_view(part));
+        if (!points || *points < 0 || slot == standing.points.size()) {
+            return false;
+        }
+        standing.points[slot++] = *points;
+    }
+    return slot == standing.points.size();
+}
+
+bool ReadStanding(Field field, sim::CircuitStanding& standing) {
+    if (field.key == kRaceKey) {
+        standing.race = ParseNumber<std::size_t>(field.value).value_or(assets::kCircuitRaces);
+        return standing.race < assets::kCircuitRaces;
+    }
+    return field.key == kPointsKey && ReadPoints(field.value, standing);
+}
+
+template <typename ReadOther>
+bool ReadField(Field field, RaceSceneSetup& setup, std::optional<sim::RespawnRule>& respawn,
+               ReadOther readOther) {
+    if (field.key == kRespawnKey) {
+        respawn = ParseRespawn(field.value);
         return respawn.has_value();
     }
-    if (key == kRacerKey) {
-        setup.racer = ParseNumber<std::size_t>(value).value_or(assets::kGridSlots);
+    if (field.key == kRacerKey) {
+        setup.racer = ParseNumber<std::size_t>(field.value).value_or(assets::kGridSlots);
         return setup.racer < assets::kGridSlots;
     }
-    if (key == kCircuitKey) {
-        setup.circuit = value;
-        return !value.empty();
+    if (field.key == kCircuitKey) {
+        setup.circuit = field.value;
+        return !field.value.empty();
     }
-    if (key == kAiKey) {
-        return ReadAiDriving(value, setup.aiDriving);
+    if (field.key == kAiKey) {
+        return ReadAiDriving(field.value, setup.aiDriving);
     }
-    return false;
+    return readOther(field);
+}
+
+Field SplitField(std::string_view text) {
+    const std::size_t equals = text.find('=');
+    return {
+        .key = text.substr(0, equals),
+        .value = equals == std::string_view::npos ? std::string_view{} : text.substr(equals + 1)};
+}
+
+template <typename ReadOther>
+Result<RaceSceneSetup> ParseScene(std::string_view scene, std::string_view prefix,
+                                  std::string RaceSceneSetup::* head, ReadOther readOther) {
+    RaceSceneSetup setup;
+    std::optional<sim::RespawnRule> respawn;
+    bool isValid = scene.starts_with(prefix);
+    std::string_view rest = isValid ? scene.substr(prefix.size()) : std::string_view{};
+    const std::size_t headEnd = rest.find(':');
+    const std::string_view headText = rest.substr(0, headEnd);
+    rest = headEnd == std::string_view::npos ? std::string_view{} : rest.substr(headEnd + 1);
+    for (const auto field : std::views::split(rest, ':')) {
+        isValid =
+            isValid && ReadField(SplitField(std::string_view(field)), setup, respawn, readOther);
+    }
+    if (!isValid || headText.empty() || !respawn) {
+        return Fail(ErrorCode::InvalidData, std::format("'{}' isn't a {} scene", scene,
+                                                        prefix.substr(0, prefix.size() - 1)));
+    }
+    setup.*head = headText;
+    setup.respawn = *respawn;
+    return setup;
+}
+
+std::string RulesFields(const RaceSceneSetup& setup) {
+    const std::string respawn = setup.respawn.isEnabled
+                                    ? std::to_string(setup.respawn.timeout.count())
+                                    : std::string(kRespawnOff);
+    return std::format(":{}={}:{}={}", kRespawnKey, respawn, kRacerKey, setup.racer);
+}
+
+std::string AiField(const RaceSceneSetup& setup) {
+    return setup.aiDriving == sim::AiDriving::Physics ? std::format(":{}={}", kAiKey, kPhysicsAi)
+                                                      : std::string();
 }
 
 }
 
 std::string RaceSceneName(const RaceSceneSetup& setup) {
-    const std::string respawn = setup.respawn.isEnabled
-                                    ? std::to_string(setup.respawn.timeout.count())
-                                    : std::string(kRespawnOff);
-    std::string name = std::format("{}{}:{}={}:{}={}", kRacePrefix, setup.track, kRespawnKey,
-                                   respawn, kRacerKey, setup.racer);
+    std::string name = std::format("{}{}{}", kRacePrefix, setup.track, RulesFields(setup));
     if (!setup.circuit.empty()) {
         name += std::format(":{}={}", kCircuitKey, setup.circuit);
     }
-    if (setup.aiDriving == sim::AiDriving::Physics) {
-        name += std::format(":{}={}", kAiKey, kPhysicsAi);
-    }
-    return name;
+    return name + AiField(setup);
 }
 
 bool IsRaceScene(std::string_view scene) {
@@ -96,21 +158,28 @@ bool IsRaceScene(std::string_view scene) {
 }
 
 Result<RaceSceneSetup> ParseRaceScene(std::string_view scene) {
-    RaceSceneSetup setup;
-    std::optional<sim::RespawnRule> respawn;
-    bool isValid = IsRaceScene(scene);
-    std::string_view rest = isValid ? scene.substr(kRacePrefix.size()) : std::string_view{};
-    const std::size_t trackEnd = rest.find(':');
-    setup.track = rest.substr(0, trackEnd);
-    rest = trackEnd == std::string_view::npos ? std::string_view{} : rest.substr(trackEnd + 1);
-    for (const auto field : std::views::split(rest, ':')) {
-        isValid = isValid && ReadField(std::string_view(field), setup, respawn);
-    }
-    if (!isValid || setup.track.empty() || !respawn) {
-        return Fail(ErrorCode::InvalidData, std::format("'{}' isn't a race scene", scene));
-    }
-    setup.respawn = *respawn;
-    return setup;
+    return ParseScene(scene, kRacePrefix, &RaceSceneSetup::track, [](Field) { return false; });
+}
+
+std::string CircuitSceneName(const CircuitSceneSetup& setup) {
+    const std::array<std::int32_t, assets::kGridSlots>& points = setup.standing.points;
+    return std::format("{}{}{}:{}={}:{}={},{},{},{},{},{}{}", kCircuitPrefix, setup.race.circuit,
+                       RulesFields(setup.race), kRaceKey, setup.standing.race, kPointsKey,
+                       points[0], points[1], points[2], points[3], points[4], points[5],
+                       AiField(setup.race));
+}
+
+bool IsCircuitScene(std::string_view scene) {
+    return scene.starts_with(kCircuitPrefix);
+}
+
+Result<CircuitSceneSetup> ParseCircuitScene(std::string_view scene) {
+    sim::CircuitStanding standing;
+    return ParseScene(scene, kCircuitPrefix, &RaceSceneSetup::circuit,
+                      [&](Field field) { return ReadStanding(field, standing); })
+        .transform([&](RaceSceneSetup race) {
+            return CircuitSceneSetup{.race = std::move(race), .standing = standing};
+        });
 }
 
 }

@@ -21,10 +21,15 @@ std::int32_t PlacePoints(std::optional<int> place) {
 }
 
 CircuitRun::CircuitRun(std::array<bool, assets::kCircuitRaces> hasRace, std::size_t player,
-                       bool isSoloPlayer)
-    : hasRace_(hasRace), player_(player), isSoloPlayer_(isSoloPlayer) {
+                       bool isSoloPlayer, const CircuitStanding& from)
+    : hasRace_(hasRace), player_(player), isSoloPlayer_(isSoloPlayer), points_(from.points) {
     RR_VERIFY(player_ < points_.size());
-    Enter(0);
+    RR_VERIFY(std::ranges::contains(hasRace_, true));
+    Enter(from.race);
+}
+
+CircuitStanding CircuitRun::Standing() const {
+    return {.race = race_.value_or(hasRace_.size()), .points = points_};
 }
 
 std::size_t CircuitRun::Rank(std::size_t slot) const {
@@ -48,11 +53,16 @@ void CircuitRun::Restart() {
     Enter(0);
 }
 
+void CircuitRun::Quit() {
+    race_.reset();
+    award_.reset();
+}
+
 void CircuitRun::Enter(std::size_t race) {
     while (race < hasRace_.size() && !hasRace_[race]) {
         ++race;
     }
-    if (race == hasRace_.size()) {
+    if (race >= hasRace_.size()) {
         const std::size_t rank = Rank(player_);
         race_.reset();
         award_ = rank < kAwardsByRank.size() ? kAwardsByRank[rank] : CircuitAward::None;

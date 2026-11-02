@@ -49,6 +49,7 @@ HudStrings EnglishStrings() {
             .paused = u"GAME PAUSED",
             .resume = u"CONTINUE",
             .restart = u"RESTART RACE",
+            .restartCircuit = u"RESTART CIRCUIT",
             .quit = u"EXIT"};
 }
 
@@ -87,7 +88,7 @@ TEST_CASE("the pause menu is centred under its title, with the focused row tinte
     const RaceHud hud(EnglishStrings(), fonts.Hud());
     std::vector<HudText> texts;
 
-    hud.LayoutPause(1, texts);
+    hud.LayoutPause(1, false, texts);
 
     REQUIRE(texts.size() == 4);
     CHECK(XOf(texts, u"GAME PAUSED") == doctest::Approx(320.0F - 55.0F));
@@ -96,6 +97,17 @@ TEST_CASE("the pause menu is centred under its title, with the focused row tinte
     CHECK(YOf(texts, u"RESTART RACE") < YOf(texts, u"EXIT"));
     CHECK(BlueOf(texts, u"RESTART RACE") == 0.0F);
     CHECK(BlueOf(texts, u"EXIT") == 1.0F);
+}
+
+TEST_CASE("a circuit race's pause menu restarts the circuit") {
+    const Fonts fonts;
+    const RaceHud hud(EnglishStrings(), fonts.Hud());
+    std::vector<HudText> texts;
+
+    hud.LayoutPause(0, true, texts);
+
+    CHECK(Find(texts, u"RESTART CIRCUIT").has_value());
+    CHECK_FALSE(Find(texts, u"RESTART RACE").has_value());
 }
 
 TEST_CASE("the lap counter and lap time sit top right, right of their labels") {

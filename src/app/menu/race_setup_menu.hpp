@@ -20,15 +20,22 @@ struct RacerChoice {
     std::int32_t nameIndex = -1;
 };
 
-struct TrackChoice {
+/// A single race's track, or a whole circuit when `track` is empty.
+struct CourseChoice {
     std::string track;
     std::string circuit;
+    std::size_t circuitIndex = 0;
     std::int32_t nameLine = -1;
     std::vector<RacerChoice> racers;
+    bool isLocked = false;
 };
 
 /// Unmirrored circuit races in circuit order, each with its circuit's grid.
-[[nodiscard]] Result<std::vector<TrackChoice>> LoadTrackChoices(const assets::Vfs& vfs);
+[[nodiscard]] Result<std::vector<CourseChoice>> LoadTrackChoices(const assets::Vfs& vfs);
+
+/// Leaves out mirrored circuits. Bit `n` of `unlocked` opens circuit `n`; the first always is.
+[[nodiscard]] Result<std::vector<CourseChoice>> LoadCircuitChoices(const assets::Vfs& vfs,
+                                                                   std::uint32_t unlocked);
 
 [[nodiscard]] Result<std::vector<std::u16string>> ReadRaceNames(const assets::Vfs& vfs,
                                                                 std::string_view language);
@@ -36,22 +43,22 @@ struct TrackChoice {
 [[nodiscard]] Result<std::vector<std::u16string>> ReadDriverNames(const assets::Vfs& vfs,
                                                                   std::string_view language);
 
-enum class SingleRaceRow : std::uint8_t { Track, Racer, Race, Back, Count };
+enum class RaceSetupRow : std::uint8_t { Course, Racer, Race, Back, Count };
 
-/// The single race setup's choices, moved through with the menu actions.
-class SingleRaceMenu {
+/// A single race or circuit setup's choices, moved through with the menu actions.
+class RaceSetupMenu {
 public:
-    /// `tracks` must not be empty, nor any track's racers.
-    explicit SingleRaceMenu(std::vector<TrackChoice> tracks);
+    /// `courses` must not be empty, nor any course's racers.
+    explicit RaceSetupMenu(std::vector<CourseChoice> courses);
 
-    /// The scene the input chose, if any. A chosen race keeps `rules` but for its track and racer.
+    /// A chosen race keeps `rules` but for its course and racer. A locked course can't start.
     [[nodiscard]] std::optional<std::string> Tick(const sim::InputFrame& input,
                                                   const RaceSceneSetup& rules);
 
-    [[nodiscard]] SingleRaceRow Focus() const { return focus_; }
-    [[nodiscard]] const std::vector<TrackChoice>& Tracks() const { return tracks_; }
-    [[nodiscard]] const TrackChoice& Track() const { return tracks_[track_]; }
-    [[nodiscard]] std::size_t TrackIndex() const { return track_; }
+    [[nodiscard]] RaceSetupRow Focus() const { return focus_; }
+    [[nodiscard]] const std::vector<CourseChoice>& Courses() const { return courses_; }
+    [[nodiscard]] const CourseChoice& Course() const { return courses_[course_]; }
+    [[nodiscard]] std::size_t CourseIndex() const { return course_; }
     [[nodiscard]] std::size_t Racer() const { return racer_; }
     [[nodiscard]] std::uint64_t StateHash() const;
 
@@ -60,10 +67,10 @@ private:
     void Change(int step);
     [[nodiscard]] std::optional<std::string> Confirm(const RaceSceneSetup& rules);
 
-    std::vector<TrackChoice> tracks_;
-    std::size_t track_ = 0;
+    std::vector<CourseChoice> courses_;
+    std::size_t course_ = 0;
     std::size_t racer_ = 0;
-    SingleRaceRow focus_ = SingleRaceRow::Track;
+    RaceSetupRow focus_ = RaceSetupRow::Course;
 };
 
 }
