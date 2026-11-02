@@ -42,6 +42,7 @@ sim::RaceSetup GridSetup(const RaceSceneSetup& scene, const RacerGrid& racers, s
                          std::size_t slots) {
     sim::RaceSetup setup{.track = scene.track,
                          .seed = seed,
+                         .lapCount = scene.lapCount,
                          .respawn = scene.respawn,
                          .aiDriving = scene.aiDriving,
                          .effects = sim::EveryEffect()};
@@ -414,6 +415,12 @@ void RaceScene::TickPause(const sim::InputFrame& input) {
 
 void RaceScene::LeaveAfterResults(const sim::InputFrame& input) {
     const sim::RaceClock& clock = parts_.session.Clock();
+    if (parts_.setup.players > 1) {
+        if (clock.Phase() == sim::RacePhase::Results) {
+            next_ = std::string(kMainMenuScene);
+        }
+        return;
+    }
     if (!circuit_) {
         if (ShowsResults(clock) && input.WasPressed(sim::MenuAction::Confirm)) {
             next_ = std::string(kMainMenuScene);

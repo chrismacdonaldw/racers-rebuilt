@@ -23,6 +23,23 @@ Result<std::unique_ptr<RacerAssets>> LoadSlot(const assets::Vfs& vfs, assets::Tr
     });
 }
 
+Result<std::vector<std::string>> PlayersFirst(std::vector<std::string> codes,
+                                              const RaceSceneSetup& setup) {
+    const bool hasSecond = setup.players > 1;
+    for (const std::size_t pick : {setup.racer, hasSecond ? setup.secondRacer : setup.racer}) {
+        if (pick >= codes.size()) {
+            return Fail(ErrorCode::InvalidData,
+                        std::format("{} has no grid slot {} for a player", setup.track, pick));
+        }
+    }
+    const std::string second = codes[hasSecond ? setup.secondRacer : 0];
+    std::swap(codes.front(), codes[setup.racer]);
+    if (hasSecond) {
+        codes.at(1) = second;
+    }
+    return codes;
+}
+
 void Dress(const Vector3& origin, const CarLook& look, std::span<render::MeshDraw> draws) {
     for (render::MeshDraw& draw : draws) {
         draw.transform.position = origin + ((draw.transform.position - origin) * look.scale);
@@ -36,19 +53,18 @@ void Dress(const Vector3& origin, const CarLook& look, std::span<render::MeshDra
 Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs& vfs,
                                   assets::TrackLoader& loader, const RaceSceneSetup& setup,
                                   std::size_t slots) {
-    const std::size_t playerRacer = setup.racer;
     Result<assets::RacerCatalog> catalog = assets::RacerCatalog::Load(vfs);
-    Result<std::vector<std::string>> codes = catalog.and_then([&](const assets::RacerCatalog&) {
-        return assets::LoadGrid(vfs, setup.track, setup.circuit);
-    });
+    Result<std::vector<std::string>> codes =
+        catalog
+            .and_then([&](const assets::RacerCatalog&) {
+                return assets::LoadGrid(vfs, setup.track, setup.circuit);
+            })
+            .and_then([&](std::vector<std::string> grid) {
+                return PlayersFirst(std::move(grid), setup);
+            });
     if (!codes) {
         return std::unexpected(std::move(codes.error()));
     }
-    if (playerRacer >= codes->size()) {
-        return Fail(ErrorCode::InvalidData,
-                    std::format("{} has no grid slot {} for the player", setup.track, playerRacer));
-    }
-    std::swap(codes->front(), codes->at(playerRacer));
     slots = std::min(slots, codes->size());
     std::vector<Slot> loaded;
     for (const std::string& code : std::span(*codes).first(slots)) {

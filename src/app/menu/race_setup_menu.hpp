@@ -44,15 +44,15 @@ struct CourseChoice {
 [[nodiscard]] Result<std::vector<std::u16string>> ReadDriverNames(const assets::Vfs& vfs,
                                                                   std::string_view language);
 
-enum class RaceSetupRow : std::uint8_t { Course, Racer, Race, Back, Count };
+enum class RaceSetupRow : std::uint8_t { Course, Racer, SecondRacer, Race, Back, Count };
 
-/// A single race or circuit setup's choices, moved through with the menu actions.
+/// A single race, versus or circuit setup's choices, moved through with the menu actions.
 class RaceSetupMenu {
 public:
-    /// `courses` must not be empty, nor any course's racers.
-    explicit RaceSetupMenu(std::vector<CourseChoice> courses);
+    /// `courses` must not be empty, nor any course's racers. Two `players` each pick a racer.
+    explicit RaceSetupMenu(std::vector<CourseChoice> courses, std::size_t players = 1);
 
-    /// A chosen race keeps `rules` but for its course and racer. A locked course can't start.
+    /// A chosen race keeps `rules` but for its course and racers. A locked course can't start.
     [[nodiscard]] std::optional<std::string> Tick(const sim::InputFrame& input,
                                                   const RaceSceneSetup& rules);
 
@@ -61,6 +61,7 @@ public:
     [[nodiscard]] const CourseChoice& Course() const { return courses_[course_]; }
     [[nodiscard]] std::size_t CourseIndex() const { return course_; }
     [[nodiscard]] std::size_t Racer() const { return racer_; }
+    [[nodiscard]] std::size_t SecondRacer() const { return secondRacer_; }
     [[nodiscard]] std::uint64_t StateHash() const;
 
 private:
@@ -71,6 +72,8 @@ private:
     std::vector<CourseChoice> courses_;
     std::size_t course_ = 0;
     std::size_t racer_ = 0;
+    std::size_t secondRacer_ = 0;
+    std::size_t players_ = 1;
     RaceSetupRow focus_ = RaceSetupRow::Course;
 };
 

@@ -11,7 +11,7 @@
 
 namespace rr::app {
 
-/// Slot `racer`'s racer swaps into slot 0. Empty `circuit` means home. Two `players` race alone.
+/// Players drive grid slots `racer` then `secondRacer`, two alone. Empty `circuit` means home.
 struct RaceSceneSetup {
     std::string track;
     std::string circuit;
@@ -20,6 +20,8 @@ struct RaceSceneSetup {
     sim::AiDriving aiDriving = sim::AiDriving::Route;
     bool isMirrored = false;
     std::size_t players = 1;
+    std::size_t secondRacer = 1;
+    int lapCount = 3;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
 };

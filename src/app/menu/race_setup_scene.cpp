@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "app/menu/menu_files.hpp"
+#include "app/menu/menu_scenes.hpp"
 #include "app/race_settings.hpp"
 #include "core/log.hpp"
 
@@ -17,6 +18,10 @@ constexpr std::string_view kScreen = "MAINMENU";
 constexpr std::string_view kTitleFont = "fontmenu";
 constexpr std::size_t kCircuitTitleLine = 13;
 constexpr std::size_t kSingleRaceTitleLine = 14;
+constexpr std::size_t kVersusTitleLine = 0x19;
+constexpr std::size_t kPlayerOneLine = 0x56;
+constexpr std::size_t kPlayerTwoLine = 0x57;
+constexpr std::size_t kVersusPlayers = 2;
 constexpr std::size_t kBackLine = 26;
 constexpr std::size_t kRaceLine = 27;
 constexpr std::size_t kHostingLine = 0x4A;
@@ -29,7 +34,7 @@ constexpr float kLeft = 3.0F;
 constexpr float kValueLeft = 230.0F;
 constexpr float kTitleTop = 118.0F;
 constexpr float kChampionTop = 278.0F;
-constexpr std::array kRowTops{178.0F, 218.0F, 358.0F, 418.0F};
+constexpr std::array kRowTops{178.0F, 218.0F, 258.0F, 358.0F, 418.0F};
 
 std::u16string Widen(std::string_view text) {
     std::u16string wide;
@@ -63,12 +68,37 @@ std::vector<std::vector<std::u16string>> RacerNames(const std::vector<CourseChoi
     return racerNames;
 }
 
+std::size_t TitleLine(RaceSetupMode mode) {
+    switch (mode) {
+        case RaceSetupMode::Circuit:
+            return kCircuitTitleLine;
+        case RaceSetupMode::Versus:
+            return kVersusTitleLine;
+        case RaceSetupMode::SingleRace:
+            return kSingleRaceTitleLine;
+    }
+    return kSingleRaceTitleLine;
+}
+
 Result<std::vector<CourseChoice>> LoadCourses(const assets::Vfs& vfs, RaceSetupMode mode,
                                               const std::set<std::string>& unlockedCircuits) {
     return mode == RaceSetupMode::Circuit ? LoadCircuitChoices(vfs, unlockedCircuits)
                                           : LoadTrackChoices(vfs);
 }
 
+}
+
+std::optional<RaceSetupMode> RaceSetupModeOf(std::string_view scene) {
+    if (scene == kSingleRaceScene) {
+        return RaceSetupMode::SingleRace;
+    }
+    if (scene == kCircuitRaceScene) {
+        return RaceSetupMode::Circuit;
+    }
+    if (scene == kVersusRaceScene) {
+        return RaceSetupMode::Versus;
+    }
+    return std::nullopt;
 }
 
 Result<std::unique_ptr<RaceSetupScene>> RaceSetupScene::Create(
@@ -83,13 +113,16 @@ Result<std::unique_ptr<RaceSetupScene>> RaceSetupScene::Create(
     if (!courses) {
         return std::unexpected(std::move(courses.error()));
     }
-    return std::unique_ptr<RaceSetupScene>(
-        new RaceSetupScene(renderer, vfs, mode, std::move(page->pictures), TextButtonStates(*files),
-                           RaceSetupMenu(std::move(*courses))));
+    return std::unique_ptr<RaceSetupScene>(new RaceSetupScene(
+        renderer, vfs, mode, std::move(page->pictures), TextButtonStates(*files),
+        RaceSetupMenu(std::move(*courses), mode == RaceSetupMode::Versus ? kVersusPlayers : 1)));
 }
 
 void RaceSetupScene::ApplySettings(const settings::Registry& settings) {
     rules_ = {.respawn = RespawnRuleFrom(settings), .aiDriving = AiDrivingFrom(settings)};
+    if (mode_ == RaceSetupMode::Versus) {
+        rules_.lapCount = settings.Get(kVersusLaps);
+    }
     if (!text_.Apply(*renderer_, *vfs_, settings)) {
         return;
     }
@@ -98,7 +131,7 @@ void RaceSetupScene::ApplySettings(const settings::Registry& settings) {
         log::Warn("racers show their codes: {}", names.error().message);
     }
     racerNames_ = RacerNames(menu_.Courses(), names.value_or(std::vector<std::u16string>{}));
-    if (mode_ == RaceSetupMode::SingleRace) {
+    if (mode_ != RaceSetupMode::Circuit) {
         const Result<std::vector<std::u16string>> races = ReadRaceNames(*vfs_, text_.Language());
         if (!races) {
             log::Warn("races show their folders: {}", races.error().message);
@@ -128,14 +161,17 @@ void RaceSetupScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpol
     sprites_.clear();
     DrawPictures(pictures_, sprites_);
     const bool isCircuit = mode_ == RaceSetupMode::Circuit;
-    DrawLabel(text_, {.font = std::string(kTitleFont)},
-              text_.Line(isCircuit ? kCircuitTitleLine : kSingleRaceTitleLine), kLeft, kTitleTop,
-              sprites_);
-    const std::size_t course = menu_.CourseIndex();
+    const bool isVersus = mode_ == RaceSetupMode::Versus;
+    DrawLabel(text_, {.font = std::string(kTitleFont)}, text_.Line(TitleLine(mode_)), kLeft,
+              kTitleTop, sprites_);
     DrawRow(RaceSetupRow::Course, isCircuit ? OneLine(text_.Line(kCircuitNumberLine)) : u"TRACK",
-            courseNames_.at(course));
-    DrawRow(RaceSetupRow::Racer, u"RACER",
-            racerNames_.empty() ? std::u16string_view{} : racerNames_.at(course).at(menu_.Racer()));
+            courseNames_.at(menu_.CourseIndex()));
+    DrawRow(RaceSetupRow::Racer, isVersus ? OneLine(text_.Line(kPlayerOneLine)) : u"RACER",
+            RacerName(menu_.Racer()));
+    if (isVersus) {
+        DrawRow(RaceSetupRow::SecondRacer, OneLine(text_.Line(kPlayerTwoLine)),
+                RacerName(menu_.SecondRacer()));
+    }
     if (isCircuit) {
         DrawChampion();
     }
@@ -178,6 +214,11 @@ void RaceSetupScene::DrawRow(RaceSetupRow row, std::u16string_view label,
     const float top = kRowTops.at(static_cast<std::size_t>(row));
     DrawLabel(text_, states_.at(state), label, kLeft, top, sprites_);
     DrawLabel(text_, states_.at(state), value, kValueLeft, top, sprites_);
+}
+
+std::u16string_view RaceSetupScene::RacerName(std::size_t racer) const {
+    return racerNames_.empty() ? std::u16string_view{}
+                               : racerNames_.at(menu_.CourseIndex()).at(racer);
 }
 
 void RaceSetupScene::DrawChampion() {

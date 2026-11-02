@@ -284,10 +284,8 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std:
     if (*scene == kControlsScene) {
         return ControlsScene::Create(renderer_, vfs_).transform(ToScene<ControlsScene>);
     }
-    if (*scene == kSingleRaceScene || *scene == kCircuitRaceScene) {
-        const RaceSetupMode mode =
-            *scene == kCircuitRaceScene ? RaceSetupMode::Circuit : RaceSetupMode::SingleRace;
-        return RaceSetupScene::Create(renderer_, vfs_, mode, UnlockedCircuits(ProgressFile()))
+    if (const std::optional<RaceSetupMode> mode = RaceSetupModeOf(*scene)) {
+        return RaceSetupScene::Create(renderer_, vfs_, *mode, UnlockedCircuits(ProgressFile()))
             .transform(ToScene<RaceSetupScene>);
     }
     if (IsAwardScene(*scene)) {
