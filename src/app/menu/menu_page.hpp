@@ -51,6 +51,15 @@ private:
 
 [[nodiscard]] render::Color ToColor(const assets::MenuColor& color);
 
+struct MenuPoint {
+    float x = 0.0F;
+    float y = 0.0F;
+};
+
+/// The element's top left on the UI canvas, through its parents.
+[[nodiscard]] MenuPoint OriginOf(const assets::MenuLayout& layout,
+                                 const assets::MenuElement& element);
+
 /// A picture per image element, and a text-styled button per game button in `labels`.
 [[nodiscard]] Result<MenuPage> BuildMenuPage(render::Renderer& renderer, const assets::Vfs& vfs,
                                              const MenuFiles& files,
