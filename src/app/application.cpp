@@ -93,10 +93,11 @@ void FollowSceneMusic(audio::MusicPlayer& music, const SceneMusic& wanted, std::
     }
 }
 
-std::string RaceNamed(std::string track, const settings::Registry& settings) {
+std::string RaceNamed(std::string track, std::size_t players, const settings::Registry& settings) {
     return RaceSceneName({.track = std::move(track),
                           .respawn = RespawnRuleFrom(settings),
-                          .aiDriving = AiDrivingFrom(settings)});
+                          .aiDriving = AiDrivingFrom(settings),
+                          .players = players});
 }
 
 Result<std::optional<std::string>> StartupScene(const settings::CommandLine& commandLine,
@@ -104,7 +105,11 @@ Result<std::optional<std::string>> StartupScene(const settings::CommandLine& com
     if (commandLine.track && commandLine.race) {
         return Fail(ErrorCode::InvalidData, "--track and --race can't be used together");
     }
-    return commandLine.race ? std::optional(RaceNamed(*commandLine.race, settings))
+    if (commandLine.players && !commandLine.race) {
+        return Fail(ErrorCode::InvalidData, "--players needs --race");
+    }
+    return commandLine.race ? std::optional(RaceNamed(*commandLine.race,
+                                                      commandLine.players.value_or(1), settings))
                             : commandLine.track;
 }
 
@@ -338,7 +343,7 @@ std::filesystem::path Application::ProgressFile() const {
 }
 
 Result<std::unique_ptr<Scene>> Application::CreateRace(const std::string& track) {
-    return CreateScene(RaceNamed(track, settings_));
+    return CreateScene(RaceNamed(track, 1, settings_));
 }
 
 Result<void> Application::OpenScene(const std::optional<std::string>& scene) {

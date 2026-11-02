@@ -29,6 +29,18 @@ static_assert(kMaxQuads <= kMaxSprites);
 static_assert(kMaxSprites * kVerticesPerSprite <=
               std::size_t{std::numeric_limits<std::uint16_t>::max()} + 1);
 
+SDL_Rect ViewportArea(const Viewport& viewport, std::uint32_t widthPx, std::uint32_t heightPx) {
+    const auto edge = [](float fraction, std::uint32_t sizePx) {
+        return static_cast<int>(std::lround(fraction * static_cast<float>(sizePx)));
+    };
+    const int left = edge(viewport.x, widthPx);
+    const int top = edge(viewport.y, heightPx);
+    return {.x = left,
+            .y = top,
+            .w = std::max(1, edge(viewport.x + viewport.width, widthPx) - left),
+            .h = std::max(1, edge(viewport.y + viewport.height, heightPx) - top)};
+}
+
 std::uint32_t Scaled(std::uint32_t sizePx, float scale) {
     return std::max(1U,
                     static_cast<std::uint32_t>(std::lround(static_cast<float>(sizePx) * scale)));
@@ -129,35 +141,28 @@ void Renderer::ReleaseAssets() {
     textures_.Release();
 }
 
-Result<void> Renderer::Draw(const RenderView& view) {
+Result<void> Renderer::Draw(std::span<const RenderView> views) {
     SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(device_.get());
     if (commands == nullptr) {
         return GpuFailure("can't start a frame");
     }
-    const std::span<const DebugLine> lines =
-        view.lines.first(std::min(view.lines.size(), kMaxDebugLines));
-    const std::span<const QuadDraw> quads =
-        view.quads.first(std::min(view.quads.size(), kMaxQuads));
-    const std::span<const SpriteDraw> sprites =
-        view.sprites.first(std::min(view.sprites.size(), kMaxSprites));
     SDL_GPUTexture* swapchain = nullptr;
     std::uint32_t widthPx = 0;
     std::uint32_t heightPx = 0;
-    Result<void> prepared =
-        UploadFrame(commands, lines, quads, sprites).and_then([&]() -> Result<void> {
-            if (!SDL_WaitAndAcquireGPUSwapchainTexture(commands, device_.get_deleter().window,
-                                                       &swapchain, &widthPx, &heightPx)) {
-                return GpuFailure("can't acquire the swapchain");
-            }
-            return swapchain == nullptr ? Result<void>{}
-                                        : EnsureSceneTargets(Scaled(widthPx, resolutionScale_),
-                                                             Scaled(heightPx, resolutionScale_));
-        });
+    Result<void> prepared = UploadFrame(commands, views).and_then([&]() -> Result<void> {
+        if (!SDL_WaitAndAcquireGPUSwapchainTexture(commands, device_.get_deleter().window,
+                                                   &swapchain, &widthPx, &heightPx)) {
+            return GpuFailure("can't acquire the swapchain");
+        }
+        return swapchain == nullptr ? Result<void>{}
+                                    : EnsureSceneTargets(Scaled(widthPx, resolutionScale_),
+                                                         Scaled(heightPx, resolutionScale_));
+    });
     if (prepared && swapchain != nullptr) {
         if (overlay_ != nullptr) {
             overlay_->Prepare(commands);
         }
-        DrawScene(commands, view, lines.size(), IsScaled() ? sceneColor_.Get() : swapchain);
+        DrawScenes(commands, views, IsScaled() ? sceneColor_.Get() : swapchain);
         if (IsScaled()) {
             const SDL_GPUBlitInfo blit{
                 .source = {.texture = sceneColor_.Get(), .w = sceneWidthPx_, .h = sceneHeightPx_},
@@ -262,8 +267,8 @@ Result<void> Renderer::EnsureSceneTargets(std::uint32_t widthPx, std::uint32_t h
     return {};
 }
 
-void Renderer::DrawScene(SDL_GPUCommandBuffer* commands, const RenderView& view,
-                         std::size_t lineCount, SDL_GPUTexture* target) {
+void Renderer::DrawScenes(SDL_GPUCommandBuffer* commands, std::span<const RenderView> views,
+                          SDL_GPUTexture* target) const {
     const SDL_GPUColorTargetInfo color{.texture = target,
                                        .clear_color = kClearColor,
                                        .load_op = SDL_GPU_LOADOP_CLEAR,
@@ -274,16 +279,34 @@ void Renderer::DrawScene(SDL_GPUCommandBuffer* commands, const RenderView& view,
                                               .store_op = SDL_GPU_STOREOP_DONT_CARE,
                                               .stencil_load_op = SDL_GPU_LOADOP_DONT_CARE,
                                               .stencil_store_op = SDL_GPU_STOREOP_DONT_CARE};
-    const glm::mat4 viewProjection = ViewProjection(
-        view.camera, static_cast<float>(sceneWidthPx_) / static_cast<float>(sceneHeightPx_));
     SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(commands, &color, 1, &depth);
-    DrawMeshes(commands, pass, view, viewProjection);
-    if (!quadBatches_.empty()) {
-        SDL_PushGPUVertexUniformData(commands, 0, &viewProjection, sizeof(viewProjection));
-        DrawBatches(pass, quadStream_, quadBatches_, quadPipelines_);
+    for (const auto& [view, range] : std::views::zip(views, viewRanges_)) {
+        DrawScene(commands, pass, view, range);
     }
-    DrawLines(commands, pass, lineCount, viewProjection);
     SDL_EndGPURenderPass(pass);
+}
+
+void Renderer::DrawScene(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
+                         const RenderView& view, const ViewRange& range) const {
+    const SDL_Rect area = ViewportArea(view.viewport, sceneWidthPx_, sceneHeightPx_);
+    const SDL_GPUViewport viewport{.x = static_cast<float>(area.x),
+                                   .y = static_cast<float>(area.y),
+                                   .w = static_cast<float>(area.w),
+                                   .h = static_cast<float>(area.h),
+                                   .min_depth = 0.0F,
+                                   .max_depth = 1.0F};
+    SDL_SetGPUViewport(pass, &viewport);
+    SDL_SetGPUScissor(pass, &area);
+    const glm::mat4 viewProjection =
+        ViewProjection(view.camera, static_cast<float>(area.w) / static_cast<float>(area.h));
+    DrawMeshes(commands, pass, view, viewProjection);
+    if (range.quadBatchCount > 0) {
+        SDL_PushGPUVertexUniformData(commands, 0, &viewProjection, sizeof(viewProjection));
+        DrawBatches(pass, quadStream_,
+                    std::span(quadBatches_).subspan(range.firstQuadBatch, range.quadBatchCount),
+                    quadPipelines_);
+    }
+    DrawLines(commands, pass, range, viewProjection);
 }
 
 void Renderer::DrawSprites(SDL_GPUCommandBuffer* commands, SDL_GPUTexture* swapchain,
@@ -383,15 +406,16 @@ void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
 }
 
 void Renderer::DrawLines(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
-                         std::size_t lineCount, const glm::mat4& viewProjection) const {
-    if (lineCount == 0) {
+                         const ViewRange& range, const glm::mat4& viewProjection) const {
+    if (range.lineCount == 0) {
         return;
     }
     SDL_BindGPUGraphicsPipeline(pass, linePipeline_.Get());
     SDL_PushGPUVertexUniformData(commands, 0, &viewProjection, sizeof(viewProjection));
     const SDL_GPUBufferBinding vertices{.buffer = lineStream_.vertices.Get()};
     SDL_BindGPUVertexBuffers(pass, 0, &vertices, 1);
-    SDL_DrawGPUPrimitives(pass, static_cast<std::uint32_t>(lineCount * 2), 1, 0, 0);
+    SDL_DrawGPUPrimitives(pass, static_cast<std::uint32_t>(range.lineCount * 2), 1,
+                          static_cast<std::uint32_t>(range.firstLine * 2), 0);
 }
 
 void Renderer::DeviceDeleter::operator()(SDL_GPUDevice* device) const {

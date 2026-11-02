@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -16,13 +17,13 @@
 #include "app/hidden_models.hpp"
 #include "app/hud/race_hud_layer.hpp"
 #include "app/menu/pause_menu.hpp"
+#include "app/player_cameras.hpp"
 #include "app/powerup/powerup_models.hpp"
 #include "app/powerup/powerup_quads.hpp"
 #include "app/powerup/powerup_visuals.hpp"
 #include "app/powerup/warp_start.hpp"
 #include "app/powerup/warp_tube.hpp"
 #include "app/race_audio.hpp"
-#include "app/race_camera.hpp"
 #include "app/race_particles.hpp"
 #include "app/race_scene_name.hpp"
 #include "app/racer/car_shadows.hpp"
@@ -42,6 +43,7 @@
 #include "render/render_view.hpp"
 #include "render/renderer.hpp"
 #include "sim/collision/world_list.hpp"
+#include "sim/input_frame.hpp"
 #include "sim/physics/racer_controls.hpp"
 #include "sim/race/race_session.hpp"
 #include "sim/race/race_track.hpp"
@@ -56,7 +58,7 @@ struct RaceOutputs {
     SoundBanks* banks = nullptr;
 };
 
-/// A race on a full grid with the player in slot 0. Other racers idle until AI drivers arrive.
+/// The players drive the first slots. One player races a full grid, and two race alone.
 class RaceScene final : public Scene {
 public:
     [[nodiscard]] static Result<std::unique_ptr<RaceScene>> Create(
@@ -73,6 +75,7 @@ public:
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
     [[nodiscard]] SceneMusic Music() const override;
+    [[nodiscard]] std::size_t PlayerCount() const override { return parts_.setup.players; }
 
 private:
     // NOLINTNEXTLINE(bugprone-exception-escape)
@@ -101,7 +104,6 @@ private:
 
     explicit RaceScene(Parts parts);
 
-    void FollowPlayer();
     void TickPause(const sim::InputFrame& input);
     void LeaveAfterResults(const sim::InputFrame& input);
     [[nodiscard]] overlay::RacerActionGroup EffectTools();
@@ -109,14 +111,17 @@ private:
     void ApplyChosenTools();
     [[nodiscard]] std::optional<PauseView> PauseShown() const;
     void GatherMeshes(const sim::RenderSnapshot& interpolated, float elapsedMs);
+    void GatherCarMarks(const sim::RenderSnapshot& interpolated, float simMs);
+    [[nodiscard]] render::RenderView PlayerView(const sim::RenderSnapshot& interpolated,
+                                                std::size_t player, float elapsedMs);
     void DrawDebugLines();
 
     Parts parts_;
     CarShadows shadows_;
-    SkidMarks skids_;
+    std::vector<SkidMarks> skids_;
     PowerupVisuals powerupVisuals_;
-    PowerupQuads powerupQuads_;
-    RaceCamera camera_;
+    std::vector<PowerupQuads> powerupQuads_;
+    PlayerCameras cameras_;
     RaceHudLayer hud_;
     PauseMenu pause_;
     std::optional<CircuitLeg> circuit_;
@@ -129,7 +134,10 @@ private:
     std::vector<render::DebugLine> collisionLines_;
     TriggerRings triggerRings_;
     std::vector<render::DebugLine> debugLines_;
-    std::vector<render::QuadDraw> quads_;
+    std::vector<render::QuadDraw> carMarks_;
+    std::array<std::vector<render::QuadDraw>, sim::kMaxPlayers> playerQuads_;
+    std::array<std::vector<render::MeshDraw>, sim::kMaxPlayers> tubeDraws_;
+    std::vector<render::RenderView> views_;
     bool showsCheckpoints_ = false;
     bool showsCollision_ = false;
     bool showsTriggers_ = false;

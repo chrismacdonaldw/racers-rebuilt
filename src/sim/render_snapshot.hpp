@@ -119,6 +119,7 @@ struct RenderSnapshot {
     std::vector<std::optional<PartClock>> entityClocks;
     std::vector<bool> hiddenModels;
     CameraSnapshot camera;
+    std::vector<CameraSnapshot> otherPlayerCameras;
     std::uint64_t simStateHash = 0;
 
     friend bool operator==(const RenderSnapshot&, const RenderSnapshot&) = default;

@@ -51,6 +51,19 @@ TEST_CASE("a race scene name marks a mirrored race") {
     CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:mirrored=no").has_value());
 }
 
+TEST_CASE("a race scene name records a two-player race") {
+    const RaceSceneSetup versus{.track = "RACEC0R0", .players = 2};
+
+    CHECK(RaceSceneName(versus) == "race:RACEC0R0:respawn=3000:racer=0:players=2");
+    CHECK(ParseRaceScene(RaceSceneName(versus)) == versus);
+    CHECK(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0")->players == 1);
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:players=3"));
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:players=0"));
+    CHECK_FALSE(
+        ParseCircuitScene("circuit:c0:respawn=3000:racer=0:race=0:"
+                          "points=0,0,0,0,0,0:players=2"));
+}
+
 TEST_CASE("a malformed race scene name is rejected") {
     for (const std::string_view scene :
          {"RACEC0R0", "race:RACEC0R0", "race::respawn=3000", "race:RACEC0R0:respawn=0",

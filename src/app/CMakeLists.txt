@@ -12,6 +12,7 @@ rr_add_module(app
         circuit_leg.cpp
         collision_wireframe.cpp
         extensions.cpp
+        player_cameras.cpp
         gameplay_fingerprint.cpp
         frame_loop.cpp
         ground_decal.cpp

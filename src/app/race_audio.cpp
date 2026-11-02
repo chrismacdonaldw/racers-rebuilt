@@ -216,9 +216,9 @@ void RaceAudio::StopLoops() {
     powerups_.Silence(*mixer_);
 }
 
-void RaceAudio::Hear(const sim::RaceSession& session, const Transform& camera,
+void RaceAudio::Hear(const sim::RaceSession& session, std::span<const Transform> cameras,
                      Milliseconds elapsed) {
-    listener_ = ListenerAt(camera);
+    listener_ = ListenerAt(cameras);
     for (const sim::SoundEvent& event : session.Sounds()) {
         PlayEvent(session, event);
     }
@@ -414,7 +414,7 @@ void RaceAudio::HearNearestOpponent(const sim::RaceSession& session) {
             nearestDistance = Dot(offset, offset);
         }
     }
-    if (nearest == nullptr || !session.Clock().IsRunning()) {
+    if (nearest == nullptr || !session.Clock().IsRunning() || listener_.earCount > 1) {
         opponentLoop_.Stop(*mixer_);
         return;
     }

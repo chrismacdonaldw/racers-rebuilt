@@ -107,6 +107,14 @@ struct QuadDraw {
     BlendMode blend = BlendMode::Alpha;
 };
 
+/// In fractions of the window's width and height, from its top left.
+struct Viewport {
+    float x = 0.0F;
+    float y = 0.0F;
+    float width = 1.0F;
+    float height = 1.0F;
+};
+
 /// Quads draw after the meshes without writing depth, then sprites over the scene, each in order.
 struct RenderView {
     Camera camera;
@@ -115,6 +123,7 @@ struct RenderView {
     std::span<const QuadDraw> quads;
     std::span<const DebugLine> lines;
     std::span<const SpriteDraw> sprites;
+    Viewport viewport;
 };
 
 }

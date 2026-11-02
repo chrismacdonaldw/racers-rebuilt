@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <format>
 #include <limits>
+#include <span>
 #include <utility>
 #include <vector>
 
@@ -10,6 +11,14 @@
 #include "render/renderer.hpp"
 
 namespace rr::render {
+namespace {
+
+template <typename T>
+std::span<const T> FirstAtMost(std::span<const T> items, std::size_t count) {
+    return items.first(std::min(items.size(), count));
+}
+
+}
 
 Result<MeshId> Renderer::UploadMesh(const assets::GeometryAsset& geometry) {
     const std::span<const assets::GeometryVertex> vertices = geometry.vertices;
@@ -163,17 +172,43 @@ Result<void> Renderer::UploadBuffers(std::span<const UploadPart> parts) {
     return {};
 }
 
-Result<void> Renderer::UploadFrame(SDL_GPUCommandBuffer* commands, std::span<const DebugLine> lines,
-                                   std::span<const QuadDraw> quads,
-                                   std::span<const SpriteDraw> sprites) {
+void Renderer::GatherViews(std::span<const RenderView> views) {
     lineVertices_.clear();
-    for (const DebugLine& line : lines) {
-        lineVertices_.push_back({.position = line.from, .color = line.color});
-        lineVertices_.push_back({.position = line.to, .color = line.color});
+    quadVertices_.clear();
+    quadBatches_.clear();
+    sprites_.clear();
+    viewRanges_.clear();
+    for (const RenderView& view : views) {
+        ViewRange& range = viewRanges_.emplace_back(ViewRange{
+            .firstLine = lineVertices_.size() / 2, .firstQuadBatch = quadBatches_.size()});
+        for (const DebugLine& line : FirstAtMost(view.lines, kMaxDebugLines - range.firstLine)) {
+            lineVertices_.push_back({.position = line.from, .color = line.color});
+            lineVertices_.push_back({.position = line.to, .color = line.color});
+        }
+        range.lineCount = (lineVertices_.size() / 2) - range.firstLine;
+
+        const std::size_t firstQuad = quadVertices_.size() / kVerticesPerSprite;
+        BatchQuads(FirstAtMost(view.quads, kMaxQuads - firstQuad), viewQuadVertices_,
+                   viewQuadBatches_);
+        quadVertices_.insert(quadVertices_.end(), viewQuadVertices_.begin(),
+                             viewQuadVertices_.end());
+        for (SpriteBatch batch : viewQuadBatches_) {
+            batch.firstSprite += static_cast<std::uint32_t>(firstQuad);
+            quadBatches_.push_back(batch);
+        }
+        range.quadBatchCount = quadBatches_.size() - range.firstQuadBatch;
+
+        const std::span<const SpriteDraw> sprites =
+            FirstAtMost(view.sprites, kMaxSprites - sprites_.size());
+        sprites_.insert(sprites_.end(), sprites.begin(), sprites.end());
     }
-    BatchQuads(quads, quadVertices_, quadBatches_);
-    BatchSprites(sprites, spriteVertices_, spriteBatches_);
-    if (lines.empty() && quads.empty() && sprites.empty()) {
+    BatchSprites(sprites_, spriteVertices_, spriteBatches_);
+}
+
+Result<void> Renderer::UploadFrame(SDL_GPUCommandBuffer* commands,
+                                   std::span<const RenderView> views) {
+    GatherViews(views);
+    if (lineVertices_.empty() && quadVertices_.empty() && spriteVertices_.empty()) {
         return {};
     }
     const std::array uploads{

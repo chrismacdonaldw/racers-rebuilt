@@ -9,6 +9,7 @@
 
 #include "assets/circuit_database.hpp"
 #include "core/duration.hpp"
+#include "sim/input_frame.hpp"
 
 namespace rr::app {
 namespace {
@@ -20,6 +21,7 @@ constexpr std::string_view kRacerKey = "racer";
 constexpr std::string_view kCircuitKey = "circuit";
 constexpr std::string_view kAiKey = "ai";
 constexpr std::string_view kMirroredKey = "mirrored";
+constexpr std::string_view kPlayersKey = "players";
 constexpr std::string_view kRaceKey = "race";
 constexpr std::string_view kPointsKey = "points";
 constexpr std::string_view kRespawnOff = "off";
@@ -158,6 +160,9 @@ std::string RaceSceneName(const RaceSceneSetup& setup) {
     if (setup.isMirrored) {
         name += std::format(":{}", kMirroredKey);
     }
+    if (setup.players > 1) {
+        name += std::format(":{}={}", kPlayersKey, setup.players);
+    }
     return name + AiField(setup);
 }
 
@@ -166,7 +171,18 @@ bool IsRaceScene(std::string_view scene) {
 }
 
 Result<RaceSceneSetup> ParseRaceScene(std::string_view scene) {
-    return ParseScene(scene, kRacePrefix, &RaceSceneSetup::track, [](Field) { return false; });
+    std::size_t players = 1;
+    return ParseScene(scene, kRacePrefix, &RaceSceneSetup::track,
+                      [&](Field field) {
+                          players = field.key == kPlayersKey
+                                        ? ParseNumber<std::size_t>(field.value).value_or(0)
+                                        : 0;
+                          return players >= 1 && players <= sim::kMaxPlayers;
+                      })
+        .transform([&](RaceSceneSetup setup) {
+            setup.players = players;
+            return setup;
+        });
 }
 
 std::string CircuitSceneName(const CircuitSceneSetup& setup) {

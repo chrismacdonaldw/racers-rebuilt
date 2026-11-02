@@ -1,5 +1,8 @@
 #include "app/positional_sound.hpp"
 
+#include <algorithm>
+#include <limits>
+
 #include "app/track_space.hpp"
 #include "core/quaternion.hpp"
 
@@ -22,19 +25,48 @@ float Falloff(float distanceSquared, SoundRange range) {
 
 }
 
+Listener ListenerAt(std::span<const Transform> cameras) {
+    Listener listener{.earCount = std::min(cameras.size(), sim::kMaxPlayers)};
+    for (std::size_t i = 0; i < listener.earCount; ++i) {
+        listener.ears.at(i) = {.position = cameras[i].position,
+                               .right = Rotate(cameras[i].rotation, {.x = 1.0F})};
+    }
+    return listener;
+}
+
 Listener ListenerAt(const Transform& camera) {
-    return {.position = camera.position, .right = Rotate(camera.rotation, {.x = 1.0F})};
+    return ListenerAt(std::span(&camera, 1));
+}
+
+float DistanceSquaredToNearestEar(const Listener& listener, const Vector3& source) {
+    float nearest = std::numeric_limits<float>::max();
+    for (const Ear& ear : listener.Ears()) {
+        const Vector3 offset = ToEngine(source) - ear.position;
+        nearest = std::min(nearest, Dot(offset, offset));
+    }
+    return nearest;
 }
 
 audio::VoiceMix PlaceSound(const Listener& listener, const Vector3& source,
                            const audio::VoiceMix& mix, SoundRange range) {
-    const Vector3 offset = ToEngine(source) - listener.position;
-    const float distanceSquared = Dot(offset, offset);
-    const float side = Dot(offset, listener.right);
-    const float pan = distanceSquared > 0.0F
-                          ? kPanScale * side * side / distanceSquared * (side < 0.0F ? -1.0F : 1.0F)
-                          : 0.0F;
-    return {.volume = mix.volume * Falloff(distanceSquared, range), .pitch = mix.pitch, .pan = pan};
+    float loudest = 0.0F;
+    float heard = 0.0F;
+    float weightedPan = 0.0F;
+    for (const Ear& ear : listener.Ears()) {
+        const Vector3 offset = ToEngine(source) - ear.position;
+        const float distanceSquared = Dot(offset, offset);
+        const float side = Dot(offset, ear.right);
+        const float pan = distanceSquared > 0.0F ? kPanScale * side * side / distanceSquared *
+                                                       (side < 0.0F ? -1.0F : 1.0F)
+                                                 : 0.0F;
+        const float falloff = Falloff(distanceSquared, range);
+        loudest = std::max(loudest, falloff);
+        heard += falloff;
+        weightedPan += falloff * pan;
+    }
+    return {.volume = mix.volume * loudest,
+            .pitch = mix.pitch,
+            .pan = heard > 0.0F ? weightedPan / heard : 0.0F};
 }
 
 }

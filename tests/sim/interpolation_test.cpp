@@ -54,6 +54,21 @@ TEST_CASE("a camera cut skips camera interpolation") {
     CHECK(out.camera.transform.position.y == 6.0F);
 }
 
+TEST_CASE("other players' cameras blend unless they cut") {
+    const RenderSnapshot previous{.otherPlayerCameras = {{.transform = {.position = {.x = 0.0F}}},
+                                                         {.transform = {.position = {.x = 0.0F}}}}};
+    const RenderSnapshot current{.otherPlayerCameras = {{.transform = {.position = {.x = 4.0F}}},
+                                                        {.transform = {.position = {.x = 4.0F}},
+                                                         .flags = SnapshotFlags::Teleported}}};
+    RenderSnapshot out;
+
+    Interpolate(previous, current, 0.25F, out);
+
+    REQUIRE(out.otherPlayerCameras.size() == 2);
+    CHECK(out.otherPlayerCameras[0].transform.position.x == doctest::Approx(1.0F));
+    CHECK(out.otherPlayerCameras[1].transform.position.x == 4.0F);
+}
+
 TEST_CASE("effects blend by slot unless they started this tick") {
     const RenderSnapshot previous{.effects = {{.slot = 3, .transform = {.position = {.x = 0.0F}}},
                                               {.slot = 4, .transform = {.position = {.x = 0.0F}}}}};

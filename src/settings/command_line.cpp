@@ -2,13 +2,16 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <format>
+#include <system_error>
 #include <utility>
 
 namespace rr::settings {
 namespace {
 
 constexpr std::string_view kSetFlag = "--set";
+constexpr std::string_view kPlayersFlag = "--players";
 
 struct TextFlag {
     std::string_view flag;
@@ -43,6 +46,16 @@ Result<FlagValue> TakeFlag(std::span<const std::string_view> args, std::size_t& 
     return FlagValue{.flag = arg, .value = args[index]};
 }
 
+Result<std::size_t> ParsePlayers(std::string_view text) {
+    std::size_t players = 0;
+    const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), players);
+    if (error != std::errc() || end != text.data() + text.size() || players == 0) {
+        return Fail(ErrorCode::InvalidData,
+                    std::format("--players expects a player count, got \"{}\"", text));
+    }
+    return players;
+}
+
 Result<SettingOverride> ParseOverride(std::string_view text) {
     const std::size_t equals = text.find('=');
     if (equals == std::string_view::npos || equals == 0) {
@@ -71,6 +84,12 @@ Result<CommandLine> ParseCommandLine(std::span<const std::string_view> args) {
                 return std::unexpected(std::move(setting.error()));
             }
             commandLine.overrides.push_back(std::move(*setting));
+        } else if (flag->flag == kPlayersFlag) {
+            Result<std::size_t> players = ParsePlayers(flag->value);
+            if (!players) {
+                return std::unexpected(std::move(players.error()));
+            }
+            commandLine.players = *players;
         } else {
             return Fail(ErrorCode::InvalidData, std::format("unknown option {}", flag->flag));
         }

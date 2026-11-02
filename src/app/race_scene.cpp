@@ -34,8 +34,12 @@ namespace {
 constexpr std::uint64_t kHashPrime = 1099511628211ULL;
 constexpr Milliseconds kCircuitResultsTime{5000};
 
-sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, std::uint64_t seed,
-                        std::size_t slots) {
+std::size_t SlotCount(const RaceSceneSetup& setup, std::size_t gridSize) {
+    return setup.players > 1 ? setup.players : gridSize;
+}
+
+sim::RaceSetup GridSetup(const RaceSceneSetup& scene, const RacerGrid& racers, std::uint64_t seed,
+                         std::size_t slots) {
     sim::RaceSetup setup{.track = scene.track,
                          .seed = seed,
                          .respawn = scene.respawn,
@@ -47,8 +51,30 @@ sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, st
         setup.racers[i].localBounds = racers.LocalBounds(i);
         setup.racers[i].habits = racers.Habits(i);
     }
-    setup.racers[kPlayerSlot].isPlayer = true;
+    for (std::size_t player = 0; player < scene.players; ++player) {
+        setup.racers[kPlayerSlot + player].isPlayer = true;
+    }
     return setup;
+}
+
+std::vector<SkidMarks> PlayerSkids(const assets::NameMap<render::Material>& materials,
+                                   const RacerGrid& racers, std::size_t players) {
+    std::vector<SkidMarks> skids;
+    skids.reserve(players);
+    for (std::size_t player = 0; player < players; ++player) {
+        skids.emplace_back(materials, racers.Skids(kPlayerSlot + player));
+    }
+    return skids;
+}
+
+std::vector<PowerupQuads> PlayerPowerupQuads(const assets::NameMap<render::Material>& materials,
+                                             std::size_t players) {
+    std::vector<PowerupQuads> quads;
+    quads.reserve(players);
+    for (std::size_t player = 0; player < players; ++player) {
+        quads.emplace_back(materials);
+    }
+    return quads;
 }
 
 template <typename T>
@@ -107,7 +133,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     Result<sim::RaceTrack> loaded = model.and_then(
         [&](const TrackModel&) { return sim::LoadRaceTrack(vfs, track, setup.isMirrored); });
     Result<RacerGrid> racers = loaded.and_then([&](const sim::RaceTrack& race) {
-        return RacerGrid::Load(renderer, vfs, loader, setup, race.grid.size());
+        return RacerGrid::Load(renderer, vfs, loader, setup, SlotCount(setup, race.grid.size()));
     });
     Result<BrickModels> bricks =
         racers.and_then([&](const RacerGrid&) { return BrickModels::Load(renderer, loader); });
@@ -118,7 +144,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     auto world = std::make_unique<sim::WorldList>(raceTrack->collision.Track());
     TrackEntityDraws entityDraws(model->animatedModels, raceTrack->entities);
     Result<sim::RaceSession> session = sim::RaceSession::Create(
-        FullGrid(setup, *racers, seed, racers->Count()), sim::CourseOf(*raceTrack, *world));
+        GridSetup(setup, *racers, seed, racers->Count()), sim::CourseOf(*raceTrack, *world));
     if (!session) {
         return std::unexpected(std::move(session.error()));
     }
@@ -162,10 +188,10 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
 RaceScene::RaceScene(Parts parts)
     : parts_(std::move(parts)),
       shadows_(parts_.racerFx, PerSlot(parts_.racers, parts_.racers.Count(), &RacerGrid::Chassis)),
-      skids_(parts_.racerFx, parts_.racers.Skids(kPlayerSlot)),
+      skids_(PlayerSkids(parts_.racerFx, parts_.racers, parts_.setup.players)),
       powerupVisuals_(parts_.powerups.models),
-      powerupQuads_(parts_.powerups.quadMaterials),
-      camera_(SubjectOf(parts_.session.Racers()[kPlayerSlot])),
+      powerupQuads_(PlayerPowerupQuads(parts_.powerups.quadMaterials, parts_.setup.players)),
+      cameras_(parts_.session, parts_.setup.players),
       hud_(*parts_.renderer, *parts_.vfs, kPlayerSlot,
            PerSlot(parts_.racers, parts_.session.Racers().size(), &RacerGrid::NameIndex)),
       controls_(parts_.session.Racers().size()),
@@ -240,15 +266,15 @@ void RaceScene::Tick(const sim::InputFrame& input) {
     }
     ApplyChosenTools();
     LeaveAfterResults(input);
-    StepRace(parts_.session, input, controls_);
+    StepRace(parts_.session, input, controls_, cameras_.Count());
     hud_.Tick(parts_.session, kSimTick);
     parts_.waterScroll.Tick(kSimTick);
-    FollowPlayer();
+    cameras_.Follow(parts_.session);
     if (parts_.audio) {
-        parts_.audio->Hear(parts_.session, camera_.Pose(), kSimTick);
+        parts_.audio->Hear(parts_.session, cameras_.Poses(), kSimTick);
     }
     if (parts_.particles) {
-        parts_.particles->Tick(parts_.session, camera_.Pose(), kSimTick);
+        parts_.particles->Tick(parts_.session, cameras_.Poses().front(), kSimTick);
     }
 }
 
@@ -258,7 +284,7 @@ SceneMusic RaceScene::Music() const {
 
 void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
     SnapshotRace(parts_.session, out);
-    out.camera = {.transform = camera_.Pose(), .flags = out.entities[kPlayerSlot].flags};
+    cameras_.Snapshot(out);
     if (pause_.IsOpen()) {
         out.simStateHash = (out.simStateHash * kHashPrime) ^ pause_.StateHash();
     }
@@ -283,46 +309,74 @@ void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float elap
     draws_.insert(draws_.end(), powerupVisuals_.Draws().begin(), powerupVisuals_.Draws().end());
 }
 
-void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
-    const float elapsedMs = MsSince(lastRender_);
-    GatherMeshes(interpolated, elapsedMs);
+void RaceScene::GatherCarMarks(const sim::RenderSnapshot& interpolated, float simMs) {
+    carMarks_.clear();
+    shadows_.Append(interpolated.entities, interpolated.racers, carLooks_, *parts_.world,
+                    carMarks_);
+    for (std::size_t player = 0; player < skids_.size(); ++player) {
+        const std::size_t slot = kPlayerSlot + player;
+        skids_[player].Update(interpolated.entities[slot], interpolated.racers[slot], simMs);
+        skids_[player].Append(*parts_.world, carMarks_);
+    }
+}
+
+render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated,
+                                         std::size_t player, float elapsedMs) {
+    const std::size_t slot = kPlayerSlot + player;
+    const render::Camera lens = PlayerLens(parts_.camera, cameras_.Count());
+    const render::Viewport viewport = PlayerViewport(player, cameras_.Count());
+    const sim::EffectSnapshot* flight =
+        FindWarp(interpolated.effects, slot, sim::WarpPhase::Active);
+    if (flight != nullptr && parts_.warpTube) {
+        parts_.warpTube->Fly(flight->phaseLeftMs, interpolated.entities[slot].transform,
+                             parts_.racers.SlotDraws(slot));
+        std::vector<render::MeshDraw>& tube = tubeDraws_.at(player);
+        tube.assign(parts_.warpTube->Draws().begin(), parts_.warpTube->Draws().end());
+        return {.camera = WarpFlightCamera(lens, flight->phaseLeftMs),
+                .meshes = tube,
+                .viewport = viewport};
+    }
+    render::Camera camera = lens;
+    camera.transform = PlayerCameraPose(interpolated, player);
     const sim::EffectSnapshot* start =
-        FindWarp(interpolated.effects, kPlayerSlot, sim::WarpPhase::Starting);
-    render::Camera camera = parts_.camera;
-    camera.transform = interpolated.camera.transform;
+        FindWarp(interpolated.effects, slot, sim::WarpPhase::Starting);
     if (start != nullptr) {
         camera = WarpStartCamera(camera, start->phaseLeftMs);
     }
-    DrawDebugLines();
-    quads_.clear();
-    shadows_.Append(interpolated.entities, interpolated.racers, carLooks_, *parts_.world, quads_);
+    std::vector<render::QuadDraw>& quads = playerQuads_.at(player);
+    quads.assign(carMarks_.begin(), carMarks_.end());
+    if (parts_.particles) {
+        parts_.particles->AppendQuads(camera.transform, quads);
+    }
+    PowerupQuads& powerupQuads = powerupQuads_[player];
+    powerupQuads.Update(interpolated, camera.transform, elapsedMs);
+    quads.insert(quads.end(), powerupQuads.Quads().begin(), powerupQuads.Quads().end());
+    return {.camera = camera,
+            .meshes = draws_,
+            .quads = quads,
+            .lines = debugLines_,
+            .viewport = viewport};
+}
+
+void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
+    const float elapsedMs = MsSince(lastRender_);
     const float simMs = pause_.IsOpen() ? 0.0F : elapsedMs;
-    skids_.Update(interpolated.entities[kPlayerSlot], interpolated.racers[kPlayerSlot], simMs);
-    skids_.Append(*parts_.world, quads_);
+    GatherMeshes(interpolated, elapsedMs);
+    DrawDebugLines();
+    GatherCarMarks(interpolated, simMs);
     if (parts_.particles) {
         parts_.particles->Update(parts_.session, render::FloatMilliseconds{simMs});
-        parts_.particles->AppendQuads(camera.transform, quads_);
     }
-    powerupQuads_.Update(interpolated, camera.transform, elapsedMs);
-    quads_.insert(quads_.end(), powerupQuads_.Quads().begin(), powerupQuads_.Quads().end());
-    render::RenderView view{
-        .camera = camera,
-        .meshes = draws_,
-        .quads = quads_,
-        .lines = debugLines_,
-        .sprites = hud_.Draw(parts_.session, interpolated.racers[kPlayerSlot],
-                             start != nullptr ? WarpFlash(start->phaseLeftMs) : std::nullopt,
-                             PauseShown())};
-    const sim::EffectSnapshot* flight =
-        FindWarp(interpolated.effects, kPlayerSlot, sim::WarpPhase::Active);
-    if (flight != nullptr && parts_.warpTube) {
-        parts_.warpTube->Fly(flight->phaseLeftMs, interpolated.entities[kPlayerSlot].transform,
-                             parts_.racers.SlotDraws(kPlayerSlot));
-        view = {.camera = WarpFlightCamera(parts_.camera, flight->phaseLeftMs),
-                .meshes = parts_.warpTube->Draws(),
-                .sprites = view.sprites};
+    views_.clear();
+    for (std::size_t player = 0; player < cameras_.Count(); ++player) {
+        views_.push_back(PlayerView(interpolated, player, elapsedMs));
     }
-    Result<void> drawn = parts_.renderer->Draw(view);
+    const sim::EffectSnapshot* start =
+        FindWarp(interpolated.effects, kPlayerSlot, sim::WarpPhase::Starting);
+    views_.front().sprites =
+        hud_.Draw(parts_.session, interpolated.racers[kPlayerSlot],
+                  start != nullptr ? WarpFlash(start->phaseLeftMs) : std::nullopt, PauseShown());
+    Result<void> drawn = parts_.renderer->Draw(views_);
     if (!drawn) {
         log::Error("{}", drawn.error().message);
         return;
@@ -334,19 +388,6 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
             parts_.session.Racers().size(),
             std::chrono::duration_cast<Milliseconds>(platform::Now() - parts_.started).count());
     }
-}
-
-void RaceScene::FollowPlayer() {
-    const sim::Racer& player = std::as_const(parts_.session).Racers()[kPlayerSlot];
-    if (parts_.session.WasRespawned(kPlayerSlot) || player.Events().hasWarpLanded) {
-        camera_.Cut();
-    }
-    const bool hasFinished = parts_.session.Progress().OfRacer(kPlayerSlot).finishPlace.has_value();
-    if (hasFinished && camera_.View() != CameraView::Finish && !player.Status().isGhost &&
-        !player.Status().isWarping) {
-        camera_.SetView(CameraView::Finish, false);
-    }
-    camera_.Follow(SubjectOf(player), static_cast<float>(kSimTick.count()));
 }
 
 void RaceScene::TickPause(const sim::InputFrame& input) {
