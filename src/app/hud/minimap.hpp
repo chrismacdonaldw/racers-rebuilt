@@ -4,6 +4,7 @@
 #include <span>
 #include <vector>
 
+#include "app/hud/hud_placement.hpp"
 #include "app/ui_text/ui_image.hpp"
 #include "core/vector3.hpp"
 #include "render/render_view.hpp"
@@ -34,9 +35,9 @@ struct MapView {
 };
 
 void DrawFixedMap(const TrackMap& map, const MapView& view, const UiImage& markers,
-                  std::vector<render::SpriteDraw>& out);
+                  const HudPlacement& placement, std::vector<render::SpriteDraw>& out);
 
 void DrawRotatingMap(const TrackMap& map, const MapView& view, const UiImage& markers,
-                     std::vector<render::SpriteDraw>& out);
+                     const HudPlacement& placement, std::vector<render::SpriteDraw>& out);
 
 }

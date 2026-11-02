@@ -39,14 +39,15 @@ public:
     void SetCircuitPoints(std::span<const std::int32_t> before);
 
     void SetMap(std::optional<TrackMap> map);
+    void CycleGadget(std::size_t player);
 
     void Tick(const sim::RaceSession& session, Milliseconds elapsed);
     void TickPause(Milliseconds elapsed);
 
-    /// Valid until the next call. Each `covers` entry fills its player's half over their HUD.
+    /// Valid until the next call. `maps` and `covers` hold an entry per player.
     [[nodiscard]] std::span<const render::SpriteDraw> Draw(
         const sim::RaceSession& session, std::span<const sim::RacerSnapshot> racers,
-        const MapView& firstPlayerMap, std::span<const std::optional<render::SpriteDraw>> covers,
+        std::span<const MapView> maps, std::span<const std::optional<render::SpriteDraw>> covers,
         std::optional<PauseView> pause);
 
 private:
@@ -60,7 +61,7 @@ private:
     std::vector<std::u16string> names_;
     std::vector<UiImage> images_;
     std::vector<RaceHud> huds_;
-    HudGadget gadget_;
+    std::vector<HudGadget> gadgets_;
     std::vector<HudText> texts_;
     std::vector<render::SpriteDraw> sprites_;
 };

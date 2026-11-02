@@ -37,26 +37,12 @@ constexpr float kCircuitTitleY = 60.0F;
 constexpr Milliseconds kBlinkPeriod{400};
 constexpr Milliseconds kBlinkLit{250};
 constexpr render::Color kCountdownTint{.r = 1.0F, .g = 1.0F, .b = 0.0F};
-constexpr float kSplitTextScale = 0.9F;
-constexpr float kSplitBannerScale = 0.8F;
 
 float TimeWidth(const HudFonts& fonts) {
     std::array<char16_t, kRaceTimeLength> zero{};
     return fonts.Width(HudFont::Text, WriteRaceTime(Milliseconds{0}, zero));
 }
 
-}
-
-HudPlacement PlacementFor(std::size_t player, std::size_t players) {
-    if (players <= 1) {
-        return {};
-    }
-    const float height = render::kUiHeight / static_cast<float>(players);
-    const float top = height * static_cast<float>(player);
-    return {.top = top,
-            .bottom = top + height,
-            .textScale = kSplitTextScale,
-            .bannerScale = kSplitBannerScale};
 }
 
 RaceHud::RaceHud(HudStrings strings, HudFonts fonts, HudPlacement placement)

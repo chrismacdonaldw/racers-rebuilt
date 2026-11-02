@@ -8,6 +8,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/hud/hud_placement.hpp"
 #include "app/hud/hud_strings.hpp"
 #include "app/hud/hud_text.hpp"
 #include "app/hud/place_pulse.hpp"
@@ -32,17 +33,6 @@ struct HudRacer {
     std::size_t slot = 0;
     bool isGhost = false;
 };
-
-/// In UI units. Rows measure their y from `top`.
-struct HudPlacement {
-    float top = 0.0F;
-    float bottom = render::kUiHeight;
-    float textScale = 1.0F;
-    float bannerScale = 1.0F;
-};
-
-/// Full screen for one player. With two, player 1 takes the top half and player 2 the bottom.
-[[nodiscard]] HudPlacement PlacementFor(std::size_t player, std::size_t players);
 
 /// One racer's HUD, placed as the original places it on a 640×480 screen.
 class RaceHud {

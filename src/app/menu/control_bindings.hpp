@@ -20,11 +20,11 @@ enum class ControlsDevice : std::uint8_t { Keyboard, Gamepad };
 
 inline constexpr std::size_t kControlRows = 9;
 
-/// The original's rows, top to bottom. Camera, display and look back have no action yet.
+/// The original's rows, top to bottom. Camera and look back have no action yet.
 inline constexpr std::array<std::optional<sim::Action>, kControlRows> kControlActions{
-    sim::Action::SteerLeft, sim::Action::SteerRight, sim::Action::Accelerate,
-    sim::Action::Brake,     sim::Action::UsePowerup, std::nullopt,
-    std::nullopt,           sim::Action::Drift,      std::nullopt,
+    sim::Action::SteerLeft,     sim::Action::SteerRight, sim::Action::Accelerate,
+    sim::Action::Brake,         sim::Action::UsePowerup, std::nullopt,
+    sim::Action::ToggleDisplay, sim::Action::Drift,      std::nullopt,
 };
 
 using ControlNames = std::array<std::vector<std::string>, kControlRows>;

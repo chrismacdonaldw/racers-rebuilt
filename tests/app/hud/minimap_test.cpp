@@ -52,7 +52,7 @@ bool IsWithin(const render::SpriteDraw& sprite, const render::Rect& area) {
 TEST_CASE("the fixed map image fills a 128 square in the bottom right") {
     std::vector<render::SpriteDraw> out;
 
-    DrawFixedMap(SquareMap(), PlayerAt({}), kMarkers, out);
+    DrawFixedMap(SquareMap(), PlayerAt({}), kMarkers, {}, out);
 
     REQUIRE(out.size() == kImageSprites + kArrowSprites);
     const render::SpriteDraw& upper = out[0];
@@ -70,7 +70,7 @@ TEST_CASE("the fixed map image fills a 128 square in the bottom right") {
 TEST_CASE("a mirrored fixed map flips its image") {
     std::vector<render::SpriteDraw> out;
 
-    DrawFixedMap(SquareMap(true), PlayerAt({}), kMarkers, out);
+    DrawFixedMap(SquareMap(true), PlayerAt({}), kMarkers, {}, out);
 
     CHECK(test::CornersOf(out[0])[0].v == doctest::Approx(0.0F));
     CHECK(test::CornersOf(out[0])[2].v == doctest::Approx(0.999F));
@@ -82,7 +82,7 @@ TEST_CASE("fixed map markers sit on their racers and the champion has its own ce
         MapMarker{.position = {.x = -512.0F, .y = 512.0F}, .isChampion = true}};
     std::vector<render::SpriteDraw> out;
 
-    DrawFixedMap(SquareMap(), PlayerAt({}, markers), kMarkers, out);
+    DrawFixedMap(SquareMap(), PlayerAt({}, markers), kMarkers, {}, out);
 
     REQUIRE(out.size() == kImageSprites + markers.size() + kArrowSprites);
     const render::SpriteDraw& corner = out[kImageSprites];
@@ -102,7 +102,7 @@ TEST_CASE("a mirrored fixed map measures markers from the mirrored far edge") {
     const std::array markers{MapMarker{.position = {.x = 512.0F, .y = -512.0F}}};
     std::vector<render::SpriteDraw> out;
 
-    DrawFixedMap(SquareMap(true), PlayerAt({}, markers), kMarkers, out);
+    DrawFixedMap(SquareMap(true), PlayerAt({}, markers), kMarkers, {}, out);
 
     CHECK(out[kImageSprites].bounds.y == 457.0F);
 }
@@ -110,7 +110,7 @@ TEST_CASE("a mirrored fixed map measures markers from the mirrored far edge") {
 TEST_CASE("the fixed map arrow points along the player's heading, black under green") {
     std::vector<render::SpriteDraw> out;
 
-    DrawFixedMap(SquareMap(), PlayerAt({.x = 8.0F, .y = 8.0F}), kMarkers, out);
+    DrawFixedMap(SquareMap(), PlayerAt({.x = 8.0F, .y = 8.0F}), kMarkers, {}, out);
 
     const render::SpriteDraw& black = out[out.size() - 2];
     const render::SpriteDraw& green = out.back();
@@ -127,7 +127,7 @@ TEST_CASE("the rotating map turns the view direction up") {
     view.viewDirection = {.x = 1.0F};
     std::vector<render::SpriteDraw> out;
 
-    DrawRotatingMap(SquareMap(), view, kMarkers, out);
+    DrawRotatingMap(SquareMap(), view, kMarkers, {}, out);
 
     const auto marker =
         std::ranges::find_if(out, [](const render::SpriteDraw& s) { return s.texture == kSheet; });
@@ -140,7 +140,7 @@ TEST_CASE("the rotating map clips its image to the square and draws a border las
     const render::Rect square{.x = 497.0F, .y = 337.0F, .width = 128.0F, .height = 128.0F};
     std::vector<render::SpriteDraw> out;
 
-    DrawRotatingMap(SquareMap(), PlayerAt({.x = 400.0F, .y = 400.0F}), kMarkers, out);
+    DrawRotatingMap(SquareMap(), PlayerAt({.x = 400.0F, .y = 400.0F}), kMarkers, {}, out);
 
     REQUIRE(out.size() > kArrowSprites + kBorderSprites);
     CHECK(std::ranges::all_of(out, [&](const render::SpriteDraw& sprite) {
@@ -151,10 +151,42 @@ TEST_CASE("the rotating map clips its image to the square and draws a border las
     CHECK(out.back().bounds.x == 624.0F);
 }
 
+TEST_CASE("a split screen map shrinks into its half's corner and takes the second marker row") {
+    const std::array markers{MapMarker{.position = {.x = 512.0F, .y = -512.0F}}};
+    std::vector<render::SpriteDraw> out;
+
+    DrawFixedMap(SquareMap(), PlayerAt({}, markers), kMarkers, PlacementFor(0, 2), out);
+
+    REQUIRE(out.size() == kImageSprites + markers.size() + kArrowSprites);
+    CHECK(test::CornersOf(out[0])[0].x == doctest::Approx(522.6F));
+    CHECK(test::CornersOf(out[0])[0].y == doctest::Approx(122.6F));
+    CHECK(test::CornersOf(out[0])[2].y == doctest::Approx(225.0F));
+    const render::SpriteDraw& marker = out[kImageSprites];
+    CHECK(marker.bounds.x == 617.0F);
+    CHECK(marker.bounds.y == 217.0F);
+    CHECK(marker.bounds.width == 16.0F);
+    CHECK(marker.uv.y == doctest::Approx(0.5F));
+}
+
+TEST_CASE("split screen markers are clipped to their own half") {
+    const std::array markers{MapMarker{.position = {.y = 1800.0F}},
+                             MapMarker{.position = {.y = 2000.0F}}};
+    std::vector<render::SpriteDraw> out;
+
+    DrawRotatingMap(SquareMap(), PlayerAt({}, markers), kMarkers, PlacementFor(1, 2), out);
+
+    const auto isMarker = [](const render::SpriteDraw& s) { return s.texture == kSheet; };
+    REQUIRE(std::ranges::count_if(out, isMarker) == 1);
+    const render::SpriteDraw& marker = *std::ranges::find_if(out, isMarker);
+    CHECK(HasBounds(marker, {.x = 565.0F, .y = 240.0F, .width = 16.0F, .height = 9.0F}));
+    CHECK(marker.uv.y == doctest::Approx(23.0F / 32.0F));
+    CHECK(marker.uv.height == doctest::Approx(9.0F / 32.0F));
+}
+
 TEST_CASE("the rotating map arrow always points up from the centre") {
     std::vector<render::SpriteDraw> out;
 
-    DrawRotatingMap(SquareMap(), PlayerAt({}), kMarkers, out);
+    DrawRotatingMap(SquareMap(), PlayerAt({}), kMarkers, {}, out);
 
     const render::SpriteDraw& black = out[out.size() - kBorderSprites - 2];
     CHECK(test::CornersOf(black)[1].x == doctest::Approx(561.0F));

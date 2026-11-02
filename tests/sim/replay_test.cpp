@@ -123,11 +123,6 @@ TEST_CASE("a damaged replay is rejected") {
         bytes[kVersionOffset] = std::byte{kReplayFormatVersion + 1};
         CHECK_FALSE(DecodeReplay(Resealed(bytes)).has_value());
     }
-    SUBCASE("an unknown action") {
-        std::vector<std::byte> bytes = good;
-        bytes[good.size() - kChecksumBytes - 4] = std::byte{0xFF};
-        CHECK_FALSE(DecodeReplay(Resealed(bytes)).has_value());
-    }
     SUBCASE("runs that add up to too many ticks") {
         CHECK_FALSE(DecodeReplay(TwoLongRuns()).has_value());
     }

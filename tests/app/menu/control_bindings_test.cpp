@@ -16,6 +16,7 @@ constexpr std::size_t kAccelerateRow = 2;
 constexpr std::size_t kBrakeRow = 3;
 constexpr std::size_t kPowerupRow = 4;
 constexpr std::size_t kCameraRow = 5;
+constexpr std::size_t kDisplayRow = 6;
 constexpr std::size_t kPlayer1 = 0;
 constexpr std::size_t kPlayer2 = 1;
 
@@ -55,6 +56,8 @@ TEST_CASE("the controls rows read each device's own bindings, rows without an ac
     CHECK(keys[kTurnLeftRow] == std::vector<std::string>{"Left"});
     CHECK(buttons[kAccelerateRow] == std::vector<std::string>{"a", "righttrigger"});
     CHECK(keys[kCameraRow].empty());
+    CHECK(keys[kDisplayRow] == std::vector<std::string>{"M"});
+    CHECK(buttons[kDisplayRow] == std::vector<std::string>{"back"});
 }
 
 TEST_CASE("a new binding replaces the row's list and comes off the device's other rows") {

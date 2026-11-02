@@ -38,7 +38,7 @@ MapView View() {
 std::vector<render::SpriteDraw> Drawn(const HudGadget& gadget,
                                       const std::vector<UiImage>& images = GadgetImages()) {
     std::vector<render::SpriteDraw> out;
-    gadget.Draw(View(), images, out);
+    gadget.Draw(View(), images, {}, out);
     return out;
 }
 
@@ -100,6 +100,21 @@ TEST_CASE("the speedometer draws its dial, a two-tone needle and the hub cap") {
     CHECK(out[3].bounds.x == 578.0F);
     CHECK(out[3].bounds.y == 418.0F);
     CheckNeedleAt(out, 2.25F);
+}
+
+TEST_CASE("a split screen speedometer shrinks to 0.8 in its half's corner") {
+    std::vector<render::SpriteDraw> out;
+
+    Speedometer().Draw(View(), GadgetImages(), PlacementFor(0, 2), out);
+
+    REQUIRE(out.size() == 4);
+    CHECK(out[0].bounds.x == 536.0F);
+    CHECK(out[0].bounds.y == 136.0F);
+    CHECK(out[0].bounds.width == 102.0F);
+    const render::SpriteCorner tip = test::CornersOf(out[2])[2];
+    CHECK(tip.x == doctest::Approx(597.0F + (std::cos(2.25F) * 36.0F)));
+    CHECK(tip.y == doctest::Approx(197.0F + (std::sin(2.25F) * 36.0F)));
+    CHECK(out[3].bounds.width == 12.0F);
 }
 
 TEST_CASE("the needle eases a fifth of the way to the new speed each tick") {

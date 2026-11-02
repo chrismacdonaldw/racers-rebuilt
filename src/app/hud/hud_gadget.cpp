@@ -34,12 +34,12 @@ render::SpriteCorner Spoke(float x, float y, float angle, float length, render::
     return {.x = x + (std::cos(angle) * length), .y = y + (std::sin(angle) * length), .tint = tint};
 }
 
-float Width(const UiImage& image) {
-    return static_cast<float>(image.widthPx);
+float Width(const UiImage& image, float scale) {
+    return std::trunc(static_cast<float>(image.widthPx) * scale);
 }
 
-float Height(const UiImage& image) {
-    return static_cast<float>(image.heightPx);
+float Height(const UiImage& image, float scale) {
+    return std::trunc(static_cast<float>(image.heightPx) * scale);
 }
 
 }
@@ -53,22 +53,22 @@ void HudGadget::Tick(float forwardSpeed) {
 }
 
 void HudGadget::Draw(const MapView& view, std::span<const UiImage> images,
-                     std::vector<render::SpriteDraw>& out) const {
+                     const HudPlacement& placement, std::vector<render::SpriteDraw>& out) const {
     if (images.size() <= kMarkerImage) {
         return;
     }
     switch (mode_) {
         case HudGadgetMode::FixedMap:
             if (map_) {
-                DrawFixedMap(*map_, view, images[kMarkerImage], out);
+                DrawFixedMap(*map_, view, images[kMarkerImage], placement, out);
             }
             break;
         case HudGadgetMode::Speedometer:
-            DrawSpeedometer(speed_, images[kDialImage], images[kCapImage], out);
+            DrawSpeedometer(speed_, images[kDialImage], images[kCapImage], placement, out);
             break;
         case HudGadgetMode::RotatingMap:
             if (map_) {
-                DrawRotatingMap(*map_, view, images[kMarkerImage], out);
+                DrawRotatingMap(*map_, view, images[kMarkerImage], placement, out);
             }
             break;
         case HudGadgetMode::None:
@@ -77,26 +77,29 @@ void HudGadget::Draw(const MapView& view, std::span<const UiImage> images,
 }
 
 void DrawSpeedometer(float speed, const UiImage& dial, const UiImage& cap,
-                     std::vector<render::SpriteDraw>& out) {
-    const float dialWidth = Width(dial);
-    const float dialHeight = Height(dial);
+                     const HudPlacement& placement, std::vector<render::SpriteDraw>& out) {
+    const float scale = placement.mapScale;
+    const float dialWidth = Width(dial, scale);
+    const float dialHeight = Height(dial, scale);
     out.push_back({.texture = dial.texture,
                    .bounds = {.x = render::kUiWidth - dialWidth - kDialMargin,
-                              .y = render::kUiHeight - dialHeight - kDialMargin,
+                              .y = placement.bottom - dialHeight - kDialMargin,
                               .width = dialWidth,
                               .height = dialHeight}});
     const float hubX = render::kUiWidth - std::floor(dialWidth * kHubShare) - kDialMargin;
-    const float hubY = render::kUiHeight - std::floor(dialHeight * kHubShare) - kDialMargin;
+    const float hubY = placement.bottom - std::floor(dialHeight * kHubShare) - kDialMargin;
     const float angle = std::clamp(speed * kRadiansPerSpeed, 0.0F, kMaxSweep) + kZeroAngle;
+    const float needle = kNeedleLength * scale;
+    const float base = kNeedleBase * scale;
     const render::SpriteCorner hub{.x = hubX, .y = hubY, .tint = kHubGrey};
-    AppendTriangle({Spoke(hubX, hubY, angle + (2.0F * kThirdTurn), kNeedleBase, kNeedleGrey),
-                    Spoke(hubX, hubY, angle, kNeedleLength, kNeedleGrey), hub},
+    AppendTriangle({Spoke(hubX, hubY, angle + (2.0F * kThirdTurn), base, kNeedleGrey),
+                    Spoke(hubX, hubY, angle, needle, kNeedleGrey), hub},
                    render::kWhiteTexture, out);
-    AppendTriangle({Spoke(hubX, hubY, angle + kThirdTurn, kNeedleBase, kWhite), hub,
-                    Spoke(hubX, hubY, angle, kNeedleLength, kWhite)},
+    AppendTriangle({Spoke(hubX, hubY, angle + kThirdTurn, base, kWhite), hub,
+                    Spoke(hubX, hubY, angle, needle, kWhite)},
                    render::kWhiteTexture, out);
-    const float capWidth = Width(cap);
-    const float capHeight = Height(cap);
+    const float capWidth = Width(cap, scale);
+    const float capHeight = Height(cap, scale);
     out.push_back({.texture = cap.texture,
                    .bounds = {.x = std::trunc(hubX) - std::floor(capWidth / 2.0F),
                               .y = std::trunc(hubY) - std::floor(capHeight / 2.0F),

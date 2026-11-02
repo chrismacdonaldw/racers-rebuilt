@@ -54,6 +54,8 @@ inline constexpr std::array kActionBindings{
                "input.buttons.use_powerup", "Return", "x"),
     BindingFor(sim::Action::Pause, "Pause", "input.keys.pause", "input.buttons.pause", "Escape",
                "start"),
+    BindingFor(sim::Action::ToggleDisplay, "Toggle display", "input.keys.toggle_display",
+               "input.buttons.toggle_display", "M", "back"),
 };
 
 /// Player 2's bindings in a two-player race. Player 1's pause keys pause for both.
@@ -72,6 +74,8 @@ inline constexpr std::array kPlayer2Bindings{
                "input.p2.buttons.use_powerup", "Left Alt", "x"),
     BindingFor(sim::Action::Pause, "Player 2 pause", "input.p2.keys.pause",
                "input.p2.buttons.pause", "", "start"),
+    BindingFor(sim::Action::ToggleDisplay, "Player 2 toggle display",
+               "input.p2.keys.toggle_display", "input.p2.buttons.toggle_display", "E", "back"),
 };
 
 [[nodiscard]] std::span<const Binding<sim::Action>> RaceBindingsOf(std::size_t player);
