@@ -23,4 +23,8 @@ struct TextPlacement {
 void LayoutText(const UiFont& font, std::u16string_view text, const TextPlacement& placement,
                 std::vector<render::SpriteDraw>& out);
 
+/// Breaks as the original's fonts do, so a line also needs room for one more spacing.
+[[nodiscard]] std::vector<std::u16string_view> WrapText(const UiFont& font,
+                                                        std::u16string_view text, float width);
+
 }
