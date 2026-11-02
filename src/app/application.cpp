@@ -298,7 +298,9 @@ Result<std::unique_ptr<Scene>> Application::CreateWorldScene(std::string_view sc
         return CreateTrialRace(scene, loader, started);
     }
     if (IsCutsceneScene(scene)) {
-        return CutsceneScene::Create(renderer_, vfs_, loader, scene)
+        return CutsceneScene::Create(
+                   {.renderer = &renderer_, .mixer = &mixer_, .banks = &soundBanks_}, vfs_, loader,
+                   SelectedLanguage(settings_), scene)
             .transform(ToScene<CutsceneScene>);
     }
     return TrackViewerScene::Create(renderer_, vfs_, loader, scene, started)

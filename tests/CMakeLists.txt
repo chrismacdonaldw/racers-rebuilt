@@ -7,8 +7,10 @@ add_executable(racers-rebuilt-tests
     app/cutscene/cutscene_bindings_test.cpp
     app/cutscene/cutscene_links_test.cpp
     app/cutscene/cutscene_materials_test.cpp
+    app/cutscene/cutscene_overlay_test.cpp
     app/cutscene/cutscene_player_test.cpp
     app/cutscene/cutscene_retail_scene_test.cpp
+    app/cutscene/cutscene_sounds_test.cpp
     app/cutscene/cutscene_timeline_test.cpp
     app/collision_wireframe_test.cpp
     app/frame_loop_test.cpp

@@ -13,6 +13,7 @@
 namespace rr::app {
 
 inline constexpr std::string_view kMenuFolder = "MENUDATA";
+inline constexpr std::string_view kMenuFontList = "GFONTS.FDB";
 
 /// Shared styles and images come first, then the screen's own.
 struct MenuFiles {

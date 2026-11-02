@@ -6,10 +6,13 @@
 
 #include "app/cutscene/cutscene_bindings.hpp"
 #include "app/cutscene/cutscene_materials.hpp"
+#include "app/cutscene/cutscene_resources.hpp"
+#include "app/cutscene/cutscene_sounds.hpp"
 #include "app/frame_loop.hpp"
 #include "app/track_model.hpp"
 #include "assets/game_path.hpp"
 #include "core/log.hpp"
+#include "render/ui_layout.hpp"
 
 namespace rr::app {
 namespace {
@@ -72,16 +75,63 @@ Result<CutsceneLooks> LoadLooks(const assets::Vfs& vfs, std::string_view folder,
     return CutsceneLooks{.materials = std::move(*tracks), .sprites = std::move(*sprites)};
 }
 
+Result<std::unique_ptr<assets::CutsceneEffectsAsset>> ReadEffects(const assets::Vfs& vfs,
+                                                                  const CutscenePath& path) {
+    const std::string file = std::format("{}/{}.CEB", path.folder, path.file);
+    Result<assets::FileData> data = vfs.Read(file);
+    if (!data && data.error().code == ErrorCode::NotFound) {
+        return std::make_unique<assets::CutsceneEffectsAsset>();
+    }
+    Result<assets::CutsceneEffectsAsset> effects = data.and_then(
+        [](const assets::FileData& read) { return assets::ParseCutsceneEffects(read.Bytes()); });
+    if (!effects) {
+        return Fail(effects.error().code, std::format("{}: {}", file, effects.error().message));
+    }
+    return std::make_unique<assets::CutsceneEffectsAsset>(std::move(*effects));
+}
+
+// NOLINTNEXTLINE(bugprone-exception-escape)
+struct SceneEffects {
+    std::unique_ptr<assets::CutsceneEffectsAsset> asset;
+    UiFonts fonts;
+    CutsceneEffectPlayer player;
+};
+
+Result<SceneEffects> LoadEffects(const RaceOutputs& outputs, const assets::Vfs& vfs,
+                                 const CutscenePath& path, std::string_view language,
+                                 const assets::CutsceneFrame& frame) {
+    Result<std::unique_ptr<assets::CutsceneEffectsAsset>> asset = ReadEffects(vfs, path);
+    Result<CutsceneResources> resources = asset.and_then([&](const auto& effects) {
+        return LoadCutsceneResources(*outputs.renderer, vfs, path.folder, language, *effects);
+    });
+    Result<std::vector<std::optional<audio::SoundId>>> sounds =
+        resources.and_then([&](const auto&) {
+            return LoadCutsceneSounds(*outputs.mixer, *outputs.banks, vfs, path.folder, **asset);
+        });
+    if (!sounds) {
+        return std::unexpected(std::move(sounds.error()));
+    }
+    const assets::CutsceneEffectsAsset& effects = **asset;
+    CutsceneEffectPlayer player(frame, effects,
+                                CutsceneSounds(*outputs.mixer, effects.sounds, std::move(*sounds)),
+                                CutsceneOverlay(effects, std::move(resources->overlay)));
+    return SceneEffects{.asset = std::move(*asset),
+                        .fonts = std::move(resources->fonts),
+                        .player = std::move(player)};
+}
+
 }
 
 bool IsCutsceneScene(std::string_view scene) {
     return scene.starts_with(kCutsceneScenePrefix);
 }
 
-Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(render::Renderer& renderer,
+Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(const RaceOutputs& outputs,
                                                              const assets::Vfs& vfs,
                                                              assets::TrackLoader& loader,
+                                                             std::string_view language,
                                                              std::string_view scene) {
+    render::Renderer& renderer = *outputs.renderer;
     Result<CutscenePath> path = ParsePath(scene);
     Result<std::unique_ptr<assets::CutsceneTimelineAsset>> timeline =
         path.and_then([&](const CutscenePath& found) { return ReadTimeline(vfs, found); });
@@ -104,8 +154,10 @@ Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(render::Renderer& r
     Result<CutsceneLooks> looks = bindings.and_then([&](const CutsceneBindings& bound) {
         return LoadLooks(vfs, path->folder, worlds, frame, bound.models, model->materials);
     });
-    if (!looks) {
-        return Fail(looks.error().code, std::format("{}: {}", scene, looks.error().message));
+    Result<SceneEffects> effects = looks.and_then(
+        [&](const CutsceneLooks&) { return LoadEffects(outputs, vfs, *path, language, frame); });
+    if (!effects) {
+        return Fail(effects.error().code, std::format("{}: {}", scene, effects.error().message));
     }
     auto owned = std::make_unique<sim::TrackEntitySources>(std::move(*sources));
     TrackEntityDraws jointed(model->animatedModels, *owned);
@@ -113,18 +165,26 @@ Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(render::Renderer& r
                           {.draws = model->draws, .slots = model->drawSlots}, true);
     log::Info("{}: {} worlds, {} frames, {} models", scene, worldNames.size(),
               (*timeline)->frames.size(), frame.models.size());
-    return std::unique_ptr<CutsceneScene>(new CutsceneScene({.renderer = &renderer,
-                                                             .name = std::string(scene),
-                                                             .timeline = std::move(*timeline),
-                                                             .sources = std::move(owned),
-                                                             .statics = std::move(model->draws),
-                                                             .slots = std::move(model->drawSlots),
-                                                             .jointed = std::move(jointed),
-                                                             .player = std::move(player)}));
+    return std::unique_ptr<CutsceneScene>(
+        new CutsceneScene({.renderer = &renderer,
+                           .name = std::string(scene),
+                           .timeline = std::move(*timeline),
+                           .sources = std::move(owned),
+                           .statics = std::move(model->draws),
+                           .slots = std::move(model->drawSlots),
+                           .jointed = std::move(jointed),
+                           .player = std::move(player),
+                           .effects = std::move(effects->asset),
+                           .fonts = std::move(effects->fonts),
+                           .effectPlayer = std::move(effects->player)}));
+}
+
+CutsceneScene::~CutsceneScene() {
+    parts_.effectPlayer.StopAll();
 }
 
 void CutsceneScene::Tick([[maybe_unused]] const sim::InputFrame& input) {
-    parts_.player.Advance(kSimTick);
+    parts_.effectPlayer.Advance(parts_.player.Advance(kSimTick), kSimTick);
 }
 
 void CutsceneScene::Snapshot(sim::RenderSnapshot& out) const {
@@ -139,10 +199,13 @@ void CutsceneScene::Render(const sim::RenderSnapshot& interpolated) {
         parts_.player.ViewCamera(interpolated.entityClocks).value_or(render::Camera{});
     quads_.clear();
     parts_.player.AppendQuads(camera.transform, quads_);
+    sprites_.clear();
+    parts_.effectPlayer.Draw({.width = render::kUiWidth, .height = render::kUiHeight}, sprites_);
     Result<void> drawn = parts_.renderer->Draw({.camera = camera,
                                                 .lighting = parts_.player.Lighting(lights_),
                                                 .meshes = draws_,
-                                                .quads = quads_});
+                                                .quads = quads_,
+                                                .sprites = sprites_});
     if (!drawn) {
         log::Error("{}: {}", parts_.name, drawn.error().message);
     }

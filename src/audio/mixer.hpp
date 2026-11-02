@@ -57,8 +57,14 @@ public:
     /// Drops cues once every effect voice is busy.
     void Play(std::span<const SoundCue> cues);
 
+    /// Plays `cue` once. Empty once every effect voice is busy.
+    [[nodiscard]] std::optional<VoiceId> Start(const SoundCue& cue);
+
     /// Plays `cue` on repeat until `Stop`. Empty once every effect voice is busy.
     [[nodiscard]] std::optional<VoiceId> Loop(const SoundCue& cue);
+
+    /// False once the voice has finished or stopped.
+    [[nodiscard]] bool IsPlaying(VoiceId voice) const;
 
     /// Does nothing to a voice that has stopped.
     void Mix(VoiceId voice, const VoiceMix& mix);

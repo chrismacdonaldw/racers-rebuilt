@@ -192,8 +192,16 @@ void Mixer::Play(std::span<const SoundCue> cues) {
     }
 }
 
+std::optional<VoiceId> Mixer::Start(const SoundCue& cue) {
+    return StartEffect(cue, false);
+}
+
 std::optional<VoiceId> Mixer::Loop(const SoundCue& cue) {
     return StartEffect(cue, true);
+}
+
+bool Mixer::IsPlaying(VoiceId voice) const {
+    return IsCurrent(voice) && state_->effects.at(voice.slot).IsPlaying();
 }
 
 void Mixer::Mix(VoiceId voice, const VoiceMix& mix) {

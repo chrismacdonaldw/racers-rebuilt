@@ -12,10 +12,14 @@ rr_add_module(app
         circuit_leg.cpp
         collision_wireframe.cpp
         cutscene/cutscene_bindings.cpp
+        cutscene/cutscene_effect_player.cpp
         cutscene/cutscene_links.cpp
         cutscene/cutscene_materials.cpp
+        cutscene/cutscene_overlay.cpp
         cutscene/cutscene_player.cpp
+        cutscene/cutscene_resources.cpp
         cutscene/cutscene_scene.cpp
+        cutscene/cutscene_sounds.cpp
         cutscene/cutscene_sprites.cpp
         cutscene/cutscene_timeline.cpp
         extensions.cpp
