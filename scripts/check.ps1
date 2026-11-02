@@ -1,10 +1,15 @@
 <#
 .SYNOPSIS
-Runs every pre-PR check on a clean tree: repo guards, clang-format, a fresh configure, build, tests
-and clang-tidy. Prints one summary line per step and exits non-zero on the first failure.
+Runs every pre-PR check on a clean tree: repo guards, clang-format, configure, build, tests and
+clang-tidy. Prints one summary line per step and exits non-zero on the first failure.
 
 .PARAMETER Preset
 CMake preset to configure, build and test. Defaults to check (Release with asserts).
+
+.PARAMETER Full
+Configures into an empty build folder and runs clang-tidy on every source. Without it the build
+folder is reused, and clang-tidy only checks sources that differ from origin/main or include a
+header that does, unless the diff touches the toolchain setup.
 
 .NOTES
 RR_BANNED_TERMS_FILE must name a text file outside the repo with one extended regex per line.
@@ -14,7 +19,8 @@ The build and clang-tidy run CMAKE_BUILD_PARALLEL_LEVEL jobs, or half the cores 
 #>
 param(
     [ValidateSet('check', 'debug')]
-    [string]$Preset = 'check'
+    [string]$Preset = 'check',
+    [switch]$Full
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,10 +33,13 @@ $gameDataMagics = @('LJAM', 'ALP ')
 $results = New-Object System.Collections.Generic.List[string]
 $head = git rev-parse HEAD
 $jobs = Get-JobCount
+$buildDir = "build/$Preset"
+$mode = if ($Full) { 'full' } else { 'incremental' }
+$fullTidyTriggers = '^(\.clang-tidy$|CMakeLists\.txt$|CMakePresets\.json$|vcpkg\.json$|cmake/)'
 
 function Write-Summary([string]$Outcome) {
     Write-Host ''
-    Write-Host "Summary for $head ($Preset)"
+    Write-Host "Summary for $head ($Preset, $mode)"
     $results | ForEach-Object { Write-Host "  $_" }
     Write-Host $Outcome
 }
@@ -110,6 +119,69 @@ function Invoke-ClangTidy([string]$ClangTidy, [string]$Database, [string[]]$File
     }
 }
 
+function Get-ChangedFiles {
+    git rev-parse --verify --quiet origin/main | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        return $null
+    }
+    $base = git merge-base HEAD origin/main
+    return @(git -c core.quotepath=off diff --name-only $base HEAD)
+}
+
+function Get-DependentSources([string[]]$Headers, [string[]]$Deps) {
+    $wanted = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+    $Headers | ForEach-Object { [void]$wanted.Add([IO.Path]::GetFullPath((Join-Path $repoRoot $_))) }
+    $buildPath = Join-Path $repoRoot $buildDir
+    $object = $null
+    foreach ($line in $Deps) {
+        if ($line -match '^(\S+): #deps') {
+            $object = $Matches[1]
+            continue
+        }
+        $dependency = $line.Trim()
+        if (-not $object -or -not $dependency) {
+            continue
+        }
+        if ($wanted.Contains([IO.Path]::GetFullPath([IO.Path]::Combine($buildPath, $dependency)))) {
+            $object -replace '^(.+)/CMakeFiles/[^/]+\.dir/(.+)\.obj$', '$1/$2'
+            $object = $null
+        }
+    }
+}
+
+function Get-TidySources([string[]]$AllSources) {
+    if ($Full) {
+        return $AllSources
+    }
+    $changed = Get-ChangedFiles
+    if ($null -eq $changed -or ($changed -match $fullTidyTriggers)) {
+        return $AllSources
+    }
+    $headers = @($changed | Where-Object { $_ -like '*.hpp' })
+    $dependents = @()
+    if ($headers) {
+        $deps = @(ninja -C $buildDir -t deps)
+        if ($LASTEXITCODE -ne 0) {
+            return $AllSources
+        }
+        $dependents = @(Get-DependentSources $headers $deps)
+    }
+    $candidates = @($changed) + $dependents
+    return @($AllSources | Where-Object { $candidates -contains $_ })
+}
+
+function Write-TidyDatabase([string]$Folder) {
+    $pchFlag = '\s+(\\")?/(Yu|Fp|FI)[^"]*?cmake_pch\.(hxx|cxx\.pch)(\\")?'
+    $commands = [IO.File]::ReadAllText((Join-Path $repoRoot "$buildDir/compile_commands.json"))
+    $stripped = $commands -replace $pchFlag, ''
+    if ($stripped -match '/(Yu|Fp|FI)[^"]*?cmake_pch') {
+        Fail 'Could not strip the precompiled header flags from compile_commands.json.'
+        return
+    }
+    New-Item -ItemType Directory -Force $Folder | Out-Null
+    [IO.File]::WriteAllText((Join-Path $Folder 'compile_commands.json'), $stripped)
+}
+
 function Get-BannedTerms {
     $path = $env:RR_BANNED_TERMS_FILE
     if (-not $path -or -not (Test-Path $path -PathType Leaf)) {
@@ -181,18 +253,26 @@ Invoke-Step 'Toolchain' {
     }
 }
 
-Invoke-Step "Configure into empty build/$Preset" {
-    Remove-Item -Recurse -Force "build/$Preset" -ErrorAction SilentlyContinue
+$configureStep = if ($Full) { "Configure into empty $buildDir" } else { "Configure $buildDir" }
+Invoke-Step $configureStep {
+    if ($Full) {
+        Remove-Item -Recurse -Force $buildDir -ErrorAction SilentlyContinue
+    }
     cmake --preset $Preset
 }
 Invoke-Step "Build ($Preset)" { cmake --build --preset $Preset --parallel $jobs }
 Invoke-Step "Test ($Preset)" { ctest --preset $Preset }
 
-Invoke-Step 'clang-tidy' {
+$allSources = Get-TrackedFiles @('src/*.cpp', 'tests/*.cpp', 'tools/*.cpp')
+$tidySources = @(Get-TidySources $allSources)
+Invoke-Step ('clang-tidy ({0} of {1} sources)' -f $tidySources.Count, $allSources.Count) {
     $clangTidy = Find-Tool 'clang-tidy'
     if ($clangTidy) {
-        $files = Get-TrackedFiles @('src/*.cpp', 'tests/*.cpp', 'tools/*.cpp') | ForEach-Object { Join-Path $repoRoot $_ }
-        Invoke-ClangTidy $clangTidy (Join-Path $repoRoot "build/$Preset") $files
+        $database = Join-Path $repoRoot "$buildDir/tidy"
+        Write-TidyDatabase $database
+        if ($LASTEXITCODE -eq 0) {
+            Invoke-ClangTidy $clangTidy $database ($tidySources | ForEach-Object { Join-Path $repoRoot $_ })
+        }
     }
 }
 

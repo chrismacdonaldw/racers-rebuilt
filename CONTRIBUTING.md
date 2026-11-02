@@ -83,10 +83,12 @@ It runs on a clean working tree, loads the MSVC environment if needed, and stops
 3. No banned terms in the tree, commit messages or branch name
 4. `clang-format --dry-run --Werror` on every source file
 5. Toolchain present
-6. Configure the `check` preset into an empty build folder
+6. Configure the `check` preset, reusing `build/check` when it exists
 7. Build
 8. Run the tests
-9. `clang-tidy` on every source file, in parallel
+9. `clang-tidy`, in parallel, on sources that differ from `origin/main` or include a header that does
+
+Pass `-Full` to configure into an empty build folder and run `clang-tidy` on every source, for releases or when the build folder seems stale. A diff that touches `.clang-tidy`, the top-level `CMakeLists.txt`, `cmake/`, `CMakePresets.json` or `vcpkg.json` always tidies every source.
 
 The build and clang-tidy use half the cores, as does `scripts/package.ps1`. Set `CMAKE_BUILD_PARALLEL_LEVEL` to pick another job count.
 
