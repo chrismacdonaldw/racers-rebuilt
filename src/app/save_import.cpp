@@ -16,6 +16,7 @@
 #include <system_error>
 #include <utility>
 
+#include "app/circuit_awards.hpp"
 #include "assets/game_path.hpp"
 #include "core/log.hpp"
 #include "core/utf16_text.hpp"
@@ -87,21 +88,23 @@ bool MergeTimes(settings::Progress& progress, const assets::OriginalSave& save,
     return changed;
 }
 
-bool MergeTrophies(settings::Progress& progress, const assets::OriginalSave& save,
-                   const assets::RaceCatalog& catalog) {
-    bool changed = false;
-    for (const assets::SavedRacer& racer : save.racers) {
-        const unsigned trophies = racer.trophies;
-        for (std::size_t circuit = 0; circuit < catalog.Circuits().size(); ++circuit) {
-            const unsigned held = (trophies >> (circuit * kTrophyBits)) & kTrophyMask;
-            if (held != 0) {
-                changed = settings::AwardTrophy(progress, catalog.Circuits()[circuit].name,
-                                                kSavedTrophies.at(held - 1)) ||
-                          changed;
-            }
+settings::Trophies SavedTrophies(unsigned bits, const assets::RaceCatalog& catalog) {
+    settings::Trophies trophies;
+    for (std::size_t circuit = 0; circuit < catalog.Circuits().size(); ++circuit) {
+        const unsigned held = (bits >> (circuit * kTrophyBits)) & kTrophyMask;
+        if (held != 0) {
+            trophies.emplace(catalog.Circuits()[circuit].name, kSavedTrophies.at(held - 1));
         }
     }
-    return changed;
+    return trophies;
+}
+
+settings::Racer ToRacer(const assets::SavedRacer& saved, const assets::RaceCatalog& catalog) {
+    return {.name = Utf8FromUtf16(saved.name),
+            .look = saved.look,
+            .chassis = saved.chassis,
+            .car = saved.car,
+            .trophies = SavedTrophies(saved.trophies, catalog)};
 }
 
 Result<std::vector<std::byte>> ReadSaveFile(const std::filesystem::path& path) {
@@ -128,27 +131,49 @@ std::optional<int> FolderNumber(const std::filesystem::path& folder) {
 
 bool MergeOriginalSave(settings::Progress& progress, const assets::OriginalSave& save,
                        const assets::RaceCatalog& catalog) {
-    bool changed = MergeUnlocks(progress, save, catalog);
-    changed = MergeTimes(progress, save, catalog) || changed;
-    return MergeTrophies(progress, save, catalog) || changed;
+    const bool changed = MergeUnlocks(progress, save, catalog);
+    return MergeTimes(progress, save, catalog) || changed;
+}
+
+bool MergeSavedRacers(settings::RacerStore& store, std::span<const assets::SavedRacer> saved,
+                      const assets::RaceCatalog& catalog) {
+    bool changed = false;
+    for (const assets::SavedRacer& racer : saved) {
+        settings::Racer added = ToRacer(racer, catalog);
+        if (std::ranges::find(store.racers, added) == store.racers.end()) {
+            store.racers.push_back(std::move(added));
+            changed = true;
+        }
+    }
+    return changed;
 }
 
 Result<bool> ImportOriginalSave(const std::filesystem::path& saveFile,
                                 const std::filesystem::path& progressFile, const assets::Vfs& vfs) {
+    const std::filesystem::path racersFile = progressFile.parent_path() / kRacersFileName;
     Result<assets::OriginalSave> save = ReadSaveFile(saveFile).and_then(
         [](const std::vector<std::byte>& bytes) { return assets::ParseOriginalSave(bytes); });
     Result<assets::RaceCatalog> catalog =
         save.and_then([&](const assets::OriginalSave&) { return assets::RaceCatalog::Load(vfs); });
     Result<settings::Progress> progress = catalog.and_then(
         [&](const assets::RaceCatalog&) { return settings::LoadProgress(progressFile); });
-    if (!progress) {
-        return std::unexpected(std::move(progress.error()));
+    Result<settings::RacerStore> racers = progress.and_then(
+        [&](const settings::Progress&) { return settings::LoadRacers(racersFile); });
+    if (!racers) {
+        return std::unexpected(std::move(racers.error()));
     }
-    if (!MergeOriginalSave(*progress, *save, *catalog)) {
+    const bool progressChanged = MergeOriginalSave(*progress, *save, *catalog);
+    const bool racersChanged = MergeSavedRacers(*racers, save->racers, *catalog);
+    if (!progressChanged && !racersChanged) {
         log::Info("{} adds nothing to {}", Utf8FromPath(saveFile), Utf8FromPath(progressFile));
         return false;
     }
-    return settings::SaveProgress(*progress, progressFile).transform([&] {
+    Result<void> saved =
+        progressChanged ? settings::SaveProgress(*progress, progressFile) : Result<void>{};
+    if (saved && racersChanged) {
+        saved = settings::SaveRacers(*racers, racersFile);
+    }
+    return saved.transform([&] {
         log::Info("imported {} into {}", Utf8FromPath(saveFile), Utf8FromPath(progressFile));
         return true;
     });

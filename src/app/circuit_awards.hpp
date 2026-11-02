@@ -9,15 +9,17 @@
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 #include "settings/progress.hpp"
+#include "settings/racers.hpp"
 #include "sim/race/circuit_run.hpp"
 
 namespace rr::app {
 
 inline constexpr std::string_view kProgressFileName = "progress.toml";
+inline constexpr std::string_view kRacersFileName = "racers.toml";
 
-/// Returns whether `progress` changed.
-bool GrantAward(settings::Progress& progress, const assets::CircuitEntry& circuit,
-                sim::CircuitAward award);
+/// Returns whether `progress` or `trophies` changed.
+bool GrantAward(settings::Progress& progress, settings::Trophies& trophies,
+                const assets::CircuitEntry& circuit, sim::CircuitAward award);
 
 [[nodiscard]] bool OpensNewCircuit(const settings::Progress& progress,
                                    const assets::CircuitEntry& circuit, sim::CircuitAward award);

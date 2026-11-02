@@ -135,23 +135,32 @@ Result<std::vector<SavedRacer>> Racers(std::span<const std::byte> file, std::siz
     return racers;
 }
 
+Result<std::vector<std::byte>> Header(std::span<const std::byte> file) {
+    if (file.size() % kBlockSize != 0) {
+        return Fail(
+            ErrorCode::InvalidData,
+            std::format("a save is whole {}-byte blocks, not {} bytes", kBlockSize, file.size()));
+    }
+    Result<std::vector<std::byte>> header = BlockData(file, 0, kHeaderBlocks);
+    if (header && U16At(*header, 0) != kMagic) {
+        return Fail(ErrorCode::InvalidData, "the save doesn't start with LR");
+    }
+    return header;
+}
+
+Result<std::vector<SavedRacer>> HeaderRacers(std::span<const std::byte> file,
+                                             std::span<const std::byte> header) {
+    return Racers(file, ByteAt(header, kRecordCountOffset), U16At(header, kFirstRecordOffset));
+}
+
 }
 
 Result<OriginalSave> ParseOriginalSave(std::span<const std::byte> bytes) {
-    if (bytes.size() % kBlockSize != 0) {
-        return Fail(
-            ErrorCode::InvalidData,
-            std::format("a save is whole {}-byte blocks, not {} bytes", kBlockSize, bytes.size()));
-    }
-    const Result<std::vector<std::byte>> header = BlockData(bytes, 0, kHeaderBlocks);
+    const Result<std::vector<std::byte>> header = Header(bytes);
     if (!header) {
         return std::unexpected(header.error());
     }
-    if (U16At(*header, 0) != kMagic) {
-        return Fail(ErrorCode::InvalidData, "the save doesn't start with LR");
-    }
-    Result<std::vector<SavedRacer>> racers =
-        Racers(bytes, ByteAt(*header, kRecordCountOffset), U16At(*header, kFirstRecordOffset));
+    Result<std::vector<SavedRacer>> racers = HeaderRacers(bytes, *header);
     if (!racers) {
         return std::unexpected(std::move(racers.error()));
     }
@@ -167,6 +176,11 @@ Result<OriginalSave> ParseOriginalSave(std::span<const std::byte> bytes) {
         save.bestRaces.at(race) = TimeAt(*header, score + kRaceTimeOffset);
     }
     return save;
+}
+
+Result<std::vector<SavedRacer>> ParseRacerFile(std::span<const std::byte> bytes) {
+    return Header(bytes).and_then(
+        [&](const std::vector<std::byte>& header) { return HeaderRacers(bytes, header); });
 }
 
 }

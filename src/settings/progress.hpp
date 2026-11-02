@@ -16,6 +16,9 @@ inline constexpr std::size_t kRecordRaces = 12;
 
 enum class Trophy : std::uint8_t { Gold, Silver, Bronze };
 
+/// By CRB circuit name.
+using Trophies = std::map<std::string, Trophy>;
+
 struct BestTime {
     std::int64_t ms = 0;
     std::string holder;
@@ -36,14 +39,14 @@ struct Progress {
     std::set<std::string> unlockedCircuits;
     std::set<std::int32_t> partSets;
     std::set<std::int32_t> beatenRecords;
-    std::map<std::string, Trophy> trophies;
+    Trophies trophies;
     std::map<std::string, TrackRecords> bestTimes;
 
     friend bool operator==(const Progress&, const Progress&) = default;
 };
 
 /// Keeps whichever of the held and new trophy is better. Returns whether it changed.
-bool AwardTrophy(Progress& progress, const std::string& circuit, Trophy trophy);
+bool AwardTrophy(Trophies& trophies, const std::string& circuit, Trophy trophy);
 
 /// A missing file is a fresh game. Values that don't parse are logged and skipped.
 [[nodiscard]] Result<Progress> LoadProgress(const std::filesystem::path& path);

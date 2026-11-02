@@ -15,6 +15,7 @@ namespace {
 constexpr float kPositionScale = 1.0F / 256.0F;
 constexpr float kNormalScale = 1.0F / 127.0F;
 constexpr float kTexCoordScale = 1.0F / 1024.0F;
+constexpr std::uint16_t kNoModelOffset = 0xFFFF;
 
 struct StoredPiece {
     std::string name;
@@ -163,6 +164,9 @@ Result<PieceRecord> ResolvePiece(const StoredPiece& stored, const StoredLibrary&
     if (piece.IsChassis()) {
         const ShapeCell partType = cells[header + 1 + count];
         const auto position = static_cast<std::uint16_t>(partType.top | (partType.bottom << 8U));
+        if (position == kNoModelOffset) {
+            return piece;
+        }
         if (position >= library.library.positions.size()) {
             return FailPiece(stored, "has a model offset past the positions");
         }

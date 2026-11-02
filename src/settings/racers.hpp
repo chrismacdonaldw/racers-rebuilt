@@ -1,0 +1,44 @@
+#pragma once
+
+#include <cstddef>
+#include <filesystem>
+#include <optional>
+#include <string>
+#include <vector>
+
+#include "assets/car_data.hpp"
+#include "assets/driver_look.hpp"
+#include "core/result.hpp"
+#include "settings/progress.hpp"
+
+namespace rr::settings {
+
+// NOLINTNEXTLINE(bugprone-exception-escape)
+struct Racer {
+    std::string name;
+    assets::DriverLook look;
+    std::string chassis;
+    assets::CarData car{};
+    Trophies trophies;
+
+    friend bool operator==(const Racer&, const Racer&) = default;
+};
+
+// NOLINTNEXTLINE(bugprone-exception-escape)
+struct RacerStore {
+    std::vector<Racer> racers;
+    std::optional<std::size_t> selected;
+
+    friend bool operator==(const RacerStore&, const RacerStore&) = default;
+};
+
+/// The selected racer's, or `progress`'s own while no racer is selected.
+[[nodiscard]] Trophies& TrophiesOf(Progress& progress, RacerStore& store);
+
+/// Follows `LoadProgress`. A racer with a value that doesn't parse is skipped whole.
+[[nodiscard]] Result<RacerStore> LoadRacers(const std::filesystem::path& path);
+
+/// Follows `SaveProgress`. Unknown keys inside a racer are lost.
+[[nodiscard]] Result<void> SaveRacers(const RacerStore& store, const std::filesystem::path& path);
+
+}

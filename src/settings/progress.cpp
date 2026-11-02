@@ -1,6 +1,5 @@
 #include "settings/progress.hpp"
 
-#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -11,6 +10,7 @@
 #include "core/log.hpp"
 #include "core/utf8_path.hpp"
 #include "settings/toml_file.hpp"
+#include "settings/trophy_table.hpp"
 
 namespace rr::settings {
 namespace {
@@ -33,15 +33,8 @@ constexpr std::string_view kLap = "lap";
 constexpr std::string_view kRace = "race";
 constexpr std::string_view kMs = "ms";
 constexpr std::string_view kHolder = "holder";
-
-struct TrophyName {
-    Trophy trophy;
-    std::string_view name;
-};
-
-constexpr std::array kTrophyNames{TrophyName{.trophy = Trophy::Gold, .name = "gold"},
-                                  TrophyName{.trophy = Trophy::Silver, .name = "silver"},
-                                  TrophyName{.trophy = Trophy::Bronze, .name = "bronze"}};
+constexpr std::array kProgressKeys{kUnlockedCircuits, kPartSets, kBeatenRecords, kTrophies,
+                                   kBestTimes};
 
 class Reader {
 public:
@@ -72,18 +65,8 @@ public:
     }
 
     void ReadTrophies(const toml::table& root, Progress& out) const {
-        const toml::table* trophies = root[kTrophies].as_table();
-        if (trophies == nullptr) {
-            return;
-        }
-        for (const auto& [circuit, node] : *trophies) {
-            const std::string_view name = node.value_or(std::string_view{});
-            const auto found = std::ranges::find(kTrophyNames, name, &TrophyName::name);
-            if (found == kTrophyNames.end()) {
-                Skip(circuit.str());
-                continue;
-            }
-            out.trophies.emplace(circuit.str(), found->trophy);
+        if (const toml::table* trophies = root[kTrophies].as_table()) {
+            out.trophies = ReadTrophyTable(*trophies, fileName_);
         }
     }
 
@@ -135,11 +118,6 @@ toml::table TimeTable(const BestTime& time) {
 }
 
 toml::table ToToml(const Progress& progress) {
-    toml::table trophies;
-    for (const auto& [circuit, trophy] : progress.trophies) {
-        trophies.insert(circuit,
-                        std::ranges::find(kTrophyNames, trophy, &TrophyName::trophy)->name);
-    }
     toml::table bestTimes;
     for (const auto& [track, records] : progress.bestTimes) {
         toml::table times;
@@ -154,14 +132,14 @@ toml::table ToToml(const Progress& progress) {
     return toml::table{{kUnlockedCircuits, ToArray(progress.unlockedCircuits)},
                        {kPartSets, ToArray(progress.partSets)},
                        {kBeatenRecords, ToArray(progress.beatenRecords)},
-                       {kTrophies, std::move(trophies)},
+                       {kTrophies, TrophyTable(progress.trophies)},
                        {kBestTimes, std::move(bestTimes)}};
 }
 
 }
 
-bool AwardTrophy(Progress& progress, const std::string& circuit, Trophy trophy) {
-    const auto [held, isNew] = progress.trophies.try_emplace(circuit, trophy);
+bool AwardTrophy(Trophies& trophies, const std::string& circuit, Trophy trophy) {
+    const auto [held, isNew] = trophies.try_emplace(circuit, trophy);
     if (isNew || trophy >= held->second) {
         return isNew;
     }
@@ -183,17 +161,7 @@ Result<Progress> LoadProgress(const std::filesystem::path& path) {
 }
 
 Result<void> SaveProgress(const Progress& progress, const std::filesystem::path& path) {
-    Result<TomlFile> stored = ReadTomlFile(path);
-    if (!stored) {
-        return std::unexpected(std::move(stored.error()));
-    }
-    for (auto&& [key, value] : ToToml(progress)) {
-        stored->table.insert_or_assign(key, std::move(value));
-    }
-    if (stored->leadingComments.empty()) {
-        stored->leadingComments = kHeader;
-    }
-    return WriteTomlFile(*stored, path);
+    return ReplaceTomlKeys(path, ToToml(progress), kProgressKeys, kHeader);
 }
 
 }

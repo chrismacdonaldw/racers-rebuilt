@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <span>
 #include <vector>
 
 #include "assets/original_save.hpp"
@@ -8,14 +9,19 @@
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 #include "settings/progress.hpp"
+#include "settings/racers.hpp"
 
 namespace rr::app {
 
-/// Keeps the better of each held and saved record and trophy. Returns whether anything changed.
+/// Keeps the better of each held and saved record. Returns whether anything changed.
 bool MergeOriginalSave(settings::Progress& progress, const assets::OriginalSave& save,
                        const assets::RaceCatalog& catalog);
 
-/// Returns whether the save added anything. Never writes over a progress file that doesn't parse.
+/// Adds each racer, with its trophies, unless the store holds one exactly like it.
+bool MergeSavedRacers(settings::RacerStore& store, std::span<const assets::SavedRacer> saved,
+                      const assets::RaceCatalog& catalog);
+
+/// Returns whether the save added anything, racers included. Never writes over a bad file.
 [[nodiscard]] Result<bool> ImportOriginalSave(const std::filesystem::path& saveFile,
                                               const std::filesystem::path& progressFile,
                                               const assets::Vfs& vfs);

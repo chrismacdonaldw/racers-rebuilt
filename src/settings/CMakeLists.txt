@@ -3,9 +3,12 @@ rr_add_module(settings
         command_line.cpp
         registry.cpp
         progress.cpp
+        racers.cpp
         settings_file.cpp
         toml_file.cpp
+        trophy_table.cpp
     DEPENDS
+        rr::assets
         rr::core
 )
 target_include_directories(rr_settings SYSTEM PRIVATE

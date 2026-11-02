@@ -197,13 +197,13 @@ TEST_CASE("the default racers build in menus and races from retail parts") {
         return;
     }
     const RetailParts parts = LoadRetailParts(*vfs);
-    const Result<OriginalSave> racers =
-        ReadRetail<OriginalSave>(*vfs, "MENUDATA/DEFAULT.LRS", ParseOriginalSave);
+    const Result<std::vector<SavedRacer>> racers =
+        ReadRetail<std::vector<SavedRacer>>(*vfs, "MENUDATA/DEFAULT.LRS", ParseRacerFile);
     REQUIRE(racers.has_value());
-    CHECK(Names(racers->racers) ==
+    CHECK(Names(*racers) ==
           std::vector<std::u16string>{u"JOAN OF KART", u"TURBO CHARGER", u"SCOOTER", u"ROBORACER"});
 
-    for (const SavedRacer& racer : racers->racers) {
+    for (const SavedRacer& racer : *racers) {
         CheckRetailDriver(*vfs, parts, racer, DriverDetail::Menu);
         CheckRetailDriver(*vfs, parts, racer, DriverDetail::Race);
     }

@@ -72,4 +72,22 @@ Result<void> WriteTomlFile(const TomlFile& file, const std::filesystem::path& pa
     return {};
 }
 
+Result<void> ReplaceTomlKeys(const std::filesystem::path& path, toml::table keys,
+                             std::span<const std::string_view> owned, std::string_view header) {
+    Result<TomlFile> stored = ReadTomlFile(path);
+    if (!stored) {
+        return std::unexpected(std::move(stored.error()));
+    }
+    for (const std::string_view key : owned) {
+        stored->table.erase(key);
+    }
+    for (auto&& [key, value] : keys) {
+        stored->table.insert_or_assign(key, std::move(value));
+    }
+    if (stored->leadingComments.empty()) {
+        stored->leadingComments = header;
+    }
+    return WriteTomlFile(*stored, path);
+}
+
 }

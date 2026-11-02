@@ -57,16 +57,29 @@ std::vector<std::byte> Pieces(std::initializer_list<StoredPiece> pieces) {
     return bytes;
 }
 
-constexpr std::array kCells{
-    1,    1, 0x81, 0x80, 2,    3, 0x80, 0, 0x81, 0,    0x82, 0,
-    0x8A, 0, 0x8B, 0,    0x8C, 0, 1,    1, 0x83, 0xC1, 1,    0,
-};
+constexpr std::array<std::array<std::uint8_t, 2>, 15> kCells{{
+    {1, 1},
+    {0x81, 0x80},
+    {2, 3},
+    {0x80, 0},
+    {0x81, 0},
+    {0x82, 0},
+    {0x8A, 0},
+    {0x8B, 0},
+    {0x8C, 0},
+    {1, 1},
+    {0x83, 0xC1},
+    {1, 0},
+    {1, 1},
+    {0x83, 0xC1},
+    {0xFF, 0xFF},
+}};
 
 std::vector<std::byte> CellStream(std::size_t cellCount) {
     std::vector<std::byte> bytes =
         Join({Bytes({0x2C}), test::ListHeader(static_cast<std::uint8_t>(cellCount))});
-    for (std::size_t i = 0; i < cellCount * 2; ++i) {
-        const std::vector<std::byte> encoded = test::Ints({static_cast<std::uint8_t>(kCells[i])});
+    for (std::size_t i = 0; i < cellCount; ++i) {
+        const std::vector<std::byte> encoded = test::Ints({kCells.at(i)[0], kCells.at(i)[1]});
         bytes.insert(bytes.end(), encoded.begin(), encoded.end());
     }
     bytes.push_back(std::byte{0x06});
@@ -74,7 +87,7 @@ std::vector<std::byte> CellStream(std::size_t cellCount) {
 }
 
 std::vector<std::byte> Library(std::initializer_list<StoredPiece> pieces,
-                               std::size_t cellCount = kCells.size() / 2) {
+                               std::size_t cellCount = kCells.size()) {
     return Join({Stream(0x28, 3, {0x4000, 1, 2}), Stream(0x29, 2, {256, 512, -128, 0, 0, 3840}),
                  Stream(0x2A, 1, {0, -127, 127}), Stream(0x2B, 1, {1024, -512}),
                  CellStream(cellCount), Pieces(pieces)});
@@ -134,6 +147,14 @@ TEST_CASE("a chassis shape ends with the position of its model offset") {
     CHECK(chassis.IsChassis());
     CHECK(chassis.shape.cells == std::vector<ShapeCell>{{.top = 0x83, .bottom = 0xC1}});
     CHECK(chassis.modelOffsetPosition == 1);
+}
+
+TEST_CASE("a chassis model offset of 0xFFFF means it has none") {
+    const Result<PieceLibrary> library =
+        ParsePieceLibrary(Library({{.name = "dachas0", .type = 20, .shape = 12}}));
+
+    REQUIRE(library.has_value());
+    CHECK_FALSE(library->pieces[0].modelOffsetPosition.has_value());
 }
 
 TEST_CASE("a shape cell splits its heights from its flags") {
