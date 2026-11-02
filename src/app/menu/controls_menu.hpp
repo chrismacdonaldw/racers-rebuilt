@@ -9,7 +9,7 @@
 
 namespace rr::app {
 
-enum class ControlsRequest : std::uint8_t { None, Listen, Leave, NotBuilt };
+enum class ControlsRequest : std::uint8_t { None, Listen, Leave };
 
 /// While it listens for a new input, menu actions do nothing.
 class ControlsMenu {

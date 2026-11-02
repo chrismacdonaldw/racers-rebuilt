@@ -58,7 +58,7 @@ std::vector<std::byte> Resealed(std::vector<std::byte> bytes) {
 std::vector<std::byte> TwoLongRuns() {
     constexpr std::uint32_t kRuns = 2;
     constexpr std::uint32_t kTicksPerRun = 5'000'000;
-    constexpr std::size_t kBytesPerFrame = (4 * kMaxPlayers) + 1;
+    constexpr std::size_t kBytesPerFrame = (7 * kMaxPlayers) + 1;
     std::vector<std::byte> bytes;
     AppendHeader(bytes, "RRRP", kReplayFormatVersion);
     AppendText(bytes, "");
@@ -70,6 +70,29 @@ std::vector<std::byte> TwoLongRuns() {
         AppendU32(bytes, kTicksPerRun);
         bytes.insert(bytes.end(), kBytesPerFrame, std::byte{0});
     }
+    AppendChecksum(bytes);
+    return bytes;
+}
+
+std::vector<std::byte> ByteActionsReplay() {
+    constexpr std::uint16_t kByteActionsVersion = 5;
+    constexpr std::uint32_t kTicks = 40;
+    std::vector<std::byte> bytes;
+    AppendHeader(bytes, "RRRP", kByteActionsVersion);
+    AppendText(bytes, "0.1.0");
+    AppendText(bytes, "RACEC0R0");
+    AppendU64(bytes, 7);
+    AppendU8(bytes, 0);
+    AppendU32(bytes, 1);
+    AppendU32(bytes, kTicks);
+    AppendU8(bytes, static_cast<std::uint8_t>(1U << PlayerInput::Index(Action::Accelerate)));
+    AppendU8(bytes, 0);
+    AppendU8(bytes, 0);
+    AppendU8(bytes, 0);
+    for (std::size_t player = 1; player < kMaxPlayers; ++player) {
+        AppendU32(bytes, 0);
+    }
+    AppendU8(bytes, 0);
     AppendChecksum(bytes);
     return bytes;
 }
@@ -101,6 +124,26 @@ TEST_CASE("an hour of input fits in under 1 MB") {
     CHECK(DecodeReplay(bytes) == replay);
 }
 
+TEST_CASE("a replay from before the wider action field still plays") {
+    const Result<Replay> decoded = DecodeReplay(ByteActionsReplay());
+
+    REQUIRE(decoded.has_value());
+    CHECK(decoded->scene == "RACEC0R0");
+    CHECK(decoded->frames.size() == 40);
+    CHECK(decoded->frames.back() == Held({Action::Accelerate}));
+}
+
+TEST_CASE("a replay records the camera and look back actions") {
+    const Replay replay{.scene = "RACEC0R0",
+                        .frames = {Held({Action::ChangeCamera, Action::LookBack})}};
+
+    const Result<Replay> decoded = DecodeReplay(EncodeReplay(replay));
+
+    REQUIRE(decoded.has_value());
+    CHECK(decoded->frames.front().players[0].IsHeld(Action::LookBack));
+    CHECK(decoded->frames.front().players[0].IsHeld(Action::ChangeCamera));
+}
+
 TEST_CASE("a damaged replay is rejected") {
     const std::vector<std::byte> good = EncodeReplay(SampleReplay());
 
@@ -121,6 +164,11 @@ TEST_CASE("a damaged replay is rejected") {
     SUBCASE("a newer format version") {
         std::vector<std::byte> bytes = good;
         bytes[kVersionOffset] = std::byte{kReplayFormatVersion + 1};
+        CHECK_FALSE(DecodeReplay(Resealed(bytes)).has_value());
+    }
+    SUBCASE("an unknown action") {
+        std::vector<std::byte> bytes = good;
+        bytes[good.size() - kChecksumBytes - 3] = std::byte{0xFF};
         CHECK_FALSE(DecodeReplay(Resealed(bytes)).has_value());
     }
     SUBCASE("runs that add up to too many ticks") {

@@ -61,12 +61,12 @@ TEST_CASE("the display row listens for a new input") {
     CHECK(menu.ListeningRow() == 6);
 }
 
-TEST_CASE("the camera row has no action to bind yet") {
+TEST_CASE("the look back row, the last, listens for a new input") {
     ControlsMenu menu;
 
-    CHECK(Press(menu, {MenuAction::Down, MenuAction::Down, MenuAction::Down, MenuAction::Down,
-                       MenuAction::Down, MenuAction::Confirm}) == ControlsRequest::NotBuilt);
-    CHECK_FALSE(menu.ListeningRow());
+    CHECK(Press(menu, {MenuAction::Up, MenuAction::Up, MenuAction::Up, MenuAction::Confirm}) ==
+          ControlsRequest::Listen);
+    CHECK(menu.ListeningRow() == 8);
 }
 
 TEST_CASE("FINISH and back both leave") {

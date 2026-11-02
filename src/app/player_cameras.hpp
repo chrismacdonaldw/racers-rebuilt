@@ -32,6 +32,10 @@ public:
 
     [[nodiscard]] std::size_t Count() const { return cameras_.size(); }
 
+    /// Does nothing before the engines start or once the player has finished.
+    void CycleView(std::size_t player, const sim::RaceSession& session);
+    void SetLookBack(std::size_t player, bool isLookingBack);
+
     /// Call after each session tick.
     void Follow(const sim::RaceSession& session);
 

@@ -69,9 +69,15 @@ inline void AppendText(std::vector<std::byte>& out, std::string_view text) {
 }
 
 /// The reader starts after the version and stops before the trailing checksum.
-[[nodiscard]] Result<assets::ByteReader> OpenChecked(std::span<const std::byte> bytes,
-                                                     std::string_view magic, std::uint16_t version,
-                                                     std::string_view what);
+struct CheckedBytes {
+    assets::ByteReader reader;
+    std::uint16_t version = 0;
+};
+
+/// Accepts format versions `oldest` to `newest`.
+[[nodiscard]] Result<CheckedBytes> OpenChecked(std::span<const std::byte> bytes,
+                                               std::string_view magic, std::uint16_t oldest,
+                                               std::uint16_t newest, std::string_view what);
 
 inline void AppendHeader(std::vector<std::byte>& out, std::string_view magic,
                          std::uint16_t version) {

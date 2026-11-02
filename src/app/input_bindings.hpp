@@ -56,6 +56,10 @@ inline constexpr std::array kActionBindings{
                "start"),
     BindingFor(sim::Action::ToggleDisplay, "Toggle display", "input.keys.toggle_display",
                "input.buttons.toggle_display", "M", "back"),
+    BindingFor(sim::Action::ChangeCamera, "Change camera view", "input.keys.change_camera",
+               "input.buttons.change_camera", "Right Ctrl", "y"),
+    BindingFor(sim::Action::LookBack, "Look backwards", "input.keys.look_back",
+               "input.buttons.look_back", "Right Alt", "rightstick"),
 };
 
 /// Player 2's bindings in a two-player race. Player 1's pause keys pause for both.
@@ -76,6 +80,10 @@ inline constexpr std::array kPlayer2Bindings{
                "input.p2.buttons.pause", "", "start"),
     BindingFor(sim::Action::ToggleDisplay, "Player 2 toggle display",
                "input.p2.keys.toggle_display", "input.p2.buttons.toggle_display", "E", "back"),
+    BindingFor(sim::Action::ChangeCamera, "Player 2 change camera view",
+               "input.p2.keys.change_camera", "input.p2.buttons.change_camera", "Q", "y"),
+    BindingFor(sim::Action::LookBack, "Player 2 look backwards", "input.p2.keys.look_back",
+               "input.p2.buttons.look_back", "Z", "rightstick"),
 };
 
 [[nodiscard]] std::span<const Binding<sim::Action>> RaceBindingsOf(std::size_t player);

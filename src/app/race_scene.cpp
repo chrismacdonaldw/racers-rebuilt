@@ -280,9 +280,14 @@ void RaceScene::Tick(const sim::InputFrame& input) {
     LeaveAfterResults(input);
     StepRace(parts_.session, input, controls_, cameras_.Count());
     for (std::size_t player = 0; player < cameras_.Count(); ++player) {
-        if (input.players.at(player).WasPressed(sim::Action::ToggleDisplay)) {
+        const sim::PlayerInput& controls = input.players.at(player);
+        if (controls.WasPressed(sim::Action::ToggleDisplay)) {
             hud_.CycleGadget(player);
         }
+        if (controls.WasPressed(sim::Action::ChangeCamera)) {
+            cameras_.CycleView(player, parts_.session);
+        }
+        cameras_.SetLookBack(player, controls.IsHeld(sim::Action::LookBack));
     }
     hud_.Tick(parts_.session, kSimTick);
     parts_.waterScroll.Tick(kSimTick);
