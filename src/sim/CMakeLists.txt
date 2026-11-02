@@ -12,6 +12,10 @@ rr_add_module(sim
         animation/skeleton_pose.cpp
         car_build/built_car.cpp
         car_build/car_grid.cpp
+        car_build/car_mesh.cpp
+        car_build/car_studs.cpp
+        car_build/hidden_faces.cpp
+        car_build/mesh_primitives.cpp
         collision/collision_mesh.cpp
         collision/collision_world.cpp
         collision/racer_worlds.cpp

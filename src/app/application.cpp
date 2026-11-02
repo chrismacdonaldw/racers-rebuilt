@@ -45,8 +45,8 @@
 #include "app/startup_settings.hpp"
 #include "app/test_scene.hpp"
 #include "app/time_trial/trial_records.hpp"
-#include "app/track_viewer_scene.hpp"
 #include "app/video_settings.hpp"
+#include "app/viewer_scene.hpp"
 #include "assets/loader_pool.hpp"
 #include "assets/race_catalog.hpp"
 #include "assets/track_loader.hpp"
@@ -303,8 +303,7 @@ Result<std::unique_ptr<Scene>> Application::CreateWorldScene(std::string_view sc
                    SelectedLanguage(settings_), scene)
             .transform(ToScene<CutsceneScene>);
     }
-    return TrackViewerScene::Create(renderer_, vfs_, loader, scene, started)
-        .transform(ToScene<TrackViewerScene>);
+    return CreateViewerScene(renderer_, vfs_, loader, scene, started);
 }
 
 Result<std::unique_ptr<Scene>> Application::CreateCircuitRace(std::string_view scene,

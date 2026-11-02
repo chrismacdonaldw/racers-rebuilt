@@ -6,6 +6,7 @@ rr_add_module(app
         audio_startup.cpp
         brick_models.cpp
         car_sounds.cpp
+        car_viewer_scene.cpp
         chase_camera.cpp
         checkpoint_gates.cpp
         circuit_awards.cpp
@@ -153,6 +154,7 @@ rr_add_module(app
         ui_text/ui_font.cpp
         ui_text/ui_image.cpp
         video_settings.cpp
+        viewer_scene.cpp
     DEPENDS
         rr::assets
         rr::audio

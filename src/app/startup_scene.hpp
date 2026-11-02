@@ -14,7 +14,7 @@ namespace rr::app {
 [[nodiscard]] std::string RaceNamed(std::string track, std::size_t players,
                                     const settings::Registry& settings);
 
-/// The scene `--track`, `--race` or `--cutscene` asks for, else the legal splash.
+/// The scene `--show-car`, `--track`, `--race` or `--cutscene` asks for, else the legal splash.
 [[nodiscard]] Result<std::optional<std::string>> StartupScene(
     const settings::CommandLine& commandLine, const settings::Registry& settings);
 
