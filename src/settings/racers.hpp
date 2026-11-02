@@ -35,7 +35,7 @@ struct RacerStore {
 /// The selected racer's, or `progress`'s own while no racer is selected.
 [[nodiscard]] Trophies& TrophiesOf(Progress& progress, RacerStore& store);
 
-/// Follows `LoadProgress`. A racer with a value that doesn't parse is skipped whole.
+/// Follows `LoadProgress`, but fails on a racer that doesn't parse so a save can't drop it.
 [[nodiscard]] Result<RacerStore> LoadRacers(const std::filesystem::path& path);
 
 /// Follows `SaveProgress`. Unknown keys inside a racer are lost.

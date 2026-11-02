@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <filesystem>
+#include <fstream>
 #include <optional>
 #include <string>
 #include <vector>
@@ -124,6 +125,20 @@ TEST_CASE("the selected racer takes the trophy and progress keeps the unlocks") 
           settings::RacerStore{
               .racers = {{.name = "A"}, {.name = "B", .trophies = {{"c0", Trophy::Silver}}}},
               .selected = 1});
+}
+
+TEST_CASE("a broken racers file leaves the trophy to progress") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const test::TempFolder folder;
+    const std::filesystem::path file = folder.Path() / kProgressFileName;
+    std::ofstream(folder.Path() / kRacersFileName) << "[[racers]\n";
+
+    REQUIRE(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::Bronze}).has_value());
+
+    CHECK(settings::LoadProgress(file) == Progress{.trophies = {{"c0", Trophy::Bronze}}});
 }
 
 TEST_CASE("an award that changes nothing doesn't write the file") {

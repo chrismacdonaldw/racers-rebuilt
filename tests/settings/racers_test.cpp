@@ -68,18 +68,16 @@ TEST_CASE("a missing racers file holds no racers") {
     CHECK(LoadRacers(folder.Path() / "racers.toml") == RacerStore{});
 }
 
-TEST_CASE("hand-written racers skip the racers and values that don't parse") {
+constexpr std::string_view kHandWritten =
+    "selected = 2\n"
+    "[[racers]]\nname = \"A\"\nface = 1\nhat = 0\nlegs = 0\ntorso = 0\n"
+    "expression = 0\nchassis = \"dachas0\"\ncar = \"0001\"\n"
+    "[racers.trophies]\nc0 = \"platinum\"\nc1 = \"bronze\"\n";
+
+TEST_CASE("hand-written racers skip the trophies and pick that don't parse") {
     const test::TempFolder folder;
     const std::filesystem::path path = folder.Path() / "racers.toml";
-    WriteText(path,
-              "selected = 2\n"
-              "[[racers]]\nname = \"A\"\nface = 1\nhat = 0\nlegs = 0\ntorso = 0\n"
-              "expression = 0\nchassis = \"dachas0\"\ncar = \"0001\"\n"
-              "[racers.trophies]\nc0 = \"platinum\"\nc1 = \"bronze\"\n"
-              "[[racers]]\nname = \"B\"\nface = 300\nhat = 0\nlegs = 0\ntorso = 0\n"
-              "expression = 0\nchassis = \"dachas0\"\ncar = \"\"\n"
-              "[[racers]]\nname = \"C\"\nface = 0\nhat = 0\nlegs = 0\ntorso = 0\n"
-              "expression = 0\nchassis = \"dachas0\"\ncar = \"0g\"\n");
+    WriteText(path, kHandWritten);
 
     const Result<RacerStore> store = LoadRacers(path);
 
@@ -89,6 +87,22 @@ TEST_CASE("hand-written racers skip the racers and values that don't parse") {
     CHECK(store->racers[0].car[1] == std::byte{1});
     CHECK(store->racers[0].trophies == Trophies{{"c1", Trophy::Bronze}});
     CHECK_FALSE(store->selected.has_value());
+}
+
+TEST_CASE("a racer that doesn't parse fails the whole file") {
+    const test::TempFolder folder;
+    const std::filesystem::path path = folder.Path() / "racers.toml";
+    const std::string racer =
+        "[[racers]]\nname = \"B\"\nhat = 0\nlegs = 0\ntorso = 0\n"
+        "expression = 0\nchassis = \"dachas0\"\n";
+    for (const std::string_view broken :
+         {"face = 300\ncar = \"\"\n", "face = 0\ncar = \"0g\"\n", "face = 0\ncar = 1\n"}) {
+        WriteText(path, std::string(kHandWritten) + racer + std::string(broken));
+
+        CHECK_FALSE(LoadRacers(path).has_value());
+    }
+    WriteText(path, "racers = 3\n");
+    CHECK_FALSE(LoadRacers(path).has_value());
 }
 
 TEST_CASE("saving racers keeps hand-written comments and unknown keys, and drops a stale pick") {
