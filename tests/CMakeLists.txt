@@ -104,6 +104,8 @@ add_executable(racers-rebuilt-tests
     assets/chassis_database_test.cpp
     assets/checkpoints_test.cpp
     assets/collision_mesh_test.cpp
+    assets/cutscene_effects_retail_test.cpp
+    assets/cutscene_effects_test.cpp
     assets/cutscene_retail_test.cpp
     assets/cutscene_timeline_test.cpp
     assets/driver_database_test.cpp
