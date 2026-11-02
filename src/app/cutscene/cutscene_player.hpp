@@ -9,6 +9,7 @@
 #include "app/cutscene/cutscene_materials.hpp"
 #include "app/cutscene/cutscene_sprites.hpp"
 #include "app/cutscene/cutscene_timeline.hpp"
+#include "app/cutscene/cutscene_tints.hpp"
 #include "app/track_entity_draws.hpp"
 #include "assets/cutscene_timeline.hpp"
 #include "core/duration.hpp"
@@ -52,7 +53,8 @@ public:
     [[nodiscard]] render::Lighting Lighting(std::vector<render::DirectionalLight>& storage) const;
 
     /// Appends the active models' draws, with `jointed` already posed.
-    void AppendDraws(const TrackEntityDraws& jointed, std::vector<render::MeshDraw>& out) const;
+    void AppendDraws(const TrackEntityDraws& jointed, const CutsceneTints& tints,
+                     std::vector<render::MeshDraw>& out) const;
 
     /// Appends the active sprites, facing `camera`, which is in engine space.
     void AppendQuads(const Transform& camera, std::vector<render::QuadDraw>& out) const;

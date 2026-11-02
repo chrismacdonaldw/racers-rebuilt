@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <optional>
 #include <vector>
 
@@ -91,6 +92,24 @@ TEST_CASE_FIXTURE(MixerFixture, "a started effect plays until it finishes or sto
     mixer_.Stop(stopped.value_or(VoiceId{}));
     CHECK_FALSE(mixer_.IsPlaying(stopped.value_or(VoiceId{})));
     CHECK(RenderIsSilent());
+}
+
+TEST_CASE_FIXTURE(MixerFixture, "a mix that isn't finite plays as the default mix") {
+    const float nan = std::nanf("");
+    const std::optional<VoiceId> voice =
+        mixer_.Loop({.sound = effectId_, .mix = {.volume = nan, .pitch = nan, .pan = nan}});
+    REQUIRE(voice.has_value());
+
+    const std::array<float, 2> peaks = RenderPeaks();
+    CHECK(std::isfinite(peaks[0]));
+    CHECK(peaks[0] > 0.0F);
+    CHECK(peaks[0] == doctest::Approx(peaks[1]));
+
+    mixer_.Mix(voice.value_or(VoiceId{}),
+               {.volume = std::numeric_limits<float>::infinity(), .pitch = -nan});
+    const std::array<float, 2> mixed = RenderPeaks();
+    CHECK(std::isfinite(mixed[0]));
+    CHECK(std::isfinite(mixed[1]));
 }
 
 TEST_CASE_FIXTURE(MixerFixture, "music keeps looping past the end of its track") {

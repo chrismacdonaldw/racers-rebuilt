@@ -59,9 +59,10 @@ struct Stage {
         jointed.Update(player.Clocks());
     }
 
-    [[nodiscard]] std::vector<render::MeshDraw> Draws(const CutscenePlayer& player) const {
+    [[nodiscard]] std::vector<render::MeshDraw> Draws(
+        const CutscenePlayer& player, const CutsceneTints& tints = CutsceneTints({}, {})) const {
         std::vector<render::MeshDraw> draws;
-        player.AppendDraws(jointed, draws);
+        player.AppendDraws(jointed, tints, draws);
         return draws;
     }
 
@@ -149,6 +150,50 @@ TEST_CASE("a model event runs its material track in its own slot") {
     REQUIRE(shown.size() == 2);
     CHECK(shown[0].material.tint.r == 1.0F);
     CHECK(shown[1].material.tint.r == 0.75F);
+}
+
+TEST_CASE("a tint recolours its entity's draws while it runs, the newest start winning") {
+    Stage stage({.length = 30, .models = {Model("set", false, {.start = 0, .duration = 30})}});
+    const std::array<assets::CutsceneTint, 3> effects{
+        {{.entity = assets::EntityByName{.name = "SET"}, .offsets = {128, 128, 128}},
+         {.entity = assets::EntityByName{.name = "set"}, .shifts = {1, 0, -4}},
+         {}}};
+    const assets::WorldAsset world = test::StageWorld();
+    const std::array worlds{&world};
+    Result<std::vector<std::optional<ModelBinding>>> targets =
+        BindTints(effects, worlds, test::StageStatics(), stage.entities);
+    REQUIRE(targets.has_value());
+    CutsceneTints tints(effects, std::move(*targets));
+    CutscenePlayer player = stage.Player();
+    stage.Advance(player, kFrame);
+
+    tints.Start(0);
+    tints.Start(2);
+    const std::vector<render::MeshDraw> bright = stage.Draws(player, tints);
+    REQUIRE(bright.size() == 2);
+    CHECK(bright[0].material.vertexColors.offset.r == doctest::Approx(128.0F / 255.0F));
+    CHECK(bright[1].material.vertexColors.scale.r == 1.0F);
+
+    tints.Start(1);
+    const std::vector<render::MeshDraw> shifted = stage.Draws(player, tints);
+    CHECK(shifted[1].material.vertexColors.scale.r == 0.5F);
+    CHECK(shifted[1].material.vertexColors.scale.b == 1.0F);
+    CHECK(shifted[1].material.vertexColors.offset.r == 0.0F);
+
+    tints.StopAll();
+    CHECK(stage.Draws(player, tints)[0].material.vertexColors.offset.r == 0.0F);
+}
+
+TEST_CASE("a tint on an entity no world has fails") {
+    const Stage stage({});
+    const std::array<assets::CutsceneTint, 1> effects{
+        {{.name = "vtx1", .entity = assets::EntityByName{.name = "nowhere"}}}};
+    const assets::WorldAsset world = test::StageWorld();
+    const std::array worlds{&world};
+    const Result<std::vector<std::optional<ModelBinding>>> targets =
+        BindTints(effects, worlds, test::StageStatics(), stage.entities);
+    REQUIRE_FALSE(targets.has_value());
+    CHECK(targets.error().message == "tint vtx1: unable to find model nowhere");
 }
 
 TEST_CASE("a jointed model is placed by its event and animates only while it plays a part") {

@@ -6,8 +6,10 @@
 
 #include "app/cutscene/cutscene_bindings.hpp"
 #include "app/cutscene/cutscene_materials.hpp"
+#include "app/cutscene/cutscene_particles.hpp"
 #include "app/cutscene/cutscene_resources.hpp"
 #include "app/cutscene/cutscene_sounds.hpp"
+#include "app/cutscene/cutscene_tints.hpp"
 #include "app/frame_loop.hpp"
 #include "app/track_model.hpp"
 #include "assets/game_path.hpp"
@@ -90,6 +92,47 @@ Result<std::unique_ptr<assets::CutsceneEffectsAsset>> ReadEffects(const assets::
     return std::make_unique<assets::CutsceneEffectsAsset>(std::move(*effects));
 }
 
+struct SceneWorld {
+    std::span<const assets::WorldAsset* const> worlds;
+    std::span<const NamedDraws> statics;
+    const sim::TrackEntitySources* entities = nullptr;
+    const assets::NameMap<assets::MaterialAsset>* materials = nullptr;
+    const assets::NameMap<render::TextureId>* textures = nullptr;
+};
+
+// NOLINTNEXTLINE(bugprone-exception-escape)
+struct EffectParts {
+    UiFonts fonts;
+    CutsceneEffects effects;
+};
+
+Result<EffectParts> LoadEffectParts(const RaceOutputs& outputs, const assets::Vfs& vfs,
+                                    std::string_view folder, std::string_view language,
+                                    const SceneWorld& world,
+                                    const assets::CutsceneEffectsAsset& effects) {
+    Result<CutsceneResources> resources =
+        LoadCutsceneResources(*outputs.renderer, vfs, folder, language, effects);
+    Result<std::vector<std::optional<audio::SoundId>>> sounds =
+        resources.and_then([&](const auto&) {
+            return LoadCutsceneSounds(*outputs.mixer, *outputs.banks, vfs, folder, effects);
+        });
+    Result<std::vector<std::optional<ModelBinding>>> tints = sounds.and_then([&](const auto&) {
+        return BindTints(effects.tints, world.worlds, world.statics, *world.entities);
+    });
+    Result<std::vector<render::ParticleBank>> banks = tints.and_then([&](const auto&) {
+        return LoadCutsceneParticles(vfs, folder, effects, *world.materials, *world.textures);
+    });
+    if (!banks) {
+        return std::unexpected(std::move(banks.error()));
+    }
+    return EffectParts{
+        .fonts = std::move(resources->fonts),
+        .effects = {.sounds = CutsceneSounds(*outputs.mixer, effects.sounds, std::move(*sounds)),
+                    .overlay = CutsceneOverlay(effects, std::move(resources->overlay)),
+                    .tints = CutsceneTints(effects.tints, std::move(*tints)),
+                    .particles = CutsceneParticles(effects.particles, std::move(*banks))}};
+}
+
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct SceneEffects {
     std::unique_ptr<assets::CutsceneEffectsAsset> asset;
@@ -99,25 +142,17 @@ struct SceneEffects {
 
 Result<SceneEffects> LoadEffects(const RaceOutputs& outputs, const assets::Vfs& vfs,
                                  const CutscenePath& path, std::string_view language,
-                                 const assets::CutsceneFrame& frame) {
+                                 const assets::CutsceneFrame& frame, const SceneWorld& world) {
     Result<std::unique_ptr<assets::CutsceneEffectsAsset>> asset = ReadEffects(vfs, path);
-    Result<CutsceneResources> resources = asset.and_then([&](const auto& effects) {
-        return LoadCutsceneResources(*outputs.renderer, vfs, path.folder, language, *effects);
+    Result<EffectParts> parts = asset.and_then([&](const auto& effects) {
+        return LoadEffectParts(outputs, vfs, path.folder, language, world, *effects);
     });
-    Result<std::vector<std::optional<audio::SoundId>>> sounds =
-        resources.and_then([&](const auto&) {
-            return LoadCutsceneSounds(*outputs.mixer, *outputs.banks, vfs, path.folder, **asset);
-        });
-    if (!sounds) {
-        return std::unexpected(std::move(sounds.error()));
+    if (!parts) {
+        return std::unexpected(std::move(parts.error()));
     }
-    const assets::CutsceneEffectsAsset& effects = **asset;
-    CutsceneEffectPlayer player(frame, effects,
-                                CutsceneSounds(*outputs.mixer, effects.sounds, std::move(*sounds)),
-                                CutsceneOverlay(effects, std::move(resources->overlay)));
-    return SceneEffects{.asset = std::move(*asset),
-                        .fonts = std::move(resources->fonts),
-                        .player = std::move(player)};
+    CutsceneEffectPlayer player(frame, **asset, std::move(parts->effects));
+    return SceneEffects{
+        .asset = std::move(*asset), .fonts = std::move(parts->fonts), .player = std::move(player)};
 }
 
 }
@@ -154,8 +189,14 @@ Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(const RaceOutputs& 
     Result<CutsceneLooks> looks = bindings.and_then([&](const CutsceneBindings& bound) {
         return LoadLooks(vfs, path->folder, worlds, frame, bound.models, model->materials);
     });
-    Result<SceneEffects> effects = looks.and_then(
-        [&](const CutsceneLooks&) { return LoadEffects(outputs, vfs, *path, language, frame); });
+    Result<SceneEffects> effects = looks.and_then([&](const CutsceneLooks&) {
+        return LoadEffects(outputs, vfs, *path, language, frame,
+                           {.worlds = worlds,
+                            .statics = model->entityDraws,
+                            .entities = &*sources,
+                            .materials = &assets->materials,
+                            .textures = &model->textures});
+    });
     if (!effects) {
         return Fail(effects.error().code, std::format("{}: {}", scene, effects.error().message));
     }
@@ -194,11 +235,12 @@ void CutsceneScene::Snapshot(sim::RenderSnapshot& out) const {
 void CutsceneScene::Render(const sim::RenderSnapshot& interpolated) {
     parts_.jointed.Update(interpolated.entityClocks);
     draws_.clear();
-    parts_.player.AppendDraws(parts_.jointed, draws_);
+    parts_.player.AppendDraws(parts_.jointed, parts_.effectPlayer.Tints(), draws_);
     const render::Camera camera =
         parts_.player.ViewCamera(interpolated.entityClocks).value_or(render::Camera{});
     quads_.clear();
     parts_.player.AppendQuads(camera.transform, quads_);
+    parts_.effectPlayer.AppendQuads(camera.transform, quads_);
     sprites_.clear();
     parts_.effectPlayer.Draw({.width = render::kUiWidth, .height = render::kUiHeight}, sprites_);
     Result<void> drawn = parts_.renderer->Draw({.camera = camera,
