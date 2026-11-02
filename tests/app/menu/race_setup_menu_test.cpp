@@ -160,17 +160,18 @@ std::vector<std::string> Describe(const std::vector<CourseChoice>& circuits) {
     return described;
 }
 
-TEST_CASE("circuit setup offers the unmirrored retail circuits, the first always open") {
+TEST_CASE("circuit setup offers every retail circuit, mirrored ones too, the first always open") {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
         return;
     }
 
-    const Result<std::vector<CourseChoice>> circuits = LoadCircuitChoices(*vfs, {"c2"});
+    const Result<std::vector<CourseChoice>> circuits = LoadCircuitChoices(*vfs, {"c2", "c4"});
 
     REQUIRE(circuits.has_value());
-    CHECK(Describe(*circuits) ==
-          std::vector<std::string>{"c0 open 6", "c1 locked 6", "c2 open 6", "c6 locked 6"});
+    CHECK(Describe(*circuits) == std::vector<std::string>{"c0 open 6", "c1 locked 6", "c2 open 6",
+                                                          "c3 locked 6", "c4 open 6", "c5 locked 6",
+                                                          "c6 locked 6"});
     CHECK(circuits->back().circuitIndex == 6);
 }
 

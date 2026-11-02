@@ -34,7 +34,7 @@ struct CourseChoice {
 /// Unmirrored circuit races in circuit order, each with its circuit's grid.
 [[nodiscard]] Result<std::vector<CourseChoice>> LoadTrackChoices(const assets::Vfs& vfs);
 
-/// Leaves out mirrored circuits. The first circuit is open even when `unlocked` doesn't name it.
+/// Every circuit with a race. The first is open even when `unlocked` doesn't name it.
 [[nodiscard]] Result<std::vector<CourseChoice>> LoadCircuitChoices(
     const assets::Vfs& vfs, const std::set<std::string>& unlocked);
 
