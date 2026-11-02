@@ -10,6 +10,7 @@ rr_add_module(assets
         checkpoints.cpp
         collision_mesh.cpp
         driver_database.cpp
+        driver_parts.cpp
         emitter_library.cpp
         event_table.cpp
         folder_layer.cpp
@@ -30,6 +31,7 @@ rr_add_module(assets
         menu_styles.cpp
         mirror.cpp
         original_save.cpp
+        part_library.cpp
         path_index.cpp
         race_catalog.cpp
         race_list.cpp

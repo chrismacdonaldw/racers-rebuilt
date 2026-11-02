@@ -103,6 +103,7 @@ add_executable(racers-rebuilt-tests
     assets/checkpoints_test.cpp
     assets/collision_mesh_test.cpp
     assets/driver_database_test.cpp
+    assets/driver_parts_test.cpp
     assets/emitter_library_test.cpp
     assets/event_table_test.cpp
     assets/font_list_test.cpp
@@ -124,6 +125,7 @@ add_executable(racers-rebuilt-tests
     assets/menu_styles_test.cpp
     assets/mirror_test.cpp
     assets/original_save_test.cpp
+    assets/part_library_test.cpp
     assets/model_survey_test.cpp
     assets/race_catalog_test.cpp
     assets/race_list_test.cpp
