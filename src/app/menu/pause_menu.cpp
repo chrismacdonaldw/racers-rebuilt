@@ -21,13 +21,13 @@ std::optional<PauseRow> PauseMenu::Tick(const sim::InputFrame& input) {
         focus_ = PauseRow::Resume;
         return std::nullopt;
     }
+    if (confirm_) {
+        return TickConfirm(input);
+    }
     if (input.WasPressed(sim::Action::Pause) ||
         (input.WasPressed(sim::MenuAction::Back) && !input.IsHeld(sim::Action::Pause))) {
         Close();
         return std::nullopt;
-    }
-    if (confirm_) {
-        return TickConfirm(input);
     }
     focus_ = Stepped(focus_, input);
     if (!input.WasPressed(sim::MenuAction::Confirm)) {

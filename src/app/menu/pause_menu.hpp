@@ -12,7 +12,8 @@ enum class PauseRow : std::uint8_t { Resume, Restart, Quit, Count };
 enum class ConfirmRow : std::uint8_t { Yes, No, Count };
 
 /// Opens on the pause action. Closes on it again, on menu back while pause isn't held, or when
-/// Resume or No is confirmed. Restart and Quit ask Yes or No first, starting on No.
+/// Resume or No is confirmed. Restart and Quit ask Yes or No first, starting on No, and the
+/// question ignores back and pause.
 class PauseMenu {
 public:
     /// Returns Restart or Quit on the tick Yes is confirmed for it.

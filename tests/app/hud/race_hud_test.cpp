@@ -100,8 +100,9 @@ TEST_CASE("the pause menu's rows are centred on screen under its title, the focu
     CHECK(YOf(texts, u"CONTINUE") == doctest::Approx(213.0F));
     CHECK(YOf(texts, u"RESTART RACE") == doctest::Approx(231.0F));
     CHECK(YOf(texts, u"EXIT") == doctest::Approx(249.0F));
-    CHECK(BlueOf(texts, u"RESTART RACE") == 0.0F);
-    CHECK(BlueOf(texts, u"EXIT") == 1.0F);
+    CHECK(BlueOf(texts, u"RESTART RACE") == doctest::Approx(36.0F / 255.0F));
+    CHECK(BlueOf(texts, u"EXIT") == doctest::Approx(18.0F / 255.0F));
+    CHECK(BlueOf(texts, u"GAME PAUSED") == 1.0F);
 }
 
 TEST_CASE("a circuit race's pause menu restarts the circuit") {
@@ -127,9 +128,29 @@ TEST_CASE("the pause confirm asks are you sure over yes and no") {
     CHECK(YOf(texts, u"YES") == doctest::Approx(222.0F));
     CHECK(YOf(texts, u"NO") == doctest::Approx(240.0F));
     CHECK(XOf(texts, u"NO") == doctest::Approx(320.0F - 10.0F));
-    CHECK(BlueOf(texts, u"YES") == 1.0F);
-    CHECK(BlueOf(texts, u"NO") == 0.0F);
+    CHECK(BlueOf(texts, u"YES") == doctest::Approx(18.0F / 255.0F));
+    CHECK(BlueOf(texts, u"NO") == doctest::Approx(36.0F / 255.0F));
     CHECK_FALSE(Find(texts, u"GAME PAUSED").has_value());
+}
+
+float FocusAlphaAfter(Milliseconds paused) {
+    const Fonts fonts;
+    RaceHud hud(EnglishStrings(), fonts.Hud());
+    for (Milliseconds time{0}; time < paused; time += Milliseconds{10}) {
+        hud.TickPause(Milliseconds{10});
+    }
+    std::vector<HudText> texts;
+    hud.LayoutPause({}, false, texts);
+    return Find(texts, u"CONTINUE")
+        .transform([](const HudText& item) { return item.tint.a; })
+        .value_or(0.0F);
+}
+
+TEST_CASE("the focused dialog row brightens and fades for 250 ms of every 500") {
+    CHECK(FocusAlphaAfter(Milliseconds{0}) == doctest::Approx(191.0F / 255.0F));
+    CHECK(FocusAlphaAfter(Milliseconds{130}) == doctest::Approx(1.0F).epsilon(0.01));
+    CHECK(FocusAlphaAfter(Milliseconds{250}) == 0.0F);
+    CHECK(FocusAlphaAfter(Milliseconds{500}) == doctest::Approx(191.0F / 255.0F));
 }
 
 TEST_CASE("the lap counter and lap time sit top right, right of their labels") {

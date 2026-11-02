@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -40,6 +41,8 @@ public:
                 std::span<const std::u16string> names, std::span<const std::int32_t> circuitPoints,
                 std::vector<HudText>& out);
 
+    void TickPause(Milliseconds elapsed);
+
     void LayoutPause(PauseView view, bool restartsCircuit, std::vector<HudText>& out) const;
 
     [[nodiscard]] const HudFonts& Fonts() const { return fonts_; }
@@ -55,6 +58,7 @@ private:
                     std::span<const std::int32_t> circuitPoints, std::vector<HudText>& out);
     void AddDialog(std::u16string_view title, std::span<const std::u16string_view> rows,
                    std::size_t focus, std::vector<HudText>& out) const;
+    [[nodiscard]] std::optional<render::Color> FocusTint() const;
     [[nodiscard]] std::u16string_view BannerText(HudBanner banner) const;
     [[nodiscard]] HudText Centered(std::u16string_view text, float y, render::Color tint) const;
 
@@ -66,6 +70,7 @@ private:
     float lapTimeX_ = 0.0F;
     float bestLapY_ = 0.0F;
     float gapY_ = 0.0F;
+    Milliseconds dialogTime_{0};
 };
 
 }

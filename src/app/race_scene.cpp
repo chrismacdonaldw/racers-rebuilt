@@ -347,6 +347,7 @@ Transform RaceScene::PlayerCar() const {
 
 void RaceScene::TickPause(const sim::InputFrame& input) {
     const std::optional<PauseRow> chosen = pause_.Tick(input);
+    hud_.TickPause(kSimTick);
     if (parts_.audio) {
         parts_.audio->StopLoops();
     }

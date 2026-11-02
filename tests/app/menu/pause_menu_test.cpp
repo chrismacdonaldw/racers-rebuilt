@@ -94,19 +94,25 @@ TEST_CASE("yes acts on the asked row") {
                        MenuAction::Confirm}) == PauseRow::Quit);
 }
 
-TEST_CASE("no or back on are you sure resumes the race") {
-    PauseMenu no = Opened();
-    CHECK_FALSE(Press(no, {MenuAction::Up, MenuAction::Confirm, MenuAction::Confirm}).has_value());
-    CHECK_FALSE(no.IsOpen());
-    CHECK_FALSE(no.Confirming().has_value());
+TEST_CASE("no on are you sure resumes the race") {
+    PauseMenu menu = Opened();
+    CHECK_FALSE(
+        Press(menu, {MenuAction::Up, MenuAction::Confirm, MenuAction::Confirm}).has_value());
+    CHECK_FALSE(menu.IsOpen());
+    CHECK_FALSE(menu.Confirming().has_value());
 
-    PauseMenu backed = Opened();
-    CHECK_FALSE(Press(backed, {MenuAction::Up, MenuAction::Confirm, MenuAction::Back}).has_value());
-    CHECK_FALSE(backed.IsOpen());
+    static_cast<void>(menu.Tick(Pressing(Action::Pause)));
+    CHECK(menu.Focus() == PauseRow::Resume);
+    CHECK_FALSE(menu.Confirming().has_value());
+}
 
-    static_cast<void>(backed.Tick(Pressing(Action::Pause)));
-    CHECK(backed.Focus() == PauseRow::Resume);
-    CHECK_FALSE(backed.Confirming().has_value());
+TEST_CASE("back and pause leave are you sure open") {
+    PauseMenu menu = Opened();
+    static_cast<void>(Press(menu, {MenuAction::Up, MenuAction::Confirm, MenuAction::Back}));
+    CHECK_FALSE(menu.Tick(Pressing(Action::Pause)).has_value());
+
+    CHECK(menu.IsOpen());
+    CHECK(menu.Confirming() == ConfirmRow::No);
 }
 
 TEST_CASE("the pause menu's state hash tells closed, each focused row and the confirm apart") {
