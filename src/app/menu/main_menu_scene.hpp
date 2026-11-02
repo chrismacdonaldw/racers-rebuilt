@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "app/menu/menu_page.hpp"
@@ -19,7 +20,7 @@
 
 namespace rr::app {
 
-/// Only CIRCUIT RACE, SINGLE RACE, OPTIONS and QUIT lead anywhere yet; the other buttons log.
+/// Only CIRCUIT RACE, SINGLE RACE, VS, OPTIONS and QUIT lead anywhere yet; the other buttons log.
 class MainMenuScene final : public Scene {
 public:
     /// `renderer` and `vfs` must outlive the scene.
@@ -39,8 +40,11 @@ public:
 
 private:
     MainMenuScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
-                  MenuPage page, std::optional<MessageDialog> notice);
+                  MenuPage page, std::optional<DialogLook> dialogLook);
 
+    void TickDialog(MessageDialog& dialog, const sim::InputFrame& input);
+    void OpenDialog(std::size_t messageLine, std::vector<DialogButton> buttons,
+                    std::string_view firstButtonScene);
     void MoveFocus(std::size_t focus);
     void Choose(const MenuButton& button);
     void DrawButton(const MenuButton& button, std::size_t state);
@@ -53,7 +57,9 @@ private:
     MenuText text_;
     std::size_t focus_ = 0;
     std::optional<std::string> next_;
-    std::optional<MessageDialog> notice_;
+    std::optional<DialogLook> dialogLook_;
+    std::optional<MessageDialog> dialog_;
+    std::string_view firstButtonScene_;
     std::vector<render::SpriteDraw> sprites_;
 };
 
