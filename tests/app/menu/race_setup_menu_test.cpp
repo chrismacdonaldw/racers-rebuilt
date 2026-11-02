@@ -82,6 +82,16 @@ TEST_CASE("versus setup gives each player a racer and keeps the rules' lap count
     CHECK(next == "race:RACEC0R1:respawn=3000:racer=0:circuit=c0:players=2:racer2=2:laps=5");
 }
 
+TEST_CASE("single race setup keeps the rules' opponent count") {
+    RaceSetupMenu menu(Tracks());
+
+    const std::optional<std::string> next =
+        Press(menu, {MenuAction::Down, MenuAction::Down, MenuAction::Confirm},
+              {.respawn = {.timeout = Milliseconds{3000}}, .opponents = 1});
+
+    CHECK(next == "race:RACEC0R1:respawn=3000:racer=0:circuit=c0:opponents=1");
+}
+
 TEST_CASE("only versus setup stops on player 2's racer") {
     RaceSetupMenu single(Tracks());
     RaceSetupMenu versus(Tracks(), 2);

@@ -78,6 +78,26 @@ TEST_CASE("a versus race scene name records player 2's racer and the lap count")
         ParseCircuitScene("circuit:c0:respawn=3000:racer=0:race=0:points=0,0,0,0,0,0:laps=5"));
 }
 
+TEST_CASE("a single race scene name records fewer opponents than a full grid") {
+    const RaceSceneSetup race{.track = "RACEC0R0", .opponents = 2};
+
+    CHECK(RaceSceneName(race) == "race:RACEC0R0:respawn=3000:racer=0:opponents=2");
+    CHECK(ParseRaceScene(RaceSceneName(race)) == race);
+    CHECK(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0")->opponents == 5);
+    CHECK(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:opponents=0")->opponents == 0);
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:opponents=6"));
+}
+
+TEST_CASE("a lone player races the opponents the grid holds, and two players race alone") {
+    constexpr std::size_t kGridSize = 6;
+
+    CHECK(RacerCount({}, kGridSize) == 6);
+    CHECK(RacerCount({.opponents = 2}, kGridSize) == 3);
+    CHECK(RacerCount({.opponents = 0}, kGridSize) == 1);
+    CHECK(RacerCount({}, 4) == 4);
+    CHECK(RacerCount({.players = 2, .opponents = 3}, kGridSize) == 2);
+}
+
 TEST_CASE("a malformed race scene name is rejected") {
     for (const std::string_view scene :
          {"RACEC0R0", "race:RACEC0R0", "race::respawn=3000", "race:RACEC0R0:respawn=0",
