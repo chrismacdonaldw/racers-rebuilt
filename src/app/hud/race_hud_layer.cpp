@@ -34,13 +34,21 @@ void RaceHudLayer::SetLanguage(std::string_view language) {
     if (language == language_) {
         return;
     }
+    Result<UiFonts> fonts = LoadUiFonts(*renderer_, *vfs_, HudFolder(language), kHudFontList);
+    if (!fonts) {
+        language_ = language;
+        huds_.clear();
+        log::Error("the race HUD is hidden: {}", fonts.error().message);
+        return;
+    }
+    SetLanguage(language, std::move(*fonts));
+}
+
+void RaceHudLayer::SetLanguage(std::string_view language, UiFonts fonts) {
     language_ = language;
     huds_.clear();
-    Result<HudFonts> found = LoadUiFonts(*renderer_, *vfs_, HudFolder(language_), kHudFontList)
-                                 .and_then([&](UiFonts loaded) {
-                                     fonts_ = std::move(loaded);
-                                     return FindHudFonts(fonts_);
-                                 });
+    fonts_ = std::move(fonts);
+    Result<HudFonts> found = FindHudFonts(fonts_);
     Result<HudLanguage> text = LoadHudLanguage(*vfs_, language_);
     if (!found || !text) {
         log::Error("the race HUD is hidden: {}", (found ? text.error() : found.error()).message);

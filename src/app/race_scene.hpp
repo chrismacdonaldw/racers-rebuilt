@@ -67,6 +67,7 @@ public:
 
     /// Results, restart and quit then lead wherever the circuit goes next.
     void JoinCircuit(CircuitLeg leg);
+    void AdoptHudFonts(std::string_view language, UiFonts fonts);
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;

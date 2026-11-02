@@ -30,6 +30,9 @@ public:
     /// Loads only when `language` changes. The HUD stays hidden while its files fail to load.
     void SetLanguage(std::string_view language);
 
+    /// Takes `language`'s HUD fonts, already loaded.
+    void SetLanguage(std::string_view language, UiFonts fonts);
+
     /// Shows the circuit results from `before`, each racer's points before this race.
     void SetCircuitPoints(std::span<const std::int32_t> before);
 

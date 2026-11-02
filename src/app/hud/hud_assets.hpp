@@ -24,6 +24,10 @@ struct HudLanguage {
     std::vector<std::u16string> driverNames;
 };
 
+/// `language`'s `GAME.SRF` lines.
+[[nodiscard]] Result<std::vector<std::u16string>> ReadGameStrings(const assets::Vfs& vfs,
+                                                                  std::string_view language);
+
 [[nodiscard]] Result<HudLanguage> LoadHudLanguage(const assets::Vfs& vfs,
                                                   std::string_view language);
 

@@ -59,6 +59,7 @@ add_executable(racers-rebuilt-tests
     app/race_camera_test.cpp
     app/voice_reactions_test.cpp
     app/race_determinism_test.cpp
+    app/race_loading_screen_test.cpp
     app/race_music_test.cpp
     app/race_particles_test.cpp
     app/race_scene_name_test.cpp
@@ -107,6 +108,7 @@ add_executable(racers-rebuilt-tests
     assets/jam_archive_test.cpp
     assets/jam_test.cpp
     assets/loader_pool_test.cpp
+    assets/loading_screen_test.cpp
     assets/lzss_test.cpp
     assets/material_animation_test.cpp
     assets/material_library_test.cpp

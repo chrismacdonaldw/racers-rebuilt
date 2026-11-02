@@ -22,6 +22,7 @@ rr_add_module(assets
         jam.cpp
         jam_archive.cpp
         loader_pool.cpp
+        loading_screen.cpp
         lzss.cpp
         material_animation.cpp
         material_library.cpp

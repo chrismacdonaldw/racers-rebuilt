@@ -208,6 +208,10 @@ void RaceScene::ApplySettings(const settings::Registry& settings) {
     hud_.SetLanguage(SelectedLanguage(settings));
 }
 
+void RaceScene::AdoptHudFonts(std::string_view language, UiFonts fonts) {
+    hud_.SetLanguage(language, std::move(fonts));
+}
+
 void RaceScene::JoinCircuit(CircuitLeg leg) {
     hud_.SetCircuitPoints(leg.Points());
     circuit_ = std::move(leg);
