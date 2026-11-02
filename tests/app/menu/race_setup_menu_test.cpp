@@ -166,11 +166,11 @@ TEST_CASE("circuit setup offers the unmirrored retail circuits, the first always
         return;
     }
 
-    const Result<std::vector<CourseChoice>> circuits = LoadCircuitChoices(*vfs, 0);
+    const Result<std::vector<CourseChoice>> circuits = LoadCircuitChoices(*vfs, {"c2"});
 
     REQUIRE(circuits.has_value());
     CHECK(Describe(*circuits) ==
-          std::vector<std::string>{"c0 open 6", "c1 locked 6", "c2 locked 6", "c6 locked 6"});
+          std::vector<std::string>{"c0 open 6", "c1 locked 6", "c2 open 6", "c6 locked 6"});
     CHECK(circuits->back().circuitIndex == 6);
 }
 

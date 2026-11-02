@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -25,9 +26,9 @@ enum class RaceSetupMode : std::uint8_t { SingleRace, Circuit };
 class RaceSetupScene final : public Scene {
 public:
     /// `renderer` and `vfs` must outlive the scene.
-    [[nodiscard]] static Result<std::unique_ptr<RaceSetupScene>> Create(render::Renderer& renderer,
-                                                                        const assets::Vfs& vfs,
-                                                                        RaceSetupMode mode);
+    [[nodiscard]] static Result<std::unique_ptr<RaceSetupScene>> Create(
+        render::Renderer& renderer, const assets::Vfs& vfs, RaceSetupMode mode,
+        const std::set<std::string>& unlockedCircuits);
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;

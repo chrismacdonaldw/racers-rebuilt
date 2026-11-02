@@ -8,6 +8,7 @@ rr_add_module(app
         car_sounds.cpp
         chase_camera.cpp
         checkpoint_gates.cpp
+        circuit_awards.cpp
         circuit_leg.cpp
         collision_wireframe.cpp
         extensions.cpp

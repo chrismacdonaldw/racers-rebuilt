@@ -23,6 +23,7 @@ add_executable(racers-rebuilt-tests
     app/hud/race_results_test.cpp
     app/hud/race_time_text_test.cpp
     app/hud/text_pool_test.cpp
+    app/circuit_awards_test.cpp
     app/circuit_leg_test.cpp
     app/free_camera_test.cpp
     app/input_bindings_test.cpp

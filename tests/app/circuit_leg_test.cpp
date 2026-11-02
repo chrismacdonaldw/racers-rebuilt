@@ -34,6 +34,10 @@ assets::RaceCatalog Catalog() {
     return std::move(*catalog);
 }
 
+std::string Award(std::string circuit, sim::CircuitAward award) {
+    return AwardSceneName({.circuit = std::move(circuit), .award = award});
+}
+
 CircuitSceneSetup Start(std::string circuit) {
     return {.race = {.circuit = std::move(circuit), .respawn = {.isEnabled = false}, .racer = 2}};
 }
@@ -58,7 +62,7 @@ TEST_CASE("a circuit plays its four races from scripted finishes to its award") 
     }
 
     CHECK(tracks == std::vector<std::string>{"RACEC0R1", "RACEC1R0", "RACEC0R3", "RACEC0R2"});
-    CHECK(scene == AwardSceneName(sim::CircuitAward::Gold));
+    CHECK(scene == Award("c0", sim::CircuitAward::Gold));
 }
 
 TEST_CASE("each race starts with the points the races before it scored") {
@@ -76,7 +80,7 @@ TEST_CASE("a player without enough points is knocked out to the losing award") {
     const assets::RaceCatalog catalog = Catalog();
     const CircuitLeg first = Leg(catalog, CircuitSceneName(Start("c0")));
 
-    CHECK(first.AfterFinish(kPlayerLast) == AwardSceneName(sim::CircuitAward::None));
+    CHECK(first.AfterFinish(kPlayerLast) == Award("c0", sim::CircuitAward::None));
 }
 
 TEST_CASE("restart goes back to the first race with no points, and quit leaves the circuit") {
@@ -93,7 +97,7 @@ TEST_CASE("a one-race circuit awards after its only race") {
     const CircuitLeg leg = Leg(catalog, CircuitSceneName(Start("c6")));
 
     CHECK(leg.Race().track == "RACEC3R0");
-    CHECK(leg.AfterFinish(kPlayerWins) == AwardSceneName(sim::CircuitAward::Gold));
+    CHECK(leg.AfterFinish(kPlayerWins) == Award("c6", sim::CircuitAward::Gold));
 }
 
 TEST_CASE("a circuit that's missing, empty or already over doesn't start") {
