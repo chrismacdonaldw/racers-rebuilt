@@ -317,7 +317,7 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
         .lines = debugLines_,
         .sprites = hud_.Draw(parts_.session, interpolated.racers[kPlayerSlot],
                              start != nullptr ? WarpFlash(start->phaseLeftMs) : std::nullopt,
-                             PauseFocus())};
+                             PauseShown())};
     const sim::EffectSnapshot* flight =
         FindWarp(interpolated.effects, kPlayerSlot, sim::WarpPhase::Active);
     if (flight != nullptr && parts_.warpTube) {
@@ -382,8 +382,16 @@ void RaceScene::ApplyChosenTools() {
     chosenTools_.clear();
 }
 
-std::optional<std::size_t> RaceScene::PauseFocus() const {
-    return pause_.IsOpen() ? std::optional(static_cast<std::size_t>(pause_.Focus())) : std::nullopt;
+std::optional<PauseView> RaceScene::PauseShown() const {
+    if (!pause_.IsOpen()) {
+        return std::nullopt;
+    }
+    if (const std::optional<ConfirmRow> confirm = pause_.Confirming()) {
+        return PauseView{.dialog = PauseDialog::Confirm,
+                         .focus = static_cast<std::size_t>(*confirm)};
+    }
+    return PauseView{.dialog = PauseDialog::Menu,
+                     .focus = static_cast<std::size_t>(pause_.Focus())};
 }
 
 void RaceScene::DrawDebugLines() {

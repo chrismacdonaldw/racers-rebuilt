@@ -1,6 +1,7 @@
 #include "app/hud/race_hud.hpp"
 
 #include <array>
+#include <cmath>
 #include <utility>
 
 #include "app/hud/race_time_text.hpp"
@@ -21,9 +22,8 @@ constexpr float kBestLabelGap = 14.0F;
 constexpr float kGapLabelGap = 4.0F;
 constexpr float kBestRow = 7.0F / 8.0F;
 constexpr float kGapRow = 21.0F / 8.0F;
-constexpr float kPauseTitleY = 160.0F;
-constexpr float kPauseFirstRowY = 216.0F;
-constexpr float kPauseRowHeight = 32.0F;
+constexpr float kCenterY = render::kUiHeight / 2.0F;
+constexpr float kDialogRowGap = 2.0F;
 constexpr float kCircuitTitleY = 60.0F;
 constexpr Milliseconds kBlinkPeriod{400};
 constexpr Milliseconds kBlinkLit{250};
@@ -87,15 +87,26 @@ void RaceHud::AddResults(const sim::RaceClock& clock, const sim::RaceProgress& p
     LayoutResults(results_, names, labels, isLit ? std::nullopt : std::optional(racer), pool_, out);
 }
 
-void RaceHud::LayoutPause(std::size_t focus, bool restartsCircuit,
-                          std::vector<HudText>& out) const {
-    out.push_back(Centered(strings_.paused, kPauseTitleY, {}));
+void RaceHud::LayoutPause(PauseView view, bool restartsCircuit, std::vector<HudText>& out) const {
+    if (view.dialog == PauseDialog::Confirm) {
+        const std::array<std::u16string_view, 2> rows{strings_.yes, strings_.no};
+        AddDialog(strings_.sure, rows, view.focus, out);
+        return;
+    }
     const std::array<std::u16string_view, 3> rows{
         strings_.resume, restartsCircuit ? strings_.restartCircuit : strings_.restart,
         strings_.quit};
+    AddDialog(strings_.paused, rows, view.focus, out);
+}
+
+void RaceHud::AddDialog(std::u16string_view title, std::span<const std::u16string_view> rows,
+                        std::size_t focus, std::vector<HudText>& out) const {
+    const float rowHeight = fonts_.Height(HudFont::Text) + kDialogRowGap;
+    const float firstRowY =
+        kCenterY - std::floor(static_cast<float>(rows.size()) * rowHeight / 2.0F);
+    out.push_back(Centered(title, firstRowY - rowHeight, {}));
     for (std::size_t row = 0; row < rows.size(); ++row) {
-        out.push_back(Centered(rows[row],
-                               kPauseFirstRowY + (static_cast<float>(row) * kPauseRowHeight),
+        out.push_back(Centered(rows[row], firstRowY + (static_cast<float>(row) * rowHeight),
                                row == focus ? kFocusTint : render::Color{}));
     }
 }

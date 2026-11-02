@@ -50,7 +50,10 @@ HudStrings EnglishStrings() {
             .resume = u"CONTINUE",
             .restart = u"RESTART RACE",
             .restartCircuit = u"RESTART CIRCUIT",
-            .quit = u"EXIT"};
+            .quit = u"EXIT",
+            .sure = u"ARE YOU SURE?",
+            .yes = u"YES",
+            .no = u"NO"};
 }
 
 std::vector<std::u16string> Names() {
@@ -83,18 +86,20 @@ HudText LastNumbers(const std::vector<HudText>& texts) {
     return found.empty() ? HudText{} : found.front();
 }
 
-TEST_CASE("the pause menu is centred under its title, with the focused row tinted") {
+TEST_CASE("the pause menu's rows are centred on screen under its title, the focused one tinted") {
     const Fonts fonts;
     const RaceHud hud(EnglishStrings(), fonts.Hud());
     std::vector<HudText> texts;
 
-    hud.LayoutPause(1, false, texts);
+    hud.LayoutPause({.dialog = PauseDialog::Menu, .focus = 1}, false, texts);
 
     REQUIRE(texts.size() == 4);
     CHECK(XOf(texts, u"GAME PAUSED") == doctest::Approx(320.0F - 55.0F));
     CHECK(XOf(texts, u"EXIT") == doctest::Approx(320.0F - 20.0F));
-    CHECK(YOf(texts, u"CONTINUE") < YOf(texts, u"RESTART RACE"));
-    CHECK(YOf(texts, u"RESTART RACE") < YOf(texts, u"EXIT"));
+    CHECK(YOf(texts, u"GAME PAUSED") == doctest::Approx(195.0F));
+    CHECK(YOf(texts, u"CONTINUE") == doctest::Approx(213.0F));
+    CHECK(YOf(texts, u"RESTART RACE") == doctest::Approx(231.0F));
+    CHECK(YOf(texts, u"EXIT") == doctest::Approx(249.0F));
     CHECK(BlueOf(texts, u"RESTART RACE") == 0.0F);
     CHECK(BlueOf(texts, u"EXIT") == 1.0F);
 }
@@ -104,10 +109,27 @@ TEST_CASE("a circuit race's pause menu restarts the circuit") {
     const RaceHud hud(EnglishStrings(), fonts.Hud());
     std::vector<HudText> texts;
 
-    hud.LayoutPause(0, true, texts);
+    hud.LayoutPause({}, true, texts);
 
     CHECK(Find(texts, u"RESTART CIRCUIT").has_value());
     CHECK_FALSE(Find(texts, u"RESTART RACE").has_value());
+}
+
+TEST_CASE("the pause confirm asks are you sure over yes and no") {
+    const Fonts fonts;
+    const RaceHud hud(EnglishStrings(), fonts.Hud());
+    std::vector<HudText> texts;
+
+    hud.LayoutPause({.dialog = PauseDialog::Confirm, .focus = 1}, false, texts);
+
+    REQUIRE(texts.size() == 3);
+    CHECK(YOf(texts, u"ARE YOU SURE?") == doctest::Approx(204.0F));
+    CHECK(YOf(texts, u"YES") == doctest::Approx(222.0F));
+    CHECK(YOf(texts, u"NO") == doctest::Approx(240.0F));
+    CHECK(XOf(texts, u"NO") == doctest::Approx(320.0F - 10.0F));
+    CHECK(BlueOf(texts, u"YES") == 1.0F);
+    CHECK(BlueOf(texts, u"NO") == 0.0F);
+    CHECK_FALSE(Find(texts, u"GAME PAUSED").has_value());
 }
 
 TEST_CASE("the lap counter and lap time sit top right, right of their labels") {

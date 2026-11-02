@@ -107,7 +107,7 @@ private:
     [[nodiscard]] overlay::RacerActionGroup EffectTools();
     [[nodiscard]] overlay::RacerActionGroup PowerupTools();
     void ApplyChosenTools();
-    [[nodiscard]] std::optional<std::size_t> PauseFocus() const;
+    [[nodiscard]] std::optional<PauseView> PauseShown() const;
     void GatherMeshes(const sim::RenderSnapshot& interpolated, float elapsedMs);
     void DrawDebugLines();
 

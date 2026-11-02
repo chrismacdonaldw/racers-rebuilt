@@ -19,6 +19,13 @@
 
 namespace rr::app {
 
+enum class PauseDialog : std::uint8_t { Menu, Confirm };
+
+struct PauseView {
+    PauseDialog dialog = PauseDialog::Menu;
+    std::size_t focus = 0;
+};
+
 /// One racer's full-screen HUD, placed as the original places it on a 640×480 screen.
 class RaceHud {
 public:
@@ -33,8 +40,7 @@ public:
                 std::span<const std::u16string> names, std::span<const std::int32_t> circuitPoints,
                 std::vector<HudText>& out);
 
-    /// Appends the pause menu's title and rows, highlighting row `focus`.
-    void LayoutPause(std::size_t focus, bool restartsCircuit, std::vector<HudText>& out) const;
+    void LayoutPause(PauseView view, bool restartsCircuit, std::vector<HudText>& out) const;
 
     [[nodiscard]] const HudFonts& Fonts() const { return fonts_; }
 
@@ -47,6 +53,8 @@ private:
     void AddResults(const sim::RaceClock& clock, const sim::RaceProgress& progress,
                     std::size_t racer, std::span<const std::u16string> names,
                     std::span<const std::int32_t> circuitPoints, std::vector<HudText>& out);
+    void AddDialog(std::u16string_view title, std::span<const std::u16string_view> rows,
+                   std::size_t focus, std::vector<HudText>& out) const;
     [[nodiscard]] std::u16string_view BannerText(HudBanner banner) const;
     [[nodiscard]] HudText Centered(std::u16string_view text, float y, render::Color tint) const;
 

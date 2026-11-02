@@ -72,15 +72,44 @@ TEST_CASE("a held pause key's menu back repeats leave the pause menu open") {
     CHECK(menu.IsOpen());
 }
 
-TEST_CASE("restart and quit are confirmed from their rows") {
+TEST_CASE("restart and quit ask are you sure first, starting on no") {
     PauseMenu restart = Opened();
-    CHECK(Press(restart, {MenuAction::Down, MenuAction::Confirm}) == PauseRow::Restart);
+    CHECK_FALSE(Press(restart, {MenuAction::Down, MenuAction::Confirm}).has_value());
+    CHECK(restart.IsOpen());
+    CHECK(restart.Confirming() == ConfirmRow::No);
 
     PauseMenu quit = Opened();
-    CHECK(Press(quit, {MenuAction::Up, MenuAction::Confirm}) == PauseRow::Quit);
+    CHECK_FALSE(Press(quit, {MenuAction::Up, MenuAction::Confirm}).has_value());
+    CHECK(quit.Focus() == PauseRow::Quit);
+    CHECK(quit.Confirming() == ConfirmRow::No);
 }
 
-TEST_CASE("the pause menu's state hash tells closed from each focused row") {
+TEST_CASE("yes acts on the asked row") {
+    PauseMenu restart = Opened();
+    CHECK(Press(restart, {MenuAction::Down, MenuAction::Confirm, MenuAction::Up,
+                          MenuAction::Confirm}) == PauseRow::Restart);
+
+    PauseMenu quit = Opened();
+    CHECK(Press(quit, {MenuAction::Up, MenuAction::Confirm, MenuAction::Down,
+                       MenuAction::Confirm}) == PauseRow::Quit);
+}
+
+TEST_CASE("no or back on are you sure resumes the race") {
+    PauseMenu no = Opened();
+    CHECK_FALSE(Press(no, {MenuAction::Up, MenuAction::Confirm, MenuAction::Confirm}).has_value());
+    CHECK_FALSE(no.IsOpen());
+    CHECK_FALSE(no.Confirming().has_value());
+
+    PauseMenu backed = Opened();
+    CHECK_FALSE(Press(backed, {MenuAction::Up, MenuAction::Confirm, MenuAction::Back}).has_value());
+    CHECK_FALSE(backed.IsOpen());
+
+    static_cast<void>(backed.Tick(Pressing(Action::Pause)));
+    CHECK(backed.Focus() == PauseRow::Resume);
+    CHECK_FALSE(backed.Confirming().has_value());
+}
+
+TEST_CASE("the pause menu's state hash tells closed, each focused row and the confirm apart") {
     PauseMenu menu;
     CHECK(menu.StateHash() == 0);
 
@@ -88,8 +117,12 @@ TEST_CASE("the pause menu's state hash tells closed from each focused row") {
     const std::uint64_t onResume = menu.StateHash();
     static_cast<void>(Press(menu, {MenuAction::Down}));
 
+    const std::uint64_t onRestart = menu.StateHash();
+    static_cast<void>(Press(menu, {MenuAction::Confirm}));
+
     CHECK(onResume != 0);
-    CHECK(menu.StateHash() != onResume);
+    CHECK(onRestart != onResume);
+    CHECK(menu.StateHash() != onRestart);
 }
 
 }

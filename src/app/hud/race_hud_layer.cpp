@@ -68,7 +68,7 @@ void RaceHudLayer::Tick(const sim::RaceSession& session, Milliseconds elapsed) {
 std::span<const render::SpriteDraw> RaceHudLayer::Draw(const sim::RaceSession& session,
                                                        const sim::RacerSnapshot& racer,
                                                        std::optional<render::SpriteDraw> cover,
-                                                       std::optional<std::size_t> pauseFocus) {
+                                                       std::optional<PauseView> pause) {
     sprites_.clear();
     if (hud_) {
         hud_->Layout(session.Clock(), session.Progress(), racer_, names_, circuitPoints_, texts_);
@@ -78,9 +78,9 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(const sim::RaceSession& s
     if (cover) {
         sprites_.push_back(*cover);
     }
-    if (hud_ && pauseFocus) {
+    if (hud_ && pause) {
         texts_.clear();
-        hud_->LayoutPause(*pauseFocus, !circuitPoints_.empty(), texts_);
+        hud_->LayoutPause(*pause, !circuitPoints_.empty(), texts_);
         DrawHudText(texts_, hud_->Fonts(), sprites_);
     }
     return sprites_;
