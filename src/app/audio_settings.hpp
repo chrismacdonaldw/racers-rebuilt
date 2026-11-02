@@ -28,6 +28,9 @@ inline constexpr settings::SettingSpec<double> kVoiceVolume{.key = "audio.voice_
                                                             .label = "Voice volume",
                                                             .category = "Audio"};
 
+inline constexpr settings::SettingSpec<bool> kStereo{
+    .key = "audio.stereo", .defaultValue = true, .label = "Stereo", .category = "Audio"};
+
 /// A game path such as `GAMEDATA/COMMON/321.PCM` or `THEME.TUN`, played once audio starts.
 inline constexpr settings::SettingSpec<std::string_view> kDevPlaySound{
     .key = "dev.play_sound", .defaultValue = "", .label = "Play sound", .category = "Developer"};

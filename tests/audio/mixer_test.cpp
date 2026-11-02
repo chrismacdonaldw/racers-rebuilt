@@ -148,6 +148,16 @@ TEST_CASE_FIXTURE(MixerFixture, "panning right cuts the left channel and keeps t
     CHECK(peaks[1] == doctest::Approx(kHeadroom).epsilon(0.01));
 }
 
+TEST_CASE_FIXTURE(MixerFixture, "in mono a panned voice plays evenly on both channels") {
+    static_cast<void>(mixer_.Loop({.sound = effectId_, .mix = {.pan = 0.7F}}));
+
+    mixer_.SetStereo(false);
+    const std::array<float, 2> peaks = RenderPeaks();
+
+    CHECK(peaks[0] == doctest::Approx((kPannedAwayGain + kHeadroom) / 2.0F).epsilon(0.01));
+    CHECK(peaks[1] == doctest::Approx(peaks[0]));
+}
+
 TEST_CASE_FIXTURE(MixerFixture, "a stack of full-volume voices stays within full scale") {
     for (int voice = 0; voice < 8; ++voice) {
         static_cast<void>(mixer_.Loop({.sound = effectId_}));
