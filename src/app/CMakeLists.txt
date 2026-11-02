@@ -59,7 +59,6 @@ rr_add_module(app
         install_discovery.cpp
         loop_sidecar.cpp
         loop_voice.cpp
-        menu/award_scene.cpp
         menu/best_time_panel.cpp
         menu/award_scene_name.cpp
         menu/control_bindings.cpp

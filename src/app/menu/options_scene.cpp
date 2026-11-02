@@ -5,9 +5,11 @@
 #include <cstddef>
 #include <iterator>
 #include <span>
+#include <string>
 #include <string_view>
 #include <utility>
 
+#include "app/cutscene/cutscene_screen.hpp"
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/option_settings.hpp"
@@ -175,8 +177,9 @@ void OptionsScene::Respond(OptionsRequest request, const OptionValues& before) {
         case OptionsRequest::Leave:
             next_ = std::string(kMainMenuScene);
             return;
-        case OptionsRequest::NotBuilt:
-            log::Info("options: that screen isn't built yet");
+        case OptionsRequest::Credits:
+            next_ = CutsceneScreenName(
+                {.menu = std::string(kCreditsScreen), .next = std::string(kOptionsScene)});
             return;
         case OptionsRequest::None:
             return;

@@ -95,7 +95,7 @@ OptionsRequest OptionsMenu::Choose() {
         case OptionsRow::Language:
             return OptionsRequest::Language;
         case OptionsRow::Credits:
-            return OptionsRequest::NotBuilt;
+            return OptionsRequest::Credits;
         case OptionsRow::Back:
             if (page_ == OptionsPage::Main) {
                 return OptionsRequest::Leave;

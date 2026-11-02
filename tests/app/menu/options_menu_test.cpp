@@ -59,11 +59,11 @@ TEST_CASE("back leaves a page for the main page with GAME focused, then leaves t
     CHECK(Press(menu, {MenuAction::Back}) == OptionsRequest::Leave);
 }
 
-TEST_CASE("the screens that don't exist yet only report it") {
+TEST_CASE("the credits button opens the credits") {
     OptionsMenu menu(OptionValues{});
 
     CHECK(Press(menu, {MenuAction::Up, MenuAction::Up, MenuAction::Confirm}) ==
-          OptionsRequest::NotBuilt);
+          OptionsRequest::Credits);
     CHECK(menu.Focus() == OptionsRow::Credits);
 }
 

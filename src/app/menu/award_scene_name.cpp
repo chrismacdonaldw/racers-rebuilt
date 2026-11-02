@@ -2,7 +2,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <format>
+
+#include "app/cutscene/cutscene_screen.hpp"
 
 namespace rr::app {
 namespace {
@@ -18,6 +21,9 @@ constexpr std::array kAwardNames{AwardName{.award = sim::CircuitAward::Gold, .na
                                  AwardName{.award = sim::CircuitAward::Silver, .name = "silver"},
                                  AwardName{.award = sim::CircuitAward::Bronze, .name = "bronze"},
                                  AwardName{.award = sim::CircuitAward::None, .name = "none"}};
+constexpr std::array<std::string_view, 4> kAwardScreens{"c_award1", "c_award2", "c_award3",
+                                                        "c_award4"};
+constexpr std::int32_t kRocketRacerPartSet = 6;
 
 }
 
@@ -41,6 +47,17 @@ Result<AwardSceneSetup> ParseAwardScene(std::string_view scene) {
         return Fail(ErrorCode::InvalidData, std::format("'{}' isn't an award scene", scene));
     }
     return AwardSceneSetup{.circuit = std::string(rest.substr(0, colon)), .award = found->award};
+}
+
+std::string AwardScreenName(sim::CircuitAward award, std::optional<std::int32_t> newPartSet) {
+    CutsceneScreenSetup setup{.menu =
+                                  std::string(kAwardScreens.at(static_cast<std::size_t>(award)))};
+    if (newPartSet) {
+        const std::string_view win =
+            *newPartSet == kRocketRacerPartSet ? kWinRocketRacerCarScreen : kWinCarScreen;
+        setup.next = CutsceneScreenName({.menu = std::string(win)});
+    }
+    return CutsceneScreenName(setup);
 }
 
 }

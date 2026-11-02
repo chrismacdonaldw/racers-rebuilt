@@ -6,6 +6,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "app/menu/menu_scenes.hpp"
 #include "assets/archive_survey.hpp"
@@ -73,6 +74,24 @@ TEST_CASE("retail screens place their cutscenes as their MIB elements say") {
     CHECK(Placement(*vfs, "circuit7") == "MENUDATA/CIRCUIT7/FR at 0 0 640x480");
 }
 
+TEST_CASE("retail award and car win screens place their cutscenes full screen") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    std::vector<std::string> placements;
+    for (const std::string_view menu :
+         {"c_award1", "c_award2", "c_award3", "c_award4", "wincar", "winrrcar", "winvvcar"}) {
+        placements.push_back(Placement(*vfs, menu));
+    }
+    CHECK(placements ==
+          std::vector<std::string>{
+              "MENUDATA/C_AWARD1/1STPLACE at 0 0 640x480", "MENUDATA/C_AWARD2/TWO at 0 0 640x480",
+              "MENUDATA/C_AWARD3/3-01 at 0 0 640x480", "MENUDATA/C_AWARD4/LOSE at 0 0 640x480",
+              "MENUDATA/WINCAR/WINCAR at 0 0 640x480", "MENUDATA/WINRRCAR/END at 0 0 640x480",
+              "MENUDATA/WINVVCAR/VVWIN at 0 0 640x480"});
+}
+
 std::string Play(const assets::Vfs& vfs, std::string_view scene) {
     const Result<CutscenePlay> play = ScreenPlay(vfs, scene);
     REQUIRE_MESSAGE(play.has_value(), play.error().message);
@@ -89,6 +108,19 @@ TEST_CASE("a retail screen plays once and goes on to its next scene") {
           std::format("SPLASH1 looping=false skippable=true music='' next={}", kMainMenuScene));
     CHECK(Play(*vfs, "screen:circuit1>circuit:c0") ==
           "CIR1-01 looping=false skippable=true music='circuit1' next=circuit:c0");
+}
+
+TEST_CASE("award screens can't be skipped, and the Rocket Racer win leads to the credits") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    CHECK(Play(*vfs, "screen:c_award1>screen:wincar") ==
+          "1STPLACE looping=false skippable=false music='1st' next=screen:wincar");
+    CHECK(Play(*vfs, "screen:winrrcar") ==
+          "END looping=false skippable=false music='rrcar' next=screen:credits");
+    CHECK(Play(*vfs, "screen:credits>menu:options") ==
+          "CREDITS looping=false skippable=true music='credits' next=menu:options");
 }
 
 }

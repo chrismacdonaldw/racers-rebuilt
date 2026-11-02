@@ -1,5 +1,6 @@
 #include "app/circuit_awards.hpp"
 
+#include <cstdint>
 #include <format>
 #include <optional>
 #include <utility>
@@ -31,8 +32,9 @@ bool GrantAward(settings::Progress& progress, settings::Trophies& trophies,
         return false;
     }
     bool changed = settings::AwardTrophy(trophies, circuit.name, TrophyOf(award));
-    if (award == sim::CircuitAward::Gold && circuit.partSet) {
-        changed = progress.partSets.insert(*circuit.partSet).second || changed;
+    if (const std::optional<std::int32_t> partSet = NewPartSet(progress, circuit, award)) {
+        progress.partSets.insert(*partSet);
+        changed = true;
     }
     if (OpensNewCircuit(progress, circuit, award)) {
         progress.unlockedCircuits.insert(*circuit.next);
@@ -47,8 +49,18 @@ bool OpensNewCircuit(const settings::Progress& progress, const assets::CircuitEn
            circuit.next && !progress.unlockedCircuits.contains(*circuit.next);
 }
 
-Result<bool> SaveAward(const std::filesystem::path& file, const assets::Vfs& vfs,
-                       const AwardSceneSetup& award) {
+std::optional<std::int32_t> NewPartSet(const settings::Progress& progress,
+                                       const assets::CircuitEntry& circuit,
+                                       sim::CircuitAward award) {
+    if (award != sim::CircuitAward::Gold || !circuit.partSet ||
+        progress.partSets.contains(*circuit.partSet)) {
+        return std::nullopt;
+    }
+    return circuit.partSet;
+}
+
+Result<AwardUnlocks> SaveAward(const std::filesystem::path& file, const assets::Vfs& vfs,
+                               const AwardSceneSetup& award) {
     Result<assets::RaceCatalog> catalog = assets::RaceCatalog::Load(vfs);
     if (!catalog) {
         return std::unexpected(std::move(catalog.error()));
@@ -65,14 +77,15 @@ Result<bool> SaveAward(const std::filesystem::path& file, const assets::Vfs& vfs
         return std::unexpected(std::move(racers.error()));
     }
     const assets::CircuitEntry& entry = catalog->Circuits()[*circuit];
-    const bool opens = OpensNewCircuit(*progress, entry, award.award);
+    const AwardUnlocks unlocks{.opensCircuit = OpensNewCircuit(*progress, entry, award.award),
+                               .partSet = NewPartSet(*progress, entry, award.award)};
     if (!GrantAward(*progress, settings::TrophiesOf(*progress, *racers), entry, award.award)) {
-        return false;
+        return AwardUnlocks{};
     }
     Result<void> saved =
         racers->selected ? settings::SaveRacers(*racers, racersFile) : Result<void>{};
     return saved.and_then([&] { return settings::SaveProgress(*progress, file); }).transform([&] {
-        return opens;
+        return unlocks;
     });
 }
 

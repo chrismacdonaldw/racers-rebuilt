@@ -75,7 +75,14 @@ TEST_CASE("gold on the first retail circuit opens the second after a restart") {
     CHECK_FALSE(circuits->at(1).isLocked);
 }
 
-TEST_CASE("saving an award reports a new circuit only the first time it opens") {
+TEST_CASE("only a first gold unlocks the circuit's part set") {
+    CHECK(NewPartSet({}, Circuit(), CircuitAward::Gold) == 2);
+    CHECK_FALSE(NewPartSet({}, Circuit(), CircuitAward::Silver).has_value());
+    CHECK_FALSE(NewPartSet(Granted(CircuitAward::Gold), Circuit(), CircuitAward::Gold).has_value());
+    CHECK_FALSE(NewPartSet({}, {.name = "c3"}, CircuitAward::Gold).has_value());
+}
+
+TEST_CASE("saving an award reports each unlock only the first time") {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
         return;
@@ -83,8 +90,11 @@ TEST_CASE("saving an award reports a new circuit only the first time it opens") 
     const test::TempFolder folder;
     const std::filesystem::path file = folder.Path() / kProgressFileName;
 
-    CHECK(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::Silver}) == true);
-    CHECK(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::Gold}) == false);
+    CHECK(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::Silver}) ==
+          AwardUnlocks{.opensCircuit = true});
+    CHECK(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::Gold}) ==
+          AwardUnlocks{.partSet = 0});
+    CHECK(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::Gold}) == AwardUnlocks{});
 }
 
 TEST_CASE("the selected racer takes the trophy and progress keeps the unlocks") {
@@ -115,7 +125,7 @@ TEST_CASE("an award that changes nothing doesn't write the file") {
     const test::TempFolder folder;
     const std::filesystem::path file = folder.Path() / kProgressFileName;
 
-    CHECK(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::None}) == false);
+    CHECK(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::None}) == AwardUnlocks{});
 
     CHECK_FALSE(std::filesystem::exists(file));
     CHECK_FALSE(SaveAward(file, *vfs, {.circuit = "c9", .award = CircuitAward::Gold}).has_value());
