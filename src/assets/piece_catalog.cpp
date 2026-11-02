@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "assets/game_path.hpp"
+#include "assets/material_library.hpp"
 #include "assets/part_sets.hpp"
 
 namespace rr::assets {
@@ -92,11 +93,16 @@ std::string BinaryPartSetFile(std::string_view listed) {
 
 Result<PieceCatalog> PieceCatalog::Load(const Vfs& vfs, PieceDetail detail) {
     PieceCatalog catalog;
-    const std::string_view libraryFile =
-        detail == PieceDetail::Menu ? "LPIECEHI.LEB" : "LPIECELO.LEB";
-    return ReadPieceFile(vfs, libraryFile, ParsePieceLibrary)
+    const std::string_view stem = detail == PieceDetail::Menu ? "LPIECEHI" : "LPIECELO";
+    return ReadPieceFile(vfs, std::format("{}.LEB", stem), ParsePieceLibrary)
         .and_then([&](PieceLibrary library) {
             catalog.library = std::move(library);
+            return ReadPieceFile(vfs, std::format("{}.MDB", stem), ParseMaterialLibrary);
+        })
+        .and_then([&](const std::vector<MaterialAsset>& materials) {
+            for (const MaterialAsset& material : materials) {
+                catalog.materials.push_back(material.name);
+            }
             return ReadPieceFile(vfs, "L_COLORS.LEB", ParsePieceColours);
         })
         .and_then([&](std::vector<std::string> colours) {

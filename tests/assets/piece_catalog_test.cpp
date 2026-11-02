@@ -63,9 +63,14 @@ void CheckLibrary(const PieceCatalog& catalog, const ExpectedLibrary& expected) 
     CHECK(Sizes(catalog.library) == std::array<std::size_t, 5>{161, expected.indices,
                                                                expected.positions, expected.normals,
                                                                expected.texCoords});
+    CHECK(catalog.library.Find(kStudPieceType, 1)->name == "Cylinder");
+}
+
+void CheckColours(const PieceCatalog& catalog) {
     CHECK(catalog.colours.size() == 10);
     CHECK(catalog.colours.at(2) == "biege");
-    CHECK(catalog.library.Find(kStudPieceType, 1)->name == "Cylinder");
+    CHECK(catalog.materials.size() == 53);
+    CHECK(catalog.materials.at(4) == "biegeaa");
 }
 
 void CheckChassis(const PieceRecord& chassis, const ExpectedSet& expected) {
@@ -105,6 +110,7 @@ TEST_CASE("both retail piece catalogues resolve every part set choice") {
         const Result<PieceCatalog> catalog = PieceCatalog::Load(*vfs, expected.detail);
         REQUIRE_MESSAGE(catalog.has_value(), catalog.error().message);
         CheckLibrary(*catalog, expected);
+        CheckColours(*catalog);
         CheckPartSets(*catalog);
     }
 }

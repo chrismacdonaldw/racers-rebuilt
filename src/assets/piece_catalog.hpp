@@ -31,8 +31,10 @@ struct CatalogPartSet {
     std::vector<PartChoice> choices;
 };
 
+/// `materials` names the library's MDB materials in the order piece commands index them.
 struct PieceCatalog {
     PieceLibrary library;
+    std::vector<std::string> materials;
     std::vector<std::string> colours;
     std::vector<CatalogPartSet> partSets;
 

@@ -3,6 +3,7 @@
 #include <format>
 #include <utility>
 
+#include "app/car_viewer_scene.hpp"
 #include "app/cutscene/cutscene_scene.hpp"
 #include "app/cutscene/cutscene_screen.hpp"
 #include "app/race_scene_name.hpp"
@@ -24,6 +25,12 @@ Result<std::optional<std::string>> StartupScene(const settings::CommandLine& com
     }
     if (commandLine.players && !commandLine.race) {
         return Fail(ErrorCode::InvalidData, "--players needs --race");
+    }
+    if (commandLine.shownCar) {
+        if (commandLine.track || commandLine.race || commandLine.cutscene) {
+            return Fail(ErrorCode::InvalidData, "--show-car can't be used with another scene");
+        }
+        return std::optional(std::format("{}{}", kCarViewerScenePrefix, *commandLine.shownCar));
     }
     if (commandLine.cutscene) {
         if (commandLine.track || commandLine.race) {

@@ -1,19 +1,15 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
 #include <optional>
-#include <utility>
 #include <vector>
 
-#include "assets/archive_survey.hpp"
-#include "assets/original_save.hpp"
-#include "assets/piece_catalog.hpp"
 #include "sim/car_build/built_car.hpp"
 #include "sim/car_build/car_pieces.hpp"
+#include "sim/car_build/retail_cars.hpp"
 
 namespace rr::sim {
 namespace {
@@ -71,29 +67,6 @@ TEST_CASE("loading skips unknown pieces and pieces past the height limit") {
     CHECK(loaded->Grid().At(3, 3).height == 13);
 }
 
-struct RetailCars {
-    assets::PieceCatalog catalog;
-    std::vector<assets::SavedRacer> racers;
-};
-
-std::optional<RetailCars> LoadRetailCars() {
-    const std::optional<assets::Vfs> vfs = rr::test::OpenRetailVfs();
-    if (!vfs) {
-        return std::nullopt;
-    }
-    Result<assets::PieceCatalog> catalog =
-        assets::PieceCatalog::Load(*vfs, assets::PieceDetail::Menu);
-    REQUIRE(catalog.has_value());
-    RetailCars cars{.catalog = std::move(*catalog), .racers = {}};
-    for (const char* path : {"MENUDATA/DEFAULT.LRS", "MENUDATA/QBUILD.LRS"}) {
-        const Result<assets::OriginalSave> file = vfs->Read(path).and_then(
-            [](const assets::FileData& data) { return assets::ParseOriginalSave(data.Bytes()); });
-        REQUIRE(file.has_value());
-        cars.racers.insert(cars.racers.end(), file->racers.begin(), file->racers.end());
-    }
-    return cars;
-}
-
 std::size_t PieceCount(const assets::CarData& car) {
     return (std::to_integer<std::size_t>(car[0]) << 8U) | std::to_integer<std::size_t>(car[1]);
 }
@@ -105,7 +78,7 @@ bool LoadsWhole(const assets::SavedRacer& racer, const assets::PieceLibrary& lib
 }
 
 std::optional<BrickVolume> JoanBricks() {
-    const std::optional<RetailCars> cars = LoadRetailCars();
+    const std::optional<test::RetailCars> cars = test::LoadRetailCars(assets::PieceDetail::Menu);
     if (!cars) {
         return std::nullopt;
     }
@@ -116,7 +89,7 @@ std::optional<BrickVolume> JoanBricks() {
 }
 
 TEST_CASE("every retail car loads whole and saves back byte for byte") {
-    const std::optional<RetailCars> cars = LoadRetailCars();
+    const std::optional<test::RetailCars> cars = test::LoadRetailCars(assets::PieceDetail::Menu);
     if (!cars) {
         return;
     }

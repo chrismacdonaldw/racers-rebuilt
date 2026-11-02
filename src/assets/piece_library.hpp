@@ -25,7 +25,13 @@ struct ShapeCell {
     [[nodiscard]] int BottomHeight() const { return bottom & 0x3F; }
     [[nodiscard]] bool RestsOnBelow() const { return (bottom & 0x80U) != 0; }
     [[nodiscard]] bool CanSitLevel() const { return (bottom & 0xC0U) != 0; }
+    [[nodiscard]] bool SitsOverStuds() const { return (bottom & 0x40U) != 0; }
     [[nodiscard]] bool IsEmpty() const { return TopHeight() == 0 && BottomHeight() == 0; }
+
+    /// A chassis cell uses it to name its stud's colour material.
+    [[nodiscard]] int RaisedBottomHeight() const {
+        return BottomHeight() > TopHeight() ? BottomHeight() - TopHeight() : 0;
+    }
 
     /// Zero when the bottom is above the top.
     [[nodiscard]] int ClampedBottomHeight() const {
