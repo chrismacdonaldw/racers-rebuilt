@@ -47,6 +47,7 @@ enum class OptionsRequest : std::uint8_t {
     ChangeValue,
     Player1Controls,
     Player2Controls,
+    Language,
     Leave,
     NotBuilt
 };

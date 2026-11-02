@@ -93,6 +93,7 @@ OptionsRequest OptionsMenu::Choose() {
         case OptionsRow::Player2:
             return OptionsRequest::Player2Controls;
         case OptionsRow::Language:
+            return OptionsRequest::Language;
         case OptionsRow::Credits:
             return OptionsRequest::NotBuilt;
         case OptionsRow::Back:

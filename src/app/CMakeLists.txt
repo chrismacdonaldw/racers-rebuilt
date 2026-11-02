@@ -50,6 +50,9 @@ rr_add_module(app
         menu/controls_menu.cpp
         menu/controls_scene.cpp
         menu/dialog_layout.cpp
+        menu/language_look.cpp
+        menu/language_menu.cpp
+        menu/language_scene.cpp
         menu/main_menu_scene.cpp
         menu/menu_files.cpp
         menu/menu_focus.cpp
