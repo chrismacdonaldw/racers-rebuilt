@@ -29,6 +29,21 @@ TEST_CASE("a color transform's shifts halve and its offsets add in 255ths") {
     CHECK(colors.offset.g == doctest::Approx(0.2F));
 }
 
+TEST_CASE("a cursed car flashes green over the track's tint") {
+    sim::RenderSnapshot snapshot;
+    snapshot.racers.resize(1);
+    snapshot.racers[0].tint = 0;
+    snapshot.racers[0].isCursed = true;
+    const std::vector<assets::ColorTransformResource> tints{{.shifts = {2, 2, 2, 0}}};
+    std::array<CarLook, 1> looks{};
+
+    LookCars(snapshot, tints, looks);
+
+    CHECK(looks[0].colors.scale.r == 0.5F);
+    CHECK(looks[0].colors.scale.g == 1.0F);
+    CHECK(looks[0].colors.offset.g == doctest::Approx(64.0F / 255.0F));
+}
+
 TEST_CASE("only racers starting a warp shrink, and only tinted racers change color") {
     sim::RenderSnapshot snapshot;
     snapshot.racers.resize(3);

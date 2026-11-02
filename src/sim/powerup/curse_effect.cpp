@@ -39,9 +39,9 @@ bool CurseEffect::Tick(Milliseconds elapsed, PowerupContext& context) {
     const Trap curse{
         .position = position_, .radius = kTriggerRadius, .owner = owner_, .level = level_};
     if (phase_ != TrapPhase::Dropping &&
-        TouchRacers(context, curse, [](Racer& racer, std::uint8_t /*index*/) {
+        TouchRacers(context, curse, [this](Racer& racer, std::uint8_t /*index*/) {
             if (!racer.Status().isCursed) {
-                racer.AttachCurse(kCurse);
+                racer.AttachCurse(kCurse, {.trap = modelPosition_});
             }
             return false;
         })) {

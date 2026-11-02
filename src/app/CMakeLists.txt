@@ -53,6 +53,7 @@ rr_add_module(app
         particle_assets.cpp
         positional_sound.cpp
         powerup/beam_span.cpp
+        powerup/cursed_cars.cpp
         powerup/effect_trail.cpp
         powerup/powerup_models.cpp
         powerup/powerup_particles.cpp
@@ -60,7 +61,6 @@ rr_add_module(app
         powerup/powerup_sounds.cpp
         powerup/powerup_visuals.cpp
         powerup/warp_start.cpp
-        racer/car_look.cpp
         powerup/warp_tube.cpp
         powerup_tools.cpp
         quad_shapes.cpp
@@ -75,6 +75,7 @@ rr_add_module(app
         racer/animation_player.cpp
         racer/car_shadows.cpp
         racer/body_lean.cpp
+        racer/car_look.cpp
         racer/racer_assets.cpp
         racer/racer_bounds.cpp
         racer/racer_draws.cpp

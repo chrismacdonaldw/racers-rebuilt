@@ -13,6 +13,7 @@
 #include "sim/physics/chassis.hpp"
 #include "sim/physics/collision_query.hpp"
 #include "sim/physics/curse_jitter.hpp"
+#include "sim/physics/curse_source.hpp"
 #include "sim/physics/driver_input.hpp"
 #include "sim/physics/racer_contacts.hpp"
 #include "sim/physics/racer_controls.hpp"
@@ -64,6 +65,7 @@ struct RacerStatus {
     bool isWarping = false;
     bool isCursed = false;
     int curseMs = 0;
+    CurseSource curseSource;
     CurseJitter jitter;
     std::uint32_t hitReactions = 0;
     ShieldStatus shield;
@@ -110,7 +112,7 @@ public:
     void Stop();
     void Halt();
     void Resume();
-    void AttachCurse(Milliseconds duration);
+    void AttachCurse(Milliseconds duration, const CurseSource& source = {});
     void RemoveCurse();
 
     /// `force` is in units per s² for the base mass.

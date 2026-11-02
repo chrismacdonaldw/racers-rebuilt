@@ -37,6 +37,7 @@ add_executable(racers-rebuilt-tests
     app/pace_car_test.cpp
     app/particle_assets_test.cpp
     app/powerup/beam_span_test.cpp
+    app/powerup/cursed_cars_test.cpp
     app/powerup/effect_trail_test.cpp
     app/powerup/powerup_models_test.cpp
     app/powerup/powerup_particles_test.cpp
@@ -44,7 +45,6 @@ add_executable(racers-rebuilt-tests
     app/powerup/powerup_sounds_test.cpp
     app/powerup/powerup_visuals_test.cpp
     app/powerup/warp_start_test.cpp
-    app/racer/car_look_test.cpp
     app/powerup/warp_tube_test.cpp
     app/positional_sound_test.cpp
     app/quad_shapes_test.cpp
@@ -57,6 +57,7 @@ add_executable(racers-rebuilt-tests
     app/racer/animation_player_test.cpp
     app/racer/car_shadows_test.cpp
     app/racer/body_lean_test.cpp
+    app/racer/car_look_test.cpp
     app/racer/racer_assets_test.cpp
     app/racer/racer_bounds_test.cpp
     app/racer/racer_visuals_test.cpp

@@ -99,9 +99,10 @@ void Racer::Resume() {
     }
 }
 
-void Racer::AttachCurse(Milliseconds duration) {
+void Racer::AttachCurse(Milliseconds duration, const CurseSource& source) {
     status_.isCursed = true;
     status_.curseMs = static_cast<int>(duration.count());
+    status_.curseSource = source;
     ReactToHit();
     if (route_) {
         route_->StartCurseSlow();

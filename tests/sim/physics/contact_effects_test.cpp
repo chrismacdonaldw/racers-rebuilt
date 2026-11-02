@@ -4,6 +4,8 @@
 
 #include <cstdint>
 #include <optional>
+#include <utility>
+#include <vector>
 
 #include "sim/ai/straight_route.hpp"
 #include "sim/physics/plane_world.hpp"
@@ -35,7 +37,11 @@ Vector3 PointBetween(const Racer& first, const Racer& second) {
 
 void Touch(Racer& first, Racer& second) {
     Random random(3);
-    ApplyContactEffects(first, second, PointBetween(first, second), random);
+    const RacerContact contact{.first = 0, .second = 1, .point = PointBetween(first, second)};
+    std::vector<Racer> racers{std::move(first), std::move(second)};
+    ApplyContactEffects(racers, contact, random);
+    first = std::move(racers[0]);
+    second = std::move(racers[1]);
 }
 
 Racer RouteRacerAt(const Vector3& position) {
@@ -192,6 +198,7 @@ TEST_CASE("a curse passes to an unshielded racer with the time it has left") {
     CHECK_FALSE(cursed.Status().isCursed);
     CHECK(other.Status().isCursed);
     CHECK(other.Status().curseMs == 6000);
+    CHECK(other.Status().curseSource.giver == std::optional<std::uint8_t>(1));
 }
 
 TEST_CASE("a shield blocks a curse passed by contact") {

@@ -9,6 +9,7 @@
 #include "app/track_space.hpp"
 #include "sim/physics/turbo.hpp"
 #include "sim/powerup/curse_effect.hpp"
+#include "sim/powerup/dropped_trap.hpp"
 #include "sim/powerup/magnet_effect.hpp"
 #include "sim/powerup/warp_effect.hpp"
 
@@ -30,7 +31,8 @@ constexpr std::array<std::string_view, 3> kTurboParts{"fireup", "sustain", "dieo
 constexpr std::array<std::string_view, 3> kMissileParts{"right", "middle", "left"};
 constexpr std::string_view kBlastModel = "EXPLSN";
 constexpr std::string_view kSpikeModel = "SPIKEXP";
-constexpr float kMagnetFadeMs = 1000.0F;
+constexpr std::string_view kCurseModel = "CURSE";
+constexpr float kFadeMs = 1000.0F;
 constexpr float kMagnetRingFadeAlpha = 127.0F / 255.0F;
 
 ModelNames NamesFor(PowerupKind kind, std::uint8_t level) {
@@ -50,7 +52,7 @@ ModelNames NamesFor(PowerupKind kind, std::uint8_t level) {
         case PowerupKind::Magnet:
             return {"MAGNET", "MAGRING"};
         case PowerupKind::Curse:
-            return {"CURSE", "CGREEN", "CGREEN2"};
+            return {kCurseModel, "CGREEN", "CGREEN2"};
         default:
             return {};
     }
@@ -91,8 +93,12 @@ Look LookOf(const sim::EffectSnapshot& effect, std::size_t part) {
     }
     if (effect.kind == PowerupKind::Magnet &&
         effect.phase == static_cast<std::uint8_t>(sim::MagnetPhase::Fading)) {
-        const float left = effect.phaseLeftMs / kMagnetFadeMs;
+        const float left = effect.phaseLeftMs / kFadeMs;
         return part == 0 ? Look{.scale = left} : Look{.alpha = left * kMagnetRingFadeAlpha};
+    }
+    if (effect.kind == PowerupKind::Curse &&
+        effect.phase == static_cast<std::uint8_t>(sim::TrapPhase::Fading)) {
+        return {.scale = effect.phaseLeftMs / kFadeMs};
     }
     return {};
 }
@@ -139,6 +145,7 @@ void PowerupVisuals::Update(const sim::RenderSnapshot& snapshot, float elapsedMs
     for (const sim::ExplosionSnapshot& explosion : snapshot.explosions) {
         PlaceExplosion(explosion);
     }
+    PlaceCursedCars(snapshot, elapsedMs);
 }
 
 PowerupVisuals::Instance& PowerupVisuals::InstanceFor(const sim::EffectSnapshot& effect) {
@@ -161,21 +168,29 @@ void PowerupVisuals::Start(Instance& instance, const sim::EffectSnapshot& effect
     instance.ageMs = 0.0F;
     const ModelNames names = NamesFor(effect.kind, effect.use.level);
     for (std::size_t part = 0; part < names.size(); ++part) {
-        const auto found = names[part].empty() ? models_->end() : models_->find(names[part]);
-        if (found == models_->end()) {
-            continue;
-        }
-        Posed& posed = instance.models.emplace_back(
-            Posed{.model = &found->second, .part = part, .offset = OffsetOf(effect.kind, part)});
-        if (const JointedAssets* jointed = found->second.jointed) {
-            Result<AnimationPlayer> player =
-                AnimationPlayer::Create(jointed->animations, jointed->skeleton.nodes.size());
-            if (player) {
-                posed.pose.emplace(jointed->skeleton, found->second.draws.scale);
-                posed.player.emplace(std::move(*player));
-            }
+        if (std::optional<Posed> posed = PoseModel(names[part], part)) {
+            posed->offset = OffsetOf(effect.kind, part);
+            instance.models.push_back(std::move(*posed));
         }
     }
+}
+
+std::optional<PowerupVisuals::Posed> PowerupVisuals::PoseModel(std::string_view name,
+                                                               std::size_t part) const {
+    const auto found = name.empty() ? models_->end() : models_->find(name);
+    if (found == models_->end()) {
+        return std::nullopt;
+    }
+    Posed posed{.model = &found->second, .part = part};
+    if (const JointedAssets* jointed = found->second.jointed) {
+        Result<AnimationPlayer> player =
+            AnimationPlayer::Create(jointed->animations, jointed->skeleton.nodes.size());
+        if (player) {
+            posed.pose.emplace(jointed->skeleton, found->second.draws.scale);
+            posed.player.emplace(std::move(*player));
+        }
+    }
+    return posed;
 }
 
 void PowerupVisuals::Animate(Instance& instance, std::uint8_t phase, float elapsedMs) {
@@ -192,6 +207,12 @@ void PowerupVisuals::Animate(Instance& instance, std::uint8_t phase, float elaps
                                                         : posed.player->FindPart(choice.name);
             posed.player->Play(part.value_or(0), choice.loops);
         }
+        Advance(posed, elapsedMs);
+    }
+}
+
+void PowerupVisuals::Advance(Posed& posed, float elapsedMs) {
+    if (posed.player && posed.pose) {
         posed.player->Advance(elapsedMs);
         posed.player->PoseNodes(posed.pose->Locals());
     }
@@ -228,6 +249,30 @@ void PowerupVisuals::PlaceExplosion(const sim::ExplosionSnapshot& explosion) {
     }
     Posed posed{.model = &found->second};
     Place(posed, explosion.transform, explosion.growth, 0.0F);
+}
+
+void PowerupVisuals::PlaceCursedCars(const sim::RenderSnapshot& snapshot, float elapsedMs) {
+    cursedCars_.Update(snapshot, elapsedMs);
+    const std::span<const std::optional<CurseOrbit>> orbits = cursedCars_.Orbits();
+    carCurses_.resize(orbits.size());
+    for (std::size_t i = 0; i < orbits.size(); ++i) {
+        const std::optional<CurseOrbit>& orbit = orbits[i];
+        std::optional<Posed>& curse = carCurses_[i];
+        if (!orbit) {
+            curse.reset();
+            continue;
+        }
+        if (!curse) {
+            curse = PoseModel(kCurseModel, 0);
+            if (curse && curse->player) {
+                curse->player->Play(0, true);
+            }
+        }
+        if (curse) {
+            Advance(*curse, elapsedMs);
+            Place(*curse, TransformToEngine(orbit->Pose()), orbit->Scale(), 0.0F);
+        }
+    }
 }
 
 }

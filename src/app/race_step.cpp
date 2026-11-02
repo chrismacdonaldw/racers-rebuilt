@@ -35,6 +35,10 @@ void SnapshotBricks(const sim::BrickField& bricks, sim::RenderSnapshot& out) {
     }
 }
 
+sim::CurseSource CurseSourceToEngine(const sim::CurseSource& source) {
+    return {.trap = source.trap.transform(ToEngine), .giver = source.giver};
+}
+
 bool HasStarted(const sim::PowerupSystem& powerups, std::uint16_t slot) {
     return std::ranges::any_of(powerups.Events(), [slot](const sim::PowerupEvent& event) {
         return event.kind == sim::PowerupEventKind::Started && event.effect == slot;
@@ -102,6 +106,8 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
                               .heldColour = inventory.Colour(),
                               .whiteCount = static_cast<std::uint8_t>(inventory.WhiteCount()),
                               .isGhost = racer.Status().isGhost,
+                              .isCursed = racer.Status().isCursed,
+                              .curseSource = CurseSourceToEngine(racer.Status().curseSource),
                               .tint = session.Tints().Of(i).transform([](std::size_t tint) {
                                   return static_cast<std::uint8_t>(tint);
                               })});

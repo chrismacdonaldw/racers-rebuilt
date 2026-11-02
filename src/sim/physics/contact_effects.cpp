@@ -1,6 +1,7 @@
 #include "sim/physics/contact_effects.hpp"
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 
@@ -51,14 +52,18 @@ bool CanPassCurse(const Racer& from, const Racer& to) {
            !to.IsShielded();
 }
 
-void PassCurse(Racer& from, Racer& to) {
-    to.AttachCurse(Milliseconds{from.Status().curseMs});
-    from.RemoveCurse();
+void PassCurse(std::span<Racer> racers, std::size_t from, std::size_t to) {
+    racers[to].AttachCurse(Milliseconds{racers[from].Status().curseMs},
+                           {.giver = static_cast<std::uint8_t>(from)});
+    racers[from].RemoveCurse();
 }
 
 }
 
-void ApplyContactEffects(Racer& first, Racer& second, const Vector3& point, Random& random) {
+void ApplyContactEffects(std::span<Racer> racers, const RacerContact& contact, Random& random) {
+    Racer& first = racers[contact.first];
+    Racer& second = racers[contact.second];
+    const Vector3& point = contact.point;
     ScrapeOrShrink(first, second, random);
     if (const std::optional<std::uint8_t> level = first.Status().shield.level;
         level && !second.IsShielded()) {
@@ -68,9 +73,9 @@ void ApplyContactEffects(Racer& first, Racer& second, const Vector3& point, Rand
         ShieldActsOn(*other, first, point);
     }
     if (CanPassCurse(first, second)) {
-        PassCurse(first, second);
+        PassCurse(racers, contact.first, contact.second);
     } else if (CanPassCurse(second, first)) {
-        PassCurse(second, first);
+        PassCurse(racers, contact.second, contact.first);
     }
     first.MarkTouching();
     second.MarkTouching();
