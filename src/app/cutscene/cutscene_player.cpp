@@ -26,11 +26,12 @@ Transform Placement(const assets::CutsceneModel& model) {
 }
 
 CutscenePlayer::CutscenePlayer(const assets::CutsceneFrame& frame, CutsceneBindings bindings,
-                               CutsceneMaterials materials, sim::TrackEntitySources& sources,
+                               CutsceneLooks looks, sim::TrackEntitySources& sources,
                                CutsceneStatics statics, bool isLooping)
     : frame_(&frame),
       bindings_(std::move(bindings)),
-      materials_(std::move(materials)),
+      materials_(std::move(looks.materials)),
+      sprites_(std::move(looks.sprites)),
       sources_(&sources),
       statics_(statics),
       timeline_(frame, isLooping),
@@ -149,6 +150,15 @@ void CutscenePlayer::AppendDraws(const TrackEntityDraws& jointed,
             out.insert(out.end(), draws.begin(), draws.end());
             materials_.Apply(model, std::span(out).subspan(first),
                              jointed.Slots().subspan(span.first, span.count));
+        }
+    }
+}
+
+void CutscenePlayer::AppendQuads(const Transform& camera,
+                                 std::vector<render::QuadDraw>& out) const {
+    for (std::size_t model = 0; model < bindings_.models.size(); ++model) {
+        if (timeline_.IsActive({.kind = CutsceneEventKind::Model, .index = model})) {
+            sprites_.Append(model, placements_[model], camera, out);
         }
     }
 }

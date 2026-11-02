@@ -26,7 +26,7 @@ std::string ErrorOf(const Result<CutsceneBindings>& bound) {
     return bound ? std::string{} : bound.error().message;
 }
 
-TEST_CASE("model events bind by name, ignoring case, and indexed models bind to nothing") {
+TEST_CASE("model events bind by name, ignoring case, and indexed models to their world's sprite") {
     const assets::CutsceneFrame frame{
         .models = {Named("Set"),
                    Named("GUY1", true),
@@ -43,12 +43,17 @@ TEST_CASE("model events bind by name, ignoring case, and indexed models bind to 
     CHECK(bound->models[1].jointed == 0);
     CHECK_FALSE(bound->models[2].staticDraws.has_value());
     CHECK_FALSE(bound->models[2].jointed.has_value());
+    CHECK(bound->models[2].sprite.value_or(assets::WorldSprite{}).materialName == "star");
 }
 
-TEST_CASE("a model name no world has fails, as the original does") {
+TEST_CASE("a model name no world has, or a sprite past its lists, fails") {
     CHECK(ErrorOf(Bind({.models = {Named("ghost")}})).contains("unable to find model ghost"));
     CHECK(ErrorOf(Bind({.models = {Named("ghost", true)}}))
               .contains("unable to find jointed model ghost"));
+    CHECK(ErrorOf(Bind({.models = {{.model = assets::EntityByIndex{.world = 0, .entity = 1}}}}))
+              .contains("sprite 1 of world 0 doesn't exist"));
+    CHECK(ErrorOf(Bind({.models = {{.model = assets::EntityByIndex{.world = 1, .entity = 0}}}}))
+              .contains("sprite 0 of world 1 doesn't exist"));
 }
 
 TEST_CASE("cameras follow their tracked node, or stand looking at their target") {

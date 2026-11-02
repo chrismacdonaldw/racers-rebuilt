@@ -44,7 +44,13 @@ struct Stage {
         Result<CutsceneMaterials> tracks =
             CutsceneMaterials::Create(frame, bindings.models, animations, materials);
         REQUIRE(tracks.has_value());
-        return {frame, bindings, std::move(*tracks), entities, {.draws = statics, .slots = slots},
+        Result<CutsceneSprites> sprites = CutsceneSprites::Create(bindings.models, materials);
+        REQUIRE(sprites.has_value());
+        return {frame,
+                bindings,
+                {.materials = std::move(*tracks), .sprites = std::move(*sprites)},
+                entities,
+                {.draws = statics, .slots = slots},
                 false};
     }
 
@@ -88,6 +94,39 @@ TEST_CASE("a static model draws only while its event runs, where the event place
 
     stage.Advance(player, Milliseconds{340});
     CHECK(stage.Draws(player).empty());
+}
+
+TEST_CASE("an indexed model shows its sprite facing the camera while its event runs, up close") {
+    assets::CutsceneModel star{.span = {.start = 0, .duration = 10},
+                               .model = assets::EntityByIndex{.world = 0, .entity = 0}};
+    star.position = {.x = 10.0F};
+    Stage stage({.length = 30, .models = {star}});
+    const assets::NameMap<render::Material> materials{{"STAR", {.tint = {.r = 0.5F}}}};
+    CutscenePlayer player = stage.Player({}, materials);
+    const Transform camera{.position = {.z = 5.0F}};
+    std::vector<render::QuadDraw> quads;
+
+    stage.Advance(player, kFrame);
+    player.AppendQuads(camera, quads);
+    REQUIRE(quads.size() == 1);
+    CHECK(quads[0].tint.r == 0.5F);
+    CheckNear(quads[0].corners[0], ToEngine(star.position) + Vector3{.x = -2.0F, .y = 1.0F});
+    CheckNear(quads[0].corners[3], ToEngine(star.position) + Vector3{.x = 2.0F, .y = -1.0F});
+
+    quads.clear();
+    player.AppendQuads({.position = {.x = 70.0F}}, quads);
+    CHECK(quads.empty());
+
+    stage.Advance(player, Milliseconds{340});
+    player.AppendQuads(camera, quads);
+    CHECK(quads.empty());
+}
+
+TEST_CASE("a sprite whose material is missing fails, as the original does") {
+    const Stage stage({.models = {{.model = assets::EntityByIndex{.world = 0, .entity = 0}}}});
+    const Result<CutsceneSprites> sprites = CutsceneSprites::Create(stage.bindings.models, {});
+    REQUIRE_FALSE(sprites.has_value());
+    CHECK(sprites.error().message == "star sprite material not found");
 }
 
 TEST_CASE("a model event runs its material track in its own slot") {

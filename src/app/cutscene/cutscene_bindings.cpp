@@ -73,6 +73,15 @@ Result<ModelBinding> BindName(const assets::CutsceneModel& event, const assets::
     return ModelBinding{.staticDraws = drawn->span};
 }
 
+Result<ModelBinding> BindIndex(const assets::EntityByIndex& model,
+                               std::span<const assets::WorldAsset* const> worlds) {
+    if (model.world >= worlds.size() || model.entity >= worlds[model.world]->sprites.size()) {
+        return Fail(ErrorCode::NotFound,
+                    std::format("sprite {} of world {} doesn't exist", model.entity, model.world));
+    }
+    return ModelBinding{.sprite = worlds[model.world]->sprites[model.entity]};
+}
+
 Transform StandingPose(const assets::WorldCamera& camera) {
     const Vector3 forward = camera.target ? *camera.target - camera.position : camera.forward;
     return {.position = camera.position,
@@ -124,7 +133,7 @@ Result<CutsceneBindings> BindCutscene(const assets::CutsceneFrame& frame,
             std::holds_alternative<assets::EntityByName>(model.model)
                 ? BindName(model, std::get<assets::EntityByName>(model.model), worlds, statics,
                            entities)
-                : Result<ModelBinding>(ModelBinding{});
+                : BindIndex(std::get<assets::EntityByIndex>(model.model), worlds);
         if (!bound) {
             return std::unexpected(std::move(bound.error()));
         }

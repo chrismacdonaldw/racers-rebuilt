@@ -30,6 +30,11 @@ inline sim::TrackEntitySources StageEntities() {
 inline assets::WorldAsset StageWorld() {
     return {.modelEntities = {{.name = "set"}},
             .animatedEntities = {{.name = "guy1"}, {.name = "Camera01"}},
+            .sprites = {{.materialName = "star",
+                         .position = {.x = 7.0F},
+                         .width = 4.0F,
+                         .height = 2.0F,
+                         .maxDistance = 50.0F}},
             .cameras = {{.name = "Camera01",
                          .trackedEntity = 1,
                          .trackedNode = 1,
