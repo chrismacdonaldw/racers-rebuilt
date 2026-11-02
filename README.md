@@ -105,6 +105,7 @@ Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Enhancements
 |---|---|
 | <kbd>F1</kbd> | Show or hide the overlay |
 | <kbd>F9</kbd> | Cycle VSync, 30, 60 and 144 FPS, and uncapped |
+| <kbd>Print Screen</kbd> | Save a screenshot to the [data folder](#data-folder) as `LEGO<n>.bmp`, with the first free number |
 
 With **Enhancements → Free camera** on:
 
