@@ -13,7 +13,7 @@ constexpr float kShoveForce = 200.0F;
 constexpr float kShieldSpinRate = 0.009F;
 constexpr std::uint32_t kScrapeSounds = 2;
 
-void ScrapeOrShrink(Racer& first, Racer& second, Random& random) {
+void ScrapeOrShrink(Racer& first, Racer& second, const Vector3& point, Random& random) {
     if (first.Route() && second.Route()) {
         first.ShrinkBox();
         second.ShrinkBox();
@@ -23,6 +23,9 @@ void ScrapeOrShrink(Racer& first, Racer& second, Random& random) {
     if (isSecondSlower && first.IsScrapeReady() && second.IsScrapeReady()) {
         first.Scrape(static_cast<std::uint8_t>(random.Below(kScrapeSounds)));
         second.HoldScrape();
+    }
+    if (isSecondSlower) {
+        first.Spark(point);
     }
     (isSecondSlower ? second : first).React(VoiceReaction::Negative);
 }
@@ -64,7 +67,7 @@ void ApplyContactEffects(std::span<Racer> racers, const RacerContact& contact, R
     Racer& first = racers[contact.first];
     Racer& second = racers[contact.second];
     const Vector3& point = contact.point;
-    ScrapeOrShrink(first, second, random);
+    ScrapeOrShrink(first, second, point, random);
     if (const std::optional<std::uint8_t> level = first.Status().shield.level;
         level && !second.IsShielded()) {
         ShieldActsOn(*level, second, point);

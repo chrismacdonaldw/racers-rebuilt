@@ -98,6 +98,7 @@ rr_add_module(app
         race_step.cpp
         racer_effect_tools.cpp
         racer/animation_player.cpp
+        racer/car_particles.cpp
         racer/car_shadows.cpp
         racer/body_lean.cpp
         racer/car_look.cpp

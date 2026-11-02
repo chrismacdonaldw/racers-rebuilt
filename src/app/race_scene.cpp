@@ -409,7 +409,8 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     DrawDebugLines();
     GatherCarMarks(interpolated, simMs);
     if (parts_.particles) {
-        parts_.particles->Update(parts_.session, render::FloatMilliseconds{simMs});
+        parts_.particles->Update(parts_.session, skids_.front().Skidding(),
+                                 render::FloatMilliseconds{simMs});
     }
     views_.clear();
     for (std::size_t player = 0; player < cameras_.Count(); ++player) {

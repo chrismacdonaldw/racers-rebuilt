@@ -10,6 +10,8 @@ namespace {
 
 constexpr float kMinSpeed = 0.008F;
 constexpr float kVelocityScale = 0.6F * 1000.0F;
+constexpr std::size_t kRearRight = 2;
+constexpr std::size_t kRearLeft = 3;
 
 }
 
@@ -40,11 +42,14 @@ Result<RaceParticles> RaceParticles::Load(render::Renderer& renderer, const asse
 
 void RaceParticles::Tick(const sim::RaceSession& session, const Transform& camera,
                          Milliseconds elapsed) {
+    cars_.Tick(session.Racers(), Bank(ParticleFile::Common));
     powerups_.Tick(session, Bank(ParticleFile::Common), elapsed);
     hazards_.Tick(session, camera, Bank(ParticleFile::Track), elapsed);
 }
 
-void RaceParticles::Update(const sim::RaceSession& session, render::FloatMilliseconds elapsed) {
+void RaceParticles::Update(const sim::RaceSession& session,
+                           const std::optional<SkidWheels>& skidding,
+                           render::FloatMilliseconds elapsed) {
     const sim::Racer& racer = session.Racers()[player_];
     const sim::BodyState& body = racer.Body();
     const bool isRolling = !body.hover.isHovering && !racer.IsSpunOut() &&
@@ -55,6 +60,8 @@ void RaceParticles::Update(const sim::RaceSession& session, render::FloatMillise
         UpdateWheel(wheels_[i], isRolling ? ParticleOf(probe) : std::nullopt,
                     {.position = ToEngine(probe.position), .velocity = velocity});
     }
+    const bool isRearKicking = wheels_[kRearRight].handle || wheels_[kRearLeft].handle;
+    cars_.Update(racer, skidding, isRearKicking, velocity, Bank(ParticleFile::Common));
     for (render::ParticleBank& bank : banks_) {
         bank.Update(elapsed);
     }

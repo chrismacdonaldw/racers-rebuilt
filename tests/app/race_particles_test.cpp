@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -10,6 +11,7 @@
 
 #include "../sim/physics/plane_world.hpp"
 #include "../sim/race/checkpoint_ring.hpp"
+#include "app/track_space.hpp"
 #include "sim/physics/racer_controls.hpp"
 
 namespace rr::app {
@@ -21,15 +23,18 @@ constexpr render::FloatMilliseconds kFrame{12.0F};
 constexpr float kGrassEndX = 0.0F;
 constexpr Transform kCamera{.position = {.x = -20.0F, .y = 5.0F}};
 
-render::ParticleBankSetup Bank(std::string emitter, std::size_t slots) {
-    return {.emitters = {{.name = std::move(emitter),
-                          .emitRate = 50.0F,
-                          .points = {{.z = 1.0F}},
-                          .particleLife = Milliseconds{500},
-                          .radius = 1000.0F,
-                          .priority = 10}},
-            .emitterLooks = {render::ParticleLook{}},
-            .slotCount = slots};
+render::ParticleBankSetup Bank(const std::vector<std::string>& names, std::size_t slots) {
+    render::ParticleBankSetup setup{.slotCount = slots};
+    for (const std::string& name : names) {
+        setup.emitters.push_back({.name = name,
+                                  .emitRate = 50.0F,
+                                  .points = {{.z = 1.0F}},
+                                  .particleLife = Milliseconds{500},
+                                  .radius = 1000.0F,
+                                  .priority = 10});
+        setup.emitterLooks.emplace_back(render::ParticleLook{});
+    }
+    return setup;
 }
 
 std::vector<sim::RacerStart> Grid() {
@@ -49,25 +54,28 @@ public:
           world_({test::TestPlane{.surface = {.tableEntry = 0}, .maxX = kGrassEndX},
                   test::TestPlane{.minX = kGrassEndX}}),
           session_(Start()),
-          particles_(Bank("grassemt", kCommonParticleSlots), Bank("snowkick", kTrackParticleSlots),
-                     surfaces_, 0) {
+          particles_(Bank({"grassemt", "tiresmk"}, kCommonParticleSlots),
+                     Bank({"snowkick"}, kTrackParticleSlots), surfaces_, 0) {
         while (session_.Clock().Phase() != sim::RacePhase::Racing) {
             Tick();
         }
     }
 
     void Hold(std::size_t racer) { controls_.at(racer).isThrottleHeld = true; }
+    void Skid(std::optional<SkidWheels> wheels) { skidding_ = wheels; }
 
     void Tick() {
         session_.Tick(kTick, controls_);
-        particles_.Update(session_, kFrame);
+        particles_.Update(session_, skidding_, kFrame);
     }
 
-    [[nodiscard]] std::size_t QuadCount() const {
+    [[nodiscard]] std::vector<render::QuadDraw> Quads() const {
         std::vector<render::QuadDraw> quads;
         particles_.AppendQuads(kCamera, quads);
-        return quads.size();
+        return quads;
     }
+
+    [[nodiscard]] std::size_t QuadCount() const { return Quads().size(); }
 
     [[nodiscard]] RaceParticles& Particles() { return particles_; }
     [[nodiscard]] sim::Racer& Player() { return session_.Racers()[0]; }
@@ -93,7 +101,25 @@ private:
     sim::RaceSession session_;
     RaceParticles particles_;
     std::vector<sim::RacerControls> controls_ = std::vector<sim::RacerControls>(kGridSize);
+    std::optional<SkidWheels> skidding_;
 };
+
+Vector3 Centre(const render::QuadDraw& quad) {
+    Vector3 sum;
+    for (const Vector3& corner : quad.corners) {
+        sum = sum + ToGame(corner);
+    }
+    return sum * 0.25F;
+}
+
+std::vector<float> SideOffsets(const std::vector<render::QuadDraw>& quads) {
+    std::vector<float> offsets;
+    offsets.reserve(quads.size());
+    for (const render::QuadDraw& quad : quads) {
+        offsets.push_back(Centre(quad).y);
+    }
+    return offsets;
+}
 
 TEST_CASE("the player's wheels kick up grass while rolling and stop on the road") {
     GrassRace race("grassemt");
@@ -162,6 +188,25 @@ TEST_CASE("other effects start emitters by name in either file") {
     REQUIRE((common && track));
     CHECK(race.QuadCount() == 2);
     CHECK_FALSE(race.Particles().Bank(ParticleFile::Track).HasEmitter("grassemt"));
+}
+TEST_CASE("a skidding player's tyres smoke from either marked wheel until the skid ends") {
+    GrassRace race("grassemt");
+    race.Skid(SkidWheels{false, false, true, true});
+
+    for (int tick = 0; tick < 30; ++tick) {
+        race.Tick();
+    }
+    const std::vector<float> sides = SideOffsets(race.Quads());
+    REQUIRE_FALSE(sides.empty());
+    const auto [right, left] = std::ranges::minmax(sides);
+    CHECK(right < -2.0F);
+    CHECK(left > 0.0F);
+
+    race.Skid(std::nullopt);
+    for (int tick = 0; tick < 50; ++tick) {
+        race.Tick();
+    }
+    CHECK(race.QuadCount() == 0);
 }
 }
 }

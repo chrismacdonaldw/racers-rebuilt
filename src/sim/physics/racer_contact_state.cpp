@@ -37,6 +37,10 @@ void Racer::Scrape(std::uint8_t sound) {
     HoldScrape();
 }
 
+void Racer::Spark(const Vector3& point) {
+    events_.sparkPoint = point;
+}
+
 void Racer::HoldScrape() {
     status_.contact.scrapeCooldownMs = kScrapeCooldownMs;
 }
