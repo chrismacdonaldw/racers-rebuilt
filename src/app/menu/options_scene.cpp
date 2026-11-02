@@ -165,6 +165,9 @@ void OptionsScene::Respond(OptionsRequest request, const OptionValues& before) {
         case OptionsRequest::ChangeValue:
             std::ranges::move(OptionChanges(before, menu_.Values()), std::back_inserter(changes_));
             return;
+        case OptionsRequest::Controls:
+            next_ = std::string(kControlsScene);
+            return;
         case OptionsRequest::Leave:
             next_ = std::string(kMainMenuScene);
             return;

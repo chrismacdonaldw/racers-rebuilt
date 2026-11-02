@@ -41,6 +41,10 @@ rr_add_module(app
         loop_voice.cpp
         menu/award_scene.cpp
         menu/award_scene_name.cpp
+        menu/control_bindings.cpp
+        menu/controls_look.cpp
+        menu/controls_menu.cpp
+        menu/controls_scene.cpp
         menu/dialog_layout.cpp
         menu/main_menu_scene.cpp
         menu/menu_files.cpp

@@ -67,6 +67,14 @@ TEST_CASE("the screens that don't exist yet only report it") {
     CHECK(menu.Focus() == OptionsRow::Credits);
 }
 
+TEST_CASE("player 1 controls opens the controls screen") {
+    OptionsMenu menu(OptionValues{});
+
+    CHECK(Press(menu, {MenuAction::Down, MenuAction::Down, MenuAction::Down,
+                       MenuAction::Confirm}) == OptionsRequest::Controls);
+    CHECK(menu.Focus() == OptionsRow::Player1);
+}
+
 TEST_CASE("a selector steps its value and stops at either end") {
     OptionsMenu menu(OptionValues{.opponents = 4, .versusLaps = 1});
     static_cast<void>(Press(menu, {MenuAction::Confirm}));
