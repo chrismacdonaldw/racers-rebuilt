@@ -45,6 +45,7 @@ bool AwardTrophy(Progress& progress, const std::string& circuit, Trophy trophy);
 /// A missing file is a fresh game. Values that don't parse are logged and skipped.
 [[nodiscard]] Result<Progress> LoadProgress(const std::filesystem::path& path);
 
+/// Keeps the file's leading comments and unknown keys. Fails on a file that isn't TOML.
 [[nodiscard]] Result<void> SaveProgress(const Progress& progress,
                                         const std::filesystem::path& path);
 

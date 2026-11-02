@@ -1,7 +1,7 @@
 #pragma once
 
 #include <filesystem>
-#include <string_view>
+#include <string>
 
 #include "core/result.hpp"
 
@@ -9,12 +9,15 @@
 
 namespace rr::settings {
 
-/// A missing file reads as an empty table.
-[[nodiscard]] Result<toml::table> ReadTomlFile(const std::filesystem::path& path);
+struct TomlFile {
+    toml::table table;
+    std::string leadingComments;
+};
 
-/// Writes `header` then `table` through a temporary file, so a crash can't leave a partial file.
-[[nodiscard]] Result<void> WriteTomlFile(const toml::table& table,
-                                         const std::filesystem::path& path,
-                                         std::string_view header = {});
+/// A missing file reads as empty. `leadingComments` keeps the comment lines before the first key.
+[[nodiscard]] Result<TomlFile> ReadTomlFile(const std::filesystem::path& path);
+
+/// Writes through a temporary file, so a crash can't leave a partial file.
+[[nodiscard]] Result<void> WriteTomlFile(const TomlFile& file, const std::filesystem::path& path);
 
 }

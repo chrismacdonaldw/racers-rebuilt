@@ -170,20 +170,30 @@ bool AwardTrophy(Progress& progress, const std::string& circuit, Trophy trophy) 
 }
 
 Result<Progress> LoadProgress(const std::filesystem::path& path) {
-    return ReadTomlFile(path).transform([&](const toml::table& root) {
+    return ReadTomlFile(path).transform([&](const TomlFile& file) {
         const Reader reader(Utf8FromPath(path));
         Progress progress;
-        reader.ReadArray<std::string>(root, kUnlockedCircuits, progress.unlockedCircuits);
-        reader.ReadArray<std::int32_t>(root, kPartSets, progress.partSets);
-        reader.ReadArray<std::int32_t>(root, kBeatenRecords, progress.beatenRecords);
-        reader.ReadTrophies(root, progress);
-        reader.ReadBestTimes(root, progress);
+        reader.ReadArray<std::string>(file.table, kUnlockedCircuits, progress.unlockedCircuits);
+        reader.ReadArray<std::int32_t>(file.table, kPartSets, progress.partSets);
+        reader.ReadArray<std::int32_t>(file.table, kBeatenRecords, progress.beatenRecords);
+        reader.ReadTrophies(file.table, progress);
+        reader.ReadBestTimes(file.table, progress);
         return progress;
     });
 }
 
 Result<void> SaveProgress(const Progress& progress, const std::filesystem::path& path) {
-    return WriteTomlFile(ToToml(progress), path, kHeader);
+    Result<TomlFile> stored = ReadTomlFile(path);
+    if (!stored) {
+        return std::unexpected(std::move(stored.error()));
+    }
+    for (auto&& [key, value] : ToToml(progress)) {
+        stored->table.insert_or_assign(key, std::move(value));
+    }
+    if (stored->leadingComments.empty()) {
+        stored->leadingComments = kHeader;
+    }
+    return WriteTomlFile(*stored, path);
 }
 
 }
