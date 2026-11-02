@@ -106,6 +106,7 @@ rr_add_module(app
         racer/skid_marks.cpp
         racer/skid_trail.cpp
         replay_session.cpp
+        scene_music.cpp
         scene_stack.cpp
         sound_banks.cpp
         save_import.cpp

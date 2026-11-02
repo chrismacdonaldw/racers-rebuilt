@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/menu/message_dialog.hpp"
@@ -30,6 +31,9 @@ public:
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
     [[nodiscard]] std::vector<SettingChange> TakeSettingChanges() override;
     void Tick(const sim::InputFrame& input) override;
+    [[nodiscard]] SceneMusic Music() const override {
+        return {.track = kMenuTheme, .start = MusicStart::OnEntryIfSilent};
+    }
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
 

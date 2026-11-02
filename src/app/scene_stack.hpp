@@ -19,6 +19,9 @@ public:
 
     [[nodiscard]] Scene* Top() const;
 
+    /// Counts applied changes, so a new top scene at a reused address still counts as new.
+    [[nodiscard]] std::uint64_t ChangeCount() const { return changeCount_; }
+
 private:
     enum class ChangeKind : std::uint8_t {
         Push,
@@ -32,6 +35,7 @@ private:
 
     std::vector<std::unique_ptr<Scene>> scenes_;
     std::vector<PendingChange> pending_;
+    std::uint64_t changeCount_ = 0;
 };
 
 }

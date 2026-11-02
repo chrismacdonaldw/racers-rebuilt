@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "app/menu/menu_page.hpp"
+#include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/menu/message_dialog.hpp"
@@ -28,6 +29,9 @@ public:
                                                                        bool showsUnlockNotice);
 
     void ApplySettings(const settings::Registry& settings) override;
+    [[nodiscard]] SceneMusic Music() const override {
+        return {.track = kMenuTheme, .start = MusicStart::OnEntryIfSilent};
+    }
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
     void Tick(const sim::InputFrame& input) override;
     void Snapshot(sim::RenderSnapshot& out) const override;

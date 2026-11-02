@@ -32,6 +32,7 @@ bool SceneStack::ApplyPendingChanges() {
         }
     }
     pending_.clear();
+    ++changeCount_;
     return Top() != previousTop;
 }
 

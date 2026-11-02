@@ -12,6 +12,8 @@ inline constexpr std::string_view kOptionsScene = "menu:options";
 inline constexpr std::string_view kControlsScene = "menu:controls";
 inline constexpr std::string_view kPlayer2ControlsScene = "menu:controls2";
 
+inline constexpr std::string_view kMenuTheme = "theme";
+
 /// Asks the application to close rather than open a scene.
 inline constexpr std::string_view kQuitScene = "quit";
 

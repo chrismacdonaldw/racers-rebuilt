@@ -68,6 +68,7 @@ public:
     /// Loops a sound from `AddSound` as music, with no crossfade.
     [[nodiscard]] Result<void> PlayMusic(SoundId track);
     void StopMusic(Milliseconds fade = Milliseconds{0});
+    [[nodiscard]] bool IsMusicPlaying() const;
 
     void Render(std::span<float> interleavedStereo);
 

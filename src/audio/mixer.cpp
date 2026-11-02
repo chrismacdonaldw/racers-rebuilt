@@ -258,6 +258,10 @@ void Mixer::StopMusic(Milliseconds fade) {
     }
 }
 
+bool Mixer::IsMusicPlaying() const {
+    return state_->music[state_->currentMusic].IsPlaying();
+}
+
 void Mixer::Render(std::span<float> interleavedStereo) {
     ma_engine_read_pcm_frames(&state_->engine, interleavedStereo.data(),
                               interleavedStereo.size() / kChannelCount, nullptr);

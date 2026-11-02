@@ -36,6 +36,7 @@
 #include "app/race_settings.hpp"
 #include "app/replay_session.hpp"
 #include "app/save_import.hpp"
+#include "app/scene_music.hpp"
 #include "app/sprite_test_scene.hpp"
 #include "app/startup_settings.hpp"
 #include "app/test_scene.hpp"
@@ -78,21 +79,6 @@ audio::MusicPlayer CreateMusicPlayer(audio::Mixer& mixer, const assets::Vfs& vfs
     }
     sources.push_back(std::make_unique<audio::OriginalTrackSource>(vfs));
     return {mixer, std::move(sources)};
-}
-
-void FollowSceneMusic(audio::MusicPlayer& music, const SceneMusic& wanted, std::string& asked) {
-    if (wanted.track == asked) {
-        return;
-    }
-    asked = wanted.track;
-    if (asked.empty()) {
-        music.Stop();
-        return;
-    }
-    Result<void> played = music.Play(asked, wanted.repeat);
-    if (!played) {
-        log::Warn("{}", played.error().message);
-    }
 }
 
 std::string RaceNamed(std::string track, std::size_t players, const settings::Registry& settings) {
@@ -227,7 +213,7 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
     const std::vector<overlay::MenuChoice> saveImports = SaveImportChoices();
     Nanoseconds lastFrame = platform::Now();
     FrameStats frame;
-    std::string askedMusic;
+    SceneMusicFollower sceneMusic;
     while (!events_.IsQuitRequested() && !isQuitting_) {
         events_.Poll();
         if (events_.WasKeyPressed(kToggleOverlayKey)) {
@@ -251,7 +237,7 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
         StoreSceneSettings();
         OpenNextScene();
         if (const Scene* top = frameLoop_.Scenes().Top(); top != nullptr) {
-            FollowSceneMusic(music, top->Music(), askedMusic);
+            sceneMusic.Update(music, top->Music(), frameLoop_.Scenes().ChangeCount());
         }
         pacer_.WaitForNextFrame();
     }

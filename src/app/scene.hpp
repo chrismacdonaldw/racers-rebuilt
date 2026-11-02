@@ -3,6 +3,7 @@
 #include <SDL3/SDL_events.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -16,10 +17,14 @@
 
 namespace rr::app {
 
-/// `track` is a `MusicCatalog` id. Empty means silence.
+/// `Follow` plays the asked track every frame, empty being silence; the rest act only on entry.
+enum class MusicStart : std::uint8_t { Follow, OnEntry, OnEntryIfSilent, Keep };
+
+/// `track` is a `MusicCatalog` id.
 struct SceneMusic {
     std::string_view track;
     audio::Repeat repeat = audio::Repeat::Loop;
+    MusicStart start = MusicStart::Follow;
 };
 
 struct SettingChange {
