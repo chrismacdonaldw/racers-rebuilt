@@ -21,6 +21,7 @@ struct MenuFiles {
     std::vector<assets::ImageListEntry> images;
 
     [[nodiscard]] const assets::ImageStyle* FindImageStyle(std::string_view name) const;
+    [[nodiscard]] const assets::TextStyle* FindTextStyle(std::string_view name) const;
     [[nodiscard]] const assets::GameButtonStyle* FindGameButtonStyle(std::string_view name) const;
     [[nodiscard]] const assets::ImageListEntry* FindImage(std::string_view name) const;
 };

@@ -30,8 +30,11 @@ std::vector<std::byte> ControlFields() {
 std::vector<std::byte> Styles(const std::vector<std::byte>& skipped) {
     return Join({
         Bytes({0x27}),
-        Ints({3}),
+        Ints({4}),
         NamedLibrary(0x32, {NamedEntry(0x32, "backdrp", Join({Bytes({0x28}), Text("backdrp")}))}),
+        NamedLibrary(
+            0x33, {NamedEntry(0x33, "menufont",
+                              Join({Bytes({0x29}), Text("font_ths"), Bytes({0x2F}), Ints({1})}))}),
         NamedLibrary(0x3D, {NamedEntry(0x3A, "textedit", skipped)}),
         NamedLibrary(0x3E, {NamedEntry(0x3E, "nubutton",
                                        Join({ControlFields(), StateImageNames(), Bytes({0x2E}),
@@ -39,13 +42,18 @@ std::vector<std::byte> Styles(const std::vector<std::byte>& skipped) {
     });
 }
 
-TEST_CASE("menu styles read image and game button styles and skip the rest") {
+TEST_CASE("menu styles read image, text and game button styles and skip the rest") {
     const Result<MenuStyles> styles =
         ParseMenuStyles(Styles(Join({ControlFields(), StateImageNames()})));
 
     REQUIRE(styles.has_value());
     REQUIRE(styles->FindImage("backdrp") != nullptr);
     CHECK(styles->FindImage("backdrp")->image == "backdrp");
+    const TextStyle* text = styles->FindText("menufont");
+    REQUIRE(text != nullptr);
+    CHECK(text->font == "font_ths");
+    CHECK(text->centered == 1);
+    CHECK_FALSE(text->color.has_value());
     const GameButtonStyle* button = styles->FindGameButton("nubutton");
     REQUIRE(button != nullptr);
     REQUIRE(button->button.images.has_value());
@@ -75,6 +83,13 @@ void CheckMainMenuButtonStyle(const MenuStyles& shared) {
     CHECK(colors[11] == MenuColor{.alpha = 255, .red = 246, .green = 230, .blue = 6});
 }
 
+void CheckMenuFontStyle(const MenuStyles& shared) {
+    const TextStyle* text = shared.FindText("menufont");
+    REQUIRE(text != nullptr);
+    CHECK(text->font == "font_ths");
+    CHECK(text->color == MenuColor{.alpha = 255, .red = 239, .green = 239, .blue = 239});
+}
+
 TEST_CASE("every menu style file in the retail game parses") {
     const std::optional<JamArchive> archive = test::OpenRetailJam();
     if (!archive) {
@@ -88,6 +103,7 @@ TEST_CASE("every menu style file in the retail game parses") {
         });
     REQUIRE(shared.has_value());
     CheckMainMenuButtonStyle(*shared);
+    CheckMenuFontStyle(*shared);
 }
 
 }
