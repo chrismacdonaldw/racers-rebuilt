@@ -61,12 +61,16 @@ struct Material {
     VertexColorTransform vertexColors;
 };
 
+inline constexpr std::size_t kMaxJoints = 40;
+
+/// `joints`, relative to `transform`, place each vertex by its joint. Empty draws it rigidly.
 struct MeshDraw {
     MeshId mesh{};
     std::uint32_t firstIndex = 0;
     std::uint32_t indexCount = kWholeMesh;
     Material material;
     Transform transform;
+    std::span<const Transform> joints;
     float scale = 1.0F;
     bool isStatic = false;
 };

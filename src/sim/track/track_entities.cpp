@@ -43,6 +43,18 @@ Transform NodeWorld(const TrackEntitySources& sources, std::size_t entity, const
     return Compose(placed.placement, pose);
 }
 
+void NodePoses(const TrackEntitySources& sources, std::size_t entity, const EntityClock& clock,
+               std::vector<Transform>& out) {
+    const TrackEntity& placed = sources.entities[entity];
+    const std::vector<assets::SkeletonNode>& nodes = sources.skeletons[placed.skeleton].nodes;
+    out.resize(nodes.size());
+    for (std::size_t node = 0; node < nodes.size(); ++node) {
+        const Transform local = LocalAt(sources, placed, clock, node);
+        const std::optional<std::size_t> parent = nodes[node].parent;
+        out[node] = parent && *parent < node ? Compose(out[*parent], local) : local;
+    }
+}
+
 TrackEntities::TrackEntities(const TrackEntitySources& sources) : sources_(&sources) {
     clocks_.reserve(sources.entities.size());
     for (const TrackEntity& entity : sources.entities) {

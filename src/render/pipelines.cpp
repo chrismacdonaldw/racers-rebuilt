@@ -46,7 +46,12 @@ constexpr std::array kMeshAttributes{
     SDL_GPUVertexAttribute{.location = 3,
                            .format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM,
                            .offset = offsetof(assets::GeometryVertex, rgba)},
+    SDL_GPUVertexAttribute{.location = 4,
+                           .format = SDL_GPU_VERTEXELEMENTFORMAT_USHORT2,
+                           .offset = offsetof(assets::GeometryVertex, joint)},
 };
+
+constexpr std::size_t kRigidAttributeCount = 4;
 
 constexpr std::array kLineAttributes{
     SDL_GPUVertexAttribute{.location = 0,
@@ -156,22 +161,37 @@ Result<GpuPipeline> CreatePipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat c
     return GpuPipeline(device, pipeline);
 }
 
+PipelineSpec MeshPipelineSpec(const ShaderSpec& vertexShader,
+                              std::span<const SDL_GPUVertexAttribute> attributes, BlendMode blend) {
+    return {.vertexShader = vertexShader,
+            .fragmentShader = {.code = shaders::kMeshFragment,
+                               .stage = SDL_GPU_SHADERSTAGE_FRAGMENT,
+                               .samplerCount = 1,
+                               .uniformBufferCount = 2},
+            .attributes = attributes,
+            .vertexPitch = sizeof(assets::GeometryVertex),
+            .primitive = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+            .blend = BlendState(blend),
+            .writesDepth = blend == BlendMode::Opaque};
+}
+
 }
 
 Result<GpuPipeline> CreateMeshPipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat colorFormat,
                                        BlendMode blend) {
     return CreatePipeline(
         device, colorFormat,
-        {.vertexShader = {.code = shaders::kMeshVertex, .stage = SDL_GPU_SHADERSTAGE_VERTEX},
-         .fragmentShader = {.code = shaders::kMeshFragment,
-                            .stage = SDL_GPU_SHADERSTAGE_FRAGMENT,
-                            .samplerCount = 1,
-                            .uniformBufferCount = 2},
-         .attributes = kMeshAttributes,
-         .vertexPitch = sizeof(assets::GeometryVertex),
-         .primitive = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
-         .blend = BlendState(blend),
-         .writesDepth = blend == BlendMode::Opaque});
+        MeshPipelineSpec({.code = shaders::kMeshVertex, .stage = SDL_GPU_SHADERSTAGE_VERTEX},
+                         std::span(kMeshAttributes).first(kRigidAttributeCount), blend));
+}
+
+Result<GpuPipeline> CreateSkinnedMeshPipeline(SDL_GPUDevice* device,
+                                              SDL_GPUTextureFormat colorFormat, BlendMode blend) {
+    return CreatePipeline(device, colorFormat,
+                          MeshPipelineSpec({.code = shaders::kSkinnedMeshVertex,
+                                            .stage = SDL_GPU_SHADERSTAGE_VERTEX,
+                                            .uniformBufferCount = 2},
+                                           kMeshAttributes, blend));
 }
 
 Result<GpuPipeline> CreateLinePipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat colorFormat) {

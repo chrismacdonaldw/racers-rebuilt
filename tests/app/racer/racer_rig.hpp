@@ -12,6 +12,7 @@
 #include "app/racer/racer_draws.hpp"
 #include "app/track_space.hpp"
 #include "core/quaternion.hpp"
+#include "core/transform.hpp"
 #include "core/vector3.hpp"
 #include "render/render_view.hpp"
 
@@ -72,13 +73,19 @@ inline void CheckNear(const Vector3& actual, const Vector3& expected) {
             .scale = 1.0F / 64.0F};
 }
 
-[[nodiscard]] inline Vector3 GamePosition(const render::MeshDraw& draw) {
-    const Vector3 engine = draw.transform.position;
+[[nodiscard]] inline Transform Placed(const render::MeshDraw& draw, std::uint16_t joint) {
+    return joint < draw.joints.size() ? Compose(draw.transform, draw.joints[joint])
+                                      : draw.transform;
+}
+
+[[nodiscard]] inline Vector3 GamePosition(const render::MeshDraw& draw, std::uint16_t joint = 0) {
+    const Vector3 engine = Placed(draw, joint).position;
     return {.x = engine.x, .y = -engine.z, .z = engine.y};
 }
 
-[[nodiscard]] inline Vector3 GameAxis(const render::MeshDraw& draw, const Vector3& axis) {
-    const Vector3 engine = Rotate(draw.transform.rotation, app::ToEngine(axis));
+[[nodiscard]] inline Vector3 GameAxis(const render::MeshDraw& draw, const Vector3& axis,
+                                      std::uint16_t joint = 0) {
+    const Vector3 engine = Rotate(Placed(draw, joint).rotation, app::ToEngine(axis));
     return {.x = engine.x, .y = -engine.z, .z = engine.y};
 }
 
