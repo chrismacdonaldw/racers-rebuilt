@@ -107,15 +107,6 @@ Result<void> CheckIndices(const PartLibrary& library) {
     return {};
 }
 
-std::uint32_t MaterialIndex(std::vector<std::string>& materials, const std::string& material) {
-    const auto found = std::ranges::find(materials, material);
-    if (found == materials.end()) {
-        materials.push_back(material);
-        return static_cast<std::uint32_t>(materials.size() - 1);
-    }
-    return static_cast<std::uint32_t>(found - materials.begin());
-}
-
 class PartCopy {
 public:
     PartCopy(const std::vector<GeometryVertex>& pool, float scale)
@@ -133,7 +124,7 @@ public:
         geometry_.ranges.push_back({
             .firstIndex = firstIndex,
             .indexCount = static_cast<std::uint32_t>(geometry_.indices.size()) - firstIndex,
-            .material = MaterialIndex(geometry_.materials, group.material),
+            .material = FindOrAddMaterial(geometry_.materials, group.material),
         });
     }
 
