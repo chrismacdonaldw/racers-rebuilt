@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -15,6 +16,7 @@
 #include "platform/frame_pacer.hpp"
 #include "platform/window.hpp"
 #include "render/asset_table.hpp"
+#include "render/frame_readback.hpp"
 #include "render/gpu_resource.hpp"
 #include "render/overlay_pass.hpp"
 #include "render/pipelines.hpp"
@@ -59,6 +61,10 @@ public:
     [[nodiscard]] Result<void> Draw(const RenderView& view) { return Draw(std::span(&view, 1)); }
     /// Sprites cover the whole window, after every scene. Items past their maximums are dropped.
     [[nodiscard]] Result<void> Draw(std::span<const RenderView> views);
+
+    /// The next `Draw` waits for the GPU and keeps a copy of the frame without the overlay.
+    void RequestCapture() { isCaptureRequested_ = true; }
+    [[nodiscard]] std::optional<assets::ImageAsset> TakeCapture();
 
 private:
     static constexpr std::size_t kBlendModeCount = 3;
@@ -107,6 +113,8 @@ private:
     Result<void> UploadBuffers(std::span<const UploadPart> parts);
     void GatherViews(std::span<const RenderView> views);
     Result<void> UploadFrame(SDL_GPUCommandBuffer* commands, std::span<const RenderView> views);
+    Result<void> DrawFrame(SDL_GPUCommandBuffer* commands, std::span<const RenderView> views,
+                           bool captures);
     Result<void> EnsureSceneTargets(std::uint32_t widthPx, std::uint32_t heightPx);
     [[nodiscard]] bool IsScaled() const { return resolutionScale_ != 1.0F; }
     void DrawScenes(SDL_GPUCommandBuffer* commands, std::span<const RenderView> views,
@@ -142,6 +150,9 @@ private:
     std::uint32_t sceneWidthPx_ = 0;
     std::uint32_t sceneHeightPx_ = 0;
     OverlayPass* overlay_ = nullptr;
+    FrameReadback readback_;
+    bool isCaptureRequested_ = false;
+    std::optional<assets::ImageAsset> capture_;
     StreamBuffer lineStream_;
     StreamBuffer quadStream_;
     StreamBuffer spriteStream_;

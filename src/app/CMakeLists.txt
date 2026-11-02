@@ -108,6 +108,7 @@ rr_add_module(app
         replay_session.cpp
         scene_music.cpp
         scene_stack.cpp
+        screenshots.cpp
         sound_banks.cpp
         save_import.cpp
         sprite_test_scene.cpp

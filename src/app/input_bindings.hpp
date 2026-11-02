@@ -94,6 +94,7 @@ inline constexpr std::array kMenuBindings{
 inline constexpr std::int16_t kTriggerPressed = 16000;
 inline constexpr SDL_Keycode kToggleOverlayKey = SDLK_F1;
 inline constexpr SDL_Keycode kCyclePacingKey = SDLK_F9;
+inline constexpr SDL_Keycode kScreenshotKey = SDLK_PRINTSCREEN;
 
 void DeclareInputSettings(settings::Registry& registry);
 

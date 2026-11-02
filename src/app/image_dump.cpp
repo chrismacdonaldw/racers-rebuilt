@@ -15,7 +15,7 @@
 #include "assets/tga_image.hpp"
 #include "core/log.hpp"
 #include "core/utf8_path.hpp"
-#include "platform/png_file.hpp"
+#include "platform/image_file.hpp"
 
 namespace rr::app {
 namespace {

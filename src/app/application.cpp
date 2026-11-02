@@ -37,6 +37,7 @@
 #include "app/replay_session.hpp"
 #include "app/save_import.hpp"
 #include "app/scene_music.hpp"
+#include "app/screenshots.hpp"
 #include "app/sprite_test_scene.hpp"
 #include "app/startup_settings.hpp"
 #include "app/test_scene.hpp"
@@ -222,6 +223,9 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
         if (events_.WasKeyPressed(kCyclePacingKey)) {
             CyclePacing();
         }
+        if (events_.WasKeyPressed(kScreenshotKey)) {
+            renderer_.RequestCapture();
+        }
         const Nanoseconds now = platform::Now();
         Scene* shown = frameLoop_.Scenes().Top();
         const bool showsScene = menu.IsVisible() && shown != nullptr;
@@ -235,6 +239,7 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
         lastFrame = now;
         frame = frameLoop_.RunFrame(now);
         StoreSceneSettings();
+        SaveCapturedFrame(renderer_, settingsFile_.parent_path());
         OpenNextScene();
         if (const Scene* top = frameLoop_.Scenes().Top(); top != nullptr) {
             sceneMusic.Update(music, top->Music(), frameLoop_.Scenes().ChangeCount());
