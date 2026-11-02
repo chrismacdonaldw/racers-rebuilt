@@ -8,6 +8,7 @@
 #include "app/cutscene/cutscene_materials.hpp"
 #include "app/cutscene/cutscene_particles.hpp"
 #include "app/cutscene/cutscene_resources.hpp"
+#include "app/cutscene/cutscene_screen.hpp"
 #include "app/cutscene/cutscene_sounds.hpp"
 #include "app/cutscene/cutscene_tints.hpp"
 #include "app/frame_loop.hpp"
@@ -19,25 +20,28 @@
 namespace rr::app {
 namespace {
 
-struct CutscenePath {
-    std::string folder;
-    std::string file;
-};
+constexpr Milliseconds kSkipAfter{1000};
 
-Result<CutscenePath> ParsePath(std::string_view scene) {
-    const std::string_view path = scene.substr(kCutsceneScenePrefix.size());
-    const std::size_t slash = path.find('/');
-    if (slash == std::string_view::npos || slash == 0 || slash + 1 == path.size()) {
-        return Fail(ErrorCode::InvalidData,
-                    std::format("{} isn't {}<folder>/<file>", scene, kCutsceneScenePrefix));
+std::string NameOf(const CutscenePlay& play) {
+    return std::format("{}/{}", play.folder, play.file);
+}
+
+render::Viewport ViewportOf(const std::optional<render::Rect>& rect) {
+    const bool fillsCanvas =
+        !rect || (rect->x == 0.0F && rect->y == 0.0F && rect->width == render::kUiWidth &&
+                  rect->height == render::kUiHeight);
+    if (fillsCanvas) {
+        return {};
     }
-    return CutscenePath{
-        .folder = std::format("MENUDATA/{}", assets::ToUpperAscii(path.substr(0, slash))),
-        .file = assets::ToUpperAscii(path.substr(slash + 1))};
+    return {.x = rect->x / render::kUiWidth,
+            .y = rect->y / render::kUiHeight,
+            .width = rect->width / render::kUiWidth,
+            .height = rect->height / render::kUiHeight,
+            .isOnUiCanvas = true};
 }
 
 Result<std::unique_ptr<assets::CutsceneTimelineAsset>> ReadTimeline(const assets::Vfs& vfs,
-                                                                    const CutscenePath& path) {
+                                                                    const CutscenePlay& path) {
     const std::string file = std::format("{}/{}.CDB", path.folder, path.file);
     Result<assets::CutsceneTimelineAsset> timeline = vfs.Read(file).and_then(
         [](const assets::FileData& data) { return assets::ParseCutsceneTimeline(data.Bytes()); });
@@ -78,7 +82,7 @@ Result<CutsceneLooks> LoadLooks(const assets::Vfs& vfs, std::string_view folder,
 }
 
 Result<std::unique_ptr<assets::CutsceneEffectsAsset>> ReadEffects(const assets::Vfs& vfs,
-                                                                  const CutscenePath& path) {
+                                                                  const CutscenePlay& path) {
     const std::string file = std::format("{}/{}.CEB", path.folder, path.file);
     Result<assets::FileData> data = vfs.Read(file);
     if (!data && data.error().code == ErrorCode::NotFound) {
@@ -141,7 +145,7 @@ struct SceneEffects {
 };
 
 Result<SceneEffects> LoadEffects(const RaceOutputs& outputs, const assets::Vfs& vfs,
-                                 const CutscenePath& path, std::string_view language,
+                                 const CutscenePlay& path, std::string_view language,
                                  const assets::CutsceneFrame& frame, const SceneWorld& world) {
     Result<std::unique_ptr<assets::CutsceneEffectsAsset>> asset = ReadEffects(vfs, path);
     Result<EffectParts> parts = asset.and_then([&](const auto& effects) {
@@ -158,7 +162,19 @@ Result<SceneEffects> LoadEffects(const RaceOutputs& outputs, const assets::Vfs& 
 }
 
 bool IsCutsceneScene(std::string_view scene) {
-    return scene.starts_with(kCutsceneScenePrefix);
+    return scene.starts_with(kCutsceneScenePrefix) || IsCutsceneScreen(scene);
+}
+
+Result<CutscenePlay> ViewerPlay(std::string_view scene) {
+    const std::string_view path = scene.substr(kCutsceneScenePrefix.size());
+    const std::size_t slash = path.find('/');
+    if (slash == std::string_view::npos || slash == 0 || slash + 1 == path.size()) {
+        return Fail(ErrorCode::InvalidData,
+                    std::format("{} isn't {}<folder>/<file>", scene, kCutsceneScenePrefix));
+    }
+    return CutscenePlay{
+        .folder = std::format("MENUDATA/{}", assets::ToUpperAscii(path.substr(0, slash))),
+        .file = assets::ToUpperAscii(path.substr(slash + 1))};
 }
 
 Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(const RaceOutputs& outputs,
@@ -166,19 +182,29 @@ Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(const RaceOutputs& 
                                                              assets::TrackLoader& loader,
                                                              std::string_view language,
                                                              std::string_view scene) {
+    return (IsCutsceneScreen(scene) ? ScreenPlay(vfs, scene) : ViewerPlay(scene))
+        .and_then([&](CutscenePlay play) {
+            return Create(outputs, vfs, loader, language, std::move(play));
+        });
+}
+
+Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(const RaceOutputs& outputs,
+                                                             const assets::Vfs& vfs,
+                                                             assets::TrackLoader& loader,
+                                                             std::string_view language,
+                                                             CutscenePlay play) {
     render::Renderer& renderer = *outputs.renderer;
-    Result<CutscenePath> path = ParsePath(scene);
-    Result<std::unique_ptr<assets::CutsceneTimelineAsset>> timeline =
-        path.and_then([&](const CutscenePath& found) { return ReadTimeline(vfs, found); });
+    const std::string name = NameOf(play);
+    Result<std::unique_ptr<assets::CutsceneTimelineAsset>> timeline = ReadTimeline(vfs, play);
     if (!timeline) {
         return std::unexpected(std::move(timeline.error()));
     }
     const std::vector<std::string>& worldNames = (*timeline)->worlds;
-    Result<assets::TrackAssets> assets = loader.LoadWorlds(path->folder, worldNames);
+    Result<assets::TrackAssets> assets = loader.LoadWorlds(play.folder, worldNames);
     Result<TrackModel> model = assets.and_then(
         [&](const assets::TrackAssets& loaded) { return UploadTrack(renderer, loaded); });
     Result<sim::TrackEntitySources> sources = model.and_then(
-        [&](const TrackModel&) { return sim::LoadWorldEntities(vfs, path->folder, worldNames); });
+        [&](const TrackModel&) { return sim::LoadWorldEntities(vfs, play.folder, worldNames); });
     const assets::CutsceneFrame& frame = (*timeline)->frames.front();
     const std::vector<const assets::WorldAsset*> worlds =
         assets ? WorldsOf(*assets) : std::vector<const assets::WorldAsset*>{};
@@ -187,10 +213,10 @@ Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(const RaceOutputs& 
             return BindCutscene(frame, worlds, model->entityDraws, loaded);
         });
     Result<CutsceneLooks> looks = bindings.and_then([&](const CutsceneBindings& bound) {
-        return LoadLooks(vfs, path->folder, worlds, frame, bound.models, model->materials);
+        return LoadLooks(vfs, play.folder, worlds, frame, bound.models, model->materials);
     });
     Result<SceneEffects> effects = looks.and_then([&](const CutsceneLooks&) {
-        return LoadEffects(outputs, vfs, *path, language, frame,
+        return LoadEffects(outputs, vfs, play, language, frame,
                            {.worlds = worlds,
                             .statics = model->entityDraws,
                             .entities = &*sources,
@@ -198,17 +224,17 @@ Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(const RaceOutputs& 
                             .textures = &model->textures});
     });
     if (!effects) {
-        return Fail(effects.error().code, std::format("{}: {}", scene, effects.error().message));
+        return Fail(effects.error().code, std::format("{}: {}", name, effects.error().message));
     }
     auto owned = std::make_unique<sim::TrackEntitySources>(std::move(*sources));
     TrackEntityDraws jointed(model->animatedModels, *owned);
     CutscenePlayer player(frame, std::move(*bindings), std::move(*looks), *owned,
-                          {.draws = model->draws, .slots = model->drawSlots}, true);
-    log::Info("{}: {} worlds, {} frames, {} models", scene, worldNames.size(),
+                          {.draws = model->draws, .slots = model->drawSlots}, play.isLooping);
+    log::Info("{}: {} worlds, {} frames, {} models", name, worldNames.size(),
               (*timeline)->frames.size(), frame.models.size());
     return std::unique_ptr<CutsceneScene>(
         new CutsceneScene({.renderer = &renderer,
-                           .name = std::string(scene),
+                           .play = std::move(play),
                            .timeline = std::move(*timeline),
                            .sources = std::move(owned),
                            .statics = std::move(model->draws),
@@ -224,8 +250,36 @@ CutsceneScene::~CutsceneScene() {
     parts_.effectPlayer.StopAll();
 }
 
+std::optional<std::string> CutsceneScene::TakeNextScene() {
+    return std::exchange(next_, std::nullopt);
+}
+
+void CutsceneScene::HandleEvent(const SDL_Event& event) {
+    isSkipAsked_ = isSkipAsked_ || IsSkipPress(event);
+}
+
 void CutsceneScene::Tick([[maybe_unused]] const sim::InputFrame& input) {
+    const bool isSkipped =
+        std::exchange(isSkipAsked_, false) && parts_.play.isSkippable && played_ >= kSkipAfter;
+    if (hasEnded_) {
+        return;
+    }
+    if (isSkipped) {
+        End();
+        return;
+    }
     parts_.effectPlayer.Advance(parts_.player.Advance(kSimTick), kSimTick);
+    played_ += kSimTick;
+    if (!parts_.play.isLooping && parts_.player.IsComplete()) {
+        End();
+    }
+}
+
+void CutsceneScene::End() {
+    hasEnded_ = true;
+    if (!parts_.play.next.empty()) {
+        next_ = parts_.play.next;
+    }
 }
 
 void CutsceneScene::Snapshot(sim::RenderSnapshot& out) const {
@@ -242,14 +296,17 @@ void CutsceneScene::Render(const sim::RenderSnapshot& interpolated) {
     parts_.player.AppendQuads(camera.transform, quads_);
     parts_.effectPlayer.AppendQuads(camera.transform, quads_);
     sprites_.clear();
-    parts_.effectPlayer.Draw({.width = render::kUiWidth, .height = render::kUiHeight}, sprites_);
+    parts_.effectPlayer.Draw(parts_.play.rect.value_or(render::Rect{.width = render::kUiWidth,
+                                                                    .height = render::kUiHeight}),
+                             sprites_);
     Result<void> drawn = parts_.renderer->Draw({.camera = camera,
                                                 .lighting = parts_.player.Lighting(lights_),
                                                 .meshes = draws_,
                                                 .quads = quads_,
-                                                .sprites = sprites_});
+                                                .sprites = sprites_,
+                                                .viewport = ViewportOf(parts_.play.rect)});
     if (!drawn) {
-        log::Error("{}: {}", parts_.name, drawn.error().message);
+        log::Error("{}: {}", NameOf(parts_.play), drawn.error().message);
     }
 }
 

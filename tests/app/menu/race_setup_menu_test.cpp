@@ -130,13 +130,22 @@ TEST_CASE("time trial setup builds the time trial scene name from its choices") 
     CHECK(next == "trial:RACEC0R1:respawn=3000:racer=1");
 }
 
-TEST_CASE("circuit setup builds the circuit scene name from its first race") {
+TEST_CASE("circuit setup plays the circuit's intro, then its first race") {
     RaceSetupMenu menu(Circuits());
 
     const std::optional<std::string> next =
         Press(menu, {MenuAction::Down, MenuAction::Right, MenuAction::Down, MenuAction::Confirm});
 
-    CHECK(next == "circuit:c0:respawn=3000:racer=1:race=0:points=0,0,0,0,0,0");
+    CHECK(next == "screen:circuit1>circuit:c0:respawn=3000:racer=1:race=0:points=0,0,0,0,0,0");
+}
+
+TEST_CASE("a circuit without an intro starts its first race") {
+    RaceSetupMenu menu({{.circuit = "c9", .racers = {{.code = "a"}}}});
+
+    const std::optional<std::string> next =
+        Press(menu, {MenuAction::Down, MenuAction::Down, MenuAction::Confirm});
+
+    CHECK(next == "circuit:c9:respawn=3000:racer=0:race=0:points=0,0,0,0,0,0");
 }
 
 TEST_CASE("a locked circuit can't start") {

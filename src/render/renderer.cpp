@@ -30,16 +30,22 @@ static_assert(kMaxQuads <= kMaxSprites);
 static_assert(kMaxSprites * kVerticesPerSprite <=
               std::size_t{std::numeric_limits<std::uint16_t>::max()} + 1);
 
-SDL_Rect ViewportArea(const Viewport& viewport, std::uint32_t widthPx, std::uint32_t heightPx) {
-    const auto edge = [](float fraction, std::uint32_t sizePx) {
-        return static_cast<int>(std::lround(fraction * static_cast<float>(sizePx)));
+SDL_Rect ViewportArea(const Viewport& viewport, std::uint32_t widthPx, std::uint32_t heightPx,
+                      UiFit fit) {
+    const PixelRect within = viewport.isOnUiCanvas
+                                 ? FitUiArea(widthPx, heightPx, fit)
+                                 : PixelRect{.widthPx = widthPx, .heightPx = heightPx};
+    const auto edge = [](float fraction, std::uint32_t startPx, std::uint32_t sizePx) {
+        return static_cast<int>(startPx) +
+               static_cast<int>(std::lround(fraction * static_cast<float>(sizePx)));
     };
-    const int left = edge(viewport.x, widthPx);
-    const int top = edge(viewport.y, heightPx);
-    return {.x = left,
-            .y = top,
-            .w = std::max(1, edge(viewport.x + viewport.width, widthPx) - left),
-            .h = std::max(1, edge(viewport.y + viewport.height, heightPx) - top)};
+    const int left = edge(viewport.x, within.xPx, within.widthPx);
+    const int top = edge(viewport.y, within.yPx, within.heightPx);
+    return {
+        .x = left,
+        .y = top,
+        .w = std::max(1, edge(viewport.x + viewport.width, within.xPx, within.widthPx) - left),
+        .h = std::max(1, edge(viewport.y + viewport.height, within.yPx, within.heightPx) - top)};
 }
 
 std::uint32_t Scaled(std::uint32_t sizePx, float scale) {
@@ -317,7 +323,7 @@ void Renderer::DrawScenes(SDL_GPUCommandBuffer* commands, std::span<const Render
 
 void Renderer::DrawScene(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
                          const RenderView& view, const ViewRange& range) const {
-    const SDL_Rect area = ViewportArea(view.viewport, sceneWidthPx_, sceneHeightPx_);
+    const SDL_Rect area = ViewportArea(view.viewport, sceneWidthPx_, sceneHeightPx_, uiFit_);
     const SDL_GPUViewport viewport{.x = static_cast<float>(area.x),
                                    .y = static_cast<float>(area.y),
                                    .w = static_cast<float>(area.w),

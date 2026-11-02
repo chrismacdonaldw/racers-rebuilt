@@ -20,6 +20,7 @@ rr_add_module(app
         cutscene/cutscene_player.cpp
         cutscene/cutscene_resources.cpp
         cutscene/cutscene_scene.cpp
+        cutscene/cutscene_screen.cpp
         cutscene/cutscene_sounds.cpp
         cutscene/cutscene_sprites.cpp
         cutscene/cutscene_tints.cpp

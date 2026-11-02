@@ -130,12 +130,13 @@ struct QuadDraw {
     BlendMode blend = BlendMode::Alpha;
 };
 
-/// In fractions of the window's width and height, from its top left.
+/// In fractions of the window's width and height, from its top left, or of the UI canvas's.
 struct Viewport {
     float x = 0.0F;
     float y = 0.0F;
     float width = 1.0F;
     float height = 1.0F;
+    bool isOnUiCanvas = false;
 };
 
 /// Quads draw after the meshes without writing depth, then sprites over the scene, each in order.
