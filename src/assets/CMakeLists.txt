@@ -18,6 +18,7 @@ rr_add_module(assets
         font_list.cpp
         game_path.cpp
         geometry_database.cpp
+        ghost_run.cpp
         hazard_list.cpp
         image_list.cpp
         install.cpp

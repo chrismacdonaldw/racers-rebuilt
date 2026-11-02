@@ -112,6 +112,7 @@ add_executable(racers-rebuilt-tests
     assets/font_list_test.cpp
     assets/game_path_test.cpp
     assets/geometry_database_test.cpp
+    assets/ghost_run_test.cpp
     assets/hazard_list_retail_test.cpp
     assets/hazard_list_test.cpp
     assets/image_list_test.cpp
@@ -276,6 +277,8 @@ add_executable(racers-rebuilt-tests
     sim/replay_test.cpp
     sim/route_playback_test.cpp
     sim/snapshot_hash_test.cpp
+    sim/time_trial/ghost_playback_test.cpp
+    sim/time_trial/time_trial_ghosts_test.cpp
     sim/track/event_resources_test.cpp
     sim/track/racer_tints_test.cpp
     sim/track/surface_events_test.cpp
