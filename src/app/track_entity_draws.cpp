@@ -7,7 +7,7 @@ namespace rr::app {
 
 TrackEntityDraws::TrackEntityDraws(const assets::NameMap<JointedModel>& models,
                                    const sim::TrackEntitySources& sources)
-    : sources_(&sources), spans_(sources.entities.size()) {
+    : sources_(&sources), spans_(sources.entities.size()), poses_(sources.entities.size()) {
     for (std::size_t entity = 0; entity < sources.entities.size(); ++entity) {
         const auto model = models.find(assets::ToUpperAscii(sources.entities[entity].model));
         if (model == models.end()) {
@@ -15,24 +15,28 @@ TrackEntityDraws::TrackEntityDraws(const assets::NameMap<JointedModel>& models,
         }
         const JointedModel& jointed = model->second;
         spans_[entity] = {.first = draws_.size(), .count = jointed.draws.size()};
-        for (std::size_t i = 0; i < jointed.draws.size(); ++i) {
-            draws_.push_back(jointed.draws[i]);
-            slots_.push_back(jointed.slots[i]);
-            parts_.push_back({.entity = entity, .joint = jointed.joints[i]});
-        }
+        draws_.insert(draws_.end(), jointed.draws.begin(), jointed.draws.end());
+        slots_.insert(slots_.end(), jointed.slots.begin(), jointed.slots.end());
     }
 }
 
 void TrackEntityDraws::Update(std::span<const sim::EntityClock> clocks) {
-    for (std::size_t i = 0; i < draws_.size(); ++i) {
-        const Part& part = parts_[i];
-        const sim::TrackEntity& entity = sources_->entities[part.entity];
-        const bool hasJoint = part.joint < sources_->skeletons[entity.skeleton].nodes.size();
-        const sim::EntityClock clock =
-            part.entity < clocks.size() ? clocks[part.entity] : sim::EntityClock{};
-        const Transform placed =
-            hasJoint ? sim::NodeWorld(*sources_, part.entity, clock, part.joint) : entity.placement;
-        draws_[i].transform = TransformToEngine(placed);
+    for (std::size_t entity = 0; entity < spans_.size(); ++entity) {
+        const DrawSpan span = spans_[entity];
+        if (span.count == 0) {
+            continue;
+        }
+        const sim::EntityClock clock = entity < clocks.size() ? clocks[entity] : sim::EntityClock{};
+        std::vector<Transform>& poses = poses_[entity];
+        sim::NodePoses(*sources_, entity, clock, poses);
+        for (Transform& pose : poses) {
+            pose = TransformToEngine(pose);
+        }
+        const Transform placement = TransformToEngine(sources_->entities[entity].placement);
+        for (std::size_t i = span.first; i < span.first + span.count; ++i) {
+            draws_[i].transform = placement;
+            draws_[i].joints = poses;
+        }
     }
 }
 

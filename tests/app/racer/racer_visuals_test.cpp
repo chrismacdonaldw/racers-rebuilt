@@ -42,7 +42,7 @@ TEST_CASE("a racer's body sits on its wheels and its driver in the seat") {
     const std::span<const render::MeshDraw> draws = visuals.Draws();
 
     REQUIRE(draws.size() == 3);
-    CheckNear(GamePosition(draws[0]), {.x = 11.0F});
+    CheckNear(GamePosition(draws[0], 1), {.x = 11.0F});
     CheckNear(GamePosition(draws[1]), {.x = 10.0F});
     CheckNear(GamePosition(draws[2]), {.x = 8.0F, .z = 1.0F});
 }
@@ -52,9 +52,9 @@ TEST_CASE("wheels turn with forward speed and stand still at rest") {
     RacerVisuals visuals = MakeVisuals(racer);
 
     visuals.Update({}, {.id = {}, .forwardSpeed = 0.0F, .turnRadius = 0.0F}, kFrameMs);
-    CheckNear(GameAxis(visuals.Draws()[0], {.x = 1.0F}), {.x = 1.0F});
+    CheckNear(GameAxis(visuals.Draws()[0], {.x = 1.0F}, 1), {.x = 1.0F});
     visuals.Update({}, {.id = {}, .forwardSpeed = 0.1F, .turnRadius = 0.0F}, 20.0F);
-    const Vector3 turned = GameAxis(visuals.Draws()[0], {.x = 1.0F});
+    const Vector3 turned = GameAxis(visuals.Draws()[0], {.x = 1.0F}, 1);
 
     CHECK(turned.x < 0.95F);
     CHECK(turned.z < 0.0F);

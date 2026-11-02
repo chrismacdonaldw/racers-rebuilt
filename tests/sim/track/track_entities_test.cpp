@@ -75,6 +75,19 @@ TEST_CASE("a node the skeleton lacks stands at the entity's placement") {
     CheckNear(entities.NodeWorld(0, 9).position, sources.entities[0].placement.position);
 }
 
+TEST_CASE("node poses are the node worlds without the entity's placement") {
+    const TrackEntitySources sources = Arm();
+    const EntityClock clock = PartClock{.frame = 10.0F};
+
+    std::vector<Transform> poses;
+    NodePoses(sources, 0, clock, poses);
+
+    REQUIRE(poses.size() == 2);
+    CheckNear(Compose(sources.entities[0].placement, poses[1]).position,
+              NodeWorld(sources, 0, clock, 1).position);
+    CheckNear(poses[1].position, {.y = 5.0F});
+}
+
 TEST_CASE("entities are found by name") {
     const TrackEntitySources sources = Arm();
     const TrackEntities entities(sources);

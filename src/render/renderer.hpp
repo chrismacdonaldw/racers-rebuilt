@@ -137,6 +137,7 @@ private:
 
     std::unique_ptr<SDL_GPUDevice, DeviceDeleter> device_;
     std::array<GpuPipeline, kBlendModeCount> meshPipelines_;
+    std::array<GpuPipeline, kBlendModeCount> skinnedMeshPipelines_;
     std::array<GpuPipeline, kBlendModeCount> quadPipelines_;
     std::array<GpuPipeline, kBlendModeCount> spritePipelines_;
     GpuPipeline linePipeline_;

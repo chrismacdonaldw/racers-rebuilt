@@ -19,6 +19,10 @@ struct LineVertex {
 [[nodiscard]] Result<GpuPipeline> CreateMeshPipeline(SDL_GPUDevice* device,
                                                      SDL_GPUTextureFormat colorFormat,
                                                      BlendMode blend);
+/// Takes each vertex's `joint` as an index into a joint pose array in vertex uniform slot 1.
+[[nodiscard]] Result<GpuPipeline> CreateSkinnedMeshPipeline(SDL_GPUDevice* device,
+                                                            SDL_GPUTextureFormat colorFormat,
+                                                            BlendMode blend);
 [[nodiscard]] Result<GpuPipeline> CreateLinePipeline(SDL_GPUDevice* device,
                                                      SDL_GPUTextureFormat colorFormat);
 [[nodiscard]] Result<GpuPipeline> CreateQuadPipeline(SDL_GPUDevice* device,

@@ -55,7 +55,7 @@ TEST_CASE("a ghost car sits at its frame, with its driver in the seat playing th
     const std::span<const render::MeshDraw> draws = car.Draws();
 
     REQUIRE(draws.size() == 3);
-    CheckNear(GamePosition(draws[0]), {.x = 11.0F});
+    CheckNear(GamePosition(draws[0], 1), {.x = 11.0F});
     CheckNear(GamePosition(draws[1]), {.x = 10.0F});
     CheckNear(GamePosition(draws[2]), {.x = 8.0F, .z = 2.0F});
 }
@@ -91,7 +91,7 @@ TEST_CASE("a ghost's wheels turn at the frame's rate in frames per second") {
     car.Update(At(0.0F, 10.0F), 500.0F);
 
     const float half = std::numbers::sqrt2_v<float> / 2.0F;
-    CheckNear(GameAxis(car.Draws()[0], {.x = 1.0F}), {.x = half, .z = -half});
+    CheckNear(GameAxis(car.Draws()[0], {.x = 1.0F}, 1), {.x = half, .z = -half});
 }
 
 TEST_CASE("a ghost driver part past the animations fails") {

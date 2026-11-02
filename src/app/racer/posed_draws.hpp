@@ -27,12 +27,13 @@ struct AnimatedSkeleton {
     [[nodiscard]] std::span<const Transform> Solve();
 };
 
-/// The draws of several models, each group placed at its own entity.
+/// The draws of several models, each group placed at its own entity and skinned by its nodes.
 class PosedDraws {
 public:
     struct Group {
         std::size_t first = 0;
         std::size_t count = 0;
+        std::size_t poses = 0;
     };
 
     Group Append(const ModelDraws& model);
@@ -45,7 +46,7 @@ public:
 
 private:
     std::vector<render::MeshDraw> draws_;
-    std::vector<std::uint16_t> joints_;
+    std::vector<std::vector<Transform>> poses_;
 };
 
 }

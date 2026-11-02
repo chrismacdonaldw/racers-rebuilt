@@ -29,18 +29,20 @@ std::span<const Transform> AnimatedSkeleton::Solve() {
 }
 
 PosedDraws::Group PosedDraws::Append(const ModelDraws& model) {
-    const Group group{.first = draws_.size(), .count = model.draws.size()};
+    const Group group{.first = draws_.size(), .count = model.draws.size(), .poses = poses_.size()};
     draws_.insert(draws_.end(), model.draws.begin(), model.draws.end());
-    joints_.insert(joints_.end(), model.joints.begin(), model.joints.end());
-    joints_.resize(draws_.size());
+    poses_.emplace_back();
     return group;
 }
 
 void PosedDraws::Place(Group group, const Transform& entity, std::span<const Transform> nodes) {
+    std::vector<Transform>& poses = poses_[group.poses];
+    poses.resize(nodes.size());
+    std::ranges::transform(nodes, poses.begin(), TransformToEngine);
+    const Transform placed = TransformToEngine(entity);
     for (std::size_t i = group.first; i < group.first + group.count; ++i) {
-        const std::uint16_t joint = joints_[i];
-        const Transform placed = joint < nodes.size() ? Compose(entity, nodes[joint]) : entity;
-        draws_[i].transform = TransformToEngine(placed);
+        draws_[i].transform = placed;
+        draws_[i].joints = poses;
     }
 }
 

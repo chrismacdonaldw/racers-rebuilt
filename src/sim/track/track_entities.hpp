@@ -19,6 +19,10 @@ using EntityClock = std::optional<PartClock>;
 [[nodiscard]] Transform NodeWorld(const TrackEntitySources& sources, std::size_t entity,
                                   const EntityClock& clock, std::size_t node);
 
+/// In game space, relative to the entity's placement, one per skeleton node.
+void NodePoses(const TrackEntitySources& sources, std::size_t entity, const EntityClock& clock,
+               std::vector<Transform>& out);
+
 /// In game space.
 [[nodiscard]] Transform NodeWorldBefore(const TrackEntitySources& sources, std::size_t entity,
                                         EntityClock clock, std::size_t node, Milliseconds ago);

@@ -10,7 +10,7 @@
 
 namespace rr::app {
 
-/// `sources` must outlive it.
+/// `sources` must outlive it, and its draws point at joint poses it owns.
 class TrackEntityDraws {
 public:
     TrackEntityDraws(const assets::NameMap<JointedModel>& models,
@@ -24,16 +24,11 @@ public:
     [[nodiscard]] DrawSpan SpanOf(std::size_t entity) const { return spans_[entity]; }
 
 private:
-    struct Part {
-        std::size_t entity = 0;
-        std::uint16_t joint = 0;
-    };
-
     const sim::TrackEntitySources* sources_;
     std::vector<render::MeshDraw> draws_;
     std::vector<std::uint32_t> slots_;
-    std::vector<Part> parts_;
     std::vector<DrawSpan> spans_;
+    std::vector<std::vector<Transform>> poses_;
 };
 
 }

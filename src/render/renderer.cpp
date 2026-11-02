@@ -14,6 +14,7 @@
 
 #include "core/assert.hpp"
 #include "render/gpu_error.hpp"
+#include "render/joint_uniforms.hpp"
 #include "render/light_uniforms.hpp"
 #include "render/pipelines.hpp"
 
@@ -226,7 +227,10 @@ Result<void> Renderer::CreatePipelines() {
     for (std::size_t mode = 0; mode < kBlendModeCount; ++mode) {
         const auto blend = static_cast<BlendMode>(mode);
         Result<GpuPipeline> meshPipeline = CreateMeshPipeline(device, colorFormat_, blend);
-        Result<GpuPipeline> quadPipeline = meshPipeline.and_then(
+        Result<GpuPipeline> skinnedPipeline = meshPipeline.and_then([&](const GpuPipeline&) {
+            return CreateSkinnedMeshPipeline(device, colorFormat_, blend);
+        });
+        Result<GpuPipeline> quadPipeline = skinnedPipeline.and_then(
             [&](const GpuPipeline&) { return CreateQuadPipeline(device, colorFormat_, blend); });
         Result<GpuPipeline> spritePipeline = quadPipeline.and_then(
             [&](const GpuPipeline&) { return CreateSpritePipeline(device, colorFormat_, blend); });
@@ -234,6 +238,7 @@ Result<void> Renderer::CreatePipelines() {
             return std::unexpected(std::move(spritePipeline.error()));
         }
         meshPipelines_.at(mode) = std::move(*meshPipeline);
+        skinnedMeshPipelines_.at(mode) = std::move(*skinnedPipeline);
         quadPipelines_.at(mode) = std::move(*quadPipeline);
         spritePipelines_.at(mode) = std::move(*spritePipeline);
     }
@@ -411,8 +416,10 @@ void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
     const std::uint32_t indexCount = std::min(draw.indexCount, mesh.indexCount - draw.firstIndex);
     RR_VERIFY(draw.indexCount == kWholeMesh || indexCount == draw.indexCount);
 
-    SDL_GPUGraphicsPipeline* pipeline =
-        meshPipelines_.at(static_cast<std::size_t>(draw.material.blend)).Get();
+    const bool isSkinned = !draw.joints.empty();
+    SDL_GPUGraphicsPipeline* pipeline = (isSkinned ? skinnedMeshPipelines_ : meshPipelines_)
+                                            .at(static_cast<std::size_t>(draw.material.blend))
+                                            .Get();
     if (pipeline != bound) {
         SDL_BindGPUGraphicsPipeline(pass, pipeline);
         bound = pipeline;
@@ -428,6 +435,10 @@ void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
         .vertexScale = draw.material.vertexColors.scale,
         .vertexOffset = draw.material.vertexColors.offset};
     SDL_PushGPUVertexUniformData(commands, 0, &drawUniforms, sizeof(drawUniforms));
+    if (isSkinned) {
+        const JointUniforms joints = ToJointUniforms(draw.joints);
+        SDL_PushGPUVertexUniformData(commands, 1, &joints, sizeof(joints));
+    }
     SDL_PushGPUFragmentUniformData(commands, 0, &materialUniforms, sizeof(materialUniforms));
 
     const SDL_GPUBufferBinding vertices{.buffer = mesh.vertices.Get()};
