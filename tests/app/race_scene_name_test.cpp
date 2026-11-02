@@ -54,7 +54,7 @@ TEST_CASE("a race scene name marks a mirrored race") {
 TEST_CASE("a race scene name records a two-player race") {
     const RaceSceneSetup versus{.track = "RACEC0R0", .players = 2};
 
-    CHECK(RaceSceneName(versus) == "race:RACEC0R0:respawn=3000:racer=0:players=2");
+    CHECK(RaceSceneName(versus) == "race:RACEC0R0:respawn=3000:racer=0:players=2:racer2=1");
     CHECK(ParseRaceScene(RaceSceneName(versus)) == versus);
     CHECK(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0")->players == 1);
     CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:players=3"));
@@ -62,6 +62,20 @@ TEST_CASE("a race scene name records a two-player race") {
     CHECK_FALSE(
         ParseCircuitScene("circuit:c0:respawn=3000:racer=0:race=0:"
                           "points=0,0,0,0,0,0:players=2"));
+}
+
+TEST_CASE("a versus race scene name records player 2's racer and the lap count") {
+    const RaceSceneSetup versus{
+        .track = "RACEC0R0", .racer = 3, .players = 2, .secondRacer = 3, .lapCount = 5};
+
+    CHECK(RaceSceneName(versus) == "race:RACEC0R0:respawn=3000:racer=3:players=2:racer2=3:laps=5");
+    CHECK(ParseRaceScene(RaceSceneName(versus)) == versus);
+    CHECK(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0")->lapCount == 3);
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:laps=0"));
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:laps=10"));
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:players=2:racer2=6"));
+    CHECK_FALSE(
+        ParseCircuitScene("circuit:c0:respawn=3000:racer=0:race=0:points=0,0,0,0,0,0:laps=5"));
 }
 
 TEST_CASE("a malformed race scene name is rejected") {

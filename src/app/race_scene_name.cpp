@@ -22,6 +22,10 @@ constexpr std::string_view kCircuitKey = "circuit";
 constexpr std::string_view kAiKey = "ai";
 constexpr std::string_view kMirroredKey = "mirrored";
 constexpr std::string_view kPlayersKey = "players";
+constexpr std::string_view kSecondRacerKey = "racer2";
+constexpr std::string_view kLapsKey = "laps";
+constexpr int kDefaultLaps = RaceSceneSetup{}.lapCount;
+constexpr int kMaxLaps = 9;
 constexpr std::string_view kRaceKey = "race";
 constexpr std::string_view kPointsKey = "points";
 constexpr std::string_view kRespawnOff = "off";
@@ -83,6 +87,22 @@ bool ReadStanding(Field field, sim::CircuitStanding& standing) {
     return field.key == kPointsKey && ReadPoints(field.value, standing);
 }
 
+bool ReadRaceField(Field field, RaceSceneSetup& setup) {
+    if (field.key == kPlayersKey) {
+        setup.players = ParseNumber<std::size_t>(field.value).value_or(0);
+        return setup.players >= 1 && setup.players <= sim::kMaxPlayers;
+    }
+    if (field.key == kSecondRacerKey) {
+        setup.secondRacer = ParseNumber<std::size_t>(field.value).value_or(assets::kGridSlots);
+        return setup.secondRacer < assets::kGridSlots;
+    }
+    if (field.key == kLapsKey) {
+        setup.lapCount = ParseNumber<int>(field.value).value_or(0);
+        return setup.lapCount >= 1 && setup.lapCount <= kMaxLaps;
+    }
+    return false;
+}
+
 template <typename ReadOther>
 bool ReadField(Field field, RaceSceneSetup& setup, std::optional<sim::RespawnRule>& respawn,
                ReadOther readOther) {
@@ -105,7 +125,7 @@ bool ReadField(Field field, RaceSceneSetup& setup, std::optional<sim::RespawnRul
         setup.isMirrored = true;
         return field.value.empty();
     }
-    return readOther(field);
+    return readOther(field, setup);
 }
 
 Field SplitField(std::string_view text) {
@@ -161,7 +181,11 @@ std::string RaceSceneName(const RaceSceneSetup& setup) {
         name += std::format(":{}", kMirroredKey);
     }
     if (setup.players > 1) {
-        name += std::format(":{}={}", kPlayersKey, setup.players);
+        name += std::format(":{}={}:{}={}", kPlayersKey, setup.players, kSecondRacerKey,
+                            setup.secondRacer);
+    }
+    if (setup.lapCount != kDefaultLaps) {
+        name += std::format(":{}={}", kLapsKey, setup.lapCount);
     }
     return name + AiField(setup);
 }
@@ -171,18 +195,7 @@ bool IsRaceScene(std::string_view scene) {
 }
 
 Result<RaceSceneSetup> ParseRaceScene(std::string_view scene) {
-    std::size_t players = 1;
-    return ParseScene(scene, kRacePrefix, &RaceSceneSetup::track,
-                      [&](Field field) {
-                          players = field.key == kPlayersKey
-                                        ? ParseNumber<std::size_t>(field.value).value_or(0)
-                                        : 0;
-                          return players >= 1 && players <= sim::kMaxPlayers;
-                      })
-        .transform([&](RaceSceneSetup setup) {
-            setup.players = players;
-            return setup;
-        });
+    return ParseScene(scene, kRacePrefix, &RaceSceneSetup::track, ReadRaceField);
 }
 
 std::string CircuitSceneName(const CircuitSceneSetup& setup) {
@@ -200,7 +213,7 @@ bool IsCircuitScene(std::string_view scene) {
 Result<CircuitSceneSetup> ParseCircuitScene(std::string_view scene) {
     sim::CircuitStanding standing;
     return ParseScene(scene, kCircuitPrefix, &RaceSceneSetup::circuit,
-                      [&](Field field) { return ReadStanding(field, standing); })
+                      [&](Field field, RaceSceneSetup&) { return ReadStanding(field, standing); })
         .transform([&](RaceSceneSetup race) {
             return CircuitSceneSetup{.race = std::move(race), .standing = standing};
         });

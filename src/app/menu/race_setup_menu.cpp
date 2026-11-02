@@ -79,6 +79,11 @@ std::vector<CourseChoice> TrackChoicesOf(const Catalogs& catalogs, std::size_t c
     return choices;
 }
 
+RaceSetupRow Stepped(RaceSetupRow row, int step) {
+    return static_cast<RaceSetupRow>(
+        Wrap(static_cast<std::size_t>(row), step, static_cast<std::size_t>(kRowCount)));
+}
+
 bool HasRaces(const assets::RaceCatalog& races, std::size_t circuit) {
     return std::ranges::any_of(races.RacesOf(circuit), [](const std::optional<std::size_t>& slot) {
         return slot.has_value();
@@ -131,8 +136,10 @@ Result<std::vector<std::u16string>> ReadRaceNames(const assets::Vfs& vfs,
     return ReadStrings(vfs, std::format("{}/{}/{}", kRaceNamesFolder, language, kRaceNames));
 }
 
-RaceSetupMenu::RaceSetupMenu(std::vector<CourseChoice> courses) : courses_(std::move(courses)) {
+RaceSetupMenu::RaceSetupMenu(std::vector<CourseChoice> courses, std::size_t players)
+    : courses_(std::move(courses)), players_(players) {
     RR_VERIFY(!courses_.empty());
+    secondRacer_ = std::min<std::size_t>(1, Course().racers.size() - 1);
 }
 
 std::optional<std::string> RaceSetupMenu::Tick(const sim::InputFrame& input,
@@ -156,12 +163,15 @@ std::optional<std::string> RaceSetupMenu::Tick(const sim::InputFrame& input,
 }
 
 std::uint64_t RaceSetupMenu::StateHash() const {
-    return (((course_ * kHashBase) + racer_) * kHashBase) + static_cast<std::uint64_t>(focus_);
+    return (((((course_ * kHashBase) + racer_) * kHashBase) + secondRacer_) * kHashBase) +
+           static_cast<std::uint64_t>(focus_);
 }
 
 void RaceSetupMenu::MoveFocus(int step) {
-    focus_ = static_cast<RaceSetupRow>(
-        Wrap(static_cast<std::size_t>(focus_), step, static_cast<std::size_t>(kRowCount)));
+    focus_ = Stepped(focus_, step);
+    if (focus_ == RaceSetupRow::SecondRacer && players_ == 1) {
+        focus_ = Stepped(focus_, step);
+    }
 }
 
 void RaceSetupMenu::Change(int step) {
@@ -169,9 +179,13 @@ void RaceSetupMenu::Change(int step) {
         case RaceSetupRow::Course:
             course_ = Wrap(course_, step, courses_.size());
             racer_ = std::min(racer_, Course().racers.size() - 1);
+            secondRacer_ = std::min(secondRacer_, Course().racers.size() - 1);
             return;
         case RaceSetupRow::Racer:
             racer_ = Wrap(racer_, step, Course().racers.size());
+            return;
+        case RaceSetupRow::SecondRacer:
+            secondRacer_ = Wrap(secondRacer_, step, Course().racers.size());
             return;
         default:
             return;
@@ -188,6 +202,8 @@ std::optional<std::string> RaceSetupMenu::Confirm(const RaceSceneSetup& rules) {
             race.track = Course().track;
             race.circuit = Course().circuit;
             race.racer = racer_;
+            race.players = players_;
+            race.secondRacer = secondRacer_;
             return race.track.empty() ? CircuitSceneName({.race = race}) : RaceSceneName(race);
         case RaceSetupRow::Back:
             return std::string(kMainMenuScene);

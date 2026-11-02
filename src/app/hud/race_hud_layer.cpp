@@ -110,7 +110,9 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(
     }
     RaceHud& first = huds_.front();
     texts_.clear();
-    first.LayoutResults(session.Clock(), session.Progress(), 0, names_, circuitPoints_, texts_);
+    if (players_ == 1) {
+        first.LayoutResults(session.Clock(), session.Progress(), 0, names_, circuitPoints_, texts_);
+    }
     DrawHudText(texts_, first.Fonts(), sprites_);
     if (pause) {
         sprites_.push_back(ScreenFill(kDialogBackdrop));

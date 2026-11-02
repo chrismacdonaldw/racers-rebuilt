@@ -6,6 +6,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "app/menu/menu_page.hpp"
@@ -20,9 +21,11 @@
 
 namespace rr::app {
 
-enum class RaceSetupMode : std::uint8_t { SingleRace, Circuit };
+enum class RaceSetupMode : std::uint8_t { SingleRace, Circuit, Versus };
 
-/// Picks a track or circuit and a racer over the main menu's backdrop, then starts the race.
+[[nodiscard]] std::optional<RaceSetupMode> RaceSetupModeOf(std::string_view scene);
+
+/// Picks a track or circuit and the players' racers over the main menu's backdrop, then races.
 class RaceSetupScene final : public Scene {
 public:
     /// `renderer` and `vfs` must outlive the scene.
@@ -44,6 +47,7 @@ private:
 
     [[nodiscard]] std::vector<std::u16string> CourseNames() const;
     void DrawRow(RaceSetupRow row, std::u16string_view label, std::u16string_view value);
+    [[nodiscard]] std::u16string_view RacerName(std::size_t racer) const;
     void DrawChampion();
 
     render::Renderer* renderer_;
