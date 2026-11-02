@@ -8,11 +8,6 @@
 #include "core/result.hpp"
 
 namespace rr::app {
-namespace {
-
-constexpr std::string_view kFontList = "GFONTS.FDB";
-
-}
 
 bool MenuText::Apply(render::Renderer& renderer, const assets::Vfs& vfs,
                      const settings::Registry& settings) {
@@ -21,7 +16,8 @@ bool MenuText::Apply(render::Renderer& renderer, const assets::Vfs& vfs,
         return false;
     }
     language_ = std::move(language);
-    Result<UiFonts> fonts = LoadUiFonts(renderer, vfs, MenuLanguageFolder(language_), kFontList);
+    Result<UiFonts> fonts =
+        LoadUiFonts(renderer, vfs, MenuLanguageFolder(language_), kMenuFontList);
     Result<std::vector<std::u16string>> lines = ReadMenuText(vfs, language_);
     if (!fonts || !lines) {
         log::Error("menus have no text: {}", (fonts ? lines.error() : fonts.error()).message);

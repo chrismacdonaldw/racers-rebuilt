@@ -78,6 +78,21 @@ TEST_CASE_FIXTURE(MixerFixture, "an effect plays once and then goes silent") {
     CHECK(RenderIsSilent());
 }
 
+TEST_CASE_FIXTURE(MixerFixture, "a started effect plays until it finishes or stops") {
+    const std::optional<VoiceId> finishing = mixer_.Start({.sound = effectId_});
+    REQUIRE(finishing.has_value());
+    CHECK(mixer_.IsPlaying(finishing.value_or(VoiceId{})));
+    CHECK_FALSE(RenderIsSilent());
+    CHECK(RenderIsSilent());
+    CHECK_FALSE(mixer_.IsPlaying(finishing.value_or(VoiceId{})));
+
+    const std::optional<VoiceId> stopped = mixer_.Start({.sound = effectId_});
+    REQUIRE(stopped.has_value());
+    mixer_.Stop(stopped.value_or(VoiceId{}));
+    CHECK_FALSE(mixer_.IsPlaying(stopped.value_or(VoiceId{})));
+    CHECK(RenderIsSilent());
+}
+
 TEST_CASE_FIXTURE(MixerFixture, "music keeps looping past the end of its track") {
     REQUIRE(mixer_.PlayMusic(trackId_).has_value());
 
