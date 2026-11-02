@@ -107,11 +107,12 @@ Result<Application> Application::Create(GameBoot boot) {
     boot.startup.EndPhase("audio", platform::Now());
     std::string startupSummary = boot.startup.Summary();
     log::Info("{}", startupSummary);
+    std::filesystem::path originalInstall = OriginalInstall(boot);
 
     return Application({.sdl = std::move(boot.sdl),
                         .settings = std::move(boot.settings),
                         .settingsFile = std::move(boot.settingsFile),
-                        .originalInstall = OriginalInstall(boot),
+                        .originalInstall = std::move(originalInstall),
                         .extensions = std::move(boot.extensions),
                         .vfs = std::move(boot.vfs),
                         .mixer = std::move(*mixer),
