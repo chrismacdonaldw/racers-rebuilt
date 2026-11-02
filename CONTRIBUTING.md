@@ -88,6 +88,8 @@ It runs on a clean working tree, loads the MSVC environment if needed, and stops
 8. Run the tests
 9. `clang-tidy` on every source file, in parallel
 
+The build and clang-tidy use half the cores, as does `scripts/package.ps1`. Set `CMAKE_BUILD_PARALLEL_LEVEL` to pick another job count.
+
 `RR_BANNED_TERMS_FILE` names a text file outside the repo with one regular expression per line. Ask a maintainer for the current list.
 
 Paste the summary it prints into the PR's **Testing** section, with the commit hash.
@@ -107,7 +109,7 @@ Paste the summary it prints into the PR's **Testing** section, with the commit h
 - `tests/<module>/`: unit tests, mirroring `src/`
 - `shaders/`: HLSL, compiled and embedded at build time
 - `tools/`: developer tools, not shipped
-- `scripts/`: `check.ps1` (the merge gate), `package.ps1` (builds `racers-rebuilt-windows-x64.zip`) and `msvc.ps1` (loads the MSVC environment)
+- `scripts/`: `check.ps1` (the merge gate), `package.ps1` (builds `racers-rebuilt-windows-x64.zip`), `msvc.ps1` (loads the MSVC environment) and `jobs.ps1` (the job count for builds)
 
 Each module is a static library. A module links only the modules below it. `sim` never touches SDL, the GPU, audio, settings or a clock.
 

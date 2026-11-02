@@ -9,6 +9,8 @@ CMake preset to configure, build and test. Defaults to check (Release with asser
 .NOTES
 RR_BANNED_TERMS_FILE must name a text file outside the repo with one extended regex per line.
 Matches in tracked files, commit metadata or the branch name fail the run.
+
+The build and clang-tidy run CMAKE_BUILD_PARALLEL_LEVEL jobs, or half the cores when it isn't set.
 #>
 param(
     [ValidateSet('check', 'debug')]
@@ -19,10 +21,12 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 . (Join-Path $PSScriptRoot 'msvc.ps1')
+. (Join-Path $PSScriptRoot 'jobs.ps1')
 
 $gameDataMagics = @('LJAM', 'ALP ')
 $results = New-Object System.Collections.Generic.List[string]
 $head = git rev-parse HEAD
+$jobs = Get-JobCount
 
 function Write-Summary([string]$Outcome) {
     Write-Host ''
@@ -80,7 +84,7 @@ function Read-FileMagic([string]$Path) {
 }
 
 function Invoke-ClangTidy([string]$ClangTidy, [string]$Database, [string[]]$Files) {
-    $pool = [RunspaceFactory]::CreateRunspacePool(1, [Environment]::ProcessorCount)
+    $pool = [RunspaceFactory]::CreateRunspacePool(1, $jobs)
     $pool.Open()
     try {
         $runs = foreach ($file in $Files) {
@@ -181,7 +185,7 @@ Invoke-Step "Configure into empty build/$Preset" {
     Remove-Item -Recurse -Force "build/$Preset" -ErrorAction SilentlyContinue
     cmake --preset $Preset
 }
-Invoke-Step "Build ($Preset)" { cmake --build --preset $Preset }
+Invoke-Step "Build ($Preset)" { cmake --build --preset $Preset --parallel $jobs }
 Invoke-Step "Test ($Preset)" { ctest --preset $Preset }
 
 Invoke-Step 'clang-tidy' {

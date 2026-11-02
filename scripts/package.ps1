@@ -5,12 +5,13 @@ build/package/racers-rebuilt-windows-x64.zip.
 
 .NOTES
 Needs VCPKG_ROOT, cmake and ninja, like scripts/check.ps1. Prints the version, size and SHA-256 of
-the zip.
+the zip. The build runs CMAKE_BUILD_PARALLEL_LEVEL jobs, or half the cores when it isn't set.
 #>
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 . (Join-Path $PSScriptRoot 'msvc.ps1')
+. (Join-Path $PSScriptRoot 'jobs.ps1')
 
 $exeName = 'racers-rebuilt.exe'
 $binFolder = 'build/release/bin'
@@ -52,7 +53,7 @@ if ($problem) {
 $version = Get-ProjectVersion
 Remove-Item -Recurse -Force 'build/release', $packageFolder -ErrorAction SilentlyContinue
 Invoke-Native 'Configure (release)' { cmake --preset release }
-Invoke-Native 'Build (release)' { cmake --build --preset release }
+Invoke-Native 'Build (release)' { cmake --build --preset release --parallel (Get-JobCount) }
 
 $built = @(Get-ChildItem $binFolder -File | Select-Object -ExpandProperty Name)
 if ($built.Count -ne 1 -or $built[0] -ne $exeName) {
