@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cstddef>
 #include <format>
 
@@ -11,6 +12,7 @@ namespace rr::app {
 namespace {
 
 constexpr std::string_view kAwardPrefix = "menu:award:";
+constexpr std::string_view kRacerField = ":racer=";
 
 struct AwardName {
     sim::CircuitAward award;
@@ -28,8 +30,11 @@ constexpr std::int32_t kRocketRacerPartSet = 6;
 }
 
 std::string AwardSceneName(const AwardSceneSetup& setup) {
-    return std::format("{}{}:{}", kAwardPrefix, setup.circuit,
-                       std::ranges::find(kAwardNames, setup.award, &AwardName::award)->name);
+    const std::string_view award =
+        std::ranges::find(kAwardNames, setup.award, &AwardName::award)->name;
+    return setup.racer == 0 ? std::format("{}{}:{}", kAwardPrefix, setup.circuit, award)
+                            : std::format("{}{}:{}{}{}", kAwardPrefix, setup.circuit, award,
+                                          kRacerField, setup.racer);
 }
 
 bool IsAwardScene(std::string_view scene) {
@@ -39,23 +44,34 @@ bool IsAwardScene(std::string_view scene) {
 Result<AwardSceneSetup> ParseAwardScene(std::string_view scene) {
     const std::string_view rest = IsAwardScene(scene) ? scene.substr(kAwardPrefix.size()) : "";
     const std::size_t colon = rest.find(':');
-    const auto found =
-        colon != 0 && colon != std::string_view::npos
-            ? std::ranges::find(kAwardNames, rest.substr(colon + 1), &AwardName::name)
-            : kAwardNames.end();
-    if (found == kAwardNames.end()) {
+    const std::string_view tail = colon == std::string_view::npos ? "" : rest.substr(colon + 1);
+    const std::size_t field = tail.find(kRacerField);
+    const auto found = colon != 0 && colon != std::string_view::npos
+                           ? std::ranges::find(kAwardNames, tail.substr(0, field), &AwardName::name)
+                           : kAwardNames.end();
+    std::size_t racer = 0;
+    const std::string_view digits =
+        field == std::string_view::npos ? "0" : tail.substr(field + kRacerField.size());
+    const auto [end, error] = std::from_chars(digits.data(), digits.data() + digits.size(), racer);
+    if (found == kAwardNames.end() || error != std::errc{} ||
+        end != digits.data() + digits.size()) {
         return Fail(ErrorCode::InvalidData, std::format("'{}' isn't an award scene", scene));
     }
-    return AwardSceneSetup{.circuit = std::string(rest.substr(0, colon)), .award = found->award};
+    return AwardSceneSetup{
+        .circuit = std::string(rest.substr(0, colon)), .award = found->award, .racer = racer};
 }
 
-std::string AwardScreenName(sim::CircuitAward award, std::optional<std::int32_t> newPartSet) {
-    CutsceneScreenSetup setup{.menu =
-                                  std::string(kAwardScreens.at(static_cast<std::size_t>(award)))};
-    if (newPartSet) {
-        const std::string_view win =
-            *newPartSet == kRocketRacerPartSet ? kWinRocketRacerCarScreen : kWinCarScreen;
-        setup.next = CutsceneScreenName({.menu = std::string(win)});
+std::string AwardScreenName(sim::CircuitAward award, std::optional<std::int32_t> newPartSet,
+                            const AwardDrivers& drivers) {
+    CutsceneScreenSetup setup{
+        .menu = std::string(kAwardScreens.at(static_cast<std::size_t>(award))),
+        .driver = drivers.player};
+    if (newPartSet && *newPartSet == kRocketRacerPartSet) {
+        setup.next = CutsceneScreenName(
+            {.menu = std::string(kWinRocketRacerCarScreen), .driver = drivers.player});
+    } else if (newPartSet) {
+        setup.next =
+            CutsceneScreenName({.menu = std::string(kWinCarScreen), .driver = drivers.champion});
     }
     return CutsceneScreenName(setup);
 }

@@ -265,20 +265,13 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(
             .transform(ToScene<RaceSetupScene>);
     }
     if (IsAwardScene(*scene)) {
-        return ParseAwardScene(*scene).and_then(
-            [&](const AwardSceneSetup& award) { return CreateWorldScene(ClaimAward(award)); });
+        return ParseAwardScene(*scene).and_then([&](const AwardSceneSetup& award) {
+            const AwardClaim claim = ClaimAward(ProgressFile(), vfs_, award);
+            unlockNotice_ = claim.opensCircuit;
+            return CreateWorldScene(claim.screen);
+        });
     }
     return CreateWorldScene(*scene);
-}
-
-std::string Application::ClaimAward(const AwardSceneSetup& award) {
-    const Result<AwardUnlocks> unlocks = SaveAward(ProgressFile(), vfs_, award);
-    if (!unlocks) {
-        log::Warn("{}, progress wasn't saved", unlocks.error().message);
-    }
-    const AwardUnlocks granted = unlocks.value_or(AwardUnlocks{});
-    unlockNotice_ = granted.opensCircuit;
-    return AwardScreenName(award.award, granted.partSet);
 }
 
 Result<std::unique_ptr<Scene>> Application::CreateWorldScene(std::string_view scene) {

@@ -20,15 +20,16 @@ inline constexpr std::string_view kWinCarScreen = "wincar";
 inline constexpr std::string_view kWinRocketRacerCarScreen = "winrrcar";
 inline constexpr std::string_view kWinRecordsCarScreen = "winvvcar";
 
-/// `next` is the scene to show after the cutscene, empty for the screen's usual one.
+/// `next` follows the cutscene, empty for the screen's usual one. `driver` is a racer's code.
 struct CutsceneScreenSetup {
     std::string menu;
+    std::string driver;
     std::string next;
 
     friend bool operator==(const CutsceneScreenSetup&, const CutsceneScreenSetup&) = default;
 };
 
-/// Such as `screen:circuit1>circuit:c0:racer=2`.
+/// Such as `screen:c_award1:driver=CR>screen:wincar:driver=KK`.
 [[nodiscard]] std::string CutsceneScreenName(const CutsceneScreenSetup& setup);
 
 [[nodiscard]] bool IsCutsceneScreen(std::string_view scene);
@@ -43,6 +44,8 @@ struct CutsceneScreen {
     std::string_view music;
     bool loopsMusic = false;
     bool isSkippable = true;
+    bool showsRacer = false;
+    bool namesChampion = false;
     std::string_view next;
 };
 

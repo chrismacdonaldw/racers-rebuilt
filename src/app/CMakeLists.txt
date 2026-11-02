@@ -19,6 +19,7 @@ rr_add_module(app
         cutscene/cutscene_overlay.cpp
         cutscene/cutscene_particles.cpp
         cutscene/cutscene_player.cpp
+        cutscene/cutscene_racer.cpp
         cutscene/cutscene_resources.cpp
         cutscene/cutscene_scene.cpp
         cutscene/cutscene_screen.cpp

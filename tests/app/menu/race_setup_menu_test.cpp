@@ -139,6 +139,16 @@ TEST_CASE("circuit setup plays the circuit's intro, then its first race") {
     CHECK(next == "screen:circuit1>circuit:c0:respawn=3000:racer=1:race=0:points=0,0,0,0,0,0");
 }
 
+TEST_CASE("the Rocket Racer circuit's intro shows the picked driver") {
+    RaceSetupMenu menu({{.circuit = "c6", .racers = {{.code = "RR"}, {.code = "JT"}}}});
+
+    const std::optional<std::string> next =
+        Press(menu, {MenuAction::Down, MenuAction::Right, MenuAction::Down, MenuAction::Confirm});
+
+    CHECK(next ==
+          "screen:circuit7:driver=JT>circuit:c6:respawn=3000:racer=1:race=0:points=0,0,0,0,0,0");
+}
+
 TEST_CASE("a circuit without an intro starts its first race") {
     RaceSetupMenu menu({{.circuit = "c9", .racers = {{.code = "a"}}}});
 

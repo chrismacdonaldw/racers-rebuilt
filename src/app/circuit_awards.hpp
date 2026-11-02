@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -40,6 +41,21 @@ struct AwardUnlocks {
 /// Writes only on a change, and never over a bad file.
 [[nodiscard]] Result<AwardUnlocks> SaveAward(const std::filesystem::path& file,
                                              const assets::Vfs& vfs, const AwardSceneSetup& award);
+
+/// An empty code where the grid has no such slot.
+[[nodiscard]] AwardDrivers DriversOf(const assets::CircuitEntry& circuit, std::size_t racer);
+
+[[nodiscard]] Result<AwardDrivers> LoadAwardDrivers(const assets::Vfs& vfs,
+                                                    const AwardSceneSetup& award);
+
+struct AwardClaim {
+    std::string screen;
+    bool opensCircuit = false;
+};
+
+/// Saves what `award` grants and names the screen that shows it. Logs what fails and goes on.
+[[nodiscard]] AwardClaim ClaimAward(const std::filesystem::path& file, const assets::Vfs& vfs,
+                                    const AwardSceneSetup& award);
 
 /// Logs a file that doesn't parse and treats it as a fresh game.
 [[nodiscard]] settings::Progress ReadProgress(const std::filesystem::path& file);

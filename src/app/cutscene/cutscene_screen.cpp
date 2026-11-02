@@ -7,6 +7,7 @@
 #include <utility>
 #include <variant>
 
+#include "app/cutscene/cutscene_racer.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "assets/game_path.hpp"
@@ -16,6 +17,7 @@ namespace rr::app {
 namespace {
 
 constexpr char kNextSeparator = '>';
+constexpr std::string_view kDriverField = ":driver=";
 constexpr std::string_view kCircuitPrefix = "c";
 constexpr std::string_view kIntroPrefix = "circuit";
 constexpr std::size_t kCircuitCount = 7;
@@ -33,36 +35,43 @@ constexpr std::array kScreens{
     CutsceneScreen{.menu = "circuit4", .layout = "CIRCUIT4", .music = "circuit4"},
     CutsceneScreen{.menu = "circuit5", .layout = "CIRCUIT5", .music = "circuit5"},
     CutsceneScreen{.menu = "circuit6", .layout = "CIRCUIT6", .music = "circuit6"},
-    CutsceneScreen{.menu = "circuit7", .layout = "CIRCUIT7", .music = "rracer"},
+    CutsceneScreen{.menu = "circuit7", .layout = "CIRCUIT7", .music = "rracer", .showsRacer = true},
     CutsceneScreen{.menu = "c_award1",
                    .layout = "C_AWARD1",
                    .music = "1st",
                    .isSkippable = false,
+                   .showsRacer = true,
                    .next = kMainMenuScene},
     CutsceneScreen{.menu = "c_award2",
                    .layout = "C_AWARD2",
                    .music = "2nd",
                    .isSkippable = false,
+                   .showsRacer = true,
                    .next = kMainMenuScene},
     CutsceneScreen{.menu = "c_award3",
                    .layout = "C_AWARD3",
                    .music = "3rd",
                    .isSkippable = false,
+                   .showsRacer = true,
                    .next = kMainMenuScene},
     CutsceneScreen{.menu = "c_award4",
                    .layout = "C_AWARD4",
                    .music = "lose",
                    .isSkippable = false,
+                   .showsRacer = true,
                    .next = kMainMenuScene},
     CutsceneScreen{.menu = kWinCarScreen,
                    .layout = "WINCAR",
                    .music = "gencar",
                    .isSkippable = false,
+                   .showsRacer = true,
+                   .namesChampion = true,
                    .next = kMainMenuScene},
     CutsceneScreen{.menu = kWinRocketRacerCarScreen,
                    .layout = "WINRRCAR",
                    .music = "rrcar",
                    .isSkippable = false,
+                   .showsRacer = true,
                    .next = "screen:credits"},
     CutsceneScreen{.menu = kWinRecordsCarScreen,
                    .layout = "WINVVCAR",
@@ -91,9 +100,14 @@ Result<const assets::MenuElement*> FindElement(const assets::MenuLayout& layout,
 }
 
 std::string CutsceneScreenName(const CutsceneScreenSetup& setup) {
-    return setup.next.empty() ? std::format("{}{}", kCutsceneScreenPrefix, setup.menu)
-                              : std::format("{}{}{}{}", kCutsceneScreenPrefix, setup.menu,
-                                            kNextSeparator, setup.next);
+    std::string name = std::format("{}{}", kCutsceneScreenPrefix, setup.menu);
+    if (!setup.driver.empty()) {
+        name += std::format("{}{}", kDriverField, setup.driver);
+    }
+    if (!setup.next.empty()) {
+        name += std::format("{}{}", kNextSeparator, setup.next);
+    }
+    return name;
 }
 
 bool IsCutsceneScreen(std::string_view scene) {
@@ -103,7 +117,12 @@ bool IsCutsceneScreen(std::string_view scene) {
 Result<CutsceneScreenSetup> ParseCutsceneScreen(std::string_view scene) {
     const std::string_view rest = scene.substr(kCutsceneScreenPrefix.size());
     const std::size_t separator = rest.find(kNextSeparator);
-    CutsceneScreenSetup setup{.menu = std::string(rest.substr(0, separator))};
+    const std::string_view head = rest.substr(0, separator);
+    const std::size_t driver = head.find(kDriverField);
+    CutsceneScreenSetup setup{.menu = std::string(head.substr(0, driver))};
+    if (driver != std::string_view::npos) {
+        setup.driver = std::string(head.substr(driver + kDriverField.size()));
+    }
     if (separator != std::string_view::npos) {
         setup.next = std::string(rest.substr(separator + 1));
     }
@@ -191,7 +210,10 @@ Result<CutscenePlay> ScreenPlay(const assets::Vfs& vfs, std::string_view scene) 
             .isSkippable = screen.isSkippable,
             .music = {.track = screen.music,
                       .repeat = screen.loopsMusic ? audio::Repeat::Loop : audio::Repeat::Once},
-            .next = setup->next.empty() ? std::string(screen.next) : std::move(setup->next)};
+            .next = setup->next.empty() ? std::string(screen.next) : std::move(setup->next),
+            .driver = screen.showsRacer ? setup->driver : std::string(),
+            .hiddenTexts = screen.namesChampion ? OtherChampionNames(setup->driver)
+                                                : std::vector<std::string>{}};
     });
 }
 
