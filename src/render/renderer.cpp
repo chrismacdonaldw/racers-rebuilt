@@ -14,10 +14,10 @@
 
 #include "core/assert.hpp"
 #include "render/gpu_error.hpp"
+#include "render/light_uniforms.hpp"
 #include "render/pipelines.hpp"
 
 #include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
 
 namespace rr::render {
 namespace {
@@ -55,11 +55,9 @@ struct DrawUniforms {
 struct MaterialUniforms {
     Color tint;
     Color ambient;
-    glm::vec3 lightDirection;
     float alphaCutoff = 0.0F;
     float modulateWeight = 0.0F;
     glm::vec2 uvOffset{};
-    float padding = 0.0F;
     Color vertexScale;
     Color vertexOffset;
 };
@@ -388,18 +386,20 @@ void Renderer::DrawOverlay(SDL_GPUCommandBuffer* commands, SDL_GPUTexture* swapc
 
 void Renderer::DrawMeshes(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
                           const RenderView& view, const glm::mat4& viewProjection) const {
+    const LightUniforms lights = ToLightUniforms(view.lighting);
+    SDL_PushGPUFragmentUniformData(commands, 1, &lights, sizeof(lights));
     SDL_GPUGraphicsPipeline* bound = nullptr;
     for (const MeshDraw& draw : view.meshes | std::views::filter(IsOpaque)) {
-        DrawMesh(commands, pass, draw, viewProjection, view.lighting, bound);
+        DrawMesh(commands, pass, draw, viewProjection, view.lighting.ambient, bound);
     }
     for (const MeshDraw& draw : view.meshes | std::views::filter(std::not_fn(IsOpaque))) {
-        DrawMesh(commands, pass, draw, viewProjection, view.lighting, bound);
+        DrawMesh(commands, pass, draw, viewProjection, view.lighting.ambient, bound);
     }
 }
 
 void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
-                        const MeshDraw& draw, const glm::mat4& viewProjection,
-                        const Lighting& lighting, SDL_GPUGraphicsPipeline*& bound) const {
+                        const MeshDraw& draw, const glm::mat4& viewProjection, const Color& ambient,
+                        SDL_GPUGraphicsPipeline*& bound) const {
     const Mesh& mesh = meshes_.Get(draw.mesh);
     RR_VERIFY(draw.firstIndex <= mesh.indexCount);
     const std::uint32_t indexCount = std::min(draw.indexCount, mesh.indexCount - draw.firstIndex);
@@ -415,9 +415,7 @@ void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
                                     .viewProjection = viewProjection};
     const MaterialUniforms materialUniforms{
         .tint = draw.material.tint,
-        .ambient = draw.material.ambient * lighting.ambient,
-        .lightDirection = glm::normalize(
-            glm::vec3(lighting.direction.x, lighting.direction.y, lighting.direction.z)),
+        .ambient = draw.material.ambient * ambient,
         .alphaCutoff = draw.material.alphaCutoff,
         .modulateWeight = draw.material.modulates ? 1.0F : 0.0F,
         .uvOffset = {draw.material.uvOffset.u, draw.material.uvOffset.v},
