@@ -34,13 +34,20 @@ bool GrantAward(settings::Progress& progress, const assets::CircuitEntry& circui
     if (award == sim::CircuitAward::Gold && circuit.partSet) {
         changed = progress.partSets.insert(*circuit.partSet).second || changed;
     }
-    if (award != sim::CircuitAward::Bronze && circuit.next) {
-        changed = progress.unlockedCircuits.insert(*circuit.next).second || changed;
+    if (OpensNewCircuit(progress, circuit, award)) {
+        progress.unlockedCircuits.insert(*circuit.next);
+        changed = true;
     }
     return changed;
 }
 
-Result<void> SaveAward(const std::filesystem::path& file, const assets::Vfs& vfs,
+bool OpensNewCircuit(const settings::Progress& progress, const assets::CircuitEntry& circuit,
+                     sim::CircuitAward award) {
+    return (award == sim::CircuitAward::Gold || award == sim::CircuitAward::Silver) &&
+           circuit.next && !progress.unlockedCircuits.contains(*circuit.next);
+}
+
+Result<bool> SaveAward(const std::filesystem::path& file, const assets::Vfs& vfs,
                        const AwardSceneSetup& award) {
     Result<assets::RaceCatalog> catalog = assets::RaceCatalog::Load(vfs);
     if (!catalog) {
@@ -54,10 +61,12 @@ Result<void> SaveAward(const std::filesystem::path& file, const assets::Vfs& vfs
     if (!progress) {
         return std::unexpected(std::move(progress.error()));
     }
-    if (!GrantAward(*progress, catalog->Circuits()[*circuit], award.award)) {
-        return {};
+    const assets::CircuitEntry& entry = catalog->Circuits()[*circuit];
+    const bool opens = OpensNewCircuit(*progress, entry, award.award);
+    if (!GrantAward(*progress, entry, award.award)) {
+        return false;
     }
-    return settings::SaveProgress(*progress, file);
+    return settings::SaveProgress(*progress, file).transform([&] { return opens; });
 }
 
 std::set<std::string> UnlockedCircuits(const std::filesystem::path& file) {

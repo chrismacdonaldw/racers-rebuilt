@@ -8,6 +8,7 @@
 
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_text.hpp"
+#include "app/menu/message_dialog.hpp"
 #include "app/scene.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -21,7 +22,8 @@ class MainMenuScene final : public Scene {
 public:
     /// `renderer` and `vfs` must outlive the scene.
     [[nodiscard]] static Result<std::unique_ptr<MainMenuScene>> Create(render::Renderer& renderer,
-                                                                       const assets::Vfs& vfs);
+                                                                       const assets::Vfs& vfs,
+                                                                       bool showsUnlockNotice);
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
@@ -30,7 +32,8 @@ public:
     void Render(const sim::RenderSnapshot& interpolated) override;
 
 private:
-    MainMenuScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuPage page);
+    MainMenuScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuPage page,
+                  std::optional<MessageDialog> notice);
 
     void Choose(const MenuButton& button);
     void DrawButton(const MenuButton& button, std::size_t state);
@@ -42,6 +45,7 @@ private:
     MenuText text_;
     std::size_t focus_ = 0;
     std::optional<std::string> next_;
+    std::optional<MessageDialog> notice_;
     std::vector<render::SpriteDraw> sprites_;
 };
 

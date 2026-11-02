@@ -20,8 +20,11 @@ inline constexpr std::string_view kProgressFileName = "progress.toml";
 bool GrantAward(settings::Progress& progress, const assets::CircuitEntry& circuit,
                 sim::CircuitAward award);
 
-/// Writes `file` only when the award changed it, and never over a file that doesn't parse.
-[[nodiscard]] Result<void> SaveAward(const std::filesystem::path& file, const assets::Vfs& vfs,
+[[nodiscard]] bool OpensNewCircuit(const settings::Progress& progress,
+                                   const assets::CircuitEntry& circuit, sim::CircuitAward award);
+
+/// Returns whether a new circuit opened. Writes only on a change, and never over a bad file.
+[[nodiscard]] Result<bool> SaveAward(const std::filesystem::path& file, const assets::Vfs& vfs,
                                      const AwardSceneSetup& award);
 
 /// Logs a file that doesn't parse and treats it as a fresh game.

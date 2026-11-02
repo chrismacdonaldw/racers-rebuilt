@@ -308,7 +308,8 @@ Application::Application(Parts parts)
 
 Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std::string>& scene) {
     if (!scene || *scene == kMainMenuScene) {
-        return MainMenuScene::Create(renderer_, vfs_).transform(ToScene<MainMenuScene>);
+        return MainMenuScene::Create(renderer_, vfs_, std::exchange(unlockNotice_, false))
+            .transform(ToScene<MainMenuScene>);
     }
     if (*scene == kSingleRaceScene || *scene == kCircuitRaceScene) {
         const RaceSetupMode mode =
@@ -319,10 +320,11 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std:
     if (IsAwardScene(*scene)) {
         return ParseAwardScene(*scene)
             .and_then([&](const AwardSceneSetup& award) {
-                const Result<void> saved = SaveAward(ProgressFile(), vfs_, award);
-                if (!saved) {
-                    log::Warn("{}, progress wasn't saved", saved.error().message);
+                const Result<bool> opened = SaveAward(ProgressFile(), vfs_, award);
+                if (!opened) {
+                    log::Warn("{}, progress wasn't saved", opened.error().message);
                 }
+                unlockNotice_ = opened.value_or(false);
                 return AwardScene::Create(renderer_, vfs_, award.award);
             })
             .transform(ToScene<AwardScene>);

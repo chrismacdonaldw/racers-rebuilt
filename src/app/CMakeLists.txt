@@ -41,11 +41,13 @@ rr_add_module(app
         loop_voice.cpp
         menu/award_scene.cpp
         menu/award_scene_name.cpp
+        menu/dialog_layout.cpp
         menu/main_menu_scene.cpp
         menu/menu_files.cpp
         menu/menu_focus.cpp
         menu/menu_page.cpp
         menu/menu_text.cpp
+        menu/message_dialog.cpp
         menu/pause_menu.cpp
         menu/race_setup_menu.cpp
         menu/race_setup_scene.cpp
