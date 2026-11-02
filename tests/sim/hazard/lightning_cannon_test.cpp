@@ -120,4 +120,14 @@ TEST_CASE("the retail sweep cannons aim from their payload and their tower") {
     CHECK(RetailCannon(*tomb).value_or(LightningCannon{}).entity.has_value());
 }
 
+TEST_CASE("on a mirrored track the lightning cannon sweeps the other way") {
+    test::HazardRig rig({Cannon()}, {});
+    rig.MirrorTrack();
+    rig.Hear(kTrigger, EventEdge::Start);
+
+    TickFor(rig, 83);
+
+    CHECK(Aim(rig).direction.y < -0.92F);
+}
+
 }

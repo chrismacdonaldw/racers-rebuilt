@@ -30,16 +30,19 @@ struct RaceTrack {
     TrackEntitySources entities;
     std::vector<assets::Hazard> hazards;
     float lowestTrackZ = 0.0F;
+    bool isMirrored = false;
 };
 
 /// `track` is a race track folder under `GAMEDATA`, such as `RACEC0R0`.
 [[nodiscard]] Result<CheckpointGraph> LoadCheckpoints(const assets::Vfs& vfs,
-                                                      std::string_view track);
+                                                      std::string_view track,
+                                                      bool isMirrored = false);
 
 /// Views `track` and `world`, which must outlive the course.
 [[nodiscard]] RaceCourse CourseOf(const RaceTrack& track, const CollisionQuery& world);
 
 /// `track` is a race track folder under `GAMEDATA`, such as `RACEC0R0`.
-[[nodiscard]] Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track);
+[[nodiscard]] Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track,
+                                              bool isMirrored = false);
 
 }

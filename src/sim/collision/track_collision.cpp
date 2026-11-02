@@ -8,6 +8,7 @@
 
 #include "assets/collision_mesh.hpp"
 #include "assets/game_path.hpp"
+#include "assets/mirror.hpp"
 #include "assets/surface_table.hpp"
 #include "assets/world_database.hpp"
 #include "sim/physics/rigid_body.hpp"
@@ -53,10 +54,10 @@ CollisionWorld MakeWorld(CollisionMesh mesh, std::vector<MaterialBinding> materi
 
 Result<NamedWorld> LoadWorld(const assets::Vfs& vfs, std::string_view folder,
                              const std::string& volume, const assets::WorldEntity& entity,
-                             std::span<const assets::SurfaceEntry> surfaces) {
+                             std::span<const assets::SurfaceEntry> surfaces, bool isMirrored) {
     const std::string path =
         std::format("GAMEDATA/{}/{}.BVB", folder, assets::ToUpperAscii(volume));
-    return ReadParsed(vfs, path, assets::ParseCollisionMesh)
+    return ReadParsed(vfs, path, assets::MirroredIf(isMirrored, assets::ParseCollisionMesh))
         .and_then([&](assets::CollisionMeshAsset asset) {
             std::vector<MaterialBinding> materials =
                 BindMaterials(asset, surfaces, IsCheckpointWorld(entity.name));
@@ -72,7 +73,7 @@ Result<NamedWorld> LoadWorld(const assets::Vfs& vfs, std::string_view folder,
 
 Result<TrackCollision> LoadWorlds(const assets::Vfs& vfs, std::string_view folder,
                                   const assets::WorldAsset& wdb,
-                                  std::span<const assets::SurfaceEntry> surfaces) {
+                                  std::span<const assets::SurfaceEntry> surfaces, bool isMirrored) {
     TrackCollision collision;
     std::optional<std::size_t> track;
     for (const assets::WorldEntity& entity : wdb.boundedEntities) {
@@ -81,7 +82,7 @@ Result<TrackCollision> LoadWorlds(const assets::Vfs& vfs, std::string_view folde
         }
         const std::string& volume =
             wdb.boundingVolumes.at(static_cast<std::size_t>(entity.boundingVolume));
-        Result<NamedWorld> world = LoadWorld(vfs, folder, volume, entity, surfaces);
+        Result<NamedWorld> world = LoadWorld(vfs, folder, volume, entity, surfaces, isMirrored);
         if (!world) {
             return std::unexpected(std::move(world.error()));
         }
@@ -101,14 +102,15 @@ Result<TrackCollision> LoadWorlds(const assets::Vfs& vfs, std::string_view folde
 
 }
 
-Result<TrackCollision> LoadTrackCollision(const assets::Vfs& vfs, std::string_view folder) {
+Result<TrackCollision> LoadTrackCollision(const assets::Vfs& vfs, std::string_view folder,
+                                          bool isMirrored) {
     return ReadParsed(vfs, std::format("GAMEDATA/{}/{}.TMB", folder, folder),
-                      assets::ParseSurfaceTable)
+                      assets::MirroredIf(isMirrored, assets::ParseSurfaceTable))
         .and_then([&](std::vector<assets::SurfaceEntry> surfaces) {
             return ReadParsed(vfs, std::format("GAMEDATA/{}/COLLIDE.WDB", folder),
-                              assets::ParseWorld)
+                              assets::MirroredIf(isMirrored, assets::ParseWorld))
                 .and_then([&](const assets::WorldAsset& wdb) {
-                    return LoadWorlds(vfs, folder, wdb, surfaces);
+                    return LoadWorlds(vfs, folder, wdb, surfaces, isMirrored);
                 })
                 .transform([&](TrackCollision collision) {
                     collision.surfaces = std::move(surfaces);

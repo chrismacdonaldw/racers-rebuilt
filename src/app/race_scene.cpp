@@ -105,8 +105,8 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                                    .and_then([&](const assets::TrackAssets& assets) {
                                        return UploadTrack(renderer, assets);
                                    });
-    Result<sim::RaceTrack> loaded =
-        model.and_then([&](const TrackModel&) { return sim::LoadRaceTrack(vfs, track); });
+    Result<sim::RaceTrack> loaded = model.and_then(
+        [&](const TrackModel&) { return sim::LoadRaceTrack(vfs, track, setup.isMirrored); });
     Result<RacerGrid> racers = loaded.and_then([&](const sim::RaceTrack& race) {
         return RacerGrid::Load(renderer, vfs, loader, setup, race.grid.size());
     });

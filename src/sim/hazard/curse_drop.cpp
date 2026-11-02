@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "core/assert.hpp"
+#include "core/mirror.hpp"
 #include "sim/powerup/powerup_system.hpp"
 
 namespace rr::sim {
@@ -19,7 +20,8 @@ constexpr std::uint8_t kCurseLevel = 3;
 
 void CurseDrop::Activate(HazardContext& context) {
     RR_ASSERT(context.random != nullptr && context.effects != nullptr && context.aim != nullptr);
-    const Vector3& point = kDropPoints.at(context.random->Below(kRollRange) % kDropPoints.size());
+    const Vector3 point = MirroredYIf(
+        context.isMirrored, kDropPoints.at(context.random->Below(kRollRange) % kDropPoints.size()));
     *context.aim = {.source = point, .target = point, .direction = kDropFacing};
     context.effects->powerups->Fire(
         {.colour = assets::BrickColour::Yellow, .level = kCurseLevel, .hazard = context.slot},

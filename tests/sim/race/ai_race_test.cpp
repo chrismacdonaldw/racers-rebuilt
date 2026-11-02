@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "assets/archive_survey.hpp"
+#include "assets/game_path.hpp"
 #include "assets/race_catalog.hpp"
 #include "assets/racer_catalog.hpp"
 #include "assets/track_loader.hpp"
@@ -58,11 +59,17 @@ struct PowerupTally {
     }
 };
 
-Result<RaceSetup> CircuitRace(const assets::Vfs& vfs, const std::string& track,
-                              std::size_t slotCount) {
+struct Course {
+    std::string track;
+    std::string circuit;
+    bool isMirrored = false;
+};
+
+Result<RaceSetup> CircuitRace(const assets::Vfs& vfs, const Course& course, std::size_t slotCount) {
     Result<assets::RacerCatalog> catalog = assets::RacerCatalog::Load(vfs);
-    Result<std::vector<std::string>> codes = catalog.and_then(
-        [&](const assets::RacerCatalog&) { return assets::LoadGrid(vfs, track, ""); });
+    Result<std::vector<std::string>> codes = catalog.and_then([&](const assets::RacerCatalog&) {
+        return assets::LoadGrid(vfs, course.track, course.circuit);
+    });
     if (!codes) {
         return std::unexpected(codes.error());
     }
@@ -113,11 +120,13 @@ std::optional<std::string> RunRace(RaceSession& session, const std::string& trac
     return std::nullopt;
 }
 
-std::optional<std::string> RaceProblem(const assets::Vfs& vfs, const std::string& track,
+std::optional<std::string> RaceProblem(const assets::Vfs& vfs, const Course& course,
                                        AiDriving driving, std::size_t& startBoosts) {
-    Result<RaceTrack> loaded = LoadRaceTrack(vfs, track);
+    const std::string track =
+        course.isMirrored ? std::format("{} mirrored", course.track) : course.track;
+    Result<RaceTrack> loaded = LoadRaceTrack(vfs, course.track, course.isMirrored);
     Result<RaceSetup> setup = loaded.and_then(
-        [&](const RaceTrack& race) { return CircuitRace(vfs, track, race.grid.size()); });
+        [&](const RaceTrack& race) { return CircuitRace(vfs, course, race.grid.size()); });
     if (!setup) {
         return std::format("{}: {}", track, setup.error().message);
     }
@@ -139,7 +148,7 @@ TEST_CASE("on every retail track, most computer racers use power-ups and all fin
     std::size_t startBoosts = 0;
     for (const std::string& track : assets::ListRaceTracks(*vfs)) {
         if (const std::optional<std::string> problem =
-                RaceProblem(*vfs, track, AiDriving::Route, startBoosts)) {
+                RaceProblem(*vfs, {.track = track}, AiDriving::Route, startBoosts)) {
             FAIL_CHECK(*problem);
         }
     }
@@ -155,10 +164,36 @@ TEST_CASE("physics-driven computer racers finish three laps on tracks where they
     std::size_t startBoosts = 0;
     for (const std::string_view track : kStallingTracks) {
         if (const std::optional<std::string> problem =
-                RaceProblem(*vfs, std::string(track), AiDriving::Physics, startBoosts)) {
+                RaceProblem(*vfs, {.track = std::string(track)}, AiDriving::Physics, startBoosts)) {
             FAIL_CHECK(*problem);
         }
     }
+}
+
+TEST_CASE("on every mirrored circuit race, all computer racers finish three laps") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const Result<assets::RaceCatalog> catalog = assets::RaceCatalog::Load(*vfs);
+    REQUIRE(catalog.has_value());
+
+    std::size_t mirrored = 0;
+    std::size_t startBoosts = 0;
+    for (const assets::RaceEntry& race : catalog->Races()) {
+        if (!race.isMirrored || !race.circuit) {
+            continue;
+        }
+        ++mirrored;
+        const Course course{.track = assets::ToUpperAscii(race.folder),
+                            .circuit = *race.circuit,
+                            .isMirrored = true};
+        if (const std::optional<std::string> problem =
+                RaceProblem(*vfs, course, AiDriving::Route, startBoosts)) {
+            FAIL_CHECK(*problem);
+        }
+    }
+    CHECK(mirrored == 12);
 }
 
 }

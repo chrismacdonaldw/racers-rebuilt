@@ -8,6 +8,7 @@
 
 #include "assets/game_path.hpp"
 #include "assets/geometry_database.hpp"
+#include "assets/mirror.hpp"
 #include "assets/world_database.hpp"
 #include "sim/animation/part_clock.hpp"
 #include "sim/physics/rigid_body.hpp"
@@ -61,11 +62,12 @@ Transform PlacementOf(const assets::WorldEntity& entity) {
 class EntityLoader {
 public:
     EntityLoader(const assets::Vfs& vfs, std::string folder, std::vector<assets::VfsEntry> local,
-                 std::vector<assets::VfsEntry> common)
+                 std::vector<assets::VfsEntry> common, bool isMirrored)
         : vfs_(&vfs),
           folder_(std::move(folder)),
           local_(std::move(local)),
-          common_(std::move(common)) {}
+          common_(std::move(common)),
+          isMirrored_(isMirrored) {}
 
     [[nodiscard]] std::vector<std::string> Worlds() const {
         std::vector<std::string> worlds;
@@ -80,7 +82,9 @@ public:
     }
 
     Result<void> AddWorld(const std::string& path) {
-        Result<assets::WorldAsset> world = ReadParsed(*vfs_, path, assets::ParseWorld);
+        Result<assets::WorldAsset> world = ReadParsed(
+            *vfs_, path,
+            assets::MirroredIf(isMirrored_ && assets::IsMirroredWorld(path), assets::ParseWorld));
         if (!world) {
             return std::unexpected(std::move(world.error()));
         }
@@ -121,7 +125,9 @@ private:
             return found->second;
         }
         return Resolve(name, extension)
-            .and_then([&](const std::string& path) { return ReadParsed(*vfs_, path, parse); })
+            .and_then([&](const std::string& path) {
+                return ReadParsed(*vfs_, path, assets::MirroredIf(isMirrored_, parse));
+            })
             .transform([&](Asset asset) {
                 assets.push_back(std::move(asset));
                 indices.emplace(key, assets.size() - 1);
@@ -192,6 +198,7 @@ private:
     std::string folder_;
     std::vector<assets::VfsEntry> local_;
     std::vector<assets::VfsEntry> common_;
+    bool isMirrored_ = false;
     std::map<std::string, std::size_t> skeletonIndices_;
     std::map<std::string, std::size_t> animationIndices_;
     std::map<std::string, ModelBounds> modelBounds_;
@@ -200,14 +207,16 @@ private:
 
 }
 
-Result<TrackEntitySources> LoadTrackEntities(const assets::Vfs& vfs, std::string_view track) {
+Result<TrackEntitySources> LoadTrackEntities(const assets::Vfs& vfs, std::string_view track,
+                                             bool isMirrored) {
     const std::string folder = std::format("GAMEDATA/{}", assets::ToUpperAscii(track));
     Result<std::vector<assets::VfsEntry>> local = vfs.List(folder);
     if (!local) {
         return std::unexpected(std::move(local.error()));
     }
     EntityLoader loader(vfs, folder, std::move(*local),
-                        vfs.List(kCommonFolder).value_or(std::vector<assets::VfsEntry>{}));
+                        vfs.List(kCommonFolder).value_or(std::vector<assets::VfsEntry>{}),
+                        isMirrored);
     for (const std::string& world : loader.Worlds()) {
         if (Result<void> added = loader.AddWorld(world); !added) {
             return std::unexpected(std::move(added.error()));

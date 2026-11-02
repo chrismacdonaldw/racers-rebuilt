@@ -31,6 +31,7 @@ struct TrackCollision {
 
 /// `folder` is a race track folder under `GAMEDATA`, such as `RACEC0R0`.
 [[nodiscard]] Result<TrackCollision> LoadTrackCollision(const assets::Vfs& vfs,
-                                                        std::string_view folder);
+                                                        std::string_view folder,
+                                                        bool isMirrored = false);
 
 }

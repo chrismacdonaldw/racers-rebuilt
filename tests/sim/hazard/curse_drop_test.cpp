@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 
+#include "core/mirror.hpp"
 #include "hazard_rig.hpp"
 
 namespace rr::sim {
@@ -37,6 +38,16 @@ TEST_CASE("the curse drop casts once per timer start") {
     rig.Hear(kCurseDropTrigger, EventEdge::Start);
 
     CHECK(rig.Powerups().Active().size() == 2);
+}
+
+TEST_CASE("on a mirrored track the curse drop casts at a mirrored point, still aiming +X") {
+    test::HazardRig rig({{.kind = assets::HazardKind::CurseDrop}}, {});
+    rig.MirrorTrack();
+
+    rig.Hear(kCurseDropTrigger, EventEdge::Start);
+
+    CHECK(std::ranges::contains(kDropPoints, MirroredY(rig.Hazards().Aims()[0].target)));
+    CHECK(rig.Hazards().Aims()[0].direction == Vector3{.x = 1.0F});
 }
 
 }

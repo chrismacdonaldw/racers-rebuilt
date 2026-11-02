@@ -14,4 +14,8 @@ namespace rr {
     return {.w = -rotation.w, .x = rotation.x, .y = -rotation.y, .z = rotation.z};
 }
 
+[[nodiscard]] constexpr Vector3 MirroredYIf(bool isMirrored, const Vector3& v) {
+    return isMirrored ? MirroredY(v) : v;
+}
+
 }

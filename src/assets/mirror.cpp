@@ -6,10 +6,13 @@
 #include <variant>
 #include <vector>
 
+#include "assets/game_path.hpp"
 #include "core/mirror.hpp"
 
 namespace rr::assets {
 namespace {
+
+constexpr std::string_view kSkyWorld = "BACKGRD.WDB";
 
 void Mirror(Vector3& v) {
     v = MirroredY(v);
@@ -151,6 +154,12 @@ void MirrorY(std::vector<Hazard>& hazards) {
             Mirror(lightning->source);
         }
     }
+}
+
+bool IsMirroredWorld(std::string_view path) {
+    const std::size_t slash = path.find_last_of("/\\");
+    const std::string_view file = slash == std::string_view::npos ? path : path.substr(slash + 1);
+    return ToUpperAscii(file) != kSkyWorld;
 }
 
 }

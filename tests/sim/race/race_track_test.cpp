@@ -9,10 +9,12 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "assets/archive_survey.hpp"
 #include "assets/track_loader.hpp"
+#include "core/mirror.hpp"
 #include "sim/collision/world_list.hpp"
 #include "sim/powerup/brick_field.hpp"
 #include "sim/powerup/green_effects.hpp"
@@ -348,6 +350,70 @@ TEST_CASE("a race track without a TGB has no target points") {
     const Result<RaceTrack> track = LoadRaceTrack(*vfs, "RACEC0R0");
     REQUIRE(track.has_value());
     CHECK(track->targets.empty());
+}
+
+struct MirroredPair {
+    RaceTrack plain;
+    RaceTrack mirrored;
+};
+
+std::optional<MirroredPair> LoadBothWays(const std::string& folder) {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return std::nullopt;
+    }
+    Result<RaceTrack> plain = LoadRaceTrack(*vfs, folder);
+    Result<RaceTrack> mirrored = LoadRaceTrack(*vfs, folder, true);
+    REQUIRE(plain.has_value());
+    REQUIRE(mirrored.has_value());
+    return MirroredPair{.plain = std::move(*plain), .mirrored = std::move(*mirrored)};
+}
+
+bool IsGridMirrored(const MirroredPair& pair) {
+    return std::ranges::equal(pair.plain.grid, pair.mirrored.grid,
+                              [](const RacerStart& plain, const RacerStart& mirrored) {
+                                  return mirrored.position == MirroredY(plain.position) &&
+                                         std::abs(mirrored.headingRadians + plain.headingRadians) <
+                                             1e-5F;
+                              });
+}
+
+TEST_CASE("a mirrored race track reflects its grid and checkpoints across the XZ plane") {
+    const std::optional<MirroredPair> pair = LoadBothWays("RACEC0R0");
+    if (!pair) {
+        return;
+    }
+
+    CHECK(pair->mirrored.isMirrored);
+    CHECK(IsGridMirrored(*pair));
+    CHECK(pair->mirrored.checkpoints.Checkpoints()[0].position ==
+          MirroredY(pair->plain.checkpoints.Checkpoints()[0].position));
+}
+
+TEST_CASE("a mirrored race track reflects its collision and bricks across the XZ plane") {
+    const std::optional<MirroredPair> pair = LoadBothWays("RACEC0R0");
+    if (!pair) {
+        return;
+    }
+    const RaceTrack& plain = pair->plain;
+    const RaceTrack& mirrored = pair->mirrored;
+
+    CHECK(mirrored.collision.Track().Mesh().Asset().vertices[0] ==
+          MirroredY(plain.collision.Track().Mesh().Asset().vertices[0]));
+    CHECK(mirrored.bricks.white[0] == MirroredY(plain.bricks.white[0]));
+    CHECK(mirrored.lowestTrackZ == plain.lowestTrackZ);
+}
+
+TEST_CASE("a car drives off the grid of a mirrored race track") {
+    const std::optional<MirroredPair> pair = LoadBothWays("RACEC0R0");
+    if (!pair) {
+        return;
+    }
+
+    const DriveCheck check = DriveFromGrid(pair->mirrored);
+
+    CHECK(check.respawns == 0);
+    CHECK(check.hasCrossedStart);
 }
 
 }

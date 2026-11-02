@@ -49,4 +49,14 @@ TEST_CASE("a racer already warping isn't warped again") {
     CHECK(rig.Powerups().Active().size() == 1);
 }
 
+TEST_CASE("on a mirrored track the warp pad warps toward its mirrored target") {
+    test::HazardRig rig({Pad()}, {});
+    rig.MirrorTrack();
+
+    rig.Hear({.id = kWarpPadEvent, .racer = 0});
+
+    CHECK(rig.Hazards().Aims()[0].target == Vector3{.x = 132.673F, .y = -86.304F, .z = 14.722F});
+    CHECK(rig.Hazards().Aims()[0].direction.y == doctest::Approx(0.5F / std::sqrt(1.25F)));
+}
+
 }

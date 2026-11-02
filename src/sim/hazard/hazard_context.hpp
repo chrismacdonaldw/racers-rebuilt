@@ -43,6 +43,7 @@ struct HazardContext {
     HazardAim* aim = nullptr;
     std::vector<HazardSound>* sounds = nullptr;
     std::uint8_t slot = 0;
+    bool isMirrored = false;
 };
 
 }

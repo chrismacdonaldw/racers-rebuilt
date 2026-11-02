@@ -425,7 +425,8 @@ HazardContext RaceSession::HazardsContext(Milliseconds elapsed, PowerupContext& 
             .elapsed = elapsed,
             .world = course_.world,
             .explosions = &explosions_,
-            .effects = &effects};
+            .effects = &effects,
+            .isMirrored = course_.isMirrored};
 }
 
 bool RaceSession::HasPlayerFinished() const {

@@ -178,5 +178,12 @@ TEST_CASE("mirrored hazards reflect their cannon, ship and lightning positions")
     CHECK(std::get<LightningCannon>(hazards[2].payload).source == kMirroredPoint);
 }
 
+TEST_CASE("every world but the sky world mirrors") {
+    CHECK_FALSE(IsMirroredWorld("GAMEDATA/RACEC0R0/BACKGRD.WDB"));
+    CHECK_FALSE(IsMirroredWorld("backgrd.wdb"));
+    CHECK(IsMirroredWorld("GAMEDATA/RACEC0R0/RRTRK.WDB"));
+    CHECK(IsMirroredWorld("GAMEDATA/RACEC0R0/COLLIDE.WDB"));
+}
+
 }
 }
