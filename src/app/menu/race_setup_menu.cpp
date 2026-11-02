@@ -71,12 +71,20 @@ Result<Catalogs> LoadCatalogs(const assets::Vfs& vfs) {
     return Catalogs{.races = std::move(*races), .racers = std::move(*racers)};
 }
 
+std::string PreviewOf(const assets::RaceEntry& race) {
+    return race.previewScene.value_or(std::string());
+}
+
 CourseChoice CircuitChoice(const Catalogs& catalogs, std::size_t circuit) {
     const assets::CircuitEntry& entry = catalogs.races.Circuits()[circuit];
     CourseChoice choice{.circuit = entry.name, .circuitIndex = circuit};
     choice.racers.reserve(entry.grid.size());
     for (const std::string& code : entry.grid) {
         choice.racers.push_back(ChoiceOf(catalogs.racers, code));
+    }
+    for (const std::optional<std::size_t>& slot : catalogs.races.RacesOf(circuit)) {
+        choice.previews.push_back(slot ? std::optional(PreviewOf(catalogs.races.Races()[*slot]))
+                                       : std::nullopt);
     }
     return choice;
 }
@@ -91,6 +99,7 @@ std::vector<CourseChoice> TrackChoicesOf(const Catalogs& catalogs, std::size_t c
             choice.track = assets::ToUpperAscii(race->folder);
             choice.race = *slot;
             choice.nameLine = race->nameLine.value_or(-1);
+            choice.previews = {PreviewOf(*race)};
         }
     }
     return choices;

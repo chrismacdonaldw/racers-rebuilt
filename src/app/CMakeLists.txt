@@ -84,8 +84,10 @@ rr_add_module(app
         menu/options_menu.cpp
         menu/options_scene.cpp
         menu/pause_menu.cpp
+        menu/preview_cycle.cpp
         menu/race_setup_menu.cpp
         menu/race_setup_scene.cpp
+        menu/track_preview.cpp
         music_folder_source.cpp
         pacing_presets.cpp
         orbiting_cube.cpp

@@ -57,7 +57,9 @@ add_executable(racers-rebuilt-tests
     app/menu/option_settings_test.cpp
     app/menu/options_menu_test.cpp
     app/menu/pause_menu_test.cpp
+    app/menu/preview_cycle_test.cpp
     app/menu/race_setup_menu_test.cpp
+    app/menu/track_preview_test.cpp
     app/music_folder_source_test.cpp
     app/pace_car_test.cpp
     app/particle_assets_test.cpp

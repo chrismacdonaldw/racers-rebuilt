@@ -257,8 +257,10 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(
             .transform(ToScene<LanguageScene>);
     }
     if (const std::optional<RaceSetupMode> mode = RaceSetupModeOf(*scene)) {
-        return RaceSetupScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_),
-                                      *mode, ReadProgress(ProgressFile()))
+        return RaceSetupScene::Create(
+                   {.renderer = &renderer_, .mixer = &mixer_, .banks = &soundBanks_}, vfs_,
+                   LoadMenuSounds(mixer_, soundBanks_, vfs_), *mode, ReadProgress(ProgressFile()),
+                   SelectedLanguage(settings_))
             .transform(ToScene<RaceSetupScene>);
     }
     if (IsAwardScene(*scene)) {
