@@ -80,6 +80,18 @@ void SnapshotExplosions(const sim::Explosions& pool, sim::ExplosionKind kind,
     }
 }
 
+sim::SkidSnapshot SkidOf(const sim::Racer& racer) {
+    const sim::BodyMotion& motion = racer.Body().motion;
+    const std::optional<sim::Turbo>& turbo = racer.ActiveTurbo();
+    return {.turbo = turbo ? std::optional(turbo->level) : std::nullopt,
+            .turboCount = racer.TurboCount(),
+            .leftwardSpeed = Dot(motion.velocity, motion.basis.side),
+            .isDrifting = racer.Driver().isDrifting,
+            .isSpinning = racer.IsSpinning(),
+            .isMagnetHeld = racer.Status().isMagnetHeld,
+            .isHalted = racer.Status().isHalted};
+}
+
 }
 
 void StepRace(sim::RaceSession& session, const sim::InputFrame& input,
@@ -108,9 +120,9 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
                               .isGhost = racer.Status().isGhost,
                               .isCursed = racer.Status().isCursed,
                               .curseSource = CurseSourceToEngine(racer.Status().curseSource),
-                              .tint = session.Tints().Of(i).transform([](std::size_t tint) {
-                                  return static_cast<std::uint8_t>(tint);
-                              })});
+                              .tint = session.Tints().Of(i).transform(
+                                  [](std::size_t tint) { return static_cast<std::uint8_t>(tint); }),
+                              .skid = SkidOf(racer)});
     }
     SnapshotBricks(session.Bricks(), out);
     SnapshotEffects(session.Powerups(), session.TrackHazards().Aims(), out);

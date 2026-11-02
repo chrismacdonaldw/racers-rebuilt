@@ -52,21 +52,14 @@ sim::RaceSetup FullGrid(const RaceSceneSetup& scene, const RacerGrid& racers, st
     return setup;
 }
 
-std::vector<std::int32_t> PerSlot(const RacerGrid& racers, std::size_t slots,
-                                  std::int32_t (RacerGrid::*value)(std::size_t) const) {
-    std::vector<std::int32_t> values(slots);
+template <typename T>
+std::vector<T> PerSlot(const RacerGrid& racers, std::size_t slots,
+                       T (RacerGrid::*value)(std::size_t) const) {
+    std::vector<T> values(slots);
     for (std::size_t i = 0; i < slots; ++i) {
         values[i] = (racers.*value)(i);
     }
     return values;
-}
-
-std::vector<sim::ChassisSpec> ChassisPerSlot(const RacerGrid& racers) {
-    std::vector<sim::ChassisSpec> chassis(racers.Count());
-    for (std::size_t i = 0; i < chassis.size(); ++i) {
-        chassis[i] = racers.Chassis(i);
-    }
-    return chassis;
 }
 
 std::unique_ptr<RaceAudio> LoadAudio(const RaceOutputs& outputs, const assets::Vfs& vfs,
@@ -169,7 +162,8 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
 
 RaceScene::RaceScene(Parts parts)
     : parts_(std::move(parts)),
-      shadows_(parts_.racerFx, ChassisPerSlot(parts_.racers)),
+      shadows_(parts_.racerFx, PerSlot(parts_.racers, parts_.racers.Count(), &RacerGrid::Chassis)),
+      skids_(parts_.racerFx, parts_.racers.Skids(kPlayerSlot)),
       powerupVisuals_(parts_.powerups.models),
       powerupQuads_(parts_.powerups.quadMaterials),
       chase_(PlayerCar()),
@@ -307,9 +301,11 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     DrawDebugLines();
     quads_.clear();
     shadows_.Append(interpolated.entities, interpolated.racers, carLooks_, *parts_.world, quads_);
+    const float simMs = pause_.IsOpen() ? 0.0F : elapsedMs;
+    skids_.Update(interpolated.entities[kPlayerSlot], interpolated.racers[kPlayerSlot], simMs);
+    skids_.Append(*parts_.world, quads_);
     if (parts_.particles) {
-        parts_.particles->Update(parts_.session,
-                                 render::FloatMilliseconds{pause_.IsOpen() ? 0.0F : elapsedMs});
+        parts_.particles->Update(parts_.session, render::FloatMilliseconds{simMs});
         parts_.particles->AppendQuads(camera.transform, quads_);
     }
     powerupQuads_.Update(interpolated, camera.transform, elapsedMs);

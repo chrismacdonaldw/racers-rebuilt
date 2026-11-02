@@ -10,6 +10,7 @@
 #include "app/racer/car_look.hpp"
 #include "app/racer/racer_assets.hpp"
 #include "app/racer/racer_visuals.hpp"
+#include "assets/chassis_database.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
 #include "core/bounding_sphere.hpp"
@@ -32,6 +33,7 @@ public:
 
     [[nodiscard]] std::size_t Count() const { return slots_.size(); }
     [[nodiscard]] sim::ChassisSpec Chassis(std::size_t slot) const;
+    [[nodiscard]] const assets::SkidMarks& Skids(std::size_t slot) const;
     [[nodiscard]] sim::PowerupHabits Habits(std::size_t slot) const;
 
     [[nodiscard]] BoundingSphere LocalBounds(std::size_t slot) const {

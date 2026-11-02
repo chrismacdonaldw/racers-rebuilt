@@ -27,6 +27,7 @@
 #include "app/race_scene_name.hpp"
 #include "app/racer/car_shadows.hpp"
 #include "app/racer/racer_grid.hpp"
+#include "app/racer/skid_marks.hpp"
 #include "app/racer_effect_tools.hpp"
 #include "app/scene.hpp"
 #include "app/sound_banks.hpp"
@@ -112,6 +113,7 @@ private:
 
     Parts parts_;
     CarShadows shadows_;
+    SkidMarks skids_;
     PowerupVisuals powerupVisuals_;
     PowerupQuads powerupQuads_;
     ChaseCamera chase_;

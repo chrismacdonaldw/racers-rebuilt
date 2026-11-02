@@ -61,6 +61,8 @@ add_executable(racers-rebuilt-tests
     app/racer/racer_assets_test.cpp
     app/racer/racer_bounds_test.cpp
     app/racer/racer_visuals_test.cpp
+    app/racer/skid_marks_test.cpp
+    app/racer/skid_trail_test.cpp
     app/racer_determinism_test.cpp
     app/replay_session_test.cpp
     app/scene_stack_test.cpp
