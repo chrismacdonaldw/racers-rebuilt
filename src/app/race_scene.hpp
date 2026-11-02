@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "app/brick_models.hpp"
-#include "app/chase_camera.hpp"
 #include "app/circuit_leg.hpp"
 #include "app/hazard/ghost_trail.hpp"
 #include "app/hazard/water_scroll.hpp"
@@ -23,6 +22,7 @@
 #include "app/powerup/warp_start.hpp"
 #include "app/powerup/warp_tube.hpp"
 #include "app/race_audio.hpp"
+#include "app/race_camera.hpp"
 #include "app/race_particles.hpp"
 #include "app/race_scene_name.hpp"
 #include "app/racer/car_shadows.hpp"
@@ -101,7 +101,7 @@ private:
 
     explicit RaceScene(Parts parts);
 
-    [[nodiscard]] Transform PlayerCar() const;
+    void FollowPlayer();
     void TickPause(const sim::InputFrame& input);
     void LeaveAfterResults(const sim::InputFrame& input);
     [[nodiscard]] overlay::RacerActionGroup EffectTools();
@@ -116,7 +116,7 @@ private:
     SkidMarks skids_;
     PowerupVisuals powerupVisuals_;
     PowerupQuads powerupQuads_;
-    ChaseCamera chase_;
+    RaceCamera camera_;
     RaceHudLayer hud_;
     PauseMenu pause_;
     std::optional<CircuitLeg> circuit_;

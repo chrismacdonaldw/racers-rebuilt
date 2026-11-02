@@ -70,6 +70,7 @@ rr_add_module(app
         powerup_tools.cpp
         quad_shapes.cpp
         race_audio.cpp
+        race_camera.cpp
         voice_reactions.cpp
         race_music.cpp
         race_particles.cpp
