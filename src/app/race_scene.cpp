@@ -73,10 +73,10 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                               raceTrack->entities);
     GhostTrail ghostTrail(model->draws, model->entityDraws, raceTrack->entities);
     WaterScroll waterScroll(raceTrack->hazards, model->entityDraws);
-    const std::vector<std::int32_t> voiceBanks =
-        PerSlot(*racers, session->Racers().size(), &RacerGrid::VoiceBank);
+    const std::vector<std::int32_t> voices =
+        PerSlot(*racers, session->Racers().size(), &RacerGrid::Voice);
     std::unique_ptr<RaceAudio> audio =
-        LoadRaceAudio(outputs, vfs, track, AudioSetup(*raceTrack, voiceBanks, seed));
+        LoadRaceAudio(outputs, vfs, track, AudioSetup(*raceTrack, voices, seed));
     std::optional<RaceParticles> particles =
         LoadRaceParticles(renderer, vfs, loader, track, raceTrack->collision.surfaces);
     return std::unique_ptr<RaceScene>(
@@ -111,7 +111,7 @@ RaceScene::RaceScene(Parts parts)
       powerupQuads_(PlayerPowerupQuads(parts_.powerups.quadMaterials, parts_.setup.players)),
       cameras_(parts_.session, parts_.setup.players),
       hud_(*parts_.renderer, *parts_.vfs, parts_.setup.players,
-           PerSlot(parts_.racers, parts_.session.Racers().size(), &RacerGrid::NameIndex)),
+           PerSlot(parts_.racers, parts_.session.Racers().size(), &RacerGrid::Name)),
       controls_(parts_.session.Racers().size()),
       collisionLines_(BuildCollisionWireframe(parts_.raceTrack->collision)),
       triggerRings_(parts_.session.Triggers()) {

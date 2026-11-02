@@ -11,6 +11,7 @@
 #include "app/hud/hud_gadget.hpp"
 #include "app/hud/minimap.hpp"
 #include "app/hud/race_hud.hpp"
+#include "app/racer/driver_name.hpp"
 #include "app/ui_text/ui_font.hpp"
 #include "app/ui_text/ui_image.hpp"
 #include "assets/vfs.hpp"
@@ -26,9 +27,9 @@ namespace rr::app {
 /// Each player's HUD in the chosen language, ready to draw. The players drive the first slots.
 class RaceHudLayer {
 public:
-    /// `nameIndexes` are lines in `DRIVERS.SRF`. `renderer` and `vfs` must outlive the layer.
+    /// `renderer` and `vfs` must outlive the layer.
     RaceHudLayer(render::Renderer& renderer, const assets::Vfs& vfs, std::size_t players,
-                 std::vector<std::int32_t> nameIndexes);
+                 std::vector<DriverName> drivers);
 
     /// Loads only when `language` changes. The HUD stays hidden while its files fail to load.
     void SetLanguage(std::string_view language);
@@ -61,7 +62,7 @@ private:
     render::Renderer* renderer_;
     const assets::Vfs* vfs_;
     std::size_t players_;
-    std::vector<std::int32_t> nameIndexes_;
+    std::vector<DriverName> drivers_;
     std::vector<std::int32_t> circuitPoints_;
     const sim::TimeTrialGhosts* trial_ = nullptr;
     std::string language_;

@@ -5,22 +5,26 @@
 #include <string>
 #include <utility>
 
+#include "app/racer/built_racer.hpp"
 #include "app/racer/racer_bounds.hpp"
 #include "app/racer/racer_draws.hpp"
 #include "app/track_space.hpp"
+#include "app/voice_reactions.hpp"
 #include "assets/race_catalog.hpp"
 #include "assets/racer_catalog.hpp"
-#include "sim/physics/prebuilt_chassis.hpp"
+#include "core/utf16_text.hpp"
+#include "sim/physics/racer_chassis.hpp"
 
 namespace rr::app {
 namespace {
 
 Result<std::unique_ptr<RacerAssets>> LoadSlot(const assets::Vfs& vfs, assets::TrackLoader& loader,
                                               const assets::RacerCatalog& catalog,
-                                              std::string_view code) {
-    return LoadRacer(vfs, loader, catalog, code).transform([](RacerAssets assets) {
-        return std::make_unique<RacerAssets>(std::move(assets));
-    });
+                                              std::string_view code, const settings::Racer* own) {
+    Result<RacerAssets> racer = own != nullptr ? LoadBuiltRacer(vfs, loader, catalog, *own)
+                                               : LoadRacer(vfs, loader, catalog, code);
+    return racer.transform(
+        [](RacerAssets assets) { return std::make_unique<RacerAssets>(std::move(assets)); });
 }
 
 Result<std::vector<std::string>> PlayersFirst(std::vector<std::string> codes,
@@ -68,7 +72,9 @@ Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs&
     slots = std::min(slots, codes->size());
     std::vector<Slot> loaded;
     for (const std::string& code : std::span(*codes).first(slots)) {
-        Result<std::unique_ptr<RacerAssets>> assets = LoadSlot(vfs, loader, *catalog, code);
+        const settings::Racer* own =
+            loaded.empty() && setup.playerRacer ? &*setup.playerRacer : nullptr;
+        Result<std::unique_ptr<RacerAssets>> assets = LoadSlot(vfs, loader, *catalog, code, own);
         Result<BoundingSphere> bounds = assets.and_then(
             [](const std::unique_ptr<RacerAssets>& racer) { return RacerBounds(*racer); });
         RacerDraws models;
@@ -80,7 +86,8 @@ Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs&
         });
         if (!visuals) {
             return Fail(visuals.error().code,
-                        std::format("racer {}: {}", code, visuals.error().message));
+                        std::format("racer {}: {}", own != nullptr ? own->name : code,
+                                    visuals.error().message));
         }
         loaded.push_back({.assets = std::move(*assets),
                           .models = std::move(models),
@@ -97,8 +104,13 @@ RacerGrid::RacerGrid(std::vector<Slot> slots) : slots_(std::move(slots)) {
 }
 
 sim::ChassisSpec RacerGrid::Chassis(std::size_t slot) const {
-    const assets::RacerFiles& files = slots_.at(slot).assets->files;
-    return sim::PrebuiltChassis(files.champion, files.chassis);
+    const RacerAssets& racer = *slots_.at(slot).assets;
+    return racer.build ? sim::BuiltChassis(racer.files.chassis)
+                       : sim::PrebuiltChassis(racer.files.champion, racer.files.chassis);
+}
+
+sim::CarBuild RacerGrid::Build(std::size_t slot) const {
+    return slots_.at(slot).assets->build.value_or(sim::CarBuild{});
 }
 
 const assets::SkidMarks& RacerGrid::Skids(std::size_t slot) const {
@@ -109,12 +121,17 @@ sim::PowerupHabits RacerGrid::Habits(std::size_t slot) const {
     return sim::HabitsOf(slots_.at(slot).assets->files.driver);
 }
 
-std::int32_t RacerGrid::NameIndex(std::size_t slot) const {
-    return slots_.at(slot).assets->files.driver.nameIndex;
+DriverName RacerGrid::Name(std::size_t slot) const {
+    const RacerAssets& racer = *slots_.at(slot).assets;
+    if (racer.build) {
+        return Utf16FromUtf8(racer.files.driver.name);
+    }
+    return racer.files.driver.nameIndex;
 }
 
-std::int32_t RacerGrid::VoiceBank(std::size_t slot) const {
-    return slots_.at(slot).assets->files.driver.voiceBank;
+std::int32_t RacerGrid::Voice(std::size_t slot) const {
+    const RacerAssets& racer = *slots_.at(slot).assets;
+    return racer.build ? BuiltCarVoice(slot) : DriverVoice(racer.files.driver.voiceBank);
 }
 
 void RacerGrid::Update(std::span<const sim::EntitySnapshot> poses,

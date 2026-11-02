@@ -57,8 +57,7 @@ std::vector<T> PerSlot(const RacerGrid& racers, std::size_t slots,
     const assets::NameMap<render::Material>& materials, std::size_t players);
 
 [[nodiscard]] RaceAudioSetup AudioSetup(const sim::RaceTrack& raceTrack,
-                                        std::span<const std::int32_t> voiceBanks,
-                                        std::uint64_t seed);
+                                        std::span<const std::int32_t> voices, std::uint64_t seed);
 
 /// Null when the race's sounds don't load.
 [[nodiscard]] std::unique_ptr<RaceAudio> LoadRaceAudio(const RaceOutputs& outputs,

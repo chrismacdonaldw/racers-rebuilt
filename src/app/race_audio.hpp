@@ -39,13 +39,13 @@ struct RaceSoundSet {
     std::vector<assets::SoundResource> ambience;
 };
 
-/// Only `player` gets engine and brake loops. `voiceBanks` holds each racer's `DDB` voice bank.
+/// Only `player` gets engine and brake loops. `voices` are in the game's numbering.
 struct RaceAudioSetup {
     std::size_t racerCount = 0;
     std::size_t player = 0;
     std::uint64_t seed = 0;
     std::span<const assets::SoundResource> ambience;
-    std::span<const std::int32_t> voiceBanks;
+    std::span<const std::int32_t> voices;
 };
 
 /// Only reads the session, so it never changes a race's outcome.

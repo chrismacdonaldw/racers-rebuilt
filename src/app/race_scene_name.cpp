@@ -27,10 +27,8 @@ constexpr std::string_view kMirroredKey = "mirrored";
 constexpr std::string_view kPlayersKey = "players";
 constexpr std::string_view kSecondRacerKey = "racer2";
 constexpr std::string_view kLapsKey = "laps";
-constexpr int kDefaultLaps = RaceSceneSetup{}.lapCount;
 constexpr int kMaxLaps = 9;
 constexpr std::string_view kOpponentsKey = "opponents";
-constexpr std::size_t kDefaultOpponents = RaceSceneSetup{}.opponents;
 constexpr std::string_view kRaceKey = "race";
 constexpr std::string_view kPointsKey = "points";
 constexpr std::string_view kRespawnOff = "off";
@@ -196,10 +194,10 @@ std::string RaceSceneName(const RaceSceneSetup& setup) {
         name += std::format(":{}={}:{}={}", kPlayersKey, setup.players, kSecondRacerKey,
                             setup.secondRacer);
     }
-    if (setup.lapCount != kDefaultLaps) {
+    if (setup.lapCount != kDefaultLapCount) {
         name += std::format(":{}={}", kLapsKey, setup.lapCount);
     }
-    if (setup.opponents != kDefaultOpponents) {
+    if (setup.opponents != kDefaultOpponentCount) {
         name += std::format(":{}={}", kOpponentsKey, setup.opponents);
     }
     return name + AiField(setup);

@@ -90,6 +90,7 @@ add_executable(racers-rebuilt-tests
     app/racer/car_look_test.cpp
     app/racer/racer_assets_test.cpp
     app/racer/racer_bounds_test.cpp
+    app/racer/racer_lookup_test.cpp
     app/racer/racer_visuals_test.cpp
     app/racer/skid_marks_test.cpp
     app/racer/skid_trail_test.cpp
@@ -267,7 +268,7 @@ add_executable(racers-rebuilt-tests
     sim/physics/drive_controller_test.cpp
     sim/physics/driver_input_test.cpp
     sim/physics/hover_contact_test.cpp
-    sim/physics/prebuilt_chassis_test.cpp
+    sim/physics/racer_chassis_test.cpp
     sim/physics/racer_contacts_test.cpp
     sim/physics/racer_effects_test.cpp
     sim/physics/racer_test.cpp

@@ -23,6 +23,8 @@ inline constexpr std::int32_t kBuiltCarVoice = 1000;
 /// The driver's first line in the track's circuit bank, counted from 1100 as the game does.
 [[nodiscard]] std::int32_t DriverVoice(std::int32_t voiceBank);
 
+[[nodiscard]] std::int32_t BuiltCarVoice(std::size_t slot);
+
 /// Nothing for a built car's voice or one past the bank's six drivers.
 [[nodiscard]] std::optional<std::size_t> CircuitDriver(std::int32_t voice);
 

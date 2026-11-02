@@ -127,7 +127,7 @@ std::size_t ShieldAbsorbSound(std::uint8_t variant) {
 std::vector<std::int32_t> Voices(const RaceAudioSetup& setup) {
     std::vector<std::int32_t> voices(setup.racerCount);
     for (std::size_t i = 0; i < voices.size(); ++i) {
-        voices[i] = DriverVoice(i < setup.voiceBanks.size() ? setup.voiceBanks[i] : 0);
+        voices[i] = i < setup.voices.size() ? setup.voices[i] : DriverVoice(0);
     }
     return voices;
 }

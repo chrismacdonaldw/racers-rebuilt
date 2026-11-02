@@ -7,9 +7,11 @@
 #include <utility>
 #include <vector>
 
+#include "app/circuit_awards.hpp"
 #include "app/game_extraction.hpp"
 #include "app/game_settings.hpp"
 #include "app/install_discovery.hpp"
+#include "app/racer/racer_lookup.hpp"
 #include "app/startup_settings.hpp"
 #include "assets/folder_layer.hpp"
 #include "assets/install.hpp"
@@ -149,6 +151,15 @@ Result<GameBoot> BootGame(std::span<const std::string_view> args) {
     if (!vfs) {
         return std::unexpected(std::move(vfs.error()));
     }
+    std::optional<settings::Racer> playerRacer;
+    if (commandLine->racer) {
+        Result<settings::Racer> racer =
+            FindRacer(*vfs, *dataFolder / kRacersFileName, *commandLine->racer);
+        if (!racer) {
+            return std::unexpected(std::move(racer.error()));
+        }
+        playerRacer = std::move(*racer);
+    }
     startup.EndPhase("game files", platform::Now());
 
     return GameBoot{.startup = std::move(startup),
@@ -157,7 +168,8 @@ Result<GameBoot> BootGame(std::span<const std::string_view> args) {
                     .settingsFile = std::move(settingsFile),
                     .extensions = std::move(extensions),
                     .sdl = std::move(*sdl),
-                    .vfs = std::move(*vfs)};
+                    .vfs = std::move(*vfs),
+                    .playerRacer = std::move(playerRacer)};
 }
 
 }

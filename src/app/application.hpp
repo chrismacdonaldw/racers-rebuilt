@@ -26,6 +26,7 @@
 #include "platform/sdl_context.hpp"
 #include "platform/window.hpp"
 #include "render/renderer.hpp"
+#include "settings/racers.hpp"
 #include "settings/registry.hpp"
 
 namespace rr::app {
@@ -57,6 +58,7 @@ private:
         std::optional<std::filesystem::path> recordFile;
         std::optional<std::filesystem::path> replayFile;
         std::string startupSummary;
+        std::optional<settings::Racer> playerRacer;
     };
 
     using SceneFactory = std::function<Result<std::unique_ptr<Scene>>()>;
@@ -73,7 +75,7 @@ private:
                                                                  assets::TrackLoader& loader,
                                                                  Nanoseconds started);
     [[nodiscard]] std::string EndTimeTrial();
-    [[nodiscard]] Result<std::unique_ptr<RaceScene>> LoadRace(const RaceSceneSetup& setup,
+    [[nodiscard]] Result<std::unique_ptr<RaceScene>> LoadRace(RaceSceneSetup setup,
                                                               assets::TrackLoader& loader,
                                                               Nanoseconds started);
     [[nodiscard]] Result<std::unique_ptr<Scene>> CreateRace(const std::string& track);
@@ -110,6 +112,7 @@ private:
     std::optional<std::filesystem::path> recordFile_;
     std::optional<std::filesystem::path> replayFile_;
     std::string startupSummary_;
+    std::optional<settings::Racer> playerRacer_;
     FrameLoop frameLoop_;
 };
 

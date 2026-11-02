@@ -65,6 +65,10 @@ Result<std::uint16_t> FaceJoint(const GeometryAsset& body) {
 }
 
 GeometryAsset MergeHead(GeometryAsset body, const GeometryAsset& head, std::uint16_t joint) {
+    const auto face = static_cast<std::uint32_t>(std::ranges::find(body.materials, kFaceMaterial) -
+                                                 body.materials.begin());
+    std::erase_if(body.ranges,
+                  [face](const GeometryRange& range) { return range.material == face; });
     const auto firstVertex = static_cast<std::uint32_t>(body.vertices.size());
     const auto firstIndex = static_cast<std::uint32_t>(body.indices.size());
     for (GeometryVertex vertex : head.vertices) {

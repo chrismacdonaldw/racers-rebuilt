@@ -108,16 +108,19 @@ std::optional<Racer> ReadRacer(const toml::node& node, std::string_view fileName
     return racer;
 }
 
-RacerStore ReadStore(const toml::table& root, std::string_view fileName) {
+Result<RacerStore> ReadStore(const toml::table& root, std::string_view fileName) {
     RacerStore store;
-    if (const toml::array* racers = root[kRacers].as_array()) {
-        for (std::size_t index = 0; index < racers->size(); ++index) {
-            if (std::optional<Racer> racer = ReadRacer((*racers)[index], fileName)) {
-                store.racers.push_back(std::move(*racer));
-            } else {
-                log::Warn("{}: racer {} doesn't parse, skipping it", fileName, index);
-            }
+    const toml::array* racers = root[kRacers].as_array();
+    if (racers == nullptr && root.contains(kRacers)) {
+        return Fail(ErrorCode::InvalidData, std::format("{}: {} isn't a list", fileName, kRacers));
+    }
+    for (std::size_t index = 0; racers != nullptr && index < racers->size(); ++index) {
+        std::optional<Racer> racer = ReadRacer((*racers)[index], fileName);
+        if (!racer) {
+            return Fail(ErrorCode::InvalidData,
+                        std::format("{}: racer {} doesn't parse", fileName, index));
         }
+        store.racers.push_back(std::move(*racer));
     }
     const std::optional<std::int64_t> selected = root[kSelected].value<std::int64_t>();
     if (selected && *selected >= 0 && std::cmp_less(*selected, store.racers.size())) {
@@ -158,7 +161,7 @@ Trophies& TrophiesOf(Progress& progress, RacerStore& store) {
 }
 
 Result<RacerStore> LoadRacers(const std::filesystem::path& path) {
-    return ReadTomlFile(path).transform(
+    return ReadTomlFile(path).and_then(
         [&](const TomlFile& file) { return ReadStore(file.table, Utf8FromPath(path)); });
 }
 

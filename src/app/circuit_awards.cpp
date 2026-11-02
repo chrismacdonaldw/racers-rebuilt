@@ -27,6 +27,15 @@ Result<assets::CircuitEntry> LoadCircuit(const assets::Vfs& vfs, std::string_vie
         });
 }
 
+settings::RacerStore RacersOrNone(const std::filesystem::path& file) {
+    Result<settings::RacerStore> racers = settings::LoadRacers(file);
+    if (!racers) {
+        log::Warn("{}, so no racer takes the trophy", racers.error().message);
+        return {};
+    }
+    return std::move(*racers);
+}
+
 settings::Trophy TrophyOf(sim::CircuitAward award) {
     switch (award) {
         case sim::CircuitAward::Gold:
@@ -83,18 +92,17 @@ Result<AwardUnlocks> SaveAward(const std::filesystem::path& file, const assets::
     }
     const std::filesystem::path racersFile = file.parent_path() / kRacersFileName;
     Result<settings::Progress> progress = settings::LoadProgress(file);
-    Result<settings::RacerStore> racers = progress.and_then(
-        [&](const settings::Progress&) { return settings::LoadRacers(racersFile); });
-    if (!racers) {
-        return std::unexpected(std::move(racers.error()));
+    if (!progress) {
+        return std::unexpected(std::move(progress.error()));
     }
+    settings::RacerStore racers = RacersOrNone(racersFile);
     const AwardUnlocks unlocks{.opensCircuit = OpensNewCircuit(*progress, *entry, award.award),
                                .partSet = NewPartSet(*progress, *entry, award.award)};
-    if (!GrantAward(*progress, settings::TrophiesOf(*progress, *racers), *entry, award.award)) {
+    if (!GrantAward(*progress, settings::TrophiesOf(*progress, racers), *entry, award.award)) {
         return AwardUnlocks{};
     }
     Result<void> saved =
-        racers->selected ? settings::SaveRacers(*racers, racersFile) : Result<void>{};
+        racers.selected ? settings::SaveRacers(racers, racersFile) : Result<void>{};
     return saved.and_then([&] { return settings::SaveProgress(*progress, file); }).transform([&] {
         return unlocks;
     });

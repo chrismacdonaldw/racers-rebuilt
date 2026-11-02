@@ -17,6 +17,7 @@
 #include <utility>
 
 #include "app/circuit_awards.hpp"
+#include "app/racer/racer_lookup.hpp"
 #include "assets/game_path.hpp"
 #include "core/log.hpp"
 #include "core/utf16_text.hpp"
@@ -100,11 +101,9 @@ settings::Trophies SavedTrophies(unsigned bits, const assets::RaceCatalog& catal
 }
 
 settings::Racer ToRacer(const assets::SavedRacer& saved, const assets::RaceCatalog& catalog) {
-    return {.name = Utf8FromUtf16(saved.name),
-            .look = saved.look,
-            .chassis = saved.chassis,
-            .car = saved.car,
-            .trophies = SavedTrophies(saved.trophies, catalog)};
+    settings::Racer racer = RacerFromSave(saved);
+    racer.trophies = SavedTrophies(saved.trophies, catalog);
+    return racer;
 }
 
 Result<std::vector<std::byte>> ReadSaveFile(const std::filesystem::path& path) {

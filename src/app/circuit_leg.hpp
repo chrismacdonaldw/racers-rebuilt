@@ -13,6 +13,7 @@
 namespace rr::app {
 
 /// One race of a circuit run, and the scene each way out of it leads to.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 class CircuitLeg {
 public:
     /// Fails when the circuit is missing, has no races, or has no race left to run.
