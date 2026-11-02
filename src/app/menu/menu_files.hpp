@@ -22,6 +22,8 @@ struct MenuFiles {
 
     [[nodiscard]] const assets::ImageStyle* FindImageStyle(std::string_view name) const;
     [[nodiscard]] const assets::TextStyle* FindTextStyle(std::string_view name) const;
+    [[nodiscard]] const assets::CarouselStyle* FindCarouselStyle(std::string_view name) const;
+    [[nodiscard]] const assets::SelectorStyle* FindSelectorStyle(std::string_view name) const;
     [[nodiscard]] const assets::GameButtonStyle* FindGameButtonStyle(std::string_view name) const;
     [[nodiscard]] const assets::ImageListEntry* FindImage(std::string_view name) const;
 };

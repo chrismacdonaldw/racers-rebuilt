@@ -18,6 +18,8 @@ namespace {
 constexpr FieldId kCapacityField = 0x27;
 constexpr FieldId kImageStyle = 0x32;
 constexpr FieldId kTextStyle = 0x33;
+constexpr FieldId kCarouselStyle = 0x38;
+constexpr FieldId kSelectorStyle = 0x39;
 constexpr FieldId kGameButtonStyle = 0x3E;
 
 constexpr std::array kImageStyleFields{
@@ -32,9 +34,30 @@ constexpr std::array kTextStyleFields{
     Field<&TextStyle::centered>(0x2F),
 };
 
-Result<void> SkipControlFields(TokenReader& reader, [[maybe_unused]] GameButtonStyle& style) {
-    return SkipBlock(reader);
+constexpr std::array kIconStyleFields{
+    Field<&IconStyle::sounds>(0x2B),
+    Field<&IconStyle::stateRects>(0x2C),
+    Field<&IconStyle::transitionMs>(0x2D),
+    Field<&IconStyle::stateColors>(0x2A),
+};
+
+template <typename Style>
+Result<void> ReadIconStyle(TokenReader& reader, Style& style) {
+    return ReadBlock<IconStyle>(reader, kIconStyleFields, style.icon);
 }
+
+constexpr std::array kCarouselStyleFields{
+    Field<&CarouselStyle::sounds>(0x2B),
+    Field<&CarouselStyle::scrollMs>(0x2D),
+    Field<&CarouselStyle::pageMode, &CarouselStyle::wraps>(0x2F),
+};
+
+constexpr std::array kSelectorStyleFields{
+    FieldRule<SelectorStyle>{.id = 0x3A, .read = ReadIconStyle<SelectorStyle>},
+    Field<&SelectorStyle::frame>(0x34),
+    Field<&SelectorStyle::arrows>(0x35),
+    Field<&SelectorStyle::itemColors>(0x2A),
+};
 
 constexpr std::array kGameButtonStyleFields{
     NestedField<&GameButtonStyle::button, &GameButtonElement::images>(0x28),
@@ -42,7 +65,7 @@ constexpr std::array kGameButtonStyleFields{
     NestedField<&GameButtonStyle::button, &GameButtonElement::colors>(0x2A),
     Field<&GameButtonStyle::rects2C>(0x2C),
     Field<&GameButtonStyle::value2E>(0x2E),
-    FieldRule<GameButtonStyle>{.id = 0x3A, .read = SkipControlFields},
+    FieldRule<GameButtonStyle>{.id = 0x3A, .read = ReadIconStyle<GameButtonStyle>},
 };
 
 Result<void> ReadEntryName(TokenReader& reader, FieldId tag, std::string& name) {
@@ -80,6 +103,12 @@ Result<void> ReadSection(TokenReader& reader, MenuStyles& styles) {
             return ReadStyles<ImageStyle>(reader, kImageStyle, kImageStyleFields, styles.images);
         case kTextStyle:
             return ReadStyles<TextStyle>(reader, kTextStyle, kTextStyleFields, styles.texts);
+        case kCarouselStyle:
+            return ReadStyles<CarouselStyle>(reader, kCarouselStyle, kCarouselStyleFields,
+                                             styles.carousels);
+        case kSelectorStyle:
+            return ReadStyles<SelectorStyle>(reader, kSelectorStyle, kSelectorStyleFields,
+                                             styles.selectors);
         case kGameButtonStyle:
             return ReadStyles<GameButtonStyle>(reader, kGameButtonStyle, kGameButtonStyleFields,
                                                styles.gameButtons);
@@ -102,6 +131,14 @@ const ImageStyle* MenuStyles::FindImage(std::string_view name) const {
 
 const TextStyle* MenuStyles::FindText(std::string_view name) const {
     return FindStyle<TextStyle>(texts, name);
+}
+
+const CarouselStyle* MenuStyles::FindCarousel(std::string_view name) const {
+    return FindStyle<CarouselStyle>(carousels, name);
+}
+
+const SelectorStyle* MenuStyles::FindSelector(std::string_view name) const {
+    return FindStyle<SelectorStyle>(selectors, name);
 }
 
 const GameButtonStyle* MenuStyles::FindGameButton(std::string_view name) const {

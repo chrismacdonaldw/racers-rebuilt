@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "app/menu/menu_scenes.hpp"
+#include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/menu/message_dialog.hpp"
 #include "app/menu/options_look.hpp"
@@ -22,18 +24,22 @@ class OptionsScene final : public Scene {
 public:
     /// `renderer` and `vfs` must outlive the scene.
     [[nodiscard]] static Result<std::unique_ptr<OptionsScene>> Create(render::Renderer& renderer,
-                                                                      const assets::Vfs& vfs);
+                                                                      const assets::Vfs& vfs,
+                                                                      MenuSounds sounds);
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
     [[nodiscard]] std::vector<SettingChange> TakeSettingChanges() override;
     void Tick(const sim::InputFrame& input) override;
+    [[nodiscard]] SceneMusic Music() const override {
+        return {.track = kMenuTheme, .start = MusicStart::OnEntryIfSilent};
+    }
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
 
 private:
-    OptionsScene(render::Renderer& renderer, const assets::Vfs& vfs, OptionsLook look,
-                 std::optional<DialogLook> warningLook);
+    OptionsScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
+                 OptionsLook look, std::optional<DialogLook> warningLook);
 
     void TickWarning(const sim::InputFrame& input);
     void Respond(OptionsRequest request, const OptionValues& before);
@@ -46,6 +52,7 @@ private:
 
     render::Renderer* renderer_;
     const assets::Vfs* vfs_;
+    MenuSounds sounds_;
     OptionsLook look_;
     std::optional<DialogLook> warningLook_;
     std::optional<MessageDialog> warning_;

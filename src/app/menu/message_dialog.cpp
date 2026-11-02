@@ -80,6 +80,7 @@ Result<void> LoadButton(MenuImageCache& images, const MenuFiles& files, DialogLo
         .transform([&](const ImageButtonLook& button) {
             look.button = button.states;
             look.buttonImage = button.image;
+            look.buttonSounds = button.sounds;
         });
 }
 
@@ -130,8 +131,9 @@ Result<DialogLook> LoadDialogLook(render::Renderer& renderer, const assets::Vfs&
         .transform([&] { return std::move(look); });
 }
 
-void MessageDialog::Tick(const sim::InputFrame& input) {
+void MessageDialog::Tick(const sim::InputFrame& input, const MenuSounds& sounds) {
     if (animation_.Phase() == DialogPhase::Open && input.WasPressed(sim::MenuAction::Confirm)) {
+        sounds.Confirm(look_.buttonSounds);
         animation_.Close();
     }
     animation_.Advance(kSimTick);

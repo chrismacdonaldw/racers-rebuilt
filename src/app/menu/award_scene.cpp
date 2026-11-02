@@ -21,6 +21,7 @@ namespace {
 constexpr std::string_view kScreen = "MAINMENU";
 constexpr std::string_view kTrophyList = "DRVRLICE.IDB";
 constexpr std::array<std::string_view, 3> kTrophies{"gtrophy", "strophy", "btrophy"};
+constexpr std::array<std::string_view, 4> kAwardTracks{"1st", "2nd", "3rd", "lose"};
 
 Result<std::optional<UiImage>> LoadTrophy(render::Renderer& renderer, const assets::Vfs& vfs,
                                           sim::CircuitAward award) {
@@ -47,6 +48,10 @@ Result<std::optional<UiImage>> LoadTrophy(render::Renderer& renderer, const asse
 
 }
 
+std::string_view AwardMusic(sim::CircuitAward award) {
+    return kAwardTracks.at(static_cast<std::size_t>(award));
+}
+
 Result<std::unique_ptr<AwardScene>> AwardScene::Create(render::Renderer& renderer,
                                                        const assets::Vfs& vfs,
                                                        sim::CircuitAward award) {
@@ -59,7 +64,12 @@ Result<std::unique_ptr<AwardScene>> AwardScene::Create(render::Renderer& rendere
         return std::unexpected(std::move(trophy.error()));
     }
     return std::unique_ptr<AwardScene>(
-        new AwardScene(renderer, std::move(page->pictures), *trophy));
+        new AwardScene(renderer, award, std::move(page->pictures), *trophy));
+}
+
+SceneMusic AwardScene::Music() const {
+    return {
+        .track = AwardMusic(award_), .repeat = audio::Repeat::Once, .start = MusicStart::OnEntry};
 }
 
 std::optional<std::string> AwardScene::TakeNextScene() {
@@ -96,8 +106,8 @@ void AwardScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpolated
     }
 }
 
-AwardScene::AwardScene(render::Renderer& renderer, std::vector<MenuPicture> pictures,
-                       std::optional<UiImage> trophy)
-    : renderer_(&renderer), pictures_(std::move(pictures)), trophy_(trophy) {}
+AwardScene::AwardScene(render::Renderer& renderer, sim::CircuitAward award,
+                       std::vector<MenuPicture> pictures, std::optional<UiImage> trophy)
+    : renderer_(&renderer), award_(award), pictures_(std::move(pictures)), trophy_(trophy) {}
 
 }

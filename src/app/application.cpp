@@ -25,6 +25,7 @@
 #include "app/menu/controls_scene.hpp"
 #include "app/menu/main_menu_scene.hpp"
 #include "app/menu/menu_scenes.hpp"
+#include "app/menu/menu_sounds.hpp"
 #include "app/menu/options_scene.hpp"
 #include "app/menu/race_setup_scene.hpp"
 #include "app/music_folder_source.hpp"
@@ -35,6 +36,7 @@
 #include "app/race_settings.hpp"
 #include "app/replay_session.hpp"
 #include "app/save_import.hpp"
+#include "app/scene_music.hpp"
 #include "app/sprite_test_scene.hpp"
 #include "app/startup_settings.hpp"
 #include "app/test_scene.hpp"
@@ -77,21 +79,6 @@ audio::MusicPlayer CreateMusicPlayer(audio::Mixer& mixer, const assets::Vfs& vfs
     }
     sources.push_back(std::make_unique<audio::OriginalTrackSource>(vfs));
     return {mixer, std::move(sources)};
-}
-
-void FollowSceneMusic(audio::MusicPlayer& music, const SceneMusic& wanted, std::string& asked) {
-    if (wanted.track == asked) {
-        return;
-    }
-    asked = wanted.track;
-    if (asked.empty()) {
-        music.Stop();
-        return;
-    }
-    Result<void> played = music.Play(asked, wanted.repeat);
-    if (!played) {
-        log::Warn("{}", played.error().message);
-    }
 }
 
 std::string RaceNamed(std::string track, std::size_t players, const settings::Registry& settings) {
@@ -226,7 +213,7 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
     const std::vector<overlay::MenuChoice> saveImports = SaveImportChoices();
     Nanoseconds lastFrame = platform::Now();
     FrameStats frame;
-    std::string askedMusic;
+    SceneMusicFollower sceneMusic;
     while (!events_.IsQuitRequested() && !isQuitting_) {
         events_.Poll();
         if (events_.WasKeyPressed(kToggleOverlayKey)) {
@@ -250,7 +237,7 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
         StoreSceneSettings();
         OpenNextScene();
         if (const Scene* top = frameLoop_.Scenes().Top(); top != nullptr) {
-            FollowSceneMusic(music, top->Music(), askedMusic);
+            sceneMusic.Update(music, top->Music(), frameLoop_.Scenes().ChangeCount());
         }
         pacer_.WaitForNextFrame();
     }
@@ -275,18 +262,21 @@ Application::Application(Parts parts)
 
 Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std::string>& scene) {
     if (!scene || *scene == kMainMenuScene) {
-        return MainMenuScene::Create(renderer_, vfs_, std::exchange(unlockNotice_, false))
+        return MainMenuScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_),
+                                     std::exchange(unlockNotice_, false))
             .transform(ToScene<MainMenuScene>);
     }
     if (*scene == kOptionsScene) {
-        return OptionsScene::Create(renderer_, vfs_).transform(ToScene<OptionsScene>);
+        return OptionsScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_))
+            .transform(ToScene<OptionsScene>);
     }
     if (*scene == kControlsScene || *scene == kPlayer2ControlsScene) {
         const std::size_t player = *scene == kPlayer2ControlsScene ? 1 : 0;
         return ControlsScene::Create(renderer_, vfs_, player).transform(ToScene<ControlsScene>);
     }
     if (const std::optional<RaceSetupMode> mode = RaceSetupModeOf(*scene)) {
-        return RaceSetupScene::Create(renderer_, vfs_, *mode, UnlockedCircuits(ProgressFile()))
+        return RaceSetupScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_),
+                                      *mode, UnlockedCircuits(ProgressFile()))
             .transform(ToScene<RaceSetupScene>);
     }
     if (IsAwardScene(*scene)) {

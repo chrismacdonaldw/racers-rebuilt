@@ -54,6 +54,7 @@ rr_add_module(app
         menu/menu_files.cpp
         menu/menu_focus.cpp
         menu/menu_page.cpp
+        menu/menu_sounds.cpp
         menu/menu_text.cpp
         menu/menu_widgets.cpp
         menu/message_dialog.cpp
@@ -105,6 +106,7 @@ rr_add_module(app
         racer/skid_marks.cpp
         racer/skid_trail.cpp
         replay_session.cpp
+        scene_music.cpp
         scene_stack.cpp
         sound_banks.cpp
         save_import.cpp

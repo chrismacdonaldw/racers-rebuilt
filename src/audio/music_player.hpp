@@ -23,11 +23,14 @@ class MusicPlayer {
 public:
     MusicPlayer(Mixer& mixer, std::vector<std::unique_ptr<MusicSource>> sources);
 
-    /// Replaying the current track does nothing.
+    /// Replaying the current track does nothing while it plays.
     [[nodiscard]] Result<void> Play(std::string_view id, Repeat repeat = Repeat::Loop);
     void Stop();
 
     [[nodiscard]] const std::string& Current() const { return current_; }
+
+    /// False once a track played once has ended, or after `Stop` even while it fades out.
+    [[nodiscard]] bool IsPlaying() const { return !current_.empty() && mixer_->IsMusicPlaying(); }
 
 private:
     [[nodiscard]] Result<MusicTrack> Find(std::string_view id) const;

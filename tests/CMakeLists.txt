@@ -33,11 +33,14 @@ add_executable(racers-rebuilt-tests
     app/install_discovery_test.cpp
     app/loop_sidecar_test.cpp
     app/menu/award_scene_name_test.cpp
+    app/menu/award_scene_test.cpp
     app/menu/control_bindings_test.cpp
     app/menu/controls_menu_test.cpp
+    app/scene_music_test.cpp
     app/menu/dialog_layout_test.cpp
     app/menu/menu_files_test.cpp
     app/menu/menu_focus_test.cpp
+    app/menu/menu_sounds_test.cpp
     app/menu/option_settings_test.cpp
     app/menu/options_menu_test.cpp
     app/menu/pause_menu_test.cpp

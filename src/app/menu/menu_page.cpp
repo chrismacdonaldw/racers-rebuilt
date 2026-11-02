@@ -9,6 +9,7 @@
 #include <utility>
 #include <variant>
 
+#include "app/menu/menu_sounds.hpp"
 #include "app/ui_text/text_layout.hpp"
 #include "app/ui_text/ui_image.hpp"
 #include "assets/game_path.hpp"
@@ -69,7 +70,8 @@ public:
     PageBuilder(render::Renderer& renderer, const assets::Vfs& vfs, const MenuFiles& files)
         : files_(&files),
           images_(renderer, vfs, files),
-          style_(StyleNamed(files, kTextButtonStyle)) {}
+          style_(StyleNamed(files, kTextButtonStyle)),
+          styleSounds_(GameButtonSounds(files, kTextButtonStyle)) {}
 
     Result<void> Add(const assets::MenuElement& element, std::span<const ButtonLine> labels) {
         const MenuPoint origin = OriginOf(files_->layout, element);
@@ -107,6 +109,8 @@ private:
     Result<void> AddButton(const assets::MenuElement& element, const assets::GameButtonElement& own,
                            MenuPoint origin, std::size_t textLine) {
         MenuButton button{.name = element.name, .textLine = textLine};
+        button.sounds = element.control && element.control->soundIds ? *element.control->soundIds
+                                                                     : styleSounds_;
         for (std::size_t state = 0; state < assets::kControlStates; ++state) {
             Result<UiImage> image = images_.Upload(PickName(own.images, style_.images, state));
             if (!image) {
@@ -125,6 +129,7 @@ private:
     const MenuFiles* files_;
     MenuImageCache images_;
     assets::GameButtonElement style_;
+    assets::SoundIds styleSounds_;
     MenuPage page_;
 };
 

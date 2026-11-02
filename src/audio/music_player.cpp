@@ -13,7 +13,7 @@ MusicPlayer::MusicPlayer(Mixer& mixer, std::vector<std::unique_ptr<MusicSource>>
     : mixer_(&mixer), sources_(std::move(sources)) {}
 
 Result<void> MusicPlayer::Play(std::string_view id, Repeat repeat) {
-    if (id == current_) {
+    if (id == current_ && IsPlaying()) {
         return {};
     }
     Result<MusicTrack> track = Find(id);

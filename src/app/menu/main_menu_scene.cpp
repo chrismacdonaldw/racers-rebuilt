@@ -58,6 +58,7 @@ std::optional<MessageDialog> UnlockNotice(render::Renderer& renderer, const asse
 
 Result<std::unique_ptr<MainMenuScene>> MainMenuScene::Create(render::Renderer& renderer,
                                                              const assets::Vfs& vfs,
+                                                             MenuSounds sounds,
                                                              bool showsUnlockNotice) {
     Result<MenuPage> page = ReadMenuFiles(vfs, kScreen).and_then([&](const MenuFiles& files) {
         return BuildMenuPage(renderer, vfs, files, kButtonLines);
@@ -68,7 +69,7 @@ Result<std::unique_ptr<MainMenuScene>> MainMenuScene::Create(render::Renderer& r
     std::optional<MessageDialog> notice =
         showsUnlockNotice ? UnlockNotice(renderer, vfs) : std::nullopt;
     return std::unique_ptr<MainMenuScene>(
-        new MainMenuScene(renderer, vfs, std::move(*page), std::move(notice)));
+        new MainMenuScene(renderer, vfs, sounds, std::move(*page), std::move(notice)));
 }
 
 void MainMenuScene::ApplySettings(const settings::Registry& settings) {
@@ -84,7 +85,7 @@ std::optional<std::string> MainMenuScene::TakeNextScene() {
 
 void MainMenuScene::Tick(const sim::InputFrame& input) {
     if (notice_) {
-        notice_->Tick(input);
+        notice_->Tick(input, sounds_);
         if (notice_->IsClosed()) {
             notice_.reset();
         }
@@ -95,10 +96,11 @@ void MainMenuScene::Tick(const sim::InputFrame& input) {
     }
     for (const auto& [action, move] : kFocusMoves) {
         if (input.WasPressed(action)) {
-            focus_ = NextFocus(buttonBounds_, focus_, move);
+            MoveFocus(NextFocus(buttonBounds_, focus_, move));
         }
     }
     if (input.WasPressed(sim::MenuAction::Confirm)) {
+        sounds_.Confirm(page_.buttons[focus_].sounds);
         Choose(page_.buttons[focus_]);
     }
 }
@@ -124,11 +126,22 @@ void MainMenuScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpola
     }
 }
 
-MainMenuScene::MainMenuScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuPage page,
-                             std::optional<MessageDialog> notice)
-    : renderer_(&renderer), vfs_(&vfs), page_(std::move(page)), notice_(std::move(notice)) {
+MainMenuScene::MainMenuScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
+                             MenuPage page, std::optional<MessageDialog> notice)
+    : renderer_(&renderer),
+      vfs_(&vfs),
+      sounds_(sounds),
+      page_(std::move(page)),
+      notice_(std::move(notice)) {
     for (const MenuButton& button : page_.buttons) {
         buttonBounds_.push_back(button.bounds);
+    }
+}
+
+void MainMenuScene::MoveFocus(std::size_t focus) {
+    if (focus != focus_) {
+        sounds_.MoveHighlight(page_.buttons[focus_].sounds, page_.buttons[focus].sounds);
+        focus_ = focus;
     }
 }
 

@@ -10,6 +10,7 @@
 
 #include "app/menu/dialog_layout.hpp"
 #include "app/menu/menu_parts.hpp"
+#include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/ui_text/ui_image.hpp"
 #include "assets/menu_layout.hpp"
@@ -30,6 +31,7 @@ struct DialogLook {
     float wrapWidth = 0.0F;
     BoxSize buttonImage;
     std::array<MenuButtonState, assets::kControlStates> button;
+    assets::SoundIds buttonSounds{};
 };
 
 /// The original's `DIALOG.MIB` box with its message font and the check-mark button style.
@@ -45,7 +47,7 @@ public:
 
     /// Must run after `text` loads or reloads, since the dialog keeps views into its lines.
     void Measure(const MenuText& text);
-    void Tick(const sim::InputFrame& input);
+    void Tick(const sim::InputFrame& input, const MenuSounds& sounds);
     void Draw(const MenuText& text, std::vector<render::SpriteDraw>& out) const;
 
 private:

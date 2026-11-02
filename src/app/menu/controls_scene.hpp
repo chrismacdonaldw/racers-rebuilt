@@ -32,6 +32,7 @@ public:
     [[nodiscard]] std::vector<SettingChange> TakeSettingChanges() override;
     void HandleEvent(const SDL_Event& event) override;
     void Tick(const sim::InputFrame& input) override;
+    [[nodiscard]] SceneMusic Music() const override { return {.start = MusicStart::Keep}; }
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
 
