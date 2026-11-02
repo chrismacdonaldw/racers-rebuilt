@@ -16,6 +16,7 @@ rr_add_module(app
         cutscene/cutscene_materials.cpp
         cutscene/cutscene_player.cpp
         cutscene/cutscene_scene.cpp
+        cutscene/cutscene_sprites.cpp
         cutscene/cutscene_timeline.cpp
         extensions.cpp
         player_cameras.cpp

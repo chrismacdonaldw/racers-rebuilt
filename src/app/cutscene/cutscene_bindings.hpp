@@ -14,10 +14,11 @@
 
 namespace rr::app {
 
-/// Indexed models are WDB sprites, which bind to nothing until sprites are drawn.
+/// Named models bind to draws or a skeleton, and indexed models to a `WDB` sprite.
 struct ModelBinding {
     std::optional<DrawSpan> staticDraws;
     std::optional<std::size_t> jointed;
+    std::optional<assets::WorldSprite> sprite;
 };
 
 /// Follows `node` of `entity` when there is one, or stands at `placement`, in game space.

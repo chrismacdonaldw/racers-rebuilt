@@ -65,7 +65,14 @@ CutscenePlayer Start(const assets::CutsceneFrame& frame, LoadedScene& scene) {
     Result<CutsceneMaterials> tracks =
         CutsceneMaterials::Create(frame, bindings->models, scene.animations, scene.materials);
     REQUIRE_MESSAGE(tracks.has_value(), tracks.error().message);
-    return {frame, std::move(*bindings), std::move(*tracks), scene.sources, {}, false};
+    Result<CutsceneSprites> sprites = CutsceneSprites::Create(bindings->models, scene.materials);
+    REQUIRE_MESSAGE(sprites.has_value(), sprites.error().message);
+    return {frame,
+            std::move(*bindings),
+            {.materials = std::move(*tracks), .sprites = std::move(*sprites)},
+            scene.sources,
+            {},
+            false};
 }
 
 void PlayToEnd(const assets::CutsceneFrame& frame, LoadedScene& scene) {

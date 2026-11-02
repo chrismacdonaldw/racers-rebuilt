@@ -54,6 +54,24 @@ std::vector<const assets::WorldAsset*> WorldsOf(const assets::TrackAssets& asset
     return worlds;
 }
 
+Result<CutsceneLooks> LoadLooks(const assets::Vfs& vfs, std::string_view folder,
+                                std::span<const assets::WorldAsset* const> worlds,
+                                const assets::CutsceneFrame& frame,
+                                std::span<const ModelBinding> models,
+                                const assets::NameMap<render::Material>& materials) {
+    Result<CutsceneSprites> sprites = CutsceneSprites::Create(models, materials);
+    Result<CutsceneMaterials> tracks = sprites.and_then([&](const CutsceneSprites&) {
+        return LoadWorldAnimations(vfs, folder, worlds)
+            .and_then([&](const WorldAnimations& animations) {
+                return CutsceneMaterials::Create(frame, models, animations, materials);
+            });
+    });
+    if (!tracks) {
+        return std::unexpected(std::move(tracks.error()));
+    }
+    return CutsceneLooks{.materials = std::move(*tracks), .sprites = std::move(*sprites)};
+}
+
 }
 
 bool IsCutsceneScene(std::string_view scene) {
@@ -83,19 +101,15 @@ Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(render::Renderer& r
         sources.and_then([&](const sim::TrackEntitySources& loaded) {
             return BindCutscene(frame, worlds, model->entityDraws, loaded);
         });
-    Result<CutsceneMaterials> materials = bindings.and_then([&](const CutsceneBindings& bound) {
-        return LoadWorldAnimations(vfs, path->folder, worlds)
-            .and_then([&](const WorldAnimations& animations) {
-                return CutsceneMaterials::Create(frame, bound.models, animations, model->materials);
-            });
+    Result<CutsceneLooks> looks = bindings.and_then([&](const CutsceneBindings& bound) {
+        return LoadLooks(vfs, path->folder, worlds, frame, bound.models, model->materials);
     });
-    if (!materials) {
-        return Fail(materials.error().code,
-                    std::format("{}: {}", scene, materials.error().message));
+    if (!looks) {
+        return Fail(looks.error().code, std::format("{}: {}", scene, looks.error().message));
     }
     auto owned = std::make_unique<sim::TrackEntitySources>(std::move(*sources));
     TrackEntityDraws jointed(model->animatedModels, *owned);
-    CutscenePlayer player(frame, std::move(*bindings), std::move(*materials), *owned,
+    CutscenePlayer player(frame, std::move(*bindings), std::move(*looks), *owned,
                           {.draws = model->draws, .slots = model->drawSlots}, true);
     log::Info("{}: {} worlds, {} frames, {} models", scene, worldNames.size(),
               (*timeline)->frames.size(), frame.models.size());
@@ -121,11 +135,14 @@ void CutsceneScene::Render(const sim::RenderSnapshot& interpolated) {
     parts_.jointed.Update(interpolated.entityClocks);
     draws_.clear();
     parts_.player.AppendDraws(parts_.jointed, draws_);
-    const std::optional<render::Camera> camera =
-        parts_.player.ViewCamera(interpolated.entityClocks);
-    Result<void> drawn = parts_.renderer->Draw({.camera = camera.value_or(render::Camera{}),
+    const render::Camera camera =
+        parts_.player.ViewCamera(interpolated.entityClocks).value_or(render::Camera{});
+    quads_.clear();
+    parts_.player.AppendQuads(camera.transform, quads_);
+    Result<void> drawn = parts_.renderer->Draw({.camera = camera,
                                                 .lighting = parts_.player.Lighting(lights_),
-                                                .meshes = draws_});
+                                                .meshes = draws_,
+                                                .quads = quads_});
     if (!drawn) {
         log::Error("{}: {}", parts_.name, drawn.error().message);
     }

@@ -51,6 +51,7 @@ private:
 
     Parts parts_;
     std::vector<render::MeshDraw> draws_;
+    std::vector<render::QuadDraw> quads_;
     std::vector<render::DirectionalLight> lights_;
 };
 
