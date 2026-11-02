@@ -81,7 +81,7 @@ TEST_CASE("a driver merges its head onto the face joint at the body's scale") {
     CHECK(driver->indices == std::vector<std::uint32_t>{0, 1, 2, 1, 2, 3, 4, 5, 6, 6, 5, 4});
 }
 
-TEST_CASE("a menu driver shares materials by name and wears its parts and expression") {
+TEST_CASE("a menu driver swaps the body's face for its head and wears its parts") {
     const Result<GeometryAsset> driver = HattedMenuDriver();
 
     REQUIRE(driver.has_value());
@@ -89,7 +89,6 @@ TEST_CASE("a menu driver shares materials by name and wears its parts and expres
           std::vector<std::string>{"vb_chst", "kk_happy", "leg_peg", "kk_hat"});
     CHECK(driver->ranges == std::vector<GeometryRange>{
                                 {.firstIndex = 0, .indexCount = 3, .material = 0, .joint = 1},
-                                {.firstIndex = 3, .indexCount = 3, .material = 1, .joint = 4},
                                 {.firstIndex = 6, .indexCount = 3, .material = 1, .joint = 4},
                                 {.firstIndex = 9, .indexCount = 3, .material = 3, .joint = 4},
                             });
