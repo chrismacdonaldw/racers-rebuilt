@@ -26,7 +26,11 @@ render::Color TintOf(const assets::VisualLayout& layout) {
 
 float Place(std::optional<float> edge, float target, float viewportStart, float viewportSize,
             float size) {
-    return edge ? *edge * target : viewportStart + ((viewportSize - size) * 0.5F);
+    if (edge) {
+        return *edge * target;
+    }
+    const float centred = viewportStart + ((viewportSize - size) * 0.5F);
+    return std::clamp(centred, 0.0F, std::max(0.0F, target - size));
 }
 
 std::optional<render::Rect> Layout(const assets::VisualLayout& layout, float contentWidth,
