@@ -103,6 +103,7 @@ add_executable(racers-rebuilt-tests
     assets/checkpoints_test.cpp
     assets/collision_mesh_test.cpp
     assets/driver_database_test.cpp
+    assets/driver_model_test.cpp
     assets/driver_parts_test.cpp
     assets/emitter_library_test.cpp
     assets/event_table_test.cpp

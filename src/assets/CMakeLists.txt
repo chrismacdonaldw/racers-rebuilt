@@ -10,6 +10,7 @@ rr_add_module(assets
         checkpoints.cpp
         collision_mesh.cpp
         driver_database.cpp
+        driver_model.cpp
         driver_parts.cpp
         emitter_library.cpp
         event_table.cpp

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -35,5 +36,15 @@ struct GeometryAsset {
     std::vector<GeometryRange> ranges;
     float scale = 1.0F;
 };
+
+[[nodiscard]] inline std::uint32_t FindOrAddMaterial(std::vector<std::string>& materials,
+                                                     const std::string& material) {
+    const auto found = std::ranges::find(materials, material);
+    if (found == materials.end()) {
+        materials.push_back(material);
+        return static_cast<std::uint32_t>(materials.size() - 1);
+    }
+    return static_cast<std::uint32_t>(found - materials.begin());
+}
 
 }
