@@ -302,7 +302,11 @@ add_executable(racers-rebuilt-tests
     sim/track/track_timers_test.cpp
     sim/track/trigger_lists_test.cpp
 )
-set_source_files_properties(main.cpp PROPERTIES COMPILE_DEFINITIONS DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
+set_source_files_properties(main.cpp PROPERTIES
+    COMPILE_DEFINITIONS DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+    SKIP_PRECOMPILE_HEADERS ON
+)
+target_precompile_headers(racers-rebuilt-tests PRIVATE <doctest/doctest.h>)
 target_compile_definitions(racers-rebuilt-tests PRIVATE DOCTEST_CONFIG_USE_STD_HEADERS)
 target_link_libraries(racers-rebuilt-tests PRIVATE
     rr::app
