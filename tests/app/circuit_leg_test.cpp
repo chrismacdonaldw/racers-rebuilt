@@ -25,11 +25,17 @@ assets::RaceEntry Race(std::string folder, std::string circuit, std::int32_t pos
             .position = position};
 }
 
+assets::RaceEntry MirroredRace(std::string folder, std::string circuit, std::int32_t position) {
+    assets::RaceEntry race = Race(std::move(folder), std::move(circuit), position);
+    race.isMirrored = true;
+    return race;
+}
+
 assets::RaceCatalog Catalog() {
     Result<assets::RaceCatalog> catalog = assets::RaceCatalog::Create(
         {{.name = "c0"}, {.name = "c6"}, {.name = "c9"}},
         {Race("racec0r1", "c0", 0), Race("racec1r0", "c0", 1), Race("racec0r3", "c0", 2),
-         Race("racec0r2", "c0", 3), Race("racec3r0", "c6", 0)});
+         Race("racec0r2", "c0", 3), MirroredRace("racec3r0", "c6", 0)});
     REQUIRE(catalog.has_value());
     return std::move(*catalog);
 }
@@ -63,6 +69,13 @@ TEST_CASE("a circuit plays its four races from scripted finishes to its award") 
 
     CHECK(tracks == std::vector<std::string>{"RACEC0R1", "RACEC1R0", "RACEC0R3", "RACEC0R2"});
     CHECK(scene == Award("c0", sim::CircuitAward::Gold));
+}
+
+TEST_CASE("a mirrored circuit race starts mirrored") {
+    const assets::RaceCatalog catalog = Catalog();
+
+    CHECK(Leg(catalog, CircuitSceneName(Start("c6"))).Race().isMirrored);
+    CHECK_FALSE(Leg(catalog, CircuitSceneName(Start("c0"))).Race().isMirrored);
 }
 
 TEST_CASE("each race starts with the points the races before it scored") {

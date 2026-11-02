@@ -19,6 +19,7 @@ constexpr std::string_view kRespawnKey = "respawn";
 constexpr std::string_view kRacerKey = "racer";
 constexpr std::string_view kCircuitKey = "circuit";
 constexpr std::string_view kAiKey = "ai";
+constexpr std::string_view kMirroredKey = "mirrored";
 constexpr std::string_view kRaceKey = "race";
 constexpr std::string_view kPointsKey = "points";
 constexpr std::string_view kRespawnOff = "off";
@@ -98,6 +99,10 @@ bool ReadField(Field field, RaceSceneSetup& setup, std::optional<sim::RespawnRul
     if (field.key == kAiKey) {
         return ReadAiDriving(field.value, setup.aiDriving);
     }
+    if (field.key == kMirroredKey) {
+        setup.isMirrored = true;
+        return field.value.empty();
+    }
     return readOther(field);
 }
 
@@ -149,6 +154,9 @@ std::string RaceSceneName(const RaceSceneSetup& setup) {
     std::string name = std::format("{}{}{}", kRacePrefix, setup.track, RulesFields(setup));
     if (!setup.circuit.empty()) {
         name += std::format(":{}={}", kCircuitKey, setup.circuit);
+    }
+    if (setup.isMirrored) {
+        name += std::format(":{}", kMirroredKey);
     }
     return name + AiField(setup);
 }
