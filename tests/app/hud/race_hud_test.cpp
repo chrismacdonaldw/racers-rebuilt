@@ -222,6 +222,10 @@ TEST_CASE("one player's HUD fills the screen and two players' split it top and b
     CHECK(bottom.bottom == 480.0F);
     CHECK(bottom.textScale == doctest::Approx(0.9F));
     CHECK(bottom.bannerScale == doctest::Approx(0.8F));
+    CHECK(full.mapScale == 1.0F);
+    CHECK_FALSE(full.isSplit);
+    CHECK(top.mapScale == doctest::Approx(0.8F));
+    CHECK(top.isSplit);
 }
 
 struct SplitLayout {

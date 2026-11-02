@@ -154,6 +154,7 @@ Each `<action>` has a key and a button default. The left stick always steers.
 | `drift` | `Space` | `rightshoulder,leftshoulder` |
 | `use_powerup` | `Return` | `x` |
 | `pause` | `Escape` | `start` |
+| `toggle_display` | `M` | `back` |
 | `menu_up` | `Up` | `dpup` |
 | `menu_down` | `Down` | `dpdown` |
 | `menu_left` | `Left` | `dpleft` |
@@ -172,6 +173,7 @@ The keys follow the original's first keyboard set. In a two-player race, player 
 | `drift` | `Left Shift` |
 | `use_powerup` | `Left Alt` |
 | `pause` | None, since player 1's pause keys pause for both |
+| `toggle_display` | `E` |
 
 ```toml
 [video]

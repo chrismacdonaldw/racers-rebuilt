@@ -52,6 +52,15 @@ TEST_CASE("choosing a row listens, ignoring menu actions until it stops") {
     CHECK_FALSE(menu.ListeningRow());
 }
 
+TEST_CASE("the display row listens for a new input") {
+    ControlsMenu menu;
+
+    CHECK(Press(menu, {MenuAction::Down, MenuAction::Down, MenuAction::Down, MenuAction::Down,
+                       MenuAction::Down, MenuAction::Down, MenuAction::Confirm}) ==
+          ControlsRequest::Listen);
+    CHECK(menu.ListeningRow() == 6);
+}
+
 TEST_CASE("the camera row has no action to bind yet") {
     ControlsMenu menu;
 

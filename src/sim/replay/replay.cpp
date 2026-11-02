@@ -14,6 +14,7 @@ namespace {
 constexpr std::string_view kMagic = "RRRP";
 constexpr std::string_view kWhat = "replay";
 constexpr std::size_t kMaxTicks = 8'000'000;
+static_assert(kActionCount <= 8, "a replay stores each player's actions in one byte");
 constexpr unsigned long kActionMask = (1UL << kActionCount) - 1;
 constexpr unsigned long kMenuActionMask = (1UL << kMenuActionCount) - 1;
 

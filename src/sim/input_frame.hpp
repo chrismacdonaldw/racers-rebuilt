@@ -16,6 +16,7 @@ enum class Action : std::uint8_t {
     UsePowerup,
     Pause,
     Drift,
+    ToggleDisplay,
     Count,
 };
 

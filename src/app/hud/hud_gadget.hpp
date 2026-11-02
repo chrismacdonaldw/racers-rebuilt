@@ -5,6 +5,7 @@
 #include <span>
 #include <vector>
 
+#include "app/hud/hud_placement.hpp"
 #include "app/hud/minimap.hpp"
 #include "app/ui_text/ui_image.hpp"
 #include "render/render_view.hpp"
@@ -26,7 +27,7 @@ public:
     [[nodiscard]] HudGadgetMode Mode() const { return mode_; }
 
     /// `images` is `LEGOIMGS.IDB` in list order. Draws nothing while it's short.
-    void Draw(const MapView& view, std::span<const UiImage> images,
+    void Draw(const MapView& view, std::span<const UiImage> images, const HudPlacement& placement,
               std::vector<render::SpriteDraw>& out) const;
 
 private:
@@ -36,6 +37,6 @@ private:
 };
 
 void DrawSpeedometer(float speed, const UiImage& dial, const UiImage& cap,
-                     std::vector<render::SpriteDraw>& out);
+                     const HudPlacement& placement, std::vector<render::SpriteDraw>& out);
 
 }

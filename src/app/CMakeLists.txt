@@ -26,6 +26,7 @@ rr_add_module(app
         hidden_models.cpp
         hud/hud_assets.cpp
         hud/hud_gadget.cpp
+        hud/hud_placement.cpp
         hud/hud_shapes.cpp
         hud/hud_strings.cpp
         hud/hud_text.cpp

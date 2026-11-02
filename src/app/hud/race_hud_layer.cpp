@@ -74,13 +74,21 @@ void RaceHudLayer::SetCircuitPoints(std::span<const std::int32_t> before) {
 }
 
 void RaceHudLayer::SetMap(std::optional<TrackMap> map) {
-    gadget_ = HudGadget(map);
+    gadgets_.assign(players_, HudGadget(map));
+}
+
+void RaceHudLayer::CycleGadget(std::size_t player) {
+    if (player < gadgets_.size()) {
+        gadgets_[player].Cycle();
+    }
 }
 
 void RaceHudLayer::Tick(const sim::RaceSession& session, Milliseconds elapsed) {
-    const sim::Racer& first = session.Racers()[0];
-    if (!first.Status().isGhost) {
-        gadget_.Tick(first.Body().derived.forwardSpeed);
+    for (std::size_t player = 0; player < gadgets_.size(); ++player) {
+        const sim::Racer& racer = session.Racers()[player];
+        if (!racer.Status().isGhost) {
+            gadgets_[player].Tick(racer.Body().derived.forwardSpeed);
+        }
     }
     for (std::size_t player = 0; player < huds_.size(); ++player) {
         huds_[player].Tick(session.Clock(), session.Progress(), player, elapsed);
@@ -95,7 +103,7 @@ void RaceHudLayer::TickPause(Milliseconds elapsed) {
 
 std::span<const render::SpriteDraw> RaceHudLayer::Draw(
     const sim::RaceSession& session, std::span<const sim::RacerSnapshot> racers,
-    const MapView& firstPlayerMap, std::span<const std::optional<render::SpriteDraw>> covers,
+    std::span<const MapView> maps, std::span<const std::optional<render::SpriteDraw>> covers,
     std::optional<PauseView> pause) {
     sprites_.clear();
     for (std::size_t player = 0; player < players_; ++player) {
@@ -109,8 +117,8 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(
             if (!isGhost) {
                 LayoutPowerupPanel(racers[player], images_, sprites_, placement.bottom);
             }
-            if (!isGhost && players_ == 1) {
-                gadget_.Draw(firstPlayerMap, images_, sprites_);
+            if (!isGhost && player < gadgets_.size() && player < maps.size()) {
+                gadgets_[player].Draw(maps[player], images_, placement, sprites_);
             }
         }
         if (player < covers.size() && covers[player]) {

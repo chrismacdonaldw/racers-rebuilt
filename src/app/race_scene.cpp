@@ -279,6 +279,11 @@ void RaceScene::Tick(const sim::InputFrame& input) {
     ApplyChosenTools();
     LeaveAfterResults(input);
     StepRace(parts_.session, input, controls_, cameras_.Count());
+    for (std::size_t player = 0; player < cameras_.Count(); ++player) {
+        if (input.players.at(player).WasPressed(sim::Action::ToggleDisplay)) {
+            hud_.CycleGadget(player);
+        }
+    }
     hud_.Tick(parts_.session, kSimTick);
     parts_.waterScroll.Tick(kSimTick);
     cameras_.Follow(parts_.session);
@@ -321,20 +326,26 @@ void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float elap
     draws_.insert(draws_.end(), powerupVisuals_.Draws().begin(), powerupVisuals_.Draws().end());
 }
 
-MapView RaceScene::PlayerMapView(const sim::RenderSnapshot& interpolated) {
-    mapMarkers_.clear();
-    for (std::size_t slot = interpolated.racers.size(); slot-- > 0;) {
-        if (slot != kPlayerSlot) {
-            mapMarkers_.push_back(
-                {.position = ToGame(interpolated.entities[slot].transform.position),
-                 .isChampion = slot == kChampionSlot});
+std::span<const MapView> RaceScene::PlayerMapViews(const sim::RenderSnapshot& interpolated) {
+    const std::size_t players = cameras_.Count();
+    for (std::size_t player = 0; player < players; ++player) {
+        const std::size_t own = kPlayerSlot + player;
+        std::vector<MapMarker>& markers = mapMarkers_.at(player);
+        markers.clear();
+        for (std::size_t slot = interpolated.racers.size(); slot-- > 0;) {
+            if (slot != own) {
+                markers.push_back(
+                    {.position = ToGame(interpolated.entities[slot].transform.position),
+                     .isChampion = slot == kChampionSlot && slot >= kPlayerSlot + players});
+            }
         }
+        const Transform racer = TransformToGame(interpolated.entities[own].transform);
+        mapViews_.at(player) = {.player = racer.position,
+                                .playerForward = Rotate(racer.rotation, {.x = 1.0F}),
+                                .viewDirection = cameras_.ViewDirection(player),
+                                .markers = markers};
     }
-    const Transform player = TransformToGame(interpolated.entities[kPlayerSlot].transform);
-    return {.player = player.position,
-            .playerForward = Rotate(player.rotation, {.x = 1.0F}),
-            .viewDirection = cameras_.ViewDirection(0),
-            .markers = mapMarkers_};
+    return std::span(mapViews_).first(players);
 }
 
 void RaceScene::GatherCarMarks(const sim::RenderSnapshot& interpolated, float simMs) {
@@ -408,7 +419,7 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
         }
     }
     views_.front().sprites =
-        hud_.Draw(parts_.session, interpolated.racers, PlayerMapView(interpolated),
+        hud_.Draw(parts_.session, interpolated.racers, PlayerMapViews(interpolated),
                   std::span(flashes).first(cameras_.Count()), PauseShown());
     Result<void> drawn = parts_.renderer->Draw(views_);
     if (!drawn) {
