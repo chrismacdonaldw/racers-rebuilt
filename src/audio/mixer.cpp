@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cmath>
 #include <cstddef>
 #include <format>
 #include <memory>
@@ -26,6 +27,17 @@ constexpr std::size_t kBusCount = 3;
 constexpr std::size_t kEffectVoiceCount = 32;
 constexpr ma_uint32 kChannelCount = 2;
 constexpr float kHeadroomGain = 0.5F;
+constexpr float kMinPitch = 0.01F;
+
+VoiceMix FiniteMix(const VoiceMix& mix) {
+    const VoiceMix fallback;
+    const auto finite = [](float value, float otherwise) {
+        return std::isfinite(value) ? value : otherwise;
+    };
+    return {.volume = std::max(finite(mix.volume, fallback.volume), 0.0F),
+            .pitch = std::max(finite(mix.pitch, fallback.pitch), kMinPitch),
+            .pan = std::clamp(finite(mix.pan, fallback.pan), -1.0F, 1.0F)};
+}
 
 struct LoadedSound {
     assets::FileData file;
@@ -206,7 +218,7 @@ bool Mixer::IsPlaying(VoiceId voice) const {
 
 void Mixer::Mix(VoiceId voice, const VoiceMix& mix) {
     if (IsCurrent(voice)) {
-        state_->effects.at(voice.slot).Mix(mix);
+        state_->effects.at(voice.slot).Mix(FiniteMix(mix));
     }
 }
 
@@ -232,7 +244,7 @@ std::optional<VoiceId> Mixer::StartEffect(const SoundCue& cue, bool isLooping) {
     state_->effectBuses.at(slot) = cue.bus;
     Result<void> started =
         voice->Start(state_->engine, std::move(stream),
-                     {.mix = cue.mix, .busVolume = state_->volumes[IndexOf(cue.bus)]});
+                     {.mix = FiniteMix(cue.mix), .busVolume = state_->volumes[IndexOf(cue.bus)]});
     if (!started) {
         log::Warn("{}", started.error().message);
         return std::nullopt;
