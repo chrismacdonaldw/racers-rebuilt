@@ -1,7 +1,9 @@
 #include "app/startup_scene.hpp"
 
+#include <format>
 #include <utility>
 
+#include "app/cutscene/cutscene_scene.hpp"
 #include "app/race_scene_name.hpp"
 #include "app/race_settings.hpp"
 
@@ -21,6 +23,12 @@ Result<std::optional<std::string>> StartupScene(const settings::CommandLine& com
     }
     if (commandLine.players && !commandLine.race) {
         return Fail(ErrorCode::InvalidData, "--players needs --race");
+    }
+    if (commandLine.cutscene) {
+        if (commandLine.track || commandLine.race) {
+            return Fail(ErrorCode::InvalidData, "--cutscene can't be used with --track or --race");
+        }
+        return std::optional(std::format("{}{}", kCutsceneScenePrefix, *commandLine.cutscene));
     }
     return commandLine.race ? std::optional(RaceNamed(*commandLine.race,
                                                       commandLine.players.value_or(1), settings))

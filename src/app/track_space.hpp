@@ -23,6 +23,9 @@ namespace rr::app {
 
 [[nodiscard]] Transform LookAt(const Vector3& eye, const Vector3& target);
 
+/// A game-space pose that looks along its +X with +Z up, as an engine camera transform.
+[[nodiscard]] Transform ViewToEngine(const Transform& game);
+
 struct Bounds {
     Vector3 min;
     Vector3 max;

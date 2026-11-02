@@ -1,13 +1,18 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <cmath>
+#include <cstdint>
 #include <format>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "app/cutscene/cutscene_bindings.hpp"
+#include "app/cutscene/cutscene_player.hpp"
+#include "app/frame_loop.hpp"
 #include "assets/archive_survey.hpp"
 #include "assets/loader_pool.hpp"
 #include "assets/track_loader.hpp"
@@ -40,6 +45,25 @@ constexpr std::array kCutscenes{
     RetailCutscene{.folder = "SINGRACE", .file = "PST"},
 };
 
+bool IsFinite(const Vector3& v) {
+    return std::isfinite(v.x) && std::isfinite(v.y) && std::isfinite(v.z);
+}
+
+void PlayToEnd(const assets::CutsceneFrame& frame, CutsceneBindings bindings,
+               sim::TrackEntitySources& sources) {
+    CAPTURE(frame.name);
+    CutscenePlayer player(frame, std::move(bindings), sources, {}, false);
+    const std::int64_t ticks =
+        (std::int64_t{frame.length} * 1000 / frame.framesPerSecond / kSimTick.count()) + 2;
+    for (std::int64_t tick = 0; tick < ticks && !player.IsComplete(); ++tick) {
+        player.Advance(kSimTick);
+        if (const std::optional<render::Camera> camera = player.ViewCamera(player.Clocks())) {
+            REQUIRE(IsFinite(camera->transform.position));
+        }
+    }
+    CHECK(player.IsComplete());
+}
+
 void CheckCutscene(const assets::Vfs& vfs, assets::TrackLoader& loader,
                    const RetailCutscene& cutscene) {
     CAPTURE(cutscene.file);
@@ -59,12 +83,13 @@ void CheckCutscene(const assets::Vfs& vfs, assets::TrackLoader& loader,
         worlds.push_back(world.get());
     }
     for (const assets::CutsceneFrame& frame : timeline->frames) {
-        const Result<CutsceneBindings> bindings = BindCutscene(frame, worlds, {}, *sources);
+        Result<CutsceneBindings> bindings = BindCutscene(frame, worlds, {}, *sources);
         REQUIRE_MESSAGE(bindings.has_value(), bindings.error().message);
+        PlayToEnd(frame, std::move(*bindings), *sources);
     }
 }
 
-TEST_CASE("every retail cutscene binds to its worlds") {
+TEST_CASE("every retail cutscene binds to its worlds and plays to its end") {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
         return;

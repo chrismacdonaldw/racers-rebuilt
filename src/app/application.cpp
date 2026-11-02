@@ -16,6 +16,7 @@
 #include "app/audio_startup.hpp"
 #include "app/circuit_awards.hpp"
 #include "app/circuit_leg.hpp"
+#include "app/cutscene/cutscene_scene.hpp"
 #include "app/extensions.hpp"
 #include "app/game_settings.hpp"
 #include "app/gameplay_fingerprint.hpp"
@@ -106,11 +107,12 @@ Result<Application> Application::Create(GameBoot boot) {
     boot.startup.EndPhase("audio", platform::Now());
     std::string startupSummary = boot.startup.Summary();
     log::Info("{}", startupSummary);
+    std::filesystem::path originalInstall = OriginalInstall(boot);
 
     return Application({.sdl = std::move(boot.sdl),
                         .settings = std::move(boot.settings),
                         .settingsFile = std::move(boot.settingsFile),
-                        .originalInstall = OriginalInstall(boot),
+                        .originalInstall = std::move(originalInstall),
                         .extensions = std::move(boot.extensions),
                         .vfs = std::move(boot.vfs),
                         .mixer = std::move(*mixer),
@@ -277,21 +279,29 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(
             })
             .transform(ToScene<AwardScene>);
     }
+    return CreateWorldScene(*scene);
+}
+
+Result<std::unique_ptr<Scene>> Application::CreateWorldScene(std::string_view scene) {
     const Nanoseconds started = platform::Now();
     assets::LoaderPool pool(assets::LoaderPool::DefaultWorkerCount());
     assets::TrackLoader loader(vfs_, pool);
-    if (IsRaceScene(*scene)) {
-        return ParseRaceScene(*scene)
+    if (IsRaceScene(scene)) {
+        return ParseRaceScene(scene)
             .and_then([&](const RaceSceneSetup& setup) { return LoadRace(setup, loader, started); })
             .transform(ToScene<RaceScene>);
     }
-    if (IsCircuitScene(*scene)) {
-        return CreateCircuitRace(*scene, loader, started);
+    if (IsCircuitScene(scene)) {
+        return CreateCircuitRace(scene, loader, started);
     }
-    if (IsTrialScene(*scene)) {
-        return CreateTrialRace(*scene, loader, started);
+    if (IsTrialScene(scene)) {
+        return CreateTrialRace(scene, loader, started);
     }
-    return TrackViewerScene::Create(renderer_, vfs_, loader, *scene, started)
+    if (IsCutsceneScene(scene)) {
+        return CutsceneScene::Create(renderer_, vfs_, loader, scene)
+            .transform(ToScene<CutsceneScene>);
+    }
+    return TrackViewerScene::Create(renderer_, vfs_, loader, scene, started)
         .transform(ToScene<TrackViewerScene>);
 }
 
