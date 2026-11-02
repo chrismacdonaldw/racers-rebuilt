@@ -29,18 +29,12 @@ float Wrapped(float offset) {
 
 std::optional<WarpTube> WarpTube::Load(render::Renderer& renderer, const assets::Vfs& vfs,
                                        assets::TrackLoader& loader) {
-    Result<std::unique_ptr<EffectAssets>> assets =
-        LoadEffectAssets(vfs, loader, kTubeWorld).transform([](EffectAssets loaded) {
-            return std::make_unique<EffectAssets>(std::move(loaded));
-        });
-    Result<EffectModels> models = assets.and_then([&](const std::unique_ptr<EffectAssets>& owned) {
-        return UploadPowerupModels(renderer, *owned);
-    });
-    if (!models) {
-        log::Warn("warp tube: {}", models.error().message);
+    Result<EffectModelSet> set = LoadEffectModels(renderer, vfs, loader, kTubeWorld);
+    if (!set) {
+        log::Warn("warp tube: {}", set.error().message);
         return std::nullopt;
     }
-    return WarpTube(std::move(*assets), std::move(*models));
+    return WarpTube(std::move(set->assets), std::move(set->models));
 }
 
 WarpTube::WarpTube(std::unique_ptr<EffectAssets> assets, EffectModels models)

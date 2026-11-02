@@ -333,7 +333,7 @@ Result<std::unique_ptr<Scene>> Application::CreateTrialRace(std::string_view sce
             return LoadRace(setup, loader, started);
         })
         .transform([&](std::unique_ptr<RaceScene> race) {
-            race->JoinTimeTrial(*trial_);
+            race->JoinTimeTrial(*trial_, loader);
             return ToScene<RaceScene>(std::move(race));
         });
 }

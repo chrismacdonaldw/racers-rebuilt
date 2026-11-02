@@ -10,6 +10,7 @@
 #include "sim/physics/curse_source.hpp"
 #include "sim/physics/turbo.hpp"
 #include "sim/powerup/powerup_kind.hpp"
+#include "sim/time_trial/ghost_playback.hpp"
 
 namespace rr::sim {
 
@@ -41,6 +42,14 @@ struct CameraSnapshot {
     SnapshotFlags flags = SnapshotFlags::None;
 
     friend bool operator==(const CameraSnapshot&, const CameraSnapshot&) = default;
+};
+
+/// Each is nothing while that ghost isn't drawn.
+struct GhostSnapshot {
+    std::optional<GhostFrame> best;
+    std::optional<GhostFrame> record;
+
+    friend bool operator==(const GhostSnapshot&, const GhostSnapshot&) = default;
 };
 
 struct SkidSnapshot {
@@ -120,6 +129,7 @@ struct RenderSnapshot {
     std::vector<bool> hiddenModels;
     CameraSnapshot camera;
     std::vector<CameraSnapshot> otherPlayerCameras;
+    GhostSnapshot ghosts;
     std::uint64_t simStateHash = 0;
 
     friend bool operator==(const RenderSnapshot&, const RenderSnapshot&) = default;

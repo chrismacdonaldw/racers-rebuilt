@@ -71,8 +71,10 @@ Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs&
         Result<std::unique_ptr<RacerAssets>> assets = LoadSlot(vfs, loader, *catalog, code);
         Result<BoundingSphere> bounds = assets.and_then(
             [](const std::unique_ptr<RacerAssets>& racer) { return RacerBounds(*racer); });
+        RacerDraws models;
         Result<RacerVisuals> visuals = bounds.and_then([&](const BoundingSphere&) {
             return UploadRacer(renderer, **assets).and_then([&](RacerDraws draws) {
+                models = draws;
                 return RacerVisuals::Create(**assets, std::move(draws));
             });
         });
@@ -80,8 +82,10 @@ Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs&
             return Fail(visuals.error().code,
                         std::format("racer {}: {}", code, visuals.error().message));
         }
-        loaded.push_back(
-            {.assets = std::move(*assets), .visuals = std::move(*visuals), .localBounds = *bounds});
+        loaded.push_back({.assets = std::move(*assets),
+                          .models = std::move(models),
+                          .visuals = std::move(*visuals),
+                          .localBounds = *bounds});
     }
     return RacerGrid(std::move(loaded));
 }

@@ -2,67 +2,22 @@
 
 #include <doctest/doctest.h>
 
-#include <cmath>
-#include <numbers>
-#include <optional>
 #include <span>
-#include <string>
 #include <utility>
-#include <vector>
 
-#include "app/track_space.hpp"
+#include "racer_rig.hpp"
 
 namespace rr::app {
 namespace {
 
+using test::CheckNear;
+using test::Driver;
+using test::GameAxis;
+using test::GamePosition;
+using test::Model;
+using test::Wheels;
+
 constexpr float kFrameMs = 16.0F;
-
-void CheckNear(const Vector3& actual, const Vector3& expected) {
-    CHECK(actual.x == doctest::Approx(expected.x));
-    CHECK(actual.y == doctest::Approx(expected.y));
-    CHECK(actual.z == doctest::Approx(expected.z));
-}
-
-assets::AnimationPart Part(std::string name, std::uint32_t firstTrack) {
-    return {.name = std::move(name),
-            .firstTrack = firstTrack,
-            .frameCount = 10,
-            .loopFrames = 11,
-            .framesPerSecond = 30,
-            .velocity = {},
-            .bounds = {}};
-}
-
-JointedAssets Wheels() {
-    const assets::KeyRun turning{.firstValue = 0, .firstFrame = 0, .count = 2};
-    return {
-        .skeleton =
-            {.nodes = {{.name = "root", .position = {}, .rotation = {}, .parent = {}},
-                       {.name = "axle", .position = {.x = 64.0F}, .rotation = {}, .parent = 0}}},
-        .animations = {.positionKeys = {},
-                       .rotationKeys = {Quaternion{},
-                                        FromAxisAngle({.y = 1.0F},
-                                                      std::numbers::pi_v<float> / 2.0F)},
-                       .keyFrames = {0, 10},
-                       .tracks = {{}, {.rotations = turning, .positions = {}}, {}, {}},
-                       .parts = {Part("frwrd", 0), Part("rvrse", 2)}},
-    };
-}
-
-JointedAssets Driver() {
-    return {
-        .skeleton = {.nodes = {{.name = "alpelvis", .position = {}, .rotation = {}, .parent = {}}}},
-        .animations = {.positionKeys = {{.y = 64.0F}, {.z = 64.0F}},
-                       .rotationKeys = {},
-                       .keyFrames = {},
-                       .tracks = {{},
-                                  {},
-                                  {.rotations = {}, .positions = {.count = 1}},
-                                  {.rotations = {}, .positions = {.firstValue = 1, .count = 1}}},
-                       .parts = {Part("default", 0), Part("power1", 3), Part("steer-r", 1),
-                                 Part("steer-l", 2)}},
-    };
-}
 
 RacerAssets Racer() {
     RacerAssets racer{.files = {}, .models = {}, .wheels = Wheels(), .driver = Driver()};
@@ -71,27 +26,11 @@ RacerAssets Racer() {
     return racer;
 }
 
-ModelDraws Model(std::vector<std::uint16_t> joints) {
-    return {.draws = std::vector<render::MeshDraw>(joints.size()),
-            .joints = std::move(joints),
-            .scale = 1.0F / 64.0F};
-}
-
 RacerVisuals MakeVisuals(const RacerAssets& racer) {
     Result<RacerVisuals> visuals = RacerVisuals::Create(
         racer, {.wheels = Model({1}), .body = Model({0}), .driver = Model({0})});
     REQUIRE(visuals.has_value());
     return std::move(*visuals);
-}
-
-Vector3 GamePosition(const render::MeshDraw& draw) {
-    const Vector3 engine = draw.transform.position;
-    return {.x = engine.x, .y = -engine.z, .z = engine.y};
-}
-
-Vector3 GameAxis(const render::MeshDraw& draw, const Vector3& axis) {
-    const Vector3 engine = Rotate(draw.transform.rotation, ToEngine(axis));
-    return {.x = engine.x, .y = -engine.z, .z = engine.y};
 }
 
 TEST_CASE("a racer's body sits on its wheels and its driver in the seat") {

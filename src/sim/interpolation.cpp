@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 namespace rr::sim {
 namespace {
@@ -27,6 +28,15 @@ Transform Blend(const Transform& previous, const Transform& current, SnapshotFla
         return current;
     }
     return Interpolate(previous, current, alpha);
+}
+
+std::optional<GhostFrame> BlendGhost(const std::optional<GhostFrame>& previous,
+                                     const std::optional<GhostFrame>& current, float alpha) {
+    if (!previous || !current) {
+        return current;
+    }
+    return GhostFrame{.pose = Interpolate(previous->pose, current->pose, alpha),
+                      .chassisAnimationRate = current->chassisAnimationRate};
 }
 
 }
@@ -68,6 +78,8 @@ void Interpolate(const RenderSnapshot& previous, const RenderSnapshot& current, 
     }
     out.camera = current.camera;
     out.simStateHash = current.simStateHash;
+    out.ghosts = {.best = BlendGhost(previous.ghosts.best, current.ghosts.best, alpha),
+                  .record = BlendGhost(previous.ghosts.record, current.ghosts.record, alpha)};
     out.camera.transform =
         Blend(previous.camera.transform, current.camera.transform, current.camera.flags, alpha);
     out.otherPlayerCameras = current.otherPlayerCameras;

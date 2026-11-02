@@ -2,6 +2,8 @@
 
 #include <doctest/doctest.h>
 
+#include <optional>
+
 namespace rr::sim {
 namespace {
 
@@ -97,6 +99,23 @@ TEST_CASE("an effect's time left blends within a phase and jumps to a new one") 
     REQUIRE(out.effects.size() == 2);
     CHECK(out.effects[0].phaseLeftMs == doctest::Approx(94.0F));
     CHECK(out.effects[1].phaseLeftMs == 1500.0F);
+}
+
+TEST_CASE("ghosts blend between ticks, and a ghost that just appeared takes its current pose") {
+    const GhostFrame from{.pose = {.position = {.x = 0.0F}}, .chassisAnimationRate = 2.0F};
+    const GhostFrame to{.pose = {.position = {.x = 8.0F}}, .chassisAnimationRate = 6.0F};
+    const RenderSnapshot previous{.ghosts = {.best = std::nullopt, .record = from}};
+    const RenderSnapshot current{.ghosts = {.best = to, .record = to}};
+    RenderSnapshot out;
+
+    Interpolate(previous, current, 0.25F, out);
+
+    REQUIRE(out.ghosts.record.has_value());
+    REQUIRE(out.ghosts.best.has_value());
+    const GhostFrame record = out.ghosts.record.value_or(GhostFrame{});
+    CHECK(record.pose.position.x == doctest::Approx(2.0F));
+    CHECK(record.chassisAnimationRate == 6.0F);
+    CHECK(out.ghosts.best.value_or(GhostFrame{}).pose.position.x == 8.0F);
 }
 
 }

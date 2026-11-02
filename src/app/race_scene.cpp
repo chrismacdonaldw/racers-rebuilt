@@ -136,9 +136,10 @@ void RaceScene::JoinCircuit(CircuitLeg leg) {
     circuit_ = std::move(leg);
 }
 
-void RaceScene::JoinTimeTrial(TimeTrialRun& run) {
+void RaceScene::JoinTimeTrial(TimeTrialRun& run, assets::TrackLoader& loader) {
     trial_.emplace(run);
     hud_.SetTimeTrial(trial_->Ghosts());
+    ghostCars_ = GhostCars::Load(*parts_.renderer, *parts_.vfs, loader, parts_.racers, kPlayerSlot);
 }
 
 std::optional<std::string> RaceScene::TakeNextScene() {
@@ -232,6 +233,9 @@ SceneMusic RaceScene::Music() const {
 void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
     SnapshotRace(parts_.session, out);
     cameras_.Snapshot(out);
+    out.ghosts = trial_ ? sim::GhostSnapshot{.best = trial_->Ghosts().BestFrame(),
+                                             .record = trial_->Ghosts().RecordFrame()}
+                        : sim::GhostSnapshot{};
     if (pause_.IsOpen()) {
         out.simStateHash = (out.simStateHash * kHashPrime) ^ pause_.StateHash();
     }
@@ -254,6 +258,10 @@ void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float elap
     parts_.bricks.AppendDraws(interpolated.bricks, draws_);
     powerupVisuals_.Update(interpolated, elapsedMs);
     draws_.insert(draws_.end(), powerupVisuals_.Draws().begin(), powerupVisuals_.Draws().end());
+    if (ghostCars_) {
+        ghostCars_->Update(interpolated.ghosts, elapsedMs);
+        ghostCars_->AppendDraws(draws_);
+    }
 }
 
 std::span<const MapView> RaceScene::PlayerMapViews(const sim::RenderSnapshot& interpolated) {
@@ -269,6 +277,7 @@ std::span<const MapView> RaceScene::PlayerMapViews(const sim::RenderSnapshot& in
                      .isChampion = slot == kChampionSlot && slot >= kPlayerSlot + players});
             }
         }
+        AppendGhostMarkers(interpolated.ghosts, markers);
         const Transform racer = TransformToGame(interpolated.entities[own].transform);
         mapViews_.at(player) = {.player = racer.position,
                                 .playerForward = Rotate(racer.rotation, {.x = 1.0F}),

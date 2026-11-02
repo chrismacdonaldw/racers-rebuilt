@@ -9,6 +9,7 @@
 #include "app/race_scene_name.hpp"
 #include "app/racer/car_look.hpp"
 #include "app/racer/racer_assets.hpp"
+#include "app/racer/racer_draws.hpp"
 #include "app/racer/racer_visuals.hpp"
 #include "assets/chassis_database.hpp"
 #include "assets/track_loader.hpp"
@@ -53,6 +54,15 @@ public:
     /// Every slot's draws, in slot order. The count never changes.
     [[nodiscard]] std::span<const render::MeshDraw> Draws() const { return draws_; }
 
+    [[nodiscard]] const RacerAssets& Assets(std::size_t slot) const {
+        return *slots_.at(slot).assets;
+    }
+
+    /// The slot's car models at their origin, to draw a copy of it.
+    [[nodiscard]] const RacerDraws& Models(std::size_t slot) const {
+        return slots_.at(slot).models;
+    }
+
     /// Shown even while the slot is a ghost.
     [[nodiscard]] std::span<const render::MeshDraw> SlotDraws(std::size_t slot) const {
         return slots_.at(slot).visuals.Draws();
@@ -61,6 +71,7 @@ public:
 private:
     struct Slot {
         std::unique_ptr<RacerAssets> assets;
+        RacerDraws models;
         RacerVisuals visuals;
         BoundingSphere localBounds;
     };
