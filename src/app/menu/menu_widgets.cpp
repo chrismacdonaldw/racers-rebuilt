@@ -139,6 +139,16 @@ void DrawSelectorArrows(const SelectorArrows& arrows, const SelectorPlace& place
                    .bounds = place.next});
 }
 
+void DrawSelectorValue(const UiFont& font, std::u16string_view value, const SelectorPlace& place,
+                       render::Color tint, std::vector<render::SpriteDraw>& out) {
+    const float left = place.previous.x + place.previous.width;
+    const float centre = (left + place.next.x) * kHalf;
+    const float top =
+        place.bounds.y + ((place.bounds.height - static_cast<float>(font.heightPx)) * kHalf);
+    LayoutText(font, value,
+               {.x = centre - (TextWidth(font, value) * kHalf), .y = top, .tint = tint}, out);
+}
+
 void DrawBanner(const MenuText& text, const MenuTextStyle& style, std::u16string_view title,
                 const MenuPicture& backdrop, float top, std::vector<render::SpriteDraw>& out) {
     if (const UiFont* font = text.Font(style.font)) {

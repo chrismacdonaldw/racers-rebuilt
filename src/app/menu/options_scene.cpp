@@ -24,12 +24,7 @@ constexpr std::size_t kOptionsLine = 0x10;
 constexpr std::size_t kFirstDigitLine = 0x60;
 constexpr std::size_t kStereoLine = 0xA7;
 constexpr std::size_t kMonoLine = 0xA8;
-constexpr float kHalf = 0.5F;
 constexpr char16_t kLineFeed = u'\n';
-constexpr render::Color kValueColor{
-    .r = 118.0F / 255.0F, .g = 107.0F / 255.0F, .b = 15.0F / 255.0F};
-constexpr render::Color kFocusedValueColor{
-    .r = 246.0F / 255.0F, .g = 230.0F / 255.0F, .b = 6.0F / 255.0F};
 constexpr render::Color kStepColor{
     .r = 128.0F / 255.0F, .g = 128.0F / 255.0F, .b = 128.0F / 255.0F};
 
@@ -173,6 +168,9 @@ void OptionsScene::Respond(OptionsRequest request, const OptionValues& before) {
         case OptionsRequest::Player2Controls:
             next_ = std::string(kPlayer2ControlsScene);
             return;
+        case OptionsRequest::Language:
+            next_ = std::string(kLanguageScene);
+            return;
         case OptionsRequest::Leave:
             next_ = std::string(kMainMenuScene);
             return;
@@ -240,17 +238,9 @@ void OptionsScene::DrawSelector(const OptionsSelector& selector) {
     if (font == nullptr) {
         return;
     }
-    const std::u16string_view value = ValueText(selector.row);
-    const float left = place.previous.x + place.previous.width;
-    const float centre = (left + place.next.x) * kHalf;
-    const float top =
-        place.bounds.y + ((place.bounds.height - static_cast<float>(font->heightPx)) * kHalf);
-    const render::Color valueTint = isFocused ? kFocusedValueColor : kValueColor;
-    LayoutText(*font, value,
-               {.x = centre - (TextWidth(*font, value) * kHalf),
-                .y = top,
-                .tint = isDriver ? look.color : valueTint},
-               sprites_);
+    const render::Color valueTint = isFocused ? kFocusedSelectorValueColor : kSelectorValueColor;
+    DrawSelectorValue(*font, ValueText(selector.row), place, isDriver ? look.color : valueTint,
+                      sprites_);
 }
 
 void OptionsScene::DrawSlider(const OptionsSlider& slider) {
@@ -259,7 +249,7 @@ void OptionsScene::DrawSlider(const OptionsSlider& slider) {
     const int step = slider.row == OptionsRow::MusicVolume ? values.musicStep : values.soundStep;
     const SliderParts parts = LayOutSlider(slider.bounds, look_, step);
     const render::Color stepTint = isFocused ? render::Color{} : kStepColor;
-    const render::Color barTint = isFocused ? kFocusedValueColor : kValueColor;
+    const render::Color barTint = isFocused ? kFocusedSelectorValueColor : kSelectorValueColor;
     sprites_.push_back({.texture = look_.rail.texture, .bounds = parts.rail, .tint = barTint});
     sprites_.push_back({.texture = look_.thumb.texture, .bounds = parts.thumb, .tint = barTint});
     sprites_.push_back(

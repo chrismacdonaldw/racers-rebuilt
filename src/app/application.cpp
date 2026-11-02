@@ -23,6 +23,7 @@
 #include "app/menu/award_scene.hpp"
 #include "app/menu/award_scene_name.hpp"
 #include "app/menu/controls_scene.hpp"
+#include "app/menu/language_scene.hpp"
 #include "app/menu/main_menu_scene.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_sounds.hpp"
@@ -278,6 +279,10 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(const std::optional<std:
     if (*scene == kControlsScene || *scene == kPlayer2ControlsScene) {
         const std::size_t player = *scene == kPlayer2ControlsScene ? 1 : 0;
         return ControlsScene::Create(renderer_, vfs_, player).transform(ToScene<ControlsScene>);
+    }
+    if (*scene == kLanguageScene) {
+        return LanguageScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_))
+            .transform(ToScene<LanguageScene>);
     }
     if (const std::optional<RaceSetupMode> mode = RaceSetupModeOf(*scene)) {
         return RaceSetupScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_),

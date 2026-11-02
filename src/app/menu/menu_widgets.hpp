@@ -11,12 +11,18 @@
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_parts.hpp"
 #include "app/menu/menu_text.hpp"
+#include "app/ui_text/ui_font.hpp"
 #include "app/ui_text/ui_image.hpp"
 #include "assets/menu_layout.hpp"
 #include "core/result.hpp"
 #include "render/render_view.hpp"
 
 namespace rr::app {
+
+inline constexpr render::Color kSelectorValueColor{
+    .r = 118.0F / 255.0F, .g = 107.0F / 255.0F, .b = 15.0F / 255.0F};
+inline constexpr render::Color kFocusedSelectorValueColor{
+    .r = 246.0F / 255.0F, .g = 230.0F / 255.0F, .b = 6.0F / 255.0F};
 
 struct MenuTextStyle {
     std::string font;
@@ -73,6 +79,10 @@ void DrawImageButton(const MenuText& text, const ImageButtonLook& look, std::siz
 
 void DrawSelectorArrows(const SelectorArrows& arrows, const SelectorPlace& place, bool isFocused,
                         std::vector<render::SpriteDraw>& out);
+
+/// Centred between the arrows.
+void DrawSelectorValue(const UiFont& font, std::u16string_view value, const SelectorPlace& place,
+                       render::Color tint, std::vector<render::SpriteDraw>& out);
 
 /// Right-aligned 20 units in from the backdrop's right edge, as the original's banners are.
 void DrawBanner(const MenuText& text, const MenuTextStyle& style, std::u16string_view title,

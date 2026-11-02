@@ -77,6 +77,14 @@ TEST_CASE("each player's controls button opens that player's controls screen") {
     CHECK(menu.Focus() == OptionsRow::Player2);
 }
 
+TEST_CASE("language opens the language picker") {
+    OptionsMenu menu(OptionValues{});
+
+    CHECK(Press(menu, {MenuAction::Up, MenuAction::Up, MenuAction::Up, MenuAction::Confirm}) ==
+          OptionsRequest::Language);
+    CHECK(menu.Focus() == OptionsRow::Language);
+}
+
 TEST_CASE("a selector steps its value and stops at either end") {
     OptionsMenu menu(OptionValues{.opponents = 4, .versusLaps = 1});
     static_cast<void>(Press(menu, {MenuAction::Confirm}));
