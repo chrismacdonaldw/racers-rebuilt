@@ -17,6 +17,7 @@ TrackEntityDraws::TrackEntityDraws(const assets::NameMap<JointedModel>& models,
         spans_[entity] = {.first = draws_.size(), .count = jointed.draws.size()};
         for (std::size_t i = 0; i < jointed.draws.size(); ++i) {
             draws_.push_back(jointed.draws[i]);
+            slots_.push_back(jointed.slots[i]);
             parts_.push_back({.entity = entity, .joint = jointed.joints[i]});
         }
     }

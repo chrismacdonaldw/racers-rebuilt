@@ -26,10 +26,11 @@ Transform Placement(const assets::CutsceneModel& model) {
 }
 
 CutscenePlayer::CutscenePlayer(const assets::CutsceneFrame& frame, CutsceneBindings bindings,
-                               sim::TrackEntitySources& sources,
-                               std::span<const render::MeshDraw> statics, bool isLooping)
+                               CutsceneMaterials materials, sim::TrackEntitySources& sources,
+                               CutsceneStatics statics, bool isLooping)
     : frame_(&frame),
       bindings_(std::move(bindings)),
+      materials_(std::move(materials)),
       sources_(&sources),
       statics_(statics),
       timeline_(frame, isLooping),
@@ -48,12 +49,14 @@ std::span<const CutsceneEventChange> CutscenePlayer::Advance(Milliseconds elapse
         if (change.begins) {
             Begin(change.event.index, change.event.kind);
         } else if (change.event.kind == CutsceneEventKind::Model) {
+            materials_.End(change.event.index);
             if (const std::optional<std::size_t> jointed =
                     bindings_.models[change.event.index].jointed) {
                 entities_.Freeze(*jointed);
             }
         }
     }
+    materials_.Advance(elapsed);
     entities_.Tick(elapsed);
     return changes;
 }
@@ -69,6 +72,7 @@ void CutscenePlayer::Begin(std::size_t event, CutsceneEventKind kind) {
     if (kind != CutsceneEventKind::Model) {
         return;
     }
+    materials_.Begin(event);
     const std::optional<std::size_t> jointed = bindings_.models[event].jointed;
     if (!jointed) {
         return;
@@ -126,19 +130,25 @@ void CutscenePlayer::AppendDraws(const TrackEntityDraws& jointed,
         }
         const ModelBinding& binding = bindings_.models[model];
         if (binding.staticDraws) {
+            const DrawSpan span = *binding.staticDraws;
+            const std::size_t first = out.size();
             const Transform placed = TransformToEngine(placements_[model]);
-            for (render::MeshDraw draw :
-                 statics_.subspan(binding.staticDraws->first, binding.staticDraws->count)) {
+            for (render::MeshDraw draw : statics_.draws.subspan(span.first, span.count)) {
                 draw.transform = placed;
                 draw.isStatic = false;
                 out.push_back(draw);
             }
+            materials_.Apply(model, std::span(out).subspan(first),
+                             statics_.slots.subspan(span.first, span.count));
         }
         if (binding.jointed) {
             const DrawSpan span = jointed.SpanOf(*binding.jointed);
+            const std::size_t first = out.size();
             const std::span<const render::MeshDraw> draws =
                 jointed.Draws().subspan(span.first, span.count);
             out.insert(out.end(), draws.begin(), draws.end());
+            materials_.Apply(model, std::span(out).subspan(first),
+                             jointed.Slots().subspan(span.first, span.count));
         }
     }
 }

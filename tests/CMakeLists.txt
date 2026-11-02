@@ -6,6 +6,7 @@ add_executable(racers-rebuilt-tests
     app/checkpoint_gates_test.cpp
     app/cutscene/cutscene_bindings_test.cpp
     app/cutscene/cutscene_links_test.cpp
+    app/cutscene/cutscene_materials_test.cpp
     app/cutscene/cutscene_player_test.cpp
     app/cutscene/cutscene_retail_scene_test.cpp
     app/cutscene/cutscene_timeline_test.cpp

@@ -123,6 +123,9 @@ public:
         const Transform transform = PlacementToEngine(entity.position, entity.forward, entity.up);
         const std::size_t first = draws_.size();
         AppendDraws(draws_, model->second, materials_, transform);
+        for (const assets::GeometryRange& range : model->second.geometry->ranges) {
+            slots_.push_back(range.material);
+        }
         named_.push_back(
             {.entity = entity.name, .span = {.first = first, .count = draws_.size() - first}});
         AddBounds(model->second, transform, isSurface ? surface_ : everything_);
@@ -142,6 +145,7 @@ public:
         AppendDraws(kept.draws, model->second, materials_, {});
         for (const assets::GeometryRange& range : model->second.geometry->ranges) {
             kept.joints.push_back(range.joint);
+            kept.slots.push_back(range.material);
         }
     }
 
@@ -150,8 +154,10 @@ public:
             draw.isStatic = true;
         }
         return {.draws = std::move(draws_),
+                .drawSlots = std::move(slots_),
                 .entityDraws = std::move(named_),
                 .animatedModels = std::move(animated_),
+                .materials = std::move(materials_),
                 .bounds = surface_.isEmpty ? everything_ : surface_};
     }
 
@@ -175,6 +181,7 @@ private:
     const NameMap<UploadedModel>* models_;
     NameMap<render::Material> materials_;
     std::vector<render::MeshDraw> draws_;
+    std::vector<std::uint32_t> slots_;
     std::vector<NamedDraws> named_;
     NameMap<JointedModel> animated_;
     Bounds surface_;

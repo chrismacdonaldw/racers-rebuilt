@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -41,6 +42,7 @@ private:
         std::unique_ptr<assets::CutsceneTimelineAsset> timeline;
         std::unique_ptr<sim::TrackEntitySources> sources;
         std::vector<render::MeshDraw> statics;
+        std::vector<std::uint32_t> slots;
         TrackEntityDraws jointed;
         CutscenePlayer player;
     };

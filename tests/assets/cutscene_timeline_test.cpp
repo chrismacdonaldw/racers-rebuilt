@@ -145,7 +145,7 @@ TEST_CASE("models name or index their entity and bind material animations") {
     REQUIRE(models[1].materials.size() == 1);
     CHECK(models[1].materials[0] ==
           CutsceneMaterialBinding{
-              .world = 1, .animation = 2, .track = 0, .start = 5, .materialTable = 3});
+              .world = 1, .animation = 2, .track = 0, .slot = 5, .materialTable = 3});
 }
 
 TEST_CASE("lights read their colour, direction and blink") {

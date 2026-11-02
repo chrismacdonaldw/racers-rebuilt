@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "app/cutscene/cutscene_bindings.hpp"
+#include "app/cutscene/cutscene_materials.hpp"
 #include "app/frame_loop.hpp"
 #include "app/track_model.hpp"
 #include "assets/game_path.hpp"
@@ -76,16 +77,26 @@ Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(render::Renderer& r
     Result<sim::TrackEntitySources> sources = model.and_then(
         [&](const TrackModel&) { return sim::LoadWorldEntities(vfs, path->folder, worldNames); });
     const assets::CutsceneFrame& frame = (*timeline)->frames.front();
+    const std::vector<const assets::WorldAsset*> worlds =
+        assets ? WorldsOf(*assets) : std::vector<const assets::WorldAsset*>{};
     Result<CutsceneBindings> bindings =
         sources.and_then([&](const sim::TrackEntitySources& loaded) {
-            return BindCutscene(frame, WorldsOf(*assets), model->entityDraws, loaded);
+            return BindCutscene(frame, worlds, model->entityDraws, loaded);
         });
-    if (!bindings) {
-        return Fail(bindings.error().code, std::format("{}: {}", scene, bindings.error().message));
+    Result<CutsceneMaterials> materials = bindings.and_then([&](const CutsceneBindings& bound) {
+        return LoadWorldAnimations(vfs, path->folder, worlds)
+            .and_then([&](const WorldAnimations& animations) {
+                return CutsceneMaterials::Create(frame, bound.models, animations, model->materials);
+            });
+    });
+    if (!materials) {
+        return Fail(materials.error().code,
+                    std::format("{}: {}", scene, materials.error().message));
     }
     auto owned = std::make_unique<sim::TrackEntitySources>(std::move(*sources));
     TrackEntityDraws jointed(model->animatedModels, *owned);
-    CutscenePlayer player(frame, std::move(*bindings), *owned, model->draws, true);
+    CutscenePlayer player(frame, std::move(*bindings), std::move(*materials), *owned,
+                          {.draws = model->draws, .slots = model->drawSlots}, true);
     log::Info("{}: {} worlds, {} frames, {} models", scene, worldNames.size(),
               (*timeline)->frames.size(), frame.models.size());
     return std::unique_ptr<CutsceneScene>(new CutsceneScene({.renderer = &renderer,
@@ -93,6 +104,7 @@ Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(render::Renderer& r
                                                              .timeline = std::move(*timeline),
                                                              .sources = std::move(owned),
                                                              .statics = std::move(model->draws),
+                                                             .slots = std::move(model->drawSlots),
                                                              .jointed = std::move(jointed),
                                                              .player = std::move(player)}));
 }
