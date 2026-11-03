@@ -31,6 +31,7 @@ Result<sim::Cheats> EnteredCheats(std::string_view plates) {
 std::string RaceNamed(RaceSceneSetup setup, const settings::Registry& settings) {
     setup.respawn = RespawnRuleFrom(settings);
     setup.aiDriving = AiDrivingFrom(settings);
+    setup.aiPace = settings.Get(kAiPace);
     return RaceSceneName(setup);
 }
 

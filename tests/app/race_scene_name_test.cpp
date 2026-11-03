@@ -47,6 +47,22 @@ TEST_CASE("a race scene name records physics-driven computer racers") {
           RaceSceneSetup{.track = "RACEC0R0", .respawn = {}});
 }
 
+TEST_CASE("a race scene name records the physics racers' pace away from 100") {
+    const RaceSceneSetup paced{
+        .track = "RACEC0R0", .respawn = {}, .aiDriving = sim::AiDriving::Physics, .aiPace = 120};
+    const RaceSceneSetup routed{.track = "RACEC0R0", .respawn = {}, .aiPace = 120};
+
+    CHECK(RaceSceneName(paced) == "race:RACEC0R0:respawn=3000:racer=0:ai=physics:pace=120");
+    CHECK(ParseRaceScene(RaceSceneName(paced)) == paced);
+    CHECK(RaceSceneName(routed) == "race:RACEC0R0:respawn=3000:racer=0");
+    for (const std::string_view scene : {"race:RACEC0R0:respawn=3000:ai=physics:pace=49",
+                                         "race:RACEC0R0:respawn=3000:ai=physics:pace=151",
+                                         "race:RACEC0R0:respawn=3000:ai=physics:pace=fast"}) {
+        CAPTURE(scene);
+        CHECK_FALSE(ParseRaceScene(scene).has_value());
+    }
+}
+
 TEST_CASE("a race scene name records a circuit other than the track's home circuit") {
     const RaceSceneSetup circuit{.track = "RACEC1R0", .circuit = "c0", .respawn = {}};
 
@@ -244,6 +260,19 @@ TEST_CASE("computer racers play back their routes unless physics driving is on")
     registry.Set(kPhysicsAi, true);
 
     CHECK(AiDrivingFrom(registry) == sim::AiDriving::Physics);
+}
+
+TEST_CASE("race rules take the respawn and computer racer settings") {
+    settings::Registry registry;
+    DeclareRaceSettings(registry);
+    registry.Set(kPhysicsAi, true);
+    registry.Set(kAiPace, 80);
+
+    const RaceSceneSetup rules = RaceRulesFrom(registry);
+
+    CHECK(rules.respawn == RespawnRuleFrom(registry));
+    CHECK(rules.aiDriving == sim::AiDriving::Physics);
+    CHECK(rules.aiPace == 80);
 }
 
 }

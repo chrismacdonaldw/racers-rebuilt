@@ -83,7 +83,7 @@ void GarageScene::ApplySettings(const settings::Registry& settings) {
     if (dialog_) {
         dialog_->Measure(text_);
     }
-    rules_ = {.respawn = RespawnRuleFrom(settings), .aiDriving = AiDrivingFrom(settings)};
+    rules_ = RaceRulesFrom(settings);
 }
 
 std::optional<std::string> GarageScene::TakeNextScene() {

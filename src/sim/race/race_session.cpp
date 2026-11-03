@@ -163,7 +163,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
             const assets::RaceRoute& route =
                 routes[random_.Below(static_cast<std::uint32_t>(routes.size()))];
             if (setup.aiDriving == AiDriving::Physics) {
-                drivers_.back().emplace(route);
+                drivers_.back().emplace(route, setup.aiPace);
             } else {
                 racer.FollowRoute(route);
             }

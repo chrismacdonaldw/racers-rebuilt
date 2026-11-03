@@ -138,6 +138,8 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `enhancements.free_camera_speed` | `40.0` | `1.0` to `400.0` |
 | `race.respawn` | `true` | `true`, `false`. Puts a racer back on the track after it falls off or stays in the air too long. Applies from the next race. |
 | `race.respawn_seconds` | `3` | `1` to `30`. Seconds in the air before a respawn. Applies from the next race. |
+| `race.physics_ai` | `false` | `true`, `false`. Computer racers drive with the car physics instead of replaying their recorded routes. Applies from the next race. |
+| `race.ai_pace` | `100` | `50` to `150`. With `race.physics_ai`, computer racers ease off above this percentage of their route's recorded speed. Applies from the next race. |
 | `race.opponents` | `5` | `0` to `5`. Computer racers in a single race, from the options screen. Applies from the next race. |
 | `race.versus_laps` | `3` | `1` to `5`. Laps in a versus race, from the options screen. |
 | `cheats.<plate>` | `false` | `true`, `false`. Keeps a license plate cheat on, such as `cheats.mxpmx`. Entered after the license's own cheats, from the next single race, versus race or test drive. Circuits and time trials ignore them, as the original does, and so does the attract demo. |

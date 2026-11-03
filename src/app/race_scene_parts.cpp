@@ -9,6 +9,11 @@
 #include "sim/powerup/every_effect.hpp"
 
 namespace rr::app {
+namespace {
+
+constexpr float kPercent = 100.0F;
+
+}
 
 Result<sim::RaceTrack> LoadSceneTrack(const assets::Vfs& vfs, const RaceSceneSetup& setup) {
     return sim::LoadRaceTrack(vfs, setup.track, setup.isMirrored,
@@ -23,6 +28,7 @@ sim::RaceSetup GridSetup(const RaceSceneSetup& scene, const RacerGrid& racers, s
                          .lapCount = scene.lapCount,
                          .respawn = scene.respawn,
                          .aiDriving = scene.aiDriving,
+                         .aiPace = static_cast<float>(scene.aiPace) / kPercent,
                          .effects = sim::EveryEffect(),
                          .cheats = scene.cheats,
                          .isTestDrive = scene.isTestDrive,

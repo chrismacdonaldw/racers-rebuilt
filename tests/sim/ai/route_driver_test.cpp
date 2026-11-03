@@ -56,6 +56,19 @@ TEST_CASE("a route driver holds a straight route at full throttle") {
     CHECK(body.derived.speed == doctest::Approx(0.12F).epsilon(0.01));
 }
 
+TEST_CASE("a paced route driver cruises near its share of the route's recorded speed") {
+    const test::PlaneWorld world = test::FlatGround();
+    for (const float pace : {1.0F, 3.0F}) {
+        CAPTURE(pace);
+        RouteDriver driver(test::StraightRoute({.z = 0.2F}, 3000), pace);
+        Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+
+        DriveFor(racer, driver, 8000, world);
+
+        CHECK(racer.Body().derived.speed == doctest::Approx(0.01F * pace).epsilon(0.15));
+    }
+}
+
 TEST_CASE("a route driver calls a car stalled after 3 s without headway and rejoins it ahead") {
     const test::PlaneWorld world = test::FlatGround();
     RouteDriver driver(test::StraightRoute({.z = 0.2F}, 3000));

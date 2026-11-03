@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "assets/race_route.hpp"
 #include "core/duration.hpp"
 #include "sim/physics/racer.hpp"
@@ -11,8 +13,9 @@ namespace rr::sim {
 /// Unlike `AiRacer`, steers the car physics along the route, drifting where grip can't turn.
 class RouteDriver {
 public:
-    explicit RouteDriver(const assets::RaceRoute& route);
+    explicit RouteDriver(const assets::RaceRoute& route, std::optional<float> pace = std::nullopt);
 
+    /// With a pace, coasts while faster than that fraction of the route's recorded speed.
     [[nodiscard]] RacerControls Drive(const Racer& racer);
 
     /// True once `Drive` has made no headway along the route for 3 s. The count then restarts.
@@ -31,10 +34,12 @@ public:
 
 private:
     void Follow(const Vector3& position);
+    [[nodiscard]] bool IsBelowPace(const BodyMotion& motion) const;
 
     RoutePlayback nearest_;
     RoutePlayback reference_;
     RoutePlayback ahead_;
+    std::optional<float> pace_;
     Milliseconds referenceLead_{0};
     Milliseconds aheadLead_{0};
     Milliseconds stalled_{0};

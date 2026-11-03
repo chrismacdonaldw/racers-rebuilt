@@ -24,6 +24,7 @@ constexpr std::string_view kRespawnKey = "respawn";
 constexpr std::string_view kRacerKey = "racer";
 constexpr std::string_view kCircuitKey = "circuit";
 constexpr std::string_view kAiKey = "ai";
+constexpr std::string_view kPaceKey = "pace";
 constexpr std::string_view kMirroredKey = "mirrored";
 constexpr std::string_view kTestDriveKey = "testdrive";
 constexpr std::string_view kDemoKey = "demo";
@@ -220,6 +221,10 @@ bool ReadField(Field field, RaceSceneSetup& setup, std::optional<sim::RespawnRul
     if (field.key == kAiKey) {
         return ReadAiDriving(field.value, setup.aiDriving);
     }
+    if (field.key == kPaceKey) {
+        setup.aiPace = ParseNumber<int>(field.value).value_or(0);
+        return setup.aiPace >= kMinAiPace && setup.aiPace <= kMaxAiPace;
+    }
     if (field.key == kPlayerKey) {
         setup.player = ParseRef(field.value).value_or(RacerRef{});
         return !setup.player.name.empty();
@@ -273,8 +278,14 @@ std::string RulesFields(const RaceSceneSetup& setup) {
 }
 
 std::string AiField(const RaceSceneSetup& setup) {
-    return setup.aiDriving == sim::AiDriving::Physics ? std::format(":{}={}", kAiKey, kPhysicsAi)
-                                                      : std::string();
+    if (setup.aiDriving != sim::AiDriving::Physics) {
+        return {};
+    }
+    std::string field = std::format(":{}={}", kAiKey, kPhysicsAi);
+    if (setup.aiPace != kDefaultAiPace) {
+        field += std::format(":{}={}", kPaceKey, setup.aiPace);
+    }
+    return field;
 }
 
 }
