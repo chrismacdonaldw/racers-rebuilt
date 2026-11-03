@@ -14,6 +14,7 @@
 
 #include "app/audio_settings.hpp"
 #include "app/audio_startup.hpp"
+#include "app/cheat_settings.hpp"
 #include "app/circuit_awards.hpp"
 #include "app/circuit_leg.hpp"
 #include "app/cutscene/cutscene_scene.hpp"
@@ -280,7 +281,12 @@ Result<std::unique_ptr<Scene>> Application::CreateWorldScene(std::string_view sc
     assets::TrackLoader loader(vfs_, pool);
     if (IsRaceScene(scene)) {
         return ParseRaceScene(scene)
-            .and_then([&](const RaceSceneSetup& setup) { return LoadRace(setup, loader, started); })
+            .and_then([&](RaceSceneSetup setup) {
+                if (!setup.isDemo) {
+                    setup.cheats = WithCheatToggles(RaceCheats(setup.cheats, cheats_), settings_);
+                }
+                return LoadRace(std::move(setup), loader, started);
+            })
             .transform(ToScene<RaceScene>);
     }
     if (IsCircuitScene(scene)) {
@@ -350,7 +356,7 @@ Result<std::unique_ptr<RaceScene>> Application::LoadRace(RaceSceneSetup setup,
         return std::unexpected(std::move(resolved.error()));
     }
     setup.isMirrored = LoadsMirrored(setup);
-    setup.cheats = setup.cheats.IsEmpty() ? cheats_ : setup.cheats;
+    setup.cheats = RaceCheats(setup.cheats, cheats_);
     const std::string language = SelectedLanguage(settings_);
     const std::unique_ptr<RaceLoadingScreen> loading =
         OpenLoadingScreen(renderer_, vfs_, setup.track, language);

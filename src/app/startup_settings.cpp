@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "app/audio_settings.hpp"
+#include "app/cheat_settings.hpp"
 #include "app/checkpoint_gates.hpp"
 #include "app/collision_wireframe.hpp"
 #include "app/game_settings.hpp"
@@ -26,6 +27,7 @@ settings::Registry DeclaredRegistry(const Extensions& extensions) {
     registry.Declare(kShowCheckpoints);
     registry.Declare(kShowTriggerSpheres);
     DeclareRaceSettings(registry);
+    DeclareCheatSettings(registry);
     DeclareDeveloperSettings(registry);
     DeclareExtensionSettings(extensions, registry);
     return registry;
