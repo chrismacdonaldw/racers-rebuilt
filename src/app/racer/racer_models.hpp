@@ -38,6 +38,10 @@ struct BuiltCarModel {
 [[nodiscard]] Result<assets::SkeletonAsset> LoadMenuMinifigSkeleton(
     const assets::Vfs& vfs, const assets::DriverPartCatalog& parts, const assets::DriverLook& look);
 
+/// The `ADB` that poses the menu minifig's body when nothing else animates it.
+[[nodiscard]] Result<std::string> MenuMinifigAnimations(const assets::DriverPartCatalog& parts,
+                                                        const assets::DriverLook& look);
+
 /// The face's five other expressions, copied from its default material with `PARTDB` images.
 [[nodiscard]] Result<assets::TrackAssets> LoadExpressionFaces(
     const assets::Vfs& vfs, const assets::NameMap<assets::MaterialAsset>& materials,

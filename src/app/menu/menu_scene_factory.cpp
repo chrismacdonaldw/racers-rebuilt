@@ -5,6 +5,7 @@
 
 #include "app/circuit_awards.hpp"
 #include "app/menu/controls_scene.hpp"
+#include "app/menu/edit_car_scene.hpp"
 #include "app/menu/edit_driver_scene.hpp"
 #include "app/menu/garage_scene.hpp"
 #include "app/menu/language_scene.hpp"
@@ -24,6 +25,41 @@ constexpr std::array kPicks{kPickRacerScene, kPickSecondRacerScene};
 
 bool ClearsCheats(RaceSetupMode mode) {
     return mode == RaceSetupMode::Circuit || mode == RaceSetupMode::TimeTrial;
+}
+
+std::optional<Result<std::unique_ptr<Scene>>> CreateGarageScene(const MenuSceneParts& parts,
+                                                                std::string_view scene) {
+    render::Renderer& renderer = *parts.outputs.renderer;
+    const assets::Vfs& vfs = *parts.vfs;
+    const auto sounds = [&] {
+        return LoadMenuSounds(*parts.outputs.mixer, *parts.outputs.banks, vfs);
+    };
+    if (scene == kGarageScene) {
+        return GarageScene::Create(renderer, vfs, sounds(), parts.racersFile, 0)
+            .transform(ToScene<GarageScene>);
+    }
+    if (const std::optional<std::size_t> racer = SceneRacer(scene, kGarageScene)) {
+        return GarageScene::Create(renderer, vfs, sounds(), parts.racersFile, *racer)
+            .transform(ToScene<GarageScene>);
+    }
+    if (const std::optional<std::size_t> racer = SceneRacer(scene, kEditDriverScene)) {
+        return EditDriverScene::Create(renderer, vfs, sounds(),
+                                       {.racers = parts.racersFile, .progress = parts.progressFile},
+                                       *racer)
+            .transform(ToScene<EditDriverScene>);
+    }
+    if (const std::optional<std::size_t> racer = SceneRacer(scene, kEditCarScene)) {
+        return EditCarScene::Create(renderer, vfs, sounds(), parts.racersFile, *racer,
+                                    ReadProgress(parts.progressFile).partSets)
+            .transform(ToScene<EditCarScene>);
+    }
+    if (const std::optional<std::size_t> racer = SceneRacer(scene, kLicenceScene);
+        racer && parts.cheats != nullptr) {
+        return LicenceScene::Create(renderer, vfs, sounds(), parts.racersFile, *racer,
+                                    *parts.cheats)
+            .transform(ToScene<LicenceScene>);
+    }
+    return std::nullopt;
 }
 
 }
@@ -54,25 +90,8 @@ std::optional<Result<std::unique_ptr<Scene>>> CreateMenuScene(const MenuScenePar
                 .transform(ToScene<RacerPickScene>);
         }
     }
-    if (scene == kGarageScene) {
-        return GarageScene::Create(renderer, vfs, sounds(), parts.racersFile, 0)
-            .transform(ToScene<GarageScene>);
-    }
-    if (const std::optional<std::size_t> racer = SceneRacer(scene, kGarageScene)) {
-        return GarageScene::Create(renderer, vfs, sounds(), parts.racersFile, *racer)
-            .transform(ToScene<GarageScene>);
-    }
-    if (const std::optional<std::size_t> racer = SceneRacer(scene, kEditDriverScene)) {
-        return EditDriverScene::Create(renderer, vfs, sounds(),
-                                       {.racers = parts.racersFile, .progress = parts.progressFile},
-                                       *racer)
-            .transform(ToScene<EditDriverScene>);
-    }
-    if (const std::optional<std::size_t> racer = SceneRacer(scene, kLicenceScene);
-        racer && parts.cheats != nullptr) {
-        return LicenceScene::Create(renderer, vfs, sounds(), parts.racersFile, *racer,
-                                    *parts.cheats)
-            .transform(ToScene<LicenceScene>);
+    if (std::optional<Result<std::unique_ptr<Scene>>> garage = CreateGarageScene(parts, scene)) {
+        return garage;
     }
     if (scene == kLanguageScene) {
         return LanguageScene::Create(renderer, vfs, sounds()).transform(ToScene<LanguageScene>);
@@ -87,5 +106,4 @@ std::optional<Result<std::unique_ptr<Scene>>> CreateMenuScene(const MenuScenePar
     }
     return std::nullopt;
 }
-
 }

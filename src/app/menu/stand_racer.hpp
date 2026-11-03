@@ -26,6 +26,12 @@ struct StandRacer {
                                                   assets::TrackLoader& loader,
                                                   const assets::DriverLook& look);
 
+/// The menu car, or none when it has no pieces.
+[[nodiscard]] Result<std::optional<JointedModel>> BuildStandCar(render::Renderer& renderer,
+                                                                const assets::Vfs& vfs,
+                                                                assets::TrackLoader& loader,
+                                                                const settings::Racer& racer);
+
 /// The racer's menu minifig on its body rig, and its menu car unless it has no pieces.
 [[nodiscard]] Result<StandRacer> BuildStandRacer(render::Renderer& renderer, const assets::Vfs& vfs,
                                                  assets::TrackLoader& loader,

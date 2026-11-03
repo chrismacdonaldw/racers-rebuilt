@@ -35,23 +35,6 @@ Result<T> ReadParsed(const assets::Vfs& vfs, const std::string& path,
         [parse](const assets::FileData& data) { return parse(data.Bytes()); });
 }
 
-Result<assets::ChassisEntry> FindMenuChassis(const assets::Vfs& vfs, std::string_view name) {
-    return ReadParsed(vfs, std::format("{}/CHASSIS.CMB", kPieceFolder), assets::ParseChassis)
-        .and_then(
-            [&](const std::vector<assets::ChassisEntry>& chassis) -> Result<assets::ChassisEntry> {
-                const std::string upper = assets::ToUpperAscii(name);
-                const auto found =
-                    std::ranges::find_if(chassis, [&](const assets::ChassisEntry& entry) {
-                        return assets::ToUpperAscii(entry.name) == upper;
-                    });
-                if (found == chassis.end()) {
-                    return Fail(ErrorCode::NotFound,
-                                std::format("the menu has no chassis {}", name));
-                }
-                return *found;
-            });
-}
-
 assets::GeometryAsset AtRest(const assets::GeometryAsset& model,
                              const assets::SkeletonAsset& skeleton) {
     sim::SkeletonPose pose(skeleton, model.scale);
@@ -117,6 +100,23 @@ Result<Chassis> LoadChassis(const assets::Vfs& vfs, assets::TrackLoader& loader,
     return Chassis{.model = std::move(rest), .looks = std::move(*looks)};
 }
 
+}
+
+Result<assets::ChassisEntry> FindMenuChassis(const assets::Vfs& vfs, std::string_view name) {
+    return ReadParsed(vfs, std::format("{}/CHASSIS.CMB", kPieceFolder), assets::ParseChassis)
+        .and_then(
+            [&](const std::vector<assets::ChassisEntry>& chassis) -> Result<assets::ChassisEntry> {
+                const std::string upper = assets::ToUpperAscii(name);
+                const auto found =
+                    std::ranges::find_if(chassis, [&](const assets::ChassisEntry& entry) {
+                        return assets::ToUpperAscii(entry.name) == upper;
+                    });
+                if (found == chassis.end()) {
+                    return Fail(ErrorCode::NotFound,
+                                std::format("the menu has no chassis {}", name));
+                }
+                return *found;
+            });
 }
 
 Result<std::optional<settings::Racer>> AwardCarRacer(const assets::Vfs& vfs,

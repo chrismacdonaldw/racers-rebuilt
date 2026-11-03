@@ -113,6 +113,14 @@ Result<assets::SkeletonAsset> LoadMenuMinifigSkeleton(const assets::Vfs& vfs,
         });
 }
 
+Result<std::string> MenuMinifigAnimations(const assets::DriverPartCatalog& parts,
+                                          const assets::DriverLook& look) {
+    return assets::DriverBodyName(parts, look, assets::DriverDetail::Menu)
+        .transform([](const std::string& name) {
+            return std::format("{}/{}.ADB", kMenuMinifig.folder, assets::ToUpperAscii(name));
+        });
+}
+
 Result<assets::TrackAssets> LoadExpressionFaces(
     const assets::Vfs& vfs, const assets::NameMap<assets::MaterialAsset>& materials,
     std::string_view face) {
