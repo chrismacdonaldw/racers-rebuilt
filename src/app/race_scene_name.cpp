@@ -6,6 +6,7 @@
 #include <format>
 #include <optional>
 #include <ranges>
+#include <string>
 #include <system_error>
 
 #include "assets/circuit_database.hpp"
@@ -31,9 +32,56 @@ constexpr int kMaxLaps = 9;
 constexpr std::string_view kOpponentsKey = "opponents";
 constexpr std::string_view kRaceKey = "race";
 constexpr std::string_view kPointsKey = "points";
+constexpr std::string_view kPlayerKey = "player";
+constexpr std::string_view kHexDigits = "0123456789ABCDEF";
+constexpr int kHexBase = 16;
+constexpr unsigned char kFirstPlain = 0x21;
+constexpr unsigned char kLastPlain = 0x7E;
 constexpr std::string_view kRespawnOff = "off";
 constexpr std::string_view kPhysicsAi = "physics";
 constexpr std::string_view kRouteAi = "route";
+
+bool IsPlain(char c) {
+    const auto byte = static_cast<unsigned char>(c);
+    return byte >= kFirstPlain && byte <= kLastPlain && c != ':' && c != '>' && c != '%';
+}
+
+std::string Escaped(std::string_view text) {
+    std::string out;
+    out.reserve(text.size());
+    for (const char c : text) {
+        if (IsPlain(c)) {
+            out += c;
+        } else {
+            const auto byte = static_cast<unsigned char>(c);
+            out += '%';
+            out += kHexDigits[byte / kHexBase];
+            out += kHexDigits[byte % kHexBase];
+        }
+    }
+    return out;
+}
+
+std::optional<std::string> Unescaped(std::string_view text) {
+    std::string out;
+    out.reserve(text.size());
+    for (std::size_t at = 0; at < text.size(); ++at) {
+        if (text[at] != '%') {
+            out += text[at];
+            continue;
+        }
+        unsigned int byte = 0;
+        const std::string_view digits = text.substr(at + 1, 2);
+        const auto [end, error] =
+            std::from_chars(digits.data(), digits.data() + digits.size(), byte, kHexBase);
+        if (digits.size() != 2 || error != std::errc() || end != digits.data() + digits.size()) {
+            return std::nullopt;
+        }
+        out += static_cast<char>(byte);
+        at += 2;
+    }
+    return out;
+}
 
 struct Field {
     std::string_view key;
@@ -128,6 +176,10 @@ bool ReadField(Field field, RaceSceneSetup& setup, std::optional<sim::RespawnRul
     if (field.key == kAiKey) {
         return ReadAiDriving(field.value, setup.aiDriving);
     }
+    if (field.key == kPlayerKey) {
+        setup.player = Unescaped(field.value).value_or(std::string());
+        return !setup.player.empty();
+    }
     if (field.key == kMirroredKey) {
         setup.isMirrored = true;
         return field.value.empty();
@@ -169,7 +221,11 @@ std::string RulesFields(const RaceSceneSetup& setup) {
     const std::string respawn = setup.respawn.isEnabled
                                     ? std::to_string(setup.respawn.timeout.count())
                                     : std::string(kRespawnOff);
-    return std::format(":{}={}:{}={}", kRespawnKey, respawn, kRacerKey, setup.racer);
+    std::string fields = std::format(":{}={}:{}={}", kRespawnKey, respawn, kRacerKey, setup.racer);
+    if (!setup.player.empty()) {
+        fields += std::format(":{}={}", kPlayerKey, Escaped(setup.player));
+    }
+    return fields;
 }
 
 std::string AiField(const RaceSceneSetup& setup) {
@@ -212,6 +268,16 @@ std::size_t RacerCount(const RaceSceneSetup& setup, std::size_t gridSize) {
 
 bool IsRaceScene(std::string_view scene) {
     return scene.starts_with(kRacePrefix);
+}
+
+std::string ScenePlayer(std::string_view scene) {
+    if (IsCircuitScene(scene)) {
+        const Result<CircuitSceneSetup> circuit = ParseCircuitScene(scene);
+        return circuit ? circuit->race.player : std::string();
+    }
+    const Result<RaceSceneSetup> race =
+        IsTrialScene(scene) ? ParseTrialScene(scene) : ParseRaceScene(scene);
+    return race ? race->player : std::string();
 }
 
 Result<RaceSceneSetup> ParseRaceScene(std::string_view scene) {

@@ -2,9 +2,11 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -14,6 +16,9 @@
 #include "sim/replay/replay_recorder.hpp"
 
 namespace rr::app {
+
+/// The gameplay fingerprint of a run that starts on `scene`.
+using GameplayOf = std::function<std::vector<std::string>(std::string_view scene)>;
 
 /// Later scenes than the first aren't recorded.
 class ReplayRecording final : public TickTap {
@@ -37,9 +42,9 @@ private:
 /// Drives the first scene it sees with the recorded input, then hands control back to the player.
 class ReplayPlayback final : public TickTap {
 public:
-    /// Plays without checking if the `.hashes` file is missing, and warns if `gameplay` differs.
+    /// Plays without checking if the `.hashes` file is missing, and warns if the gameplay differs.
     [[nodiscard]] static Result<ReplayPlayback> Load(const std::filesystem::path& file,
-                                                     std::span<const std::string> gameplay = {});
+                                                     const GameplayOf& gameplayOf = {});
 
     [[nodiscard]] std::optional<std::string> Scene() const;
 
@@ -49,11 +54,14 @@ public:
 
     void LogOutcome() const;
     [[nodiscard]] const sim::ReplayPlayer& Player() const { return player_; }
+    [[nodiscard]] bool IsGameplayMatched() const { return isGameplayMatched_; }
 
 private:
-    explicit ReplayPlayback(sim::ReplayPlayer player) : player_(std::move(player)) {}
+    ReplayPlayback(sim::ReplayPlayer player, bool isGameplayMatched)
+        : player_(std::move(player)), isGameplayMatched_(isGameplayMatched) {}
 
     sim::ReplayPlayer player_;
+    bool isGameplayMatched_ = true;
     int scenesStarted_ = 0;
     bool isReplayingTick_ = false;
 };
@@ -64,7 +72,7 @@ public:
     [[nodiscard]] static Result<ReplaySession> Start(
         const std::optional<std::filesystem::path>& recordFile,
         const std::optional<std::filesystem::path>& replayFile, std::optional<std::string>& scene,
-        const std::vector<std::string>& gameplay = {});
+        const GameplayOf& gameplayOf = {});
 
     /// Null when neither was asked for.
     [[nodiscard]] TickTap* Tap();

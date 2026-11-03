@@ -90,6 +90,21 @@ TEST_CASE("a versus race scene name records player 2's racer and the lap count")
         ParseCircuitScene("circuit:c0:respawn=3000:racer=0:race=0:points=0,0,0,0,0,0:laps=5"));
 }
 
+TEST_CASE("every race scene name carries the player's own racer, escaped") {
+    const RaceSceneSetup race{.track = "RACEC0R0", .player = "MR:X>50% 2"};
+    const RaceSceneSetup trial{.track = "RACEC0R0", .isTimeTrial = true, .player = "MINE"};
+    const CircuitSceneSetup circuit{.race = {.circuit = "c0", .player = "MINE"},
+                                    .standing = {.points = {}}};
+
+    CHECK(RaceSceneName(race) == "race:RACEC0R0:respawn=3000:racer=0:player=MR%3AX%3E50%25%202");
+    CHECK(ParseRaceScene(RaceSceneName(race)) == race);
+    CHECK(ParseTrialScene(RaceSceneName(trial))->player == "MINE");
+    CHECK(ParseCircuitScene(CircuitSceneName(circuit))->race.player == "MINE");
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:player="));
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:player=A%4"));
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:player=A%G0"));
+}
+
 TEST_CASE("a single race scene name records fewer opponents than a full grid") {
     const RaceSceneSetup race{.track = "RACEC0R0", .opponents = 2};
 

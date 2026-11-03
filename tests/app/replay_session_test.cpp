@@ -11,6 +11,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "app/frame_loop.hpp"
@@ -142,6 +143,29 @@ TEST_CASE("replaying a session takes the recorded scene and seed") {
     REQUIRE(playback.has_value());
     CHECK(replayed == scene);
     CHECK(playback->Seed() == recorded->Seed());
+}
+
+std::vector<std::string> PlayerXGameplay(std::string_view scene) {
+    return scene.ends_with(":player=X") ? std::vector<std::string>{"racer:X@1"}
+                                        : std::vector<std::string>{};
+}
+
+bool IsMatchedOnPlayback(const std::filesystem::path& file, const GameplayOf& gameplayOf) {
+    const Result<ReplayPlayback> playback = ReplayPlayback::Load(file, gameplayOf);
+    return playback && playback->IsGameplayMatched();
+}
+
+TEST_CASE("playback fingerprints the recorded scene, not the one it was started on") {
+    const test::TempFolder folder;
+    const std::filesystem::path file = folder.Path() / "race.rrr";
+    std::optional<std::string> scene = "race:RACEC0R0:respawn=off:player=X";
+    const Result<ReplaySession> recorded =
+        ReplaySession::Start(file, std::nullopt, scene, PlayerXGameplay);
+    REQUIRE(recorded.has_value());
+    recorded->Finish();
+
+    CHECK(IsMatchedOnPlayback(file, PlayerXGameplay));
+    CHECK_FALSE(IsMatchedOnPlayback(file, {}));
 }
 
 TEST_CASE("playback finds the first tick that drifts from the recording") {

@@ -17,7 +17,7 @@ inline constexpr int kDefaultLapCount = 3;
 inline constexpr std::size_t kDefaultOpponentCount = 5;
 
 /// Players drive grid slots `racer` then `secondRacer`, two alone. Empty `circuit` means home.
-/// `playerRacer` replaces the first player's driver and car, and isn't part of the name.
+/// `player` names player 1's own racer. `playerRacer`, resolved from it, isn't in the name.
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct RaceSceneSetup {
     std::string track;
@@ -32,6 +32,7 @@ struct RaceSceneSetup {
     std::size_t opponents = kDefaultOpponentCount;
     bool isTimeTrial = false;
     std::size_t firstSlot = 0;
+    std::string player;
     std::optional<settings::Racer> playerRacer;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
@@ -44,6 +45,8 @@ struct RaceSceneSetup {
 [[nodiscard]] std::string RaceSceneName(const RaceSceneSetup& setup);
 
 [[nodiscard]] bool IsRaceScene(std::string_view scene);
+
+[[nodiscard]] std::string ScenePlayer(std::string_view scene);
 [[nodiscard]] Result<RaceSceneSetup> ParseRaceScene(std::string_view scene);
 
 [[nodiscard]] bool IsTrialScene(std::string_view scene);
