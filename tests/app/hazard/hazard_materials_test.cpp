@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstddef>
 #include <optional>
 #include <string_view>
@@ -54,16 +55,23 @@ TEST_CASE("the code lamps and the sphinx's looping tracks are hazard driven") {
 TEST_CASE("a lamp holds its first frame for a red gate and its last for a blue one") {
     const HazardDriven lamp{.kind = HazardDriven::Kind::Lamp, .lamp = 1};
     sim::HazardMaterialsSnapshot hazards;
-    hazards.areLampsRed = {false, true, false};
+    hazards.areLampsRed = std::array{false, true, false};
 
     CHECK(Shown(lamp, hazards) == kRed);
-    hazards.areLampsRed[1] = false;
+    hazards.areLampsRed = std::array{false, false, false};
     CHECK(Shown(lamp, hazards) == kBlue);
+}
+
+TEST_CASE("a lamp loops as usual on a track without a code puzzle") {
+    const HazardDriven lamp{.kind = HazardDriven::Kind::Lamp, .lamp = 1};
+
+    CHECK(Shown(lamp, {}) == render::kWhiteTexture);
 }
 
 TEST_CASE("a flashing lamp plays on from the frame it held at its own rate") {
     const HazardDriven lamp{.kind = HazardDriven::Kind::Lamp, .lamp = 1};
-    sim::HazardMaterialsSnapshot hazards{.lampsFlashing = Milliseconds{250}};
+    sim::HazardMaterialsSnapshot hazards{.areLampsRed = std::array{false, false, false},
+                                         .lampsFlashing = Milliseconds{250}};
 
     CHECK(Shown(lamp, hazards) == kRed);
     hazards.lampsFlashing = Milliseconds{750};

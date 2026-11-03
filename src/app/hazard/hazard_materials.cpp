@@ -51,7 +51,10 @@ const render::Material* HazardShown(const HazardDriven& driven, const PlayedTrac
             FramesIn(driven.blowUp.frames.tracks.front().framesPerSecond, *hazards.sphinxBlowingUp);
         return &KeyShown(driven.blowUp, std::min(frames, LastFrame(driven.blowUp)));
     }
-    const std::int64_t held = hazards.areLampsRed.at(driven.lamp) ? 0 : LastFrame(bound);
+    if (!hazards.areLampsRed) {
+        return nullptr;
+    }
+    const std::int64_t held = hazards.areLampsRed->at(driven.lamp) ? 0 : LastFrame(bound);
     const std::int64_t flashed =
         hazards.lampsFlashing
             ? FramesIn(kLampFramesPerSecond.at(driven.lamp), *hazards.lampsFlashing)

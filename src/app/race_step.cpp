@@ -1,6 +1,7 @@
 #include "app/race_step.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -94,9 +95,11 @@ sim::HazardMaterialsSnapshot HazardMaterialsOf(const sim::Hazards& hazards) {
     sim::HazardMaterialsSnapshot shown;
     for (const sim::HazardSlot& slot : hazards.Slots()) {
         if (const auto* puzzle = std::get_if<sim::CodePuzzle>(&slot.state)) {
+            std::array<bool, sim::kCodeGates> areRed{};
             for (std::size_t gate = 0; gate < sim::kCodeGates; ++gate) {
-                shown.areLampsRed.at(gate) = puzzle->IsLampRed(gate);
+                areRed.at(gate) = puzzle->IsLampRed(gate);
             }
+            shown.areLampsRed = areRed;
             shown.lampsFlashing = puzzle->Flashing();
         } else if (const auto* sphinx = std::get_if<sim::Sphinx>(&slot.state)) {
             shown.sphinxBlowingUp = sphinx->BlowingUp();
