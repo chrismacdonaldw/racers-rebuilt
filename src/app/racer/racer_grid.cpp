@@ -14,6 +14,7 @@
 #include "assets/racer_catalog.hpp"
 #include "core/utf16_text.hpp"
 #include "sim/physics/racer_chassis.hpp"
+#include "sim/race/cheats.hpp"
 
 namespace rr::app {
 namespace {
@@ -63,6 +64,13 @@ const settings::Racer* OwnRacer(const RaceSceneSetup& setup, std::size_t slot) {
     }
     return nullptr;
 }
+
+RacerParts ShownParts(const sim::Cheats& cheats) {
+    return {.wheels = !cheats.Has(sim::Cheat::NoWheels),
+            .body = !cheats.Has(sim::Cheat::NoChassis),
+            .driver = !cheats.Has(sim::Cheat::NoDriver)};
+}
+
 void Dress(const Vector3& origin, const CarLook& look, std::span<render::MeshDraw> draws) {
     for (render::MeshDraw& draw : draws) {
         draw.transform.position = origin + ((draw.transform.position - origin) * look.scale);
@@ -86,17 +94,18 @@ Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs&
         return std::unexpected(std::move(codes.error()));
     }
     slots = std::min(slots, codes->size());
+    const RacerParts shown = ShownParts(setup.cheats);
     std::vector<Slot> loaded;
     for (const std::string& code : std::span(*codes).first(slots)) {
         const settings::Racer* own = OwnRacer(setup, loaded.size());
         Result<std::unique_ptr<RacerAssets>> assets = LoadSlot(vfs, loader, *catalog, code, own);
         Result<BoundingSphere> bounds = assets.and_then(
-            [](const std::unique_ptr<RacerAssets>& racer) { return RacerBounds(*racer); });
+            [&](const std::unique_ptr<RacerAssets>& racer) { return RacerBounds(*racer, shown); });
         RacerDraws models;
         Result<RacerVisuals> visuals = bounds.and_then([&](const BoundingSphere&) {
             return UploadRacer(renderer, **assets).and_then([&](RacerDraws draws) {
                 models = draws;
-                return RacerVisuals::Create(**assets, std::move(draws));
+                return RacerVisuals::Create(**assets, ShowOnly(std::move(draws), shown));
             });
         });
         if (!visuals) {

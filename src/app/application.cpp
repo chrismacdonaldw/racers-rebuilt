@@ -341,6 +341,7 @@ Result<std::unique_ptr<RaceScene>> Application::LoadRace(RaceSceneSetup setup,
     if (Result<void> resolved = ResolvePlayers(vfs_, RacersFile(), setup); !resolved) {
         return std::unexpected(std::move(resolved.error()));
     }
+    setup.isMirrored = LoadsMirrored(setup);
     const std::string language = SelectedLanguage(settings_);
     const std::unique_ptr<RaceLoadingScreen> loading =
         OpenLoadingScreen(renderer_, vfs_, setup.track, language);

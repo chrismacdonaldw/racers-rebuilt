@@ -23,6 +23,15 @@ struct RacerDraws {
     ModelDraws driver;
 };
 
+struct RacerParts {
+    bool wheels = true;
+    bool body = true;
+    bool driver = true;
+};
+
+/// A hidden part keeps its draws with nothing to draw, so poses still line up.
+[[nodiscard]] RacerDraws ShowOnly(RacerDraws draws, RacerParts shown);
+
 /// `draws` holds one draw per range of `geometry`, in order.
 [[nodiscard]] ModelDraws FollowJoints(const assets::GeometryAsset& geometry,
                                       std::vector<render::MeshDraw> draws);

@@ -36,6 +36,7 @@ constexpr std::string_view kPointsKey = "points";
 constexpr std::string_view kPlayerKey = "player";
 constexpr std::string_view kSecondPlayerKey = "player2";
 constexpr std::string_view kCheatsKey = "cheats";
+constexpr std::string_view kRocketRacerCircuit = "c6";
 constexpr std::string_view kHexDigits = "0123456789ABCDEF";
 constexpr int kHexBase = 16;
 constexpr char kHashMark = '@';
@@ -315,6 +316,11 @@ std::size_t RacerCount(const RaceSceneSetup& setup, std::size_t gridSize) {
         return setup.players;
     }
     return std::min(gridSize, setup.players + setup.opponents);
+}
+
+bool LoadsMirrored(const RaceSceneSetup& setup) {
+    return setup.isMirrored ||
+           (setup.cheats.Has(sim::Cheat::MirroredBoss) && setup.circuit == kRocketRacerCircuit);
 }
 
 bool IsRaceScene(std::string_view scene) {

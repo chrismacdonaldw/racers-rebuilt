@@ -37,10 +37,13 @@ public:
         cameraHeight = interpolated.camera.transform.position.y;
     }
 
+    [[nodiscard]] double TimeScale() const override { return timeScale; }
+
     std::vector<float> positions;
     std::vector<sim::InputFrame> inputs;
     std::vector<float> rendered;
     float cameraHeight = 0.0F;
+    double timeScale = 1.0;
 
 private:
     static constexpr float kAcceleration = 0.01F;
@@ -73,6 +76,19 @@ RunResult Run(const std::vector<Nanoseconds>& frameTimes) {
     }
     result.positions = test.scene->positions;
     return result;
+}
+
+TEST_CASE("a faster scene runs more ticks of the same length at any framerate") {
+    for (const milliseconds frame : {milliseconds{4}, milliseconds{16}, milliseconds{48}}) {
+        CAPTURE(frame.count());
+        LoopUnderTest test;
+        test.scene->timeScale = 1.75;
+        int ticks = 0;
+        for (Nanoseconds now{0}; now <= milliseconds{960}; now += frame) {
+            ticks += test.loop.RunFrame(now).tickCount;
+        }
+        CHECK(ticks == 140);
+    }
 }
 
 TEST_CASE("every framerate produces the same ticks and per-tick state") {

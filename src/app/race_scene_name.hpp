@@ -47,6 +47,9 @@ struct RaceSceneSetup {
 /// A lone player races `opponents` computer racers, and two players race alone.
 [[nodiscard]] std::size_t RacerCount(const RaceSceneSetup& setup, std::size_t gridSize);
 
+/// LNFRRRM also mirrors a race named as the Rocket Racer circuit's.
+[[nodiscard]] bool LoadsMirrored(const RaceSceneSetup& setup);
+
 /// Such as `race:RACEC0R0:respawn=3000:racer=2`, leaving out fields still at their defaults.
 [[nodiscard]] std::string RaceSceneName(const RaceSceneSetup& setup);
 

@@ -187,9 +187,13 @@ void ClearContacts(BodyMotion& motion) {
     }
 }
 
-void UpdateWheelSurfaces(BodyMotion& motion) {
+void UpdateWheelSurfaces(BodyMotion& motion, bool ignoresSurfaces) {
     for (WheelProbe& wheel : motion.wheels) {
-        wheel.surface = wheel.isInContact ? wheel.hitSurface : Surface{};
+        const Surface real = wheel.isInContact ? wheel.hitSurface : Surface{};
+        wheel.surface = ignoresSurfaces ? Surface{.soundId = real.soundId,
+                                                  .touchEvent = real.touchEvent,
+                                                  .tableEntry = real.tableEntry}
+                                        : real;
     }
 }
 

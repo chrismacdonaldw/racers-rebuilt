@@ -73,7 +73,7 @@ void RunPass(BodyState& body, const BodyConstants& constants, int dtMs,
     UpdateContacts(body, constants, dtMs, world);
     UpdateFacing(body, dtMs);
     UpdateDerivedMotion(body);
-    UpdateWheelSurfaces(body.motion);
+    UpdateWheelSurfaces(body.motion, constants.ignoresSurfaces);
 }
 
 int RetryStepMs(int stepMs, float fraction) {

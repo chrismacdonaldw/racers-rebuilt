@@ -86,6 +86,8 @@ public:
     void HoldAtStart();
     void Go();
 
+    void IgnoreSurfaces() { constants_.ignoresSurfaces = true; }
+
     /// Replaces any turbo already running. A hover turbo halts the racer until it ends.
     void StartTurbo(TurboLevel level);
     void CancelTurbo();

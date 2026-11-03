@@ -46,6 +46,9 @@ public:
     /// Read every frame, so it can change as the scene runs.
     [[nodiscard]] virtual SceneMusic Music() const { return {}; }
 
+    /// Scene time per real time, read every frame. Ticks stay kSimTick long; more of them run.
+    [[nodiscard]] virtual double TimeScale() const { return 1.0; }
+
     /// Read once as the scene opens, to split the keys and pads between players.
     [[nodiscard]] virtual std::size_t PlayerCount() const { return 1; }
 

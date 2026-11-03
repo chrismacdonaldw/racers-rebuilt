@@ -43,6 +43,7 @@ struct BodyConstants {
     float wheelbase = 0.0F;
     std::array<Vector3, kBodyPointCount> bodyPoints{};
     float boundsRadius = 0.0F;
+    bool ignoresSurfaces = false;
 };
 
 struct StatMultipliers {

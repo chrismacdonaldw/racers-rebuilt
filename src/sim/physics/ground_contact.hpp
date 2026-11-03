@@ -13,7 +13,8 @@ void UpdateGroundContact(BodyState& body, const BodyConstants& constants, int dt
 
 void ClearContacts(BodyMotion& motion);
 
-void UpdateWheelSurfaces(BodyMotion& motion);
+/// Ignoring surfaces keeps the road's handling but the real surface's sound, events and entry.
+void UpdateWheelSurfaces(BodyMotion& motion, bool ignoresSurfaces);
 
 /// Zero when no wheel is in contact.
 [[nodiscard]] float AverageContactGrip(const BodyMotion& motion);

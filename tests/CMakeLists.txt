@@ -278,6 +278,7 @@ add_executable(racers-rebuilt-tests
     sim/physics/curse_jitter_test.cpp
     sim/physics/drive_controller_test.cpp
     sim/physics/driver_input_test.cpp
+    sim/physics/ground_contact_test.cpp
     sim/physics/hover_contact_test.cpp
     sim/physics/racer_chassis_test.cpp
     sim/physics/racer_contacts_test.cpp
