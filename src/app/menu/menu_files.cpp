@@ -82,6 +82,11 @@ const assets::GameButtonStyle* MenuFiles::FindGameButtonStyle(std::string_view n
         styles, [&](const assets::MenuStyles& style) { return style.FindGameButton(name); });
 }
 
+const assets::FrameStyle* MenuFiles::FindFrameStyle(std::string_view name) const {
+    return FindInStyles(styles,
+                        [&](const assets::MenuStyles& style) { return style.FindFrame(name); });
+}
+
 const assets::ImageListEntry* MenuFiles::FindImage(std::string_view name) const {
     const auto image = std::ranges::find_if(
         images | std::views::reverse,

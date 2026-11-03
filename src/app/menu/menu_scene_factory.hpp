@@ -10,6 +10,7 @@
 #include "app/scene.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
+#include "sim/race/cheats.hpp"
 
 namespace rr::app {
 
@@ -19,6 +20,7 @@ struct MenuSceneParts {
     std::filesystem::path progressFile;
     std::filesystem::path racersFile;
     std::string language;
+    sim::Cheats* cheats = nullptr;
 };
 
 /// The menu screens other than the main menu. None when `scene` names none of them.

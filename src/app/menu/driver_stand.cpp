@@ -18,38 +18,36 @@ constexpr std::size_t kHeadReaction = 0;
 constexpr std::size_t kChestReaction = 1;
 constexpr std::size_t kLegReaction = 2;
 constexpr std::size_t kShakeReaction = 3;
-constexpr render::Color kAmbient{.r = 128.0F / 255.0F, .g = 128.0F / 255.0F, .b = 128.0F / 255.0F};
 
 }
 
-Result<std::unique_ptr<DriverStand>> DriverStand::Load(render::Renderer& renderer,
-                                                       const assets::Vfs& vfs,
-                                                       assets::TrackLoader& loader,
-                                                       const MenuFiles& files,
-                                                       std::string_view screen) {
-    Result<StandScene> scene = LoadStandScene(vfs, loader, files, screen, kBuilderStandSet);
+Result<std::unique_ptr<DriverStand>> DriverStand::Load(
+    render::Renderer& renderer, const assets::Vfs& vfs, assets::TrackLoader& loader,
+    const MenuFiles& files, std::string_view screen, const StandSet& set) {
+    Result<StandScene> scene = LoadStandScene(vfs, loader, files, screen, set);
     Result<TrackModel> model = scene.and_then(
         [&](const StandScene& loaded) { return UploadTrack(renderer, loaded.assets); });
-    Result<StandFraming> framing = model.and_then([&](const TrackModel&) {
-        return LoadStandFraming(renderer, vfs, files, screen, kBuilderStandSet);
-    });
+    Result<StandFraming> framing = model.and_then(
+        [&](const TrackModel&) { return LoadStandFraming(renderer, vfs, files, screen, set); });
     if (!framing) {
         return Fail(framing.error().code,
                     std::format("{} driver stand: {}", screen, framing.error().message));
     }
     return std::unique_ptr<DriverStand>(new DriverStand(
-        std::make_unique<StandScene>(std::move(*scene)), std::move(*model), *framing));
+        std::make_unique<StandScene>(std::move(*scene)), std::move(*model), *framing, set));
 }
 
 DriverStand::DriverStand(std::unique_ptr<StandScene> scene, TrackModel model,
-                         const StandFraming& framing)
+                         const StandFraming& framing, const StandSet& set)
     : scene_(std::move(scene)),
       model_(std::move(model)),
       framing_(framing),
       entities_(scene_->sources),
       jointed_(model_.animatedModels, scene_->sources),
-      random_(kIdleSeed) {
+      random_(kIdleSeed),
+      ambient_{.r = set.ambient, .g = set.ambient, .b = set.ambient} {
     light_.front() = MenuSceneLight();
+    light_.front().color = {.r = set.light, .g = set.light, .b = set.light};
 }
 
 Result<void> DriverStand::Show(KitMinifig minifig) {
@@ -111,7 +109,7 @@ render::RenderView DriverStand::Render(std::span<const sim::EntityClock> clocks)
         draws_.insert(draws_.end(), jointed_.Draws().begin(), jointed_.Draws().end());
     }
     return {.camera = scene_->camera,
-            .lighting = {.lights = light_, .ambient = kAmbient},
+            .lighting = {.lights = light_, .ambient = ambient_},
             .meshes = draws_,
             .viewport = render::UiViewport(framing_.interior)};
 }

@@ -34,11 +34,16 @@ struct StandSet {
     std::string_view turntable;
     Vector3 driverSpot;
     Vector3 driverFacing;
+    Vector3 driverUp{.z = 1.0F};
+    float ambient = 0.0F;
+    float light = 1.0F;
 };
 
 extern const StandSet kRacerStandSet;
 
 extern const StandSet kBuilderStandSet;
+
+extern const StandSet kLicenceStandSet;
 
 /// `driver` is an entity added for the racer. The part lists follow the set's names.
 // NOLINTNEXTLINE(bugprone-exception-escape)

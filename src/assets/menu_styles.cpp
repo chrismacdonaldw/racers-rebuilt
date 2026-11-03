@@ -18,6 +18,7 @@ namespace {
 constexpr FieldId kCapacityField = 0x27;
 constexpr FieldId kImageStyle = 0x32;
 constexpr FieldId kTextStyle = 0x33;
+constexpr FieldId kFrameStyle = 0x34;
 constexpr FieldId kCarouselStyle = 0x38;
 constexpr FieldId kSelectorStyle = 0x39;
 constexpr FieldId kGameButtonStyle = 0x3E;
@@ -32,6 +33,11 @@ constexpr std::array kTextStyleFields{
     Field<&TextStyle::color>(0x2A),
     Field<&TextStyle::wrapWidth>(0x2E),
     Field<&TextStyle::centered>(0x2F),
+};
+
+constexpr std::array kFrameStyleFields{
+    Field<&FrameStyle::images>(0x28),
+    Field<&FrameStyle::color, &FrameStyle::fillColor>(0x2A),
 };
 
 constexpr std::array kIconStyleFields{
@@ -103,6 +109,8 @@ Result<void> ReadSection(TokenReader& reader, MenuStyles& styles) {
             return ReadStyles<ImageStyle>(reader, kImageStyle, kImageStyleFields, styles.images);
         case kTextStyle:
             return ReadStyles<TextStyle>(reader, kTextStyle, kTextStyleFields, styles.texts);
+        case kFrameStyle:
+            return ReadStyles<FrameStyle>(reader, kFrameStyle, kFrameStyleFields, styles.frames);
         case kCarouselStyle:
             return ReadStyles<CarouselStyle>(reader, kCarouselStyle, kCarouselStyleFields,
                                              styles.carousels);
@@ -131,6 +139,10 @@ const ImageStyle* MenuStyles::FindImage(std::string_view name) const {
 
 const TextStyle* MenuStyles::FindText(std::string_view name) const {
     return FindStyle<TextStyle>(texts, name);
+}
+
+const FrameStyle* MenuStyles::FindFrame(std::string_view name) const {
+    return FindStyle<FrameStyle>(frames, name);
 }
 
 const CarouselStyle* MenuStyles::FindCarousel(std::string_view name) const {
