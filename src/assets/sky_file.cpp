@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <format>
 #include <optional>
 #include <string_view>
@@ -18,11 +19,28 @@ constexpr FieldId kSkyField = 0x27;
 constexpr FieldId kInitialField = 0x2D;
 constexpr FieldId kHeightField = 0x2E;
 
+constexpr std::size_t kNameLength = 8;
+
+Result<void> ReadLowBytes(TokenReader& reader, Rgb8& color) {
+    std::array<std::int32_t, 3> values{};
+    return ReadValue(reader, values).transform([&] {
+        std::ranges::transform(values, color.begin(),
+                               [](std::int32_t value) { return static_cast<std::uint8_t>(value); });
+    });
+}
+
+template <auto Member>
+constexpr FieldRule<SkyKeyframe> ColorField(FieldId id) {
+    return {.id = id, .read = [](TokenReader& reader, SkyKeyframe& keyframe) {
+                return ReadLowBytes(reader, keyframe.*Member);
+            }};
+}
+
 constexpr std::array kKeyframeFields{
     Field<&SkyKeyframe::length>(0x28),
-    Field<&SkyKeyframe::horizon>(0x29),
-    Field<&SkyKeyframe::middle>(0x2A),
-    Field<&SkyKeyframe::top>(0x2B),
+    ColorField<&SkyKeyframe::horizon>(0x29),
+    ColorField<&SkyKeyframe::middle>(0x2A),
+    ColorField<&SkyKeyframe::top>(0x2B),
 };
 
 Result<void> ReadKeyframe(TokenReader& reader, SkyGradient& sky) {
@@ -76,9 +94,8 @@ Result<void> ReadHeight(TokenReader& reader, float& height) {
 }
 
 std::size_t IndexOf(const std::vector<SkyGradient>& skies, std::string_view name) {
-    const std::string wanted = ToUpperAscii(name);
     const auto found = std::ranges::find_if(
-        skies, [&](const SkyGradient& sky) { return ToUpperAscii(sky.name) == wanted; });
+        skies, [&](const SkyGradient& sky) { return IsSameSkyName(sky.name, name); });
     return found == skies.end() ? 0 : static_cast<std::size_t>(found - skies.begin());
 }
 
@@ -100,6 +117,11 @@ Result<void> Validate(const SkyFile& file) {
     return {};
 }
 
+}
+
+bool IsSameSkyName(std::string_view first, std::string_view second) {
+    return ToUpperAscii(first.substr(0, kNameLength)) ==
+           ToUpperAscii(second.substr(0, kNameLength));
 }
 
 Result<SkyFile> ParseSkyFile(std::span<const std::byte> bytes) {

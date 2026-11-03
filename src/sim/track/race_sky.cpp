@@ -2,10 +2,8 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <string>
 #include <utility>
-
-#include "assets/game_path.hpp"
+#include <vector>
 
 namespace rr::sim {
 namespace {
@@ -102,9 +100,8 @@ void RaceSky::Tick(Milliseconds elapsed) {
 }
 
 std::optional<std::size_t> RaceSky::Find(std::string_view sky) const {
-    const std::string wanted = assets::ToUpperAscii(sky);
     const auto found = std::ranges::find_if(file_->skies, [&](const assets::SkyGradient& gradient) {
-        return assets::ToUpperAscii(gradient.name) == wanted;
+        return assets::IsSameSkyName(gradient.name, sky);
     });
     if (found == file_->skies.end()) {
         return std::nullopt;

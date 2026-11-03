@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "core/duration.hpp"
@@ -34,6 +35,9 @@ struct SkyFile {
     std::size_t initial = 0;
     float heightOffset = 0.0F;
 };
+
+/// Compares case-insensitively on the first 8 characters, as the original's name buffers hold.
+[[nodiscard]] bool IsSameSkyName(std::string_view first, std::string_view second);
 
 /// Reads a `BACKGRND.SKB`. Fails without skies, or with a sky that has no keyframes.
 [[nodiscard]] Result<SkyFile> ParseSkyFile(std::span<const std::byte> bytes);

@@ -94,6 +94,22 @@ TEST_CASE("a sky file without skies or keyframes fails") {
     CHECK_FALSE(ParseSkyFile(Skies({Sky("empty", {})})).has_value());
 }
 
+TEST_CASE("a colour keeps the low byte of each channel") {
+    const std::vector<std::byte> colour =
+        Bytes({0x29, 0x0E, 0x00, 0x01, 0x0E, 0xFF, 0x01, 0x0D, 0xFF, 0xFF});
+
+    const Result<SkyFile> file = ParseSkyFile(Skies({Sky("odd", {Keyframe(colour)})}));
+
+    REQUIRE(file.has_value());
+    CHECK(file->skies[0].keyframes[0].horizon == Rgb8{0, 255, 255});
+}
+
+TEST_CASE("sky names match on their first 8 characters, ignoring case") {
+    CHECK(IsSameSkyName("Daylight", "DAYLIGHTS"));
+    CHECK_FALSE(IsSameSkyName("dusk", "dawn"));
+    CHECK_FALSE(IsSameSkyName("night", "nightfal"));
+}
+
 TEST_CASE("a keyframe with an unknown field fails") {
     CHECK_FALSE(ParseSkyFile(Skies({Sky("odd", {Keyframe(Join({Bytes({0x2C}), Ints({1})}))})}))
                     .has_value());
