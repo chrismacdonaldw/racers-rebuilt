@@ -202,6 +202,8 @@ public:
 
     [[nodiscard]] const DriverState& Driver() const { return driver_.State(); }
 
+    [[nodiscard]] float DriftRoll() const;
+
     [[nodiscard]] const StatMultipliers& Stats() const { return stats_; }
 
     [[nodiscard]] const StartBoostState& Boost() const { return startBoost_.State(); }

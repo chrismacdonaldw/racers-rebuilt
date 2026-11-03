@@ -68,12 +68,14 @@ struct SkidSnapshot {
 };
 
 /// `turnRadius` is in world units, positive turning left and 0 when driving straight.
+/// `driftRoll` is the body roll a drift adds each `kDriftRollStepMs`.
 /// `hitReactions` and `suddenStops` only count up. `finishPlace` waits for the last lap.
 /// `curseSource.trap` is in engine space.
 struct RacerSnapshot {
     EntityId id{};
     float forwardSpeed = 0.0F;
     float turnRadius = 0.0F;
+    float driftRoll = 0.0F;
     std::uint32_t hitReactions = 0;
     std::uint32_t suddenStops = 0;
     bool isReversing = false;

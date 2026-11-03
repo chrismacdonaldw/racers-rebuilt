@@ -91,5 +91,18 @@ TEST_CASE("2001 bounces off a gentle slope like a floor, without the wall yaw") 
     CHECK(rerelease.motion.velocity.x == original.motion.velocity.x);
 }
 
+TEST_CASE("1999 rolls a drifting body by how far its facing trails, 2001 doesn't") {
+    const BodyConstants constants =
+        MakeBodyConstants({}, {}, RulesFor(assets::GameVersion::Release1999));
+    BodyState body = BodyFor(constants);
+    body.facing = {.y = 1.0F};
+    body.turnRadius = -50.0F;
+
+    CHECK(DriftRoll(body, true, RulesFor(assets::GameVersion::Release1999)) ==
+          doctest::Approx(-0.06F));
+    CHECK(DriftRoll(body, false, RulesFor(assets::GameVersion::Release1999)) == 0.0F);
+    CHECK(DriftRoll(body, true, RulesFor(assets::GameVersion::Release2001)) == 0.0F);
+}
+
 }
 }

@@ -145,6 +145,7 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
             {.id = id,
              .forwardSpeed = racer.Body().derived.forwardSpeed,
              .turnRadius = racer.Body().turnRadius,
+             .driftRoll = racer.DriftRoll(),
              .hitReactions = racer.Status().hitReactions,
              .suddenStops = racer.Status().suddenStops,
              .isReversing = racer.Body().thrust < 0.0F && racer.Body().derived.forwardSpeed < 0.0F,

@@ -26,6 +26,7 @@ struct VersionRules {
     bool racersStepFirst = false;
     bool allowsInputLag = false;
     bool keepsOneLapZone = false;
+    bool dropsDriftLean = false;
 };
 
 [[nodiscard]] const VersionRules& RulesFor(assets::GameVersion version);

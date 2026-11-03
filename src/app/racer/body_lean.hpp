@@ -11,7 +11,8 @@ namespace rr::app {
 class BodyLean {
 public:
     /// `wheels` and the result are game-space poses. `mass` is the racer's physics mass.
-    [[nodiscard]] Transform Update(const Transform& wheels, float elapsedMs, float mass);
+    [[nodiscard]] Transform Update(const Transform& wheels, float elapsedMs, float mass,
+                                   float driftRoll = 0.0F);
 
 private:
     float pitch_ = 0.0F;

@@ -19,6 +19,7 @@ constexpr VersionRules kRules2001{
     .racersStepFirst = true,
     .allowsInputLag = true,
     .keepsOneLapZone = true,
+    .dropsDriftLean = true,
 };
 
 }

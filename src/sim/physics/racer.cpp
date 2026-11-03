@@ -188,6 +188,10 @@ bool Racer::HasHoverStalled() const {
     return !route_ && status_.isHalted && body_.derived.isAtRest && CanFadeEarly(*turbo_);
 }
 
+float Racer::DriftRoll() const {
+    return sim::DriftRoll(body_, driver_.State().isDrifting, constants_.rules);
+}
+
 Vector3 Racer::CentreOfMass() const {
     return CentreOfMassWorld(body_.motion, constants_);
 }
