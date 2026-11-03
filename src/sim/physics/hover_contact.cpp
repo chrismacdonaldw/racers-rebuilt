@@ -16,6 +16,7 @@ constexpr float kMsPerSecond = 1000.0F;
 constexpr float kBankRatePerMs = 0.005F;
 constexpr float kMaxBank = 0.7853982F;
 constexpr float kBankReferenceRadius = 4096.0F;
+constexpr float kUnclampedBankRadius = 40.0F;
 constexpr float kFollowRatePerMs = 0.01F;
 constexpr float kContactBand = 0.4F;
 constexpr float kLiftOffDrop = 0.008F;
@@ -121,11 +122,14 @@ void UpdateHoverLift(HoverLift& lift, int dtMs) {
     lift.bank = Approach(lift.bank, lift.targetBank, dt * kBankRatePerMs);
 }
 
-float HoverBankTarget(float turnRadius) {
+float HoverBankTarget(float turnRadius, const VersionRules& rules) {
     if (turnRadius == 0.0F) {
         return 0.0F;
     }
-    const float straightness = std::min(std::abs(turnRadius) / kBankReferenceRadius, 1.0F);
+    const float radius = std::abs(turnRadius);
+    const float straightness = rules.unclampsHoverBank
+                                   ? kUnclampedBankRadius / radius
+                                   : std::min(radius / kBankReferenceRadius, 1.0F);
     return std::copysign((1.0F - straightness) * kMaxBank, -turnRadius);
 }
 

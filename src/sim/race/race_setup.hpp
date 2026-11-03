@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "assets/game_version.hpp"
 #include "core/bounding_sphere.hpp"
 #include "sim/ai/powerup_habits.hpp"
 #include "sim/physics/chassis.hpp"
@@ -40,6 +41,7 @@ struct RaceSetup {
     float aiPace = 1.0F;
     EffectFactories effects;
     Cheats cheats;
+    assets::GameVersion version = assets::GameVersion::Release1999;
     bool isTestDrive = false;
     bool isDemo = false;
 };

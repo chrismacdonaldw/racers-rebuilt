@@ -32,8 +32,10 @@ Basis HeadingBasis(float headingRadians) {
 
 }
 
-Racer::Racer(const ChassisSpec& chassis, const CarBuild& build, const RacerStart& start)
-    : constants_(MakeBodyConstants(chassis, build)), stats_(MakeStatMultipliers(chassis, build)) {
+Racer::Racer(const ChassisSpec& chassis, const CarBuild& build, const RacerStart& start,
+             const VersionRules& rules)
+    : constants_(MakeBodyConstants(chassis, build, rules)),
+      stats_(MakeStatMultipliers(chassis, build)) {
     Place(start);
 }
 
@@ -69,7 +71,8 @@ void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const Coll
     const bool wasDrifting = driver_.State().isDrifting;
     const RacerControls driven =
         startBoost_.State().isHeldAtStart ? SteeringOnly(controls) : controls;
-    DriveCommand command = AffectedDrive(driver_.Update(driven, CanStartDrift(body_), dtMs));
+    DriveCommand command =
+        AffectedDrive(driver_.Update(driven, CanStartDrift(body_), constants_.rules, dtMs));
     if (command.isDrifting && body_.derived.forwardSpeed < kMinDriftSpeed) {
         driver_.EndDrift();
         command.isDrifting = false;

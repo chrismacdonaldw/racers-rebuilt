@@ -8,12 +8,17 @@ namespace {
 constexpr int kTickMs = 12;
 
 DriveCommand Hold(DriverInput& driver, const RacerControls& controls, int durationMs,
-                  bool canStartDrift = false) {
+                  bool canStartDrift = false,
+                  assets::GameVersion version = assets::GameVersion::Release1999) {
     DriveCommand command;
     for (int elapsed = 0; elapsed < durationMs; elapsed += kTickMs) {
-        command = driver.Update(controls, canStartDrift, kTickMs);
+        command = driver.Update(controls, canStartDrift, RulesFor(version), kTickMs);
     }
     return command;
+}
+
+float Hold2001(DriverInput& driver, const RacerControls& controls, int durationMs) {
+    return Hold(driver, controls, durationMs, false, assets::GameVersion::Release2001).steering;
 }
 
 TEST_CASE("a held steer key ramps toward full lock at 1.25 per second") {
@@ -47,6 +52,32 @@ TEST_CASE("a part-deflected stick steers faster up to its own limit") {
     CHECK(early == doctest::Approx(2.5F * 0.75F * 0.096F));
     CHECK(Hold(driver, {.steerLeftAxis = 0.5F}, 600).steering == 0.5F);
     CHECK(Hold(driver, {.steerLeftAxis = 0.25F}, 12).steering == 0.25F);
+}
+
+TEST_CASE("2001 recentres released keys three times faster") {
+    DriverInput driver;
+    static_cast<void>(Hold2001(driver, {.isLeftHeld = true}, 480));
+
+    CHECK(Hold2001(driver, {}, 12) == doctest::Approx(0.6F - (25.25F * 0.012F)));
+}
+
+TEST_CASE("2001 steers a part-deflected stick on a squared curve") {
+    DriverInput driver;
+
+    CHECK(Hold2001(driver, {.steerLeftAxis = 0.5F}, 96) ==
+          doctest::Approx(4.15F * (0.45F + (0.5F * 0.75F)) * 0.096F));
+}
+
+TEST_CASE("reversing the stick recentres before turning in 2001, and in 1999 eases back") {
+    DriverInput original;
+    DriverInput rerelease;
+    static_cast<void>(Hold(original, {.steerLeftAxis = 1.0F}, 1200));
+    static_cast<void>(Hold2001(rerelease, {.steerLeftAxis = 1.0F}, 1200));
+
+    CHECK(Hold(original, {.steerLeftAxis = -1.0F}, 12).steering ==
+          doctest::Approx(1.0F - (8.25F * 0.012F)));
+    CHECK(Hold2001(rerelease, {.steerLeftAxis = -1.0F}, 12) ==
+          doctest::Approx(-4.15F * 0.45F * 0.012F));
 }
 
 TEST_CASE("throttle and brake together give half drive") {

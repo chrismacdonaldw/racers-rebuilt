@@ -156,7 +156,8 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
     localBounds_.reserve(setup.racers.size());
     for (std::size_t i = 0; i < setup.racers.size(); ++i) {
         const RacerEntry& entry = setup.racers[i];
-        Racer& racer = racers_.emplace_back(entry.chassis, entry.build, course.grid[i]);
+        Racer& racer = racers_.emplace_back(entry.chassis, entry.build, course.grid[i],
+                                            RulesFor(setup.version));
         racer.HoldAtStart();
         if (setup.cheats.Has(Cheat::IgnoreSurfaces)) {
             racer.IgnoreSurfaces();

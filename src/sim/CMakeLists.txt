@@ -66,6 +66,7 @@ rr_add_module(sim
         physics/rigid_body.cpp
         physics/start_boost.cpp
         physics/turbo.cpp
+        physics/version_rules.cpp
         physics/wall_sweep.cpp
         powerup/aim_cones.cpp
         powerup/ballistic_flight.cpp
