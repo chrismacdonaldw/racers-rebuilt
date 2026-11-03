@@ -34,6 +34,7 @@ struct StandShot {
     render::Rect interior;
     render::Color light;
     std::span<const render::MeshDraw> extras;
+    render::Color carAmbient;
 };
 
 class CarStand {
@@ -86,7 +87,7 @@ private:
              std::unique_ptr<StandScene> scene, TrackModel model, const StandFraming& framing);
 
     [[nodiscard]] Result<void> ShowDriver(const settings::Racer& racer);
-    void DrawCar(const Transform& car);
+    void DrawCar(const Transform& car, const render::Color& ambient = {});
 
     render::Renderer* renderer_;
     const assets::Vfs* vfs_;

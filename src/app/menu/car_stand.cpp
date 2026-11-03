@@ -124,7 +124,7 @@ render::RenderView CarStand::Render(std::span<const sim::EntityClock> clocks,
 }
 
 render::RenderView CarStand::Render(const Transform& car, const StandShot& shot) {
-    DrawCar(car);
+    DrawCar(car, shot.carAmbient);
     for (render::MeshDraw draw : shot.extras) {
         draw.transform = TransformToEngine(Compose(car, draw.transform));
         draws_.push_back(draw);
@@ -136,7 +136,7 @@ render::RenderView CarStand::Render(const Transform& car, const StandShot& shot)
             .viewport = render::UiViewport(shot.interior)};
 }
 
-void CarStand::DrawCar(const Transform& car) {
+void CarStand::DrawCar(const Transform& car, const render::Color& ambient) {
     draws_.assign(model_.draws.begin(), model_.draws.end());
     if (!shown_) {
         return;
@@ -144,6 +144,7 @@ void CarStand::DrawCar(const Transform& car) {
     const Transform placed = TransformToEngine(car);
     for (render::MeshDraw draw : cars_.at(*shown_).model.draws) {
         draw.transform = placed;
+        draw.material.ambient = draw.material.ambient * ambient;
         draws_.push_back(draw);
     }
 }

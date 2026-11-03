@@ -19,6 +19,7 @@
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_widgets.hpp"
 #include "app/racer/racer_bounds.hpp"
+#include "app/track_space.hpp"
 #include "assets/world_database.hpp"
 #include "core/log.hpp"
 #include "core/quaternion.hpp"
@@ -28,13 +29,11 @@
 namespace rr::app {
 namespace {
 
-constexpr std::string_view kHelpFile = "CARBUILD.SRF";
 constexpr Vector3 kSpot{.z = 1.0F};
 constexpr Vector3 kUp{.z = 1.0F};
 constexpr Vector3 kLookAbove{.z = 4.0F};
 constexpr float kPlateHeight = 0.4F;
 constexpr render::Color kWhite{};
-constexpr std::array<std::optional<std::size_t>, kBuildRows> kRowHelp{0, 1, 2, 6, 3, 4, 5, {}};
 constexpr auto kFirstButtonRow = static_cast<std::size_t>(BuildRow::Move);
 constexpr std::int32_t kMoveSound = 16;
 constexpr std::int32_t kBlockedSound = 8;
@@ -49,6 +48,8 @@ constexpr float kViewVolume = 0.6F;
 constexpr float kBlockedViewVolume = 0.7F;
 constexpr float kFullTurn = 2.0F * std::numbers::pi_v<float>;
 constexpr float kItemTilt = kFullTurn * 114.0F / 1024.0F;
+constexpr float kLitLevel = 180.0F / 120.0F;
+constexpr render::Color kLitAmbient{.r = kLitLevel, .g = kLitLevel, .b = kLitLevel};
 
 std::vector<std::uint8_t> ChoiceIndices(const assets::PieceCatalog& catalog, std::size_t set) {
     std::vector<std::uint8_t> choices(catalog.partSets.at(set).choices.size());
@@ -74,14 +75,6 @@ Quaternion ItemTurn(float spin) {
 std::size_t ButtonState(const CarBuildMenu& menu, std::size_t button) {
     const auto row = static_cast<BuildRow>(button + kFirstButtonRow);
     return menu.Focus() == row ? kFocusedState : kNormalState;
-}
-
-std::vector<std::u16string> ReadHelp(const assets::Vfs& vfs, std::string_view language) {
-    Result<std::vector<std::u16string>> lines = ReadMenuText(vfs, language, kHelpFile);
-    if (!lines) {
-        log::Warn("the car builder has no help text: {}", lines.error().message);
-    }
-    return std::move(lines).value_or(std::vector<std::u16string>{});
 }
 
 }
@@ -124,7 +117,8 @@ CarBuildScreen::CarBuildScreen(BuildServices services, CarBuildLook look, PieceM
       sets_(std::move(sets)),
       carousel_(MakeCarousel(*services_.catalog, builder_.Set(), look_, 0)),
       carouselView_(look_.carousel, look_.itemColors),
-      setStrip_(look_.setSlide) {
+      setStrip_(look_.setSlide),
+      help_(*services_.vfs, *services_.text) {
     setStrip_.Snap(0, sets_.size());
     under_.push_back(look_.backdrop);
     holes_ = {look_.carousel.bounds, look_.garage.interior};
@@ -145,12 +139,17 @@ BuildOutcome CarBuildScreen::Tick(const sim::InputFrame& input) {
     BuildOutcome outcome = BuildOutcome::None;
     if (motion_.IsBusy()) {
         pointer_.TickIdle(input.pointer);
+        if (const std::optional<BuildPad> held = menu_.Held(); held && input.pointer.released) {
+            menu_.LetGo();
+            ChangePad(held);
+        }
     } else {
         outcome = ApplyInput(input);
     }
     keys_.clear();
     outcome = std::max(outcome, Animate());
-    TickHelp(pressed);
+    const auto row = static_cast<std::size_t>(menu_.Focus());
+    help_.Tick(row, RowBounds(row), pressed);
     return outcome;
 }
 
@@ -169,7 +168,11 @@ BuildOutcome CarBuildScreen::ApplyInput(const sim::InputFrame& input) {
     }
     const std::optional<BuildPad> held = menu_.Held();
     outcome = std::max(outcome, Apply(menu_.Tick(menuInput)));
-    PadSounds(held);
+    const SceneMouse mouse = drag_.Tick(input.pointer, Regions(), menu_);
+    outcome = std::max(outcome, Apply(mouse.request));
+    static_cast<void>(camera_.Swing(mouse.turn));
+    static_cast<void>(camera_.Lift(mouse.tilt));
+    ChangePad(held);
     ApplyPad(pointing.pad);
     return outcome;
 }
@@ -330,7 +333,7 @@ bool CarBuildScreen::Refit() {
         log::Warn("{}, the car builder keeps its last framing", offset.error().message);
         return true;
     }
-    fit_ = {.offset = *offset, .radius = ModelBounds(mesh->geometry.vertices).radius};
+    fit_ = {.offset = *offset, .bounds = ModelBounds(mesh->geometry.vertices)};
     return mesh->drawnPieces >= builder_.Car().Pieces().size();
 }
 
@@ -360,43 +363,39 @@ BuildOutcome CarBuildScreen::Animate() {
     return BuildOutcome::None;
 }
 
-void CarBuildScreen::PadSounds(std::optional<BuildPad> before) const {
+void CarBuildScreen::ChangePad(std::optional<BuildPad> before) {
     const std::optional<BuildPad> after = menu_.Held();
     if (before == after) {
         return;
+    }
+    if (before == BuildPad::View) {
+        camera_.Settle(fit_.bounds.radius);
     }
     const BuildPad pad = after.value_or(before.value_or(BuildPad::Move));
     services_.sounds.Play(pad == BuildPad::Move ? kPieceViewSound : kCarViewSound);
 }
 
-void CarBuildScreen::TickHelp(bool pressed) {
-    if (const std::string_view language = services_.text->Language();
-        !language.empty() && language != helpLanguage_) {
-        helpLanguage_ = language;
-        helpLines_ = ReadHelp(*services_.vfs, language);
-        helpBox_.reset();
+BuildRegions CarBuildScreen::Regions() {
+    BuildRegions regions{.scene = look_.garage.interior};
+    if (menu_.Held()) {
+        return regions;
     }
-    const auto row = static_cast<std::size_t>(menu_.Focus());
-    const std::optional<std::size_t> line = kRowHelp.at(row);
-    const std::u16string_view text = line && *line < helpLines_.size()
-                                         ? std::u16string_view(helpLines_[*line])
-                                         : std::u16string_view{};
-    help_.Tick(kSimTick, row, pressed, !text.empty());
-    if (!help_.IsShown()) {
-        helpBox_.reset();
-        return;
+    const render::Camera camera = ViewCamera();
+    const Transform car = CarTransform();
+    const auto onScreen = [&](const BoundingSphere& inCar) {
+        return SphereOnScreen(
+            camera, regions.scene,
+            {.centre = ToEngine(rr::Apply(car, inCar.centre)), .radius = inCar.radius});
+    };
+    regions.car = onScreen(fit_.bounds);
+    if (const assets::PieceRecord* piece = builder_.Cursor().Piece()) {
+        const sim::PiecePlacement at = builder_.Cursor().Placement();
+        const BoundingSphere& bounds = models_.Model(*piece, builder_.Colour(), at.rotation).bounds;
+        const float height = motion_.Layers(camera_.IsOverhead()).solid.value_or(RestHeight());
+        regions.piece =
+            onScreen({.centre = PieceCorner(height) + bounds.centre, .radius = bounds.radius});
     }
-    if (helpBox_ && helpRow_ == row) {
-        return;
-    }
-    const UiFont* font = services_.text->Font(kBuildHelpFont);
-    if (font == nullptr || text.empty()) {
-        helpBox_.reset();
-        return;
-    }
-    helpBox_ = LayoutHelp(*font, text, RowBounds(row),
-                          {.width = render::kUiWidth, .height = render::kUiHeight});
-    helpRow_ = row;
+    return regions;
 }
 
 render::Rect CarBuildScreen::RowBounds(std::size_t row) const {
@@ -410,15 +409,26 @@ render::Rect CarBuildScreen::RowBounds(std::size_t row) const {
     }
 }
 
-void CarBuildScreen::AddPiece(float height, std::optional<float> alpha) {
+Vector3 CarBuildScreen::PieceCorner(float height) const {
     const sim::PiecePlacement at = builder_.Cursor().Placement();
-    const PartPreview& model =
-        models_.Model(*builder_.Cursor().Piece(), builder_.Colour(), at.rotation);
-    const Vector3 corner{.x = fit_.offset.x + static_cast<float>(at.x),
-                         .y = fit_.offset.y + static_cast<float>(at.y),
-                         .z = fit_.offset.z + height};
+    return {.x = fit_.offset.x + static_cast<float>(at.x),
+            .y = fit_.offset.y + static_cast<float>(at.y),
+            .z = fit_.offset.z + height};
+}
+
+Transform CarBuildScreen::CarTransform() const {
+    return {.position = kSpot, .rotation = FromAxisAngle(kUp, camera_.Angle())};
+}
+
+void CarBuildScreen::AddPiece(float height, std::optional<float> alpha) {
+    const PartPreview& model = models_.Model(*builder_.Cursor().Piece(), builder_.Colour(),
+                                             builder_.Cursor().Placement().rotation);
+    const bool isLit = drag_.Lit() == BuildRegion::Piece;
     for (render::MeshDraw draw : model.draws) {
-        draw.transform = {.position = corner};
+        draw.transform = {.position = PieceCorner(height)};
+        if (isLit) {
+            draw.material.ambient = draw.material.ambient * kLitAmbient;
+        }
         if (alpha) {
             draw.material.blend = render::BlendMode::Alpha;
             draw.material.tint.a *= *alpha;
@@ -431,7 +441,7 @@ void CarBuildScreen::AddPiece(float height, std::optional<float> alpha) {
 render::Camera CarBuildScreen::ViewCamera() const {
     const render::Camera& scene = services_.stand->SceneCamera();
     assets::WorldCamera camera;
-    camera.position = camera_.Eye(fit_.radius);
+    camera.position = camera_.Eye(fit_.bounds.radius);
     camera.target = kSpot + kLookAbove;
     camera.fovDegrees = scene.verticalFovDegrees;
     camera.nearClip = scene.nearPlane;
@@ -455,11 +465,13 @@ void CarBuildScreen::Render(std::vector<render::RenderView>& views,
             AddPiece(*layers.solid, std::nullopt);
         }
     }
-    const Transform car{.position = kSpot, .rotation = FromAxisAngle(kUp, camera_.Angle())};
-    views.push_back(services_.stand->Render(car, {.camera = ViewCamera(),
-                                                  .interior = look_.garage.interior,
-                                                  .light = kWhite,
-                                                  .extras = extras_}));
+    const bool isCarLit = drag_.Lit() == BuildRegion::Car;
+    views.push_back(services_.stand->Render(
+        CarTransform(), {.camera = ViewCamera(),
+                         .interior = look_.garage.interior,
+                         .light = kWhite,
+                         .extras = extras_,
+                         .carAmbient = isCarLit ? kLitAmbient : render::Color{}}));
     DrawMenuFrameBorder(look_.garage.look, look_.garage.frame, sprites);
     carouselView_.Render(carousel_, models_.SetPreviews(builder_.Set()),
                          menu_.Focus() == BuildRow::Pieces, under_, views, ItemTurn(spin_));
@@ -476,10 +488,7 @@ void CarBuildScreen::DrawControls(std::vector<render::SpriteDraw>& sprites) cons
             {.texture = shown.images.at(ButtonState(menu_, index)), .bounds = shown.bounds});
     }
     pointer_.DrawPressed(look_, sprites);
-    const UiFont* font = services_.text->Font(kBuildHelpFont);
-    if (helpBox_ && font != nullptr) {
-        DrawHelp(*font, *helpBox_, sprites);
-    }
+    help_.Draw(sprites);
 }
 
 }

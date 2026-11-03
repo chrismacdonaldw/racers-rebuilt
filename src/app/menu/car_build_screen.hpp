@@ -11,7 +11,8 @@
 #include <vector>
 
 #include "app/menu/build_camera.hpp"
-#include "app/menu/build_help.hpp"
+#include "app/menu/build_drag.hpp"
+#include "app/menu/build_help_panel.hpp"
 #include "app/menu/build_pointer.hpp"
 #include "app/menu/car_build_look.hpp"
 #include "app/menu/car_build_menu.hpp"
@@ -56,6 +57,7 @@ public:
 
     void HandleKey(SDL_Keycode key);
     [[nodiscard]] BuildOutcome Tick(const sim::InputFrame& input);
+    [[nodiscard]] bool HoldsPointer() const { return menu_.Held().has_value(); }
 
     [[nodiscard]] const sim::BuiltCar& Car() const { return builder_.Car(); }
 
@@ -64,7 +66,7 @@ public:
 private:
     struct Fit {
         Vector3 offset;
-        float radius = 0.0F;
+        BoundingSphere bounds;
     };
 
     CarBuildScreen(BuildServices services, CarBuildLook look, PieceModels models,
@@ -84,17 +86,17 @@ private:
     [[nodiscard]] bool Refit();
     [[nodiscard]] float RestHeight() const;
     [[nodiscard]] BuildOutcome Animate();
-    void PadSounds(std::optional<BuildPad> before) const;
-    void TickHelp(bool pressed);
+    void ChangePad(std::optional<BuildPad> before);
     [[nodiscard]] render::Rect RowBounds(std::size_t row) const;
+    [[nodiscard]] BuildRegions Regions();
+    [[nodiscard]] Vector3 PieceCorner(float height) const;
+    [[nodiscard]] Transform CarTransform() const;
     void AddPiece(float height, std::optional<float> alpha);
     [[nodiscard]] render::Camera ViewCamera() const;
     void DrawControls(std::vector<render::SpriteDraw>& sprites) const;
 
     BuildServices services_;
     CarBuildLook look_;
-    std::string helpLanguage_;
-    std::vector<std::u16string> helpLines_;
     PieceModels models_;
     CarBuilder builder_;
     std::vector<std::size_t> sets_;
@@ -105,11 +107,10 @@ private:
     IconStrip setStrip_;
     CarBuildMenu menu_;
     BuildPointer pointer_;
+    BuildDrag drag_;
     BuildCamera camera_;
     HeldPieceMotion motion_;
-    HelpTimer help_;
-    std::optional<HelpBox> helpBox_;
-    std::size_t helpRow_ = 0;
+    BuildHelpPanel help_;
     Fit fit_;
     std::vector<BuildRequest> keys_;
     std::vector<MenuPicture> under_;

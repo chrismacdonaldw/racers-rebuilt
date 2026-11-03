@@ -46,6 +46,7 @@ public:
     void HandleEvent(const SDL_Event& event) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
     [[nodiscard]] bool ShowsPointer() const override { return true; }
+    [[nodiscard]] bool HoldsPointer() const override { return build_ && build_->HoldsPointer(); }
     void Tick(const sim::InputFrame& input) override;
     [[nodiscard]] SceneMusic Music() const override { return {.start = MusicStart::Keep}; }
     void Snapshot(sim::RenderSnapshot& out) const override;
