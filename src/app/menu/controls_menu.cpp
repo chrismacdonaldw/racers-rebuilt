@@ -95,6 +95,14 @@ ControlsRequest ControlsMenu::Choose() {
     return ControlsRequest::Listen;
 }
 
+bool ControlsMenu::FocusOn(std::size_t focus) {
+    if (listening_ || focus >= kFocusCount || !IsFocusable(focus)) {
+        return false;
+    }
+    focus_ = focus;
+    return true;
+}
+
 bool ControlsMenu::IsFocusable(std::size_t focus) const {
     return focus == 0 || focus > kControlRows || IsRowEnabled(focus - 1);
 }

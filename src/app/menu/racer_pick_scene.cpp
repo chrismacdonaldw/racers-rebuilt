@@ -118,7 +118,13 @@ void RacerPickScene::Tick(const sim::InputFrame& input) {
         return;
     }
     const RacerPickRow focusBefore = menu_.Focus();
-    const RacerPickRequest request = menu_.Tick(input);
+    AimPointer();
+    const PointerChoice pointed = pointer_.Tick(input.pointer, targets_);
+    if (const std::optional<std::size_t> focus = pointed.Focus()) {
+        menu_.FocusOn(static_cast<RacerPickRow>(*focus));
+    }
+    const sim::InputFrame clicked = WithClick(input, pointed);
+    const RacerPickRequest request = menu_.Tick(clicked);
     switch (request) {
         case RacerPickRequest::Start:
             Start();
@@ -136,7 +142,7 @@ void RacerPickScene::Tick(const sim::InputFrame& input) {
         case RacerPickRequest::None:
             break;
     }
-    PlaySounds(input, request, focusBefore);
+    PlaySounds(clicked, request, focusBefore);
 }
 
 void RacerPickScene::Snapshot(sim::RenderSnapshot& out) const {
@@ -248,6 +254,27 @@ const assets::SoundIds& RacerPickScene::SoundsOf(RacerPickRow row) const {
         default:
             return look_.pickerSounds;
     }
+}
+
+void RacerPickScene::AimPointer() {
+    const auto stateOf = [&](RacerPickRow row) {
+        return menu_.Focus() == row ? kFocusedState : kNormalState;
+    };
+    const auto control = [](RacerPickRow row) { return static_cast<std::size_t>(row); };
+    targets_.clear();
+    AddSelectorTargets(look_.picker, control(RacerPickRow::Racer), targets_);
+    targets_.push_back(
+        {.area = LabelArea(text_, look_.configButton.at(stateOf(RacerPickRow::Config)),
+                           text_.Line(kConfigLine), look_.config),
+         .control = control(RacerPickRow::Config)});
+    targets_.push_back(
+        {.area = ImageButtonArea(text_, look_.startButton, stateOf(RacerPickRow::Start),
+                                 text_.Line(kStartLine), look_.start),
+         .control = control(RacerPickRow::Start)});
+    targets_.push_back(
+        {.area = ImageButtonArea(text_, look_.backButton, stateOf(RacerPickRow::Back),
+                                 text_.Line(kBackLine), look_.back),
+         .control = control(RacerPickRow::Back)});
 }
 
 void RacerPickScene::DrawPicker() {

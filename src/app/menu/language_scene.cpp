@@ -16,6 +16,7 @@ namespace {
 constexpr std::size_t kTitleLine = 0x9C;
 constexpr std::size_t kFirstLanguageLine = 0x9D;
 constexpr std::size_t kOptionsLine = 0x10;
+constexpr std::size_t kBackControl = 1;
 
 }
 
@@ -50,17 +51,24 @@ void LanguageScene::Tick(const sim::InputFrame& input) {
     if (!menu_) {
         return;
     }
-    const bool wasBackFocused = menu_->IsBackFocused();
-    const LanguageRequest request = menu_->Tick(input);
-    const bool isBackFocused = menu_->IsBackFocused();
+    LanguageMenu& menu = *menu_;
+    const bool wasBackFocused = menu.IsBackFocused();
+    AimPointer(wasBackFocused);
+    const PointerChoice pointed = pointer_.Tick(input.pointer, targets_);
+    if (const std::optional<std::size_t> focus = pointed.Focus()) {
+        menu.FocusBack(*focus == kBackControl);
+    }
+    const sim::InputFrame clicked = WithClick(input, pointed);
+    const LanguageRequest request = menu.Tick(clicked);
+    const bool isBackFocused = menu.IsBackFocused();
     if (request == LanguageRequest::Change) {
         changes_.push_back(
-            {.key = std::string(kGameLanguage.key), .value = std::string(menu_->Language())});
+            {.key = std::string(kGameLanguage.key), .value = std::string(menu.Language())});
     }
     if (request == LanguageRequest::Leave) {
         next_ = std::string(kOptionsScene);
     }
-    PlaySounds(input, request, wasBackFocused, isBackFocused);
+    PlaySounds(clicked, request, wasBackFocused, isBackFocused);
 }
 
 void LanguageScene::Snapshot(sim::RenderSnapshot& out) const {
@@ -100,6 +108,15 @@ void LanguageScene::PlaySounds(const sim::InputFrame& input, LanguageRequest req
     if (request == LanguageRequest::Leave) {
         sounds_.Confirm(look_.backButton.sounds);
     }
+}
+
+void LanguageScene::AimPointer(bool isBackFocused) {
+    targets_.clear();
+    AddSelectorTargets(look_.picker, 0, targets_);
+    targets_.push_back({.area = ImageButtonArea(text_, look_.backButton,
+                                                isBackFocused ? kFocusedState : kNormalState,
+                                                text_.Line(kOptionsLine), look_.back),
+                        .control = kBackControl});
 }
 
 void LanguageScene::DrawPicker() {

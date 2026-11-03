@@ -17,6 +17,7 @@ public:
     RacerPickMenu(std::size_t racers, std::size_t selected);
 
     [[nodiscard]] RacerPickRequest Tick(const sim::InputFrame& input);
+    void FocusOn(RacerPickRow row) { focus_ = row; }
 
     [[nodiscard]] std::size_t Racer() const { return racer_; }
     [[nodiscard]] RacerPickRow Focus() const { return focus_; }

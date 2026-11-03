@@ -57,6 +57,14 @@ void GarageMenu::Refresh(std::size_t racers, std::size_t racer, GarageButton foc
     }
 }
 
+bool GarageMenu::FocusOn(GarageButton button) {
+    if (!std::ranges::contains(Buttons(), button) || !IsEnabled(button)) {
+        return false;
+    }
+    focus_ = button;
+    return true;
+}
+
 std::span<const GarageButton> GarageMenu::Buttons() const {
     if (isEditing_) {
         return kEditButtons;

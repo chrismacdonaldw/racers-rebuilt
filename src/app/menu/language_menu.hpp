@@ -21,6 +21,7 @@ public:
     explicit LanguageMenu(std::string_view language);
 
     [[nodiscard]] LanguageRequest Tick(const sim::InputFrame& input);
+    void FocusBack(bool isBackFocused) { isBackFocused_ = isBackFocused; }
 
     [[nodiscard]] std::size_t Index() const { return index_; }
     [[nodiscard]] std::string_view Language() const { return kPickableLanguages.at(index_); }

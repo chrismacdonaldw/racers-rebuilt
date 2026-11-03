@@ -57,6 +57,17 @@ TEST_CASE("a pad's steering rows are disabled and focus skips them") {
     CHECK(menu.FocusedRow() == 2);
 }
 
+TEST_CASE("pointing at a disabled row or while listening leaves the focus") {
+    ControlsMenu menu;
+    menu.SetEntries({Pad1, Keys1, Keys2, Keys3}, Pad1);
+
+    CHECK_FALSE(menu.FocusOn(1));
+    CHECK(menu.FocusedRow() == 2);
+    CHECK(Press(menu, {MenuAction::Confirm}) == ControlsRequest::Listen);
+    CHECK_FALSE(menu.FocusOn(0));
+    CHECK(menu.ListeningRow() == 2);
+}
+
 TEST_CASE("a device that goes away leaves the picker on the first") {
     ControlsMenu menu;
     menu.SetEntries({Pad1, Pad2, Keys1, Keys2, Keys3}, Pad2);

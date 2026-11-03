@@ -3,8 +3,11 @@
 #include <cstddef>
 #include <optional>
 #include <span>
+#include <string_view>
 #include <vector>
 
+#include "app/menu/menu_page.hpp"
+#include "app/menu/menu_text.hpp"
 #include "app/menu/menu_widgets.hpp"
 #include "render/render_view.hpp"
 #include "sim/input_frame.hpp"
@@ -42,6 +45,17 @@ private:
 /// The arrows step `control` left and right, and the rest of the selector focuses it.
 void AddSelectorTargets(const SelectorPlace& place, std::size_t control,
                         std::vector<PointerTarget>& out);
+
+[[nodiscard]] render::Rect Spanning(const render::Rect& a, const render::Rect& b);
+
+/// Where `DrawLabel` puts `label`. Empty when the state's font is missing.
+[[nodiscard]] render::Rect LabelArea(const MenuText& text, const MenuButtonState& state,
+                                     std::u16string_view label, MenuPoint at);
+
+/// Spans the image and label as `DrawImageButton` lays them out.
+[[nodiscard]] render::Rect ImageButtonArea(const MenuText& text, const ImageButtonLook& look,
+                                           std::size_t state, std::u16string_view label,
+                                           MenuPoint at);
 
 [[nodiscard]] sim::InputFrame WithClick(const sim::InputFrame& input, const PointerChoice& choice);
 
