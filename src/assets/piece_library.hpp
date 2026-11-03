@@ -48,12 +48,15 @@ struct CellSize {
     friend bool operator==(const CellSize&, const CellSize&) = default;
 };
 
+inline constexpr CellSize kBuildGridSize{.width = 10, .height = 6};
+
 /// Rotations count quarter turns. Only their low two bits count.
 struct PieceShape {
     CellSize size;
     std::vector<ShapeCell> cells;
 
     [[nodiscard]] CellSize Footprint(unsigned rotation) const;
+    [[nodiscard]] bool FitsWithin(CellSize area) const;
 
     /// `x` and `y` are inside `Footprint(rotation)`.
     [[nodiscard]] ShapeCell GetCell(int x, int y, unsigned rotation) const;

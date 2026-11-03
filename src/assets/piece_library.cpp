@@ -181,6 +181,13 @@ CellSize PieceShape::Footprint(unsigned rotation) const {
     return (rotation & 1U) == 0 ? size : CellSize{.width = size.height, .height = size.width};
 }
 
+bool PieceShape::FitsWithin(CellSize area) const {
+    const auto fits = [&](CellSize footprint) {
+        return footprint.width <= area.width && footprint.height <= area.height;
+    };
+    return fits(Footprint(0)) || fits(Footprint(1));
+}
+
 ShapeCell PieceShape::GetCell(int x, int y, unsigned rotation) const {
     const CellSize footprint = Footprint(rotation);
     RR_ASSERT(x >= 0 && x < footprint.width && y >= 0 && y < footprint.height);

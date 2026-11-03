@@ -9,6 +9,7 @@
 #include "assets/game_path.hpp"
 #include "assets/material_library.hpp"
 #include "assets/part_sets.hpp"
+#include "core/log.hpp"
 
 namespace rr::assets {
 namespace {
@@ -59,6 +60,11 @@ Result<CatalogPartSet> ResolveSet(const PieceCatalog& catalog, PartSet set) {
         Result<PartChoice> part = ResolveChoice(catalog, choice);
         if (!part) {
             return std::unexpected(std::move(part.error()));
+        }
+        if (!catalog.library.pieces.at(part->piece).shape.FitsWithin(kBuildGridSize)) {
+            log::Warn("skipping piece {} in {}, it doesn't fit on a chassis", choice.piece,
+                      resolved.chassisName);
+            continue;
         }
         resolved.choices.push_back(*part);
     }

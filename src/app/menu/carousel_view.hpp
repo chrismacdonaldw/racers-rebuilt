@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "app/menu/carousel_layout.hpp"
-#include "app/menu/driver_kit.hpp"
 #include "app/menu/menu_parts.hpp"
 #include "app/menu/part_carousel.hpp"
 #include "assets/menu_layout.hpp"
@@ -25,7 +24,8 @@ public:
 
     [[nodiscard]] const render::Rect& Bounds() const { return layout_.bounds; }
 
-    void Render(const PartCarousel& carousel, const DriverKit& kit, DriverSlot slot,
+    /// The carousel's parts index `previews`.
+    void Render(const PartCarousel& carousel, std::span<const PartPreview> previews,
                 bool isHighlighted, std::span<const MenuPicture> under,
                 std::vector<render::RenderView>& out);
 

@@ -26,9 +26,6 @@ constexpr std::string_view kDoneStyle = "buttonch";
 constexpr std::string_view kBack = "goback";
 constexpr std::string_view kBackStyle = "buttonca";
 constexpr std::array<std::string_view, kCarTextButtons> kTextButtons{"build", "ripapart", "qbuild"};
-constexpr std::array<std::string_view, kPartSetCount> kSetStyles{
-    "bricks",  "race",     "space",  "castle", "pirate", "islander",
-    "magical", "adventur", "jungle", "alien",  "rr",     "vv"};
 
 class LookLoader {
 public:
@@ -70,7 +67,7 @@ private:
                 .and_then([&] { return LoadImageButton(images_, *files_, kBackStyle); })
                 .transform([&](const ImageButtonLook& back) { look_.back = back; });
         for (std::size_t set = 0; loaded && set < kPartSetCount; ++set) {
-            loaded = StyleImage(kSetStyles.at(set)).transform([&](const UiImage& image) {
+            loaded = StyleImage(kSetImageStyles.at(set)).transform([&](const UiImage& image) {
                 look_.sets.at(set) = image;
             });
         }

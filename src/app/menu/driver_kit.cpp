@@ -25,7 +25,6 @@ constexpr std::string_view kFaceShape = "HEADS";
 constexpr std::array<std::string_view, 2> kTorsoShapes{"CHESTS", "CHEST_HK"};
 constexpr std::array<std::string_view, 2> kLegsShapes{"LEGSS", "LEG-PEGS"};
 constexpr std::array<std::string_view, 3> kDressSlots{"face", "torso", "legs"};
-const PartPreview kNoPreview;
 
 template <typename T>
 Result<T> ReadParsed(const assets::Vfs& vfs, const std::string& path,
@@ -230,9 +229,8 @@ DriverKit::DriverKit(render::Renderer& renderer, const assets::Vfs& vfs, Parts p
       materials_(std::move(parts.materials)),
       previews_(std::move(parts.previews)) {}
 
-const PartPreview& DriverKit::Preview(DriverSlot slot, std::uint8_t part) const {
-    const std::vector<PartPreview>& shelf = previews_.at(static_cast<std::size_t>(slot));
-    return part < shelf.size() ? shelf[part] : kNoPreview;
+std::span<const PartPreview> DriverKit::Previews(DriverSlot slot) const {
+    return previews_.at(static_cast<std::size_t>(slot));
 }
 
 Result<KitMinifig> DriverKit::Minifig(const assets::DriverLook& look) {

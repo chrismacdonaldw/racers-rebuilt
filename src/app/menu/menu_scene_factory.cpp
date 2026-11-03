@@ -55,6 +55,14 @@ std::optional<Result<std::unique_ptr<Scene>>> CreateGarageScene(const MenuSceneP
                                     ReadProgress(parts.progressFile).partSets)
             .transform(ToScene<EditCarScene>);
     }
+    if (const std::optional<std::size_t> racer = SceneRacer(scene, kCarBuildScene)) {
+        return EditCarScene::Create(renderer, vfs, sounds(), parts.racersFile, *racer,
+                                    ReadProgress(parts.progressFile).partSets)
+            .transform([](std::unique_ptr<EditCarScene> editor) {
+                editor->OpenBuilder();
+                return ToScene<EditCarScene>(std::move(editor));
+            });
+    }
     if (const std::optional<std::size_t> racer = SceneRacer(scene, kLicenceScene);
         racer && parts.cheats != nullptr) {
         return LicenceScene::Create(renderer, vfs, sounds(), parts.racersFile, *racer,

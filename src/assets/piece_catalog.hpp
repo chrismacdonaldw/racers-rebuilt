@@ -38,7 +38,7 @@ struct PieceCatalog {
     std::vector<std::string> colours;
     std::vector<CatalogPartSet> partSets;
 
-    /// Fails when a set's chassis, piece or colour isn't in the library or the colour list.
+    /// Fails when a set's chassis, piece or colour is missing; skips pieces too big to build.
     [[nodiscard]] static Result<PieceCatalog> Load(const Vfs& vfs, PieceDetail detail);
 };
 

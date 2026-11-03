@@ -5,10 +5,12 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "app/menu/carousel_layout.hpp"
 #include "app/menu/part_carousel.hpp"
 #include "app/track_model.hpp"
 #include "assets/driver_look.hpp"
@@ -25,11 +27,6 @@
 
 namespace rr::app {
 
-struct PartPreview {
-    std::vector<render::MeshDraw> draws;
-    BoundingSphere bounds;
-};
-
 struct KitMinifig {
     JointedModel model;
     const assets::SkeletonAsset* skeleton = nullptr;
@@ -45,8 +42,7 @@ public:
 
     [[nodiscard]] const assets::DriverPartCatalog& Catalog() const { return catalog_; }
 
-    /// Empty for a part past the catalogue's.
-    [[nodiscard]] const PartPreview& Preview(DriverSlot slot, std::uint8_t part) const;
+    [[nodiscard]] std::span<const PartPreview> Previews(DriverSlot slot) const;
 
     /// With the default face, as the editor shows it.
     [[nodiscard]] Result<KitMinifig> Minifig(const assets::DriverLook& look);
