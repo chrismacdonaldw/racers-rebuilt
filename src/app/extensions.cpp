@@ -1,6 +1,7 @@
 #include "app/extensions.hpp"
 
 #include "app/free_camera.hpp"
+#include "app/gltf_models.hpp"
 #include "app/hq_textures.hpp"
 #include "core/log.hpp"
 
@@ -13,6 +14,7 @@ Extensions LoadExtensions(const std::filesystem::path& modsFolder,
                           .enhancements = {}};
     extensions.enhancements.push_back(std::make_unique<FreeCamera>());
     extensions.enhancements.push_back(std::make_unique<HqTextures>());
+    extensions.enhancements.push_back(std::make_unique<GltfModels>());
     return extensions;
 }
 
