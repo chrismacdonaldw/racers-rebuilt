@@ -10,6 +10,8 @@
 
 namespace rr::app {
 
+inline constexpr float kDecalCastAbove = 6.0F;
+
 /// In game space, with `length` along the level part of `forward`.
 struct GroundDecal {
     Vector3 centre;

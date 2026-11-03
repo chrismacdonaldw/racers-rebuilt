@@ -104,6 +104,8 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                                       session->TrackHazards().Models().Names(), model->entityDraws,
                                       race.entities),
          .ghostTrail = std::move(ghostTrail),
+         .craneShadow =
+             CraneShadow(LoadCraneShadowLook(renderer, vfs, loader, setup.track), race.entities),
          .waterScroll = WaterScroll(race.hazards, model->entityDraws),
          .scrolledDraws = std::move(model->scrolledDraws),
          .world = std::move(world),
@@ -161,10 +163,6 @@ void RaceScene::JoinTimeTrial(TimeTrialRun& run, assets::TrackLoader& loader) {
     trial_.emplace(run);
     hud_.SetTimeTrial(trial_->Ghosts());
     ghostCars_ = GhostCars::Load(*parts_.renderer, *parts_.vfs, loader, parts_.racers, kPlayerSlot);
-}
-
-std::optional<std::string> RaceScene::TakeNextScene() {
-    return std::exchange(next_, std::nullopt);
 }
 
 overlay::RacerTools RaceScene::OverlayRacerTools() {
@@ -326,6 +324,10 @@ void RaceScene::GatherCarMarks(const sim::RenderSnapshot& interpolated, float si
         skids_[player].Append(groundDecals_, carMarks_);
         skidding_.at(player) = skids_[player].Skidding();
     }
+    parts_.craneShadow.Append(
+        parts_.session.TrackHazards(), interpolated.entityClocks,
+        std::span(cameras).first(parts_.farModels.HidesScenery() ? cameras_.Count() : 0),
+        groundDecals_, carMarks_);
 }
 
 render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated,
