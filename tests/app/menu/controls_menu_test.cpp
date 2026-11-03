@@ -19,22 +19,52 @@ ControlsRequest Press(ControlsMenu& menu, std::initializer_list<MenuAction> acti
     return request;
 }
 
-TEST_CASE("the controls screen opens on the keyboard with TURN LEFT focused") {
-    const ControlsMenu menu;
+using enum InputSet;
 
-    CHECK(menu.Device() == ControlsDevice::Keyboard);
+TEST_CASE("the controls screen opens on the given device with TURN LEFT focused") {
+    ControlsMenu menu;
+    menu.SetEntries({Pad1, Keys1, Keys2, Keys3}, Keys2);
+
+    CHECK(menu.Set() == Keys2);
     CHECK(menu.FocusedRow() == 0);
 }
 
-TEST_CASE("the device picker sits above the rows and steps between keyboard and gamepad") {
+TEST_CASE("the device picker sits above the rows and stops at either end") {
     ControlsMenu menu;
+    menu.SetEntries({Pad1, Keys1, Keys2, Keys3}, Keys1);
 
-    static_cast<void>(Press(menu, {MenuAction::Up, MenuAction::Right, MenuAction::Right}));
+    static_cast<void>(
+        Press(menu, {MenuAction::Up, MenuAction::Right, MenuAction::Right, MenuAction::Right}));
     CHECK(menu.IsDeviceFocused());
-    CHECK(menu.Device() == ControlsDevice::Gamepad);
+    CHECK(menu.Set() == Keys3);
 
-    static_cast<void>(Press(menu, {MenuAction::Left}));
-    CHECK(menu.Device() == ControlsDevice::Keyboard);
+    static_cast<void>(
+        Press(menu, {MenuAction::Left, MenuAction::Left, MenuAction::Left, MenuAction::Left}));
+    CHECK(menu.Set() == Pad1);
+}
+
+TEST_CASE("a pad's steering rows are disabled and focus skips them") {
+    ControlsMenu menu;
+    menu.SetEntries({Pad1, Keys1, Keys2, Keys3}, Pad1);
+
+    CHECK_FALSE(menu.IsRowEnabled(0));
+    CHECK_FALSE(menu.IsRowEnabled(1));
+    CHECK(menu.IsRowEnabled(2));
+    CHECK(menu.FocusedRow() == 2);
+    static_cast<void>(Press(menu, {MenuAction::Up}));
+    CHECK(menu.IsDeviceFocused());
+    static_cast<void>(Press(menu, {MenuAction::Down}));
+    CHECK(menu.FocusedRow() == 2);
+}
+
+TEST_CASE("a device that goes away leaves the picker on the first") {
+    ControlsMenu menu;
+    menu.SetEntries({Pad1, Pad2, Keys1, Keys2, Keys3}, Pad2);
+
+    menu.SetEntries({Pad1, Keys1, Keys2, Keys3}, menu.Set());
+
+    CHECK(menu.Set() == Pad1);
+    CHECK(menu.Entry() == 0);
 }
 
 TEST_CASE("choosing a row listens, ignoring menu actions until it stops") {

@@ -169,7 +169,7 @@ Each `<action>` has a default in every set. The left stick always steers. The me
 | `menu_confirm` | `Return,Space` | | | `a` |
 | `menu_back` | `Escape,Backspace` | | | `b` |
 
-The sets follow the original's. Each player drives with one set, as the original does, so with a gamepad attached player 1 drives with the gamepad alone. A set naming a gamepad that isn't attached falls back to the first attached gamepad not in use, then to the arrows, or WASD when the other player has the arrows. Gamepads are numbered in the order they connected. A key in both players' sets drives player 1, and the pause key of a set nobody drives still pauses. PLAYER 1 CONTROLS and PLAYER 2 CONTROLS on the options screen rebind each player's keys and buttons.
+The sets follow the original's. Each player drives with one set, as the original does, so with a gamepad attached player 1 drives with the gamepad alone. A set naming a gamepad that isn't attached falls back to the first attached gamepad not in use, then to the arrows, or WASD when the other player has the arrows. Gamepads are numbered in the order they connected. A key in both players' sets drives player 1, and the pause key of a set nobody drives still pauses. PLAYER 1 CONTROLS and PLAYER 2 CONTROLS on the options screen pick each player's set from the attached gamepads and the three keyboard sets, and rebind it. A gamepad's steering rows stay closed, as it steers with its stick and d-pad. Picking the other player's set moves them to another, as the original does.
 
 ```toml
 [video]

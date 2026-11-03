@@ -10,6 +10,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/device_assignment.hpp"
 #include "app/scene.hpp"
 #include "settings/registry.hpp"
 #include "sim/input_frame.hpp"
@@ -31,16 +32,17 @@ using ControlNames = std::array<std::vector<std::string>, kControlRows>;
 
 struct PressedControl {
     ControlsDevice device = ControlsDevice::Keyboard;
+    SDL_JoystickID pad = 0;
     std::string name;
     bool isRefused = false;
 };
 
-[[nodiscard]] ControlNames ReadControlNames(const settings::Registry& settings, std::size_t player,
-                                            ControlsDevice device);
+[[nodiscard]] ControlsDevice DeviceOf(InputSet set);
 
-/// Binds `input` alone to `row`'s action and takes it off the player's other rows for the device.
-[[nodiscard]] std::vector<SettingChange> RebindChanges(const ControlNames& names,
-                                                       std::size_t player, ControlsDevice device,
+[[nodiscard]] ControlNames ReadControlNames(const settings::Registry& settings, InputSet set);
+
+/// Binds `input` alone to `row`'s action and takes it off the set's other rows.
+[[nodiscard]] std::vector<SettingChange> RebindChanges(const ControlNames& names, InputSet set,
                                                        std::size_t row, std::string_view input);
 
 /// Keys the original won't bind, and the port's own keys, come back refused.

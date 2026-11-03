@@ -118,7 +118,7 @@ private:
     void HandleKey(const SDL_KeyboardEvent& event, sim::InputLatch& latch);
     void HandleButton(const SDL_GamepadButtonEvent& event, sim::InputLatch& latch);
     void HandleAxis(const SDL_GamepadAxisEvent& event, sim::InputLatch& latch);
-    void AddPad(SDL_JoystickID pad);
+    void AddPad(SDL_JoystickID pad, sim::InputLatch& latch);
     void RemovePad(SDL_JoystickID pad, sim::InputLatch& latch);
     void LatchHeldActions(sim::InputLatch& latch) const;
     [[nodiscard]] bool Drives(std::size_t player, InputSet set) const;

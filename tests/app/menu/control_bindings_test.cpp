@@ -17,8 +17,6 @@ constexpr std::size_t kBrakeRow = 3;
 constexpr std::size_t kPowerupRow = 4;
 constexpr std::size_t kCameraRow = 5;
 constexpr std::size_t kDisplayRow = 6;
-constexpr std::size_t kPlayer1 = 0;
-constexpr std::size_t kPlayer2 = 1;
 
 settings::Registry DefaultRegistry() {
     settings::Registry registry;
@@ -47,25 +45,28 @@ SDL_Event Axis(SDL_GamepadAxis axis, std::int16_t value) {
     return event;
 }
 
-TEST_CASE("the controls rows read each device's own bindings") {
+TEST_CASE("the controls rows read each set's own bindings") {
     const settings::Registry registry = DefaultRegistry();
 
-    const ControlNames keys = ReadControlNames(registry, kPlayer1, ControlsDevice::Keyboard);
-    const ControlNames buttons = ReadControlNames(registry, kPlayer1, ControlsDevice::Gamepad);
+    const ControlNames keys = ReadControlNames(registry, InputSet::Keys1);
+    const ControlNames buttons = ReadControlNames(registry, InputSet::Pad1);
+    const ControlNames keypad = ReadControlNames(registry, InputSet::Keys3);
 
     CHECK(keys[kTurnLeftRow] == std::vector<std::string>{"Left"});
     CHECK(buttons[kAccelerateRow] == std::vector<std::string>{"a", "righttrigger"});
     CHECK(keys[kCameraRow] == std::vector<std::string>{"Right Ctrl"});
     CHECK(keys[kDisplayRow] == std::vector<std::string>{"M"});
     CHECK(buttons[kDisplayRow] == std::vector<std::string>{"back"});
+    CHECK(keypad[kTurnLeftRow] == std::vector<std::string>{"Keypad 4"});
+    CHECK(DeviceOf(InputSet::Pad2) == ControlsDevice::Gamepad);
+    CHECK(DeviceOf(InputSet::Keys3) == ControlsDevice::Keyboard);
 }
 
-TEST_CASE("a new binding replaces the row's list and comes off the device's other rows") {
-    const ControlNames keys =
-        ReadControlNames(DefaultRegistry(), kPlayer1, ControlsDevice::Keyboard);
+TEST_CASE("a new binding replaces the row's list and comes off the set's other rows") {
+    const ControlNames keys = ReadControlNames(DefaultRegistry(), InputSet::Keys1);
 
     const std::vector<SettingChange> changes =
-        RebindChanges(keys, kPlayer1, ControlsDevice::Keyboard, kBrakeRow, "up");
+        RebindChanges(keys, InputSet::Keys1, kBrakeRow, "up");
 
     REQUIRE(changes.size() == 2);
     CHECK(changes[0].key == "input.keys.accelerate");
@@ -75,19 +76,18 @@ TEST_CASE("a new binding replaces the row's list and comes off the device's othe
 }
 
 TEST_CASE("binding a row its one input again changes nothing") {
-    const ControlNames keys =
-        ReadControlNames(DefaultRegistry(), kPlayer1, ControlsDevice::Keyboard);
+    const ControlNames keys = ReadControlNames(DefaultRegistry(), InputSet::Keys1);
 
-    CHECK(RebindChanges(keys, kPlayer1, ControlsDevice::Keyboard, kPowerupRow, "Return").empty());
+    CHECK(RebindChanges(keys, InputSet::Keys1, kPowerupRow, "Return").empty());
 }
 
-TEST_CASE("player 2's rows read and rebind player 2's own settings") {
+TEST_CASE("the second sets read and rebind their own settings") {
     const settings::Registry registry = DefaultRegistry();
-    const ControlNames keys = ReadControlNames(registry, kPlayer2, ControlsDevice::Keyboard);
-    const ControlNames buttons = ReadControlNames(registry, kPlayer2, ControlsDevice::Gamepad);
+    const ControlNames keys = ReadControlNames(registry, InputSet::Keys2);
+    const ControlNames buttons = ReadControlNames(registry, InputSet::Pad2);
 
     const std::vector<SettingChange> changes =
-        RebindChanges(buttons, kPlayer2, ControlsDevice::Gamepad, kBrakeRow, "righttrigger");
+        RebindChanges(buttons, InputSet::Pad2, kBrakeRow, "righttrigger");
 
     CHECK(keys[kAccelerateRow] == std::vector<std::string>{"W"});
     CHECK(buttons[kBrakeRow] == std::vector<std::string>{"b", "lefttrigger"});
@@ -125,6 +125,7 @@ TEST_CASE("comma keys, which the original binds, are named so the list keeps the
 TEST_CASE("pressed gamepad buttons and triggers are named for the gamepad set") {
     SDL_Event button{};
     button.type = SDL_EVENT_GAMEPAD_BUTTON_DOWN;
+    button.gbutton.which = 4;
     button.gbutton.button = static_cast<std::uint8_t>(SDL_GAMEPAD_BUTTON_SOUTH);
     button.gbutton.down = true;
 
@@ -132,6 +133,7 @@ TEST_CASE("pressed gamepad buttons and triggers are named for the gamepad set") 
     const PressedControl trigger = Pressed(Axis(SDL_GAMEPAD_AXIS_LEFT_TRIGGER, kTriggerPressed));
 
     CHECK(south.device == ControlsDevice::Gamepad);
+    CHECK(south.pad == 4);
     CHECK(south.name == "a");
     CHECK(trigger.name == "lefttrigger");
     CHECK_FALSE(PressedControlOf(Axis(SDL_GAMEPAD_AXIS_LEFT_TRIGGER, 100)));

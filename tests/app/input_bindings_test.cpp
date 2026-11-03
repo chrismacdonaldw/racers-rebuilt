@@ -309,6 +309,21 @@ TEST_CASE("a pad connecting takes player 1 off the keyboard and losing it gives 
     CHECK(latch.TakeFrame().players[0].WasPressed(sim::Action::Accelerate));
 }
 
+TEST_CASE("a pad connecting that takes over a player centres the old pad's stick") {
+    settings::Registry registry = DefaultRegistry();
+    registry.Set(kPlayerDeviceSettings[0], "pad2");
+    registry.Set(kPlayerDeviceSettings[1], "keys1");
+    InputBindings bindings(registry);
+    sim::InputLatch latch;
+    bindings.Handle(Axis(SDL_GAMEPAD_AXIS_LEFTX, -32768, kFirstPad), latch);
+    REQUIRE(latch.TakeFrame().players[0].steerLeftAxis == 127);
+
+    bindings.Handle(Pad(SDL_EVENT_GAMEPAD_ADDED, kSecondPad), latch);
+
+    CHECK(bindings.AssignedSets() == PlayerSets{InputSet::Pad2, InputSet::Keys1});
+    CHECK(latch.TakeFrame().players[0].steerLeftAxis == 0);
+}
+
 TEST_CASE("any device drives player 1 when racing alone") {
     settings::Registry registry = DefaultRegistry();
     registry.Set(kAnyDeviceSetting, true);

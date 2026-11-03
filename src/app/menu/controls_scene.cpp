@@ -10,6 +10,7 @@
 
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_widgets.hpp"
+#include "app/race_bindings.hpp"
 #include "app/ui_text/text_layout.hpp"
 #include "core/log.hpp"
 
@@ -19,6 +20,7 @@ namespace {
 constexpr std::size_t kFirstTitleLine = 0x17;
 constexpr std::size_t kFirstActionLine = 0x69;
 constexpr std::size_t kFinishLine = 0x1E;
+constexpr std::size_t kDisabledState = 0;
 constexpr std::size_t kListeningState = 3;
 constexpr std::u16string_view kUnbound = u"........";
 constexpr std::string_view kNameSeparator = ", ";
@@ -62,10 +64,16 @@ Result<std::unique_ptr<ControlsScene>> ControlsScene::Create(render::Renderer& r
 
 void ControlsScene::ApplySettings(const settings::Registry& settings) {
     static_cast<void>(text_.Apply(*renderer_, *vfs_, settings));
-    keyboardNames_ = ReadControlNames(settings, player_, ControlsDevice::Keyboard);
-    gamepadNames_ = ReadControlNames(settings, player_, ControlsDevice::Gamepad);
-    keyboardShown_ = ShownNames(keyboardNames_);
-    gamepadShown_ = ShownNames(gamepadNames_);
+    for (const InputSet set : kInputSets) {
+        const auto index = static_cast<std::size_t>(set);
+        names_.at(index) = ReadControlNames(settings, set);
+        shown_.at(index) = ShownNames(names_.at(index));
+    }
+    const bool isOpening = !chosen_.has_value();
+    const PlayerSets& chosen = chosen_.emplace(ChosenPlayerSets(settings));
+    if (isOpening) {
+        ShowDevices(pads_, AssignInputSets(chosen, pads_.size()).at(player_));
+    }
 }
 
 std::optional<std::string> ControlsScene::TakeNextScene() {
@@ -77,18 +85,29 @@ std::vector<SettingChange> ControlsScene::TakeSettingChanges() {
 }
 
 void ControlsScene::HandleEvent(const SDL_Event& event) {
+    if (event.type == SDL_EVENT_GAMEPAD_ADDED || event.type == SDL_EVENT_GAMEPAD_REMOVED) {
+        ShowDevices(AttachedPads(), menu_.Set());
+        return;
+    }
     const std::optional<std::size_t> row = menu_.ListeningRow();
     if (!row) {
         return;
     }
     const std::optional<PressedControl> pressed = PressedControlOf(event);
-    if (!pressed || (pressed->device == menu_.Device() && pressed->isRefused)) {
+    if (!pressed) {
         return;
     }
-    if (pressed->device == menu_.Device()) {
-        std::ranges::move(
-            RebindChanges(DeviceNames(), player_, menu_.Device(), *row, pressed->name),
-            std::back_inserter(changes_));
+    const DeviceEntry& entry = Entry();
+    const bool isOwnDevice =
+        pressed->device == DeviceOf(entry.set) &&
+        (pressed->device == ControlsDevice::Keyboard || pressed->pad == entry.pad);
+    if (isOwnDevice && pressed->isRefused) {
+        return;
+    }
+    if (isOwnDevice) {
+        const ControlNames& names = names_.at(static_cast<std::size_t>(entry.set));
+        std::ranges::move(RebindChanges(names, entry.set, *row, pressed->name),
+                          std::back_inserter(changes_));
     }
     menu_.StopListening();
 }
@@ -96,7 +115,7 @@ void ControlsScene::HandleEvent(const SDL_Event& event) {
 void ControlsScene::Tick(const sim::InputFrame& input) {
     switch (menu_.Tick(input)) {
         case ControlsRequest::Leave:
-            next_ = back_;
+            Leave();
             return;
         case ControlsRequest::Listen:
         case ControlsRequest::None:
@@ -132,17 +151,37 @@ ControlsScene::ControlsScene(render::Renderer& renderer, const assets::Vfs& vfs,
       vfs_(&vfs),
       look_(std::move(look)),
       player_(player),
-      back_(std::move(back)) {}
+      back_(std::move(back)) {
+    ShowDevices(AttachedPads(), InputSet::Keys1);
+}
 
-const ControlNames& ControlsScene::DeviceNames() const {
-    return menu_.Device() == ControlsDevice::Keyboard ? keyboardNames_ : gamepadNames_;
+const DeviceEntry& ControlsScene::Entry() const {
+    return entries_.at(menu_.Entry());
+}
+
+void ControlsScene::ShowDevices(std::vector<AttachedPad> pads, InputSet set) {
+    pads_ = std::move(pads);
+    entries_ = DeviceEntries(pads_);
+    std::vector<InputSet> sets;
+    sets.reserve(entries_.size());
+    for (const DeviceEntry& entry : entries_) {
+        sets.push_back(entry.set);
+    }
+    menu_.SetEntries(std::move(sets), set);
+}
+
+void ControlsScene::Leave() {
+    if (chosen_) {
+        std::ranges::move(DeviceChanges(*chosen_, player_, menu_.Set(), pads_.size()),
+                          std::back_inserter(changes_));
+    }
+    next_ = back_;
 }
 
 void ControlsScene::DrawDevicePicker() {
     const bool isFocused = menu_.IsDeviceFocused();
     DrawSelectorArrows(look_.arrows, look_.devicePicker, isFocused, sprites_);
-    const UiImage& image =
-        menu_.Device() == ControlsDevice::Keyboard ? look_.keyboard : look_.gamepad;
+    const UiImage& image = look_.deviceImages.at(static_cast<std::size_t>(Entry().image));
     sprites_.push_back({.texture = image.texture,
                         .bounds = SizedAt(look_.deviceImage, image),
                         .tint = isFocused ? render::Color{} : kDeviceColor});
@@ -150,7 +189,7 @@ void ControlsScene::DrawDevicePicker() {
 
 void ControlsScene::DrawRows() {
     const std::array<std::u16string, kControlRows>& shownNames =
-        menu_.Device() == ControlsDevice::Keyboard ? keyboardShown_ : gamepadShown_;
+        shown_.at(static_cast<std::size_t>(menu_.Set()));
     const UiFont* labelFont = text_.Font(look_.label.font);
     for (std::size_t row = 0; row < kControlRows; ++row) {
         const MenuPoint label = look_.labels.at(row);
@@ -162,6 +201,8 @@ void ControlsScene::DrawRows() {
         std::size_t state = menu_.FocusedRow() == row ? kFocusedState : kNormalState;
         if (isListening) {
             state = kListeningState;
+        } else if (!menu_.IsRowEnabled(row)) {
+            state = kDisabledState;
         }
         const std::u16string& shown = shownNames.at(row);
         const MenuPoint binding = look_.bindings.at(row);

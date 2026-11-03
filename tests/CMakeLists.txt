@@ -55,6 +55,7 @@ add_executable(racers-rebuilt-tests
     app/menu/car_builder_test.cpp
     app/menu/carousel_layout_test.cpp
     app/menu/control_bindings_test.cpp
+    app/menu/controls_devices_test.cpp
     app/menu/controls_menu_test.cpp
     app/scene_music_test.cpp
     app/menu/dialog_layout_test.cpp

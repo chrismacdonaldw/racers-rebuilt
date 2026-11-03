@@ -21,16 +21,8 @@ constexpr std::array kRefusedKeys{
     SDLK_WAKE,   kToggleOverlayKey, kCyclePacingKey,
 };
 
-InputSet SetOf(std::size_t player, ControlsDevice device) {
-    if (device == ControlsDevice::Keyboard) {
-        return player == 0 ? InputSet::Keys1 : InputSet::Keys2;
-    }
-    return player == 0 ? InputSet::Pad1 : InputSet::Pad2;
-}
-
-const settings::SettingSpec<std::string_view>* SpecFor(sim::Action action, std::size_t player,
-                                                       ControlsDevice device) {
-    const std::span<const RaceBinding> bindings = RaceBindingsOf(SetOf(player, device));
+const settings::SettingSpec<std::string_view>* SpecFor(sim::Action action, InputSet set) {
+    const std::span<const RaceBinding> bindings = RaceBindingsOf(set);
     const auto binding = std::ranges::find(bindings, action, &RaceBinding::action);
     if (binding == bindings.end()) {
         return nullptr;
@@ -53,12 +45,11 @@ std::string Joined(const std::vector<std::string>& names) {
     return list;
 }
 
-std::optional<PressedControl> NamedControl(ControlsDevice device, std::string name,
-                                           bool isRefused) {
-    if (name.empty()) {
+std::optional<PressedControl> NamedControl(PressedControl control) {
+    if (control.name.empty()) {
         return std::nullopt;
     }
-    return PressedControl{.device = device, .name = std::move(name), .isRefused = isRefused};
+    return control;
 }
 
 std::string NameOf(const char* name) {
@@ -67,23 +58,25 @@ std::string NameOf(const char* name) {
 
 }
 
-ControlNames ReadControlNames(const settings::Registry& settings, std::size_t player,
-                              ControlsDevice device) {
+ControlsDevice DeviceOf(InputSet set) {
+    return PadOf(set) ? ControlsDevice::Gamepad : ControlsDevice::Keyboard;
+}
+
+ControlNames ReadControlNames(const settings::Registry& settings, InputSet set) {
     ControlNames names;
     for (std::size_t row = 0; row < kControlRows; ++row) {
-        if (const auto* spec = SpecFor(kControlActions.at(row), player, device)) {
+        if (const auto* spec = SpecFor(kControlActions.at(row), set)) {
             names.at(row) = SplitBindingNames(settings.Get(*spec));
         }
     }
     return names;
 }
 
-std::vector<SettingChange> RebindChanges(const ControlNames& names, std::size_t player,
-                                         ControlsDevice device, std::size_t row,
+std::vector<SettingChange> RebindChanges(const ControlNames& names, InputSet set, std::size_t row,
                                          std::string_view input) {
     std::vector<SettingChange> changes;
     for (std::size_t other = 0; other < kControlRows; ++other) {
-        const auto* spec = SpecFor(kControlActions.at(other), player, device);
+        const auto* spec = SpecFor(kControlActions.at(other), set);
         if (spec == nullptr) {
             continue;
         }
@@ -106,13 +99,14 @@ std::optional<PressedControl> PressedControlOf(const SDL_Event& event) {
             if (event.key.repeat) {
                 return std::nullopt;
             }
-            return NamedControl(ControlsDevice::Keyboard, KeyBindingName(event.key.key),
-                                std::ranges::contains(kRefusedKeys, event.key.key));
+            return NamedControl({.device = ControlsDevice::Keyboard,
+                                 .name = KeyBindingName(event.key.key),
+                                 .isRefused = std::ranges::contains(kRefusedKeys, event.key.key)});
         case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
-            return NamedControl(ControlsDevice::Gamepad,
-                                NameOf(SDL_GetGamepadStringForButton(
-                                    static_cast<SDL_GamepadButton>(event.gbutton.button))),
-                                false);
+            return NamedControl({.device = ControlsDevice::Gamepad,
+                                 .pad = event.gbutton.which,
+                                 .name = NameOf(SDL_GetGamepadStringForButton(
+                                     static_cast<SDL_GamepadButton>(event.gbutton.button)))});
         case SDL_EVENT_GAMEPAD_AXIS_MOTION: {
             const auto axis = static_cast<SDL_GamepadAxis>(event.gaxis.axis);
             const bool isTrigger =
@@ -120,8 +114,9 @@ std::optional<PressedControl> PressedControlOf(const SDL_Event& event) {
             if (!isTrigger || event.gaxis.value < kTriggerPressed) {
                 return std::nullopt;
             }
-            return NamedControl(ControlsDevice::Gamepad, NameOf(SDL_GetGamepadStringForAxis(axis)),
-                                false);
+            return NamedControl({.device = ControlsDevice::Gamepad,
+                                 .pad = event.gaxis.which,
+                                 .name = NameOf(SDL_GetGamepadStringForAxis(axis))});
         }
         default:
             return std::nullopt;
