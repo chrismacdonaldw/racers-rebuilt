@@ -29,24 +29,33 @@ TEST_CASE("the gameplay fingerprint names each enabled mod and its version") {
     mods.DeclareSettings(registry);
     registry.Set(mods.All().back().EnabledSetting(), false);
 
-    CHECK(GameplayFingerprint(registry, mods, std::nullopt) ==
-          std::vector<std::string>{"mod:faster@1.2"});
+    CHECK(GameplayFingerprint(registry, mods, {}) == std::vector<std::string>{"mod:faster@1.2"});
 }
 
 TEST_CASE("the gameplay fingerprint changes with the player's car but not their trophies") {
     const mods::ModList mods;
     const settings::Registry registry;
-    std::optional<settings::Racer> player = settings::Racer{.name = "MINE", .chassis = "XXJMW"};
-    const std::vector<std::string> before = GameplayFingerprint(registry, mods, player);
-    player->trophies.emplace("c0", settings::Trophy::Gold);
-    const std::vector<std::string> trophied = GameplayFingerprint(registry, mods, player);
-    player->car[0] = std::byte{1};
-    const std::vector<std::string> rebuilt = GameplayFingerprint(registry, mods, player);
+    PlayerRacers players{.first = settings::Racer{.name = "MINE", .chassis = "XXJMW"}};
+    const std::vector<std::string> before = GameplayFingerprint(registry, mods, players);
+    players.first->trophies.emplace("c0", settings::Trophy::Gold);
+    const std::vector<std::string> trophied = GameplayFingerprint(registry, mods, players);
+    players.first->car[0] = std::byte{1};
+    const std::vector<std::string> rebuilt = GameplayFingerprint(registry, mods, players);
 
     REQUIRE(before.size() == 1);
     CHECK(before.front().starts_with("racer:MINE@"));
     CHECK(trophied == before);
     CHECK(rebuilt != before);
+}
+
+TEST_CASE("the gameplay fingerprint names player 2's racer apart from player 1's") {
+    const settings::Racer racer{.name = "MINE", .chassis = "XXJMW"};
+
+    const std::vector<std::string> second =
+        GameplayFingerprint(settings::Registry{}, mods::ModList{}, {.second = racer});
+
+    REQUIRE(second.size() == 1);
+    CHECK(second.front().starts_with("racer2:MINE@"));
 }
 
 }

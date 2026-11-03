@@ -36,10 +36,11 @@ struct VoiceBanks {
 
 struct VoiceChoice {
     std::optional<std::uint8_t> builtFace;
+    std::optional<std::uint8_t> secondBuiltFace;
     bool isTimeTrial = false;
 };
 
-/// A built player says `VOICE<face>` lines; others say a time trial's `VOICE29` or the circuit's.
+/// Built players say their own `VOICE<face>`; others a time trial's `VOICE29` or the circuit's.
 [[nodiscard]] VoiceBanks LoadRaceVoices(audio::Mixer& mixer, SoundBanks& banks,
                                         const assets::Vfs& vfs, std::string_view track,
                                         VoiceChoice choice);

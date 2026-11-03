@@ -44,6 +44,15 @@ Result<std::vector<std::string>> PlayersFirst(std::vector<std::string> codes,
     return codes;
 }
 
+const settings::Racer* OwnRacer(const RaceSceneSetup& setup, std::size_t slot) {
+    if (slot == 0 && setup.playerRacer) {
+        return &*setup.playerRacer;
+    }
+    if (slot == 1 && setup.players > 1 && setup.secondPlayerRacer) {
+        return &*setup.secondPlayerRacer;
+    }
+    return nullptr;
+}
 void Dress(const Vector3& origin, const CarLook& look, std::span<render::MeshDraw> draws) {
     for (render::MeshDraw& draw : draws) {
         draw.transform.position = origin + ((draw.transform.position - origin) * look.scale);
@@ -72,8 +81,7 @@ Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs&
     slots = std::min(slots, codes->size());
     std::vector<Slot> loaded;
     for (const std::string& code : std::span(*codes).first(slots)) {
-        const settings::Racer* own =
-            loaded.empty() && setup.playerRacer ? &*setup.playerRacer : nullptr;
+        const settings::Racer* own = OwnRacer(setup, loaded.size());
         Result<std::unique_ptr<RacerAssets>> assets = LoadSlot(vfs, loader, *catalog, code, own);
         Result<BoundingSphere> bounds = assets.and_then(
             [](const std::unique_ptr<RacerAssets>& racer) { return RacerBounds(*racer); });

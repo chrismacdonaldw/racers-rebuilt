@@ -46,16 +46,14 @@ TEST_CASE("single race setup picks the player's racer, then races the chosen tra
     CHECK(*next == "menu:pick_racer>race:RACEC0R0:respawn=3000:racer=0:circuit=c1");
 }
 
-TEST_CASE("changing track keeps the racer within its grid") {
-    RaceSetupMenu menu(Tracks(), 2);
+TEST_CASE("left and right change the course only while it has focus") {
+    RaceSetupMenu menu(Tracks());
 
-    static_cast<void>(
-        Press(menu, {MenuAction::Down, MenuAction::Left, MenuAction::Up, MenuAction::Right}));
-
+    static_cast<void>(Press(menu, {MenuAction::Down, MenuAction::Right}));
+    CHECK(menu.Course().track == "RACEC0R1");
+    static_cast<void>(Press(menu, {MenuAction::Up, MenuAction::Right}));
     CHECK(menu.Course().track == "RACEC0R0");
-    CHECK(menu.Racer() == 1);
 }
-
 TEST_CASE("back leaves for the main menu from any row") {
     RaceSetupMenu menu(Tracks());
 
@@ -70,18 +68,17 @@ TEST_CASE("confirming a choice moves on to the next row") {
     CHECK(menu.Focus() == RaceSetupRow::Race);
 }
 
-TEST_CASE("versus setup gives each player a racer and keeps the rules' lap count") {
+TEST_CASE("versus setup has each player pick a racer and keeps the rules' lap count") {
     RaceSetupMenu menu(Tracks(), 2);
 
     const std::optional<std::string> next =
-        Press(menu,
-              {MenuAction::Down, MenuAction::Down, MenuAction::Right, MenuAction::Down,
-               MenuAction::Confirm},
+        Press(menu, {MenuAction::Down, MenuAction::Confirm},
               {.respawn = {.timeout = Milliseconds{3000}}, .lapCount = 5});
 
-    CHECK(next == "race:RACEC0R1:respawn=3000:racer=0:circuit=c0:players=2:racer2=2:laps=5");
+    CHECK(next ==
+          "menu:pick_racer>menu:pick_racer2>race:RACEC0R1:respawn=3000:racer=0:"
+          "circuit=c0:players=2:racer2=1:laps=5");
 }
-
 TEST_CASE("single race setup keeps the rules' opponent count") {
     RaceSetupMenu menu(Tracks());
 
@@ -90,28 +87,6 @@ TEST_CASE("single race setup keeps the rules' opponent count") {
               {.respawn = {.timeout = Milliseconds{3000}}, .opponents = 1});
 
     CHECK(next == "menu:pick_racer>race:RACEC0R1:respawn=3000:racer=0:circuit=c0:opponents=1");
-}
-
-TEST_CASE("only versus setup stops on the players' racers") {
-    RaceSetupMenu single(Tracks());
-    RaceSetupMenu versus(Tracks(), 2);
-
-    static_cast<void>(Press(single, {MenuAction::Down}));
-    static_cast<void>(Press(versus, {MenuAction::Down, MenuAction::Down}));
-
-    CHECK(single.Focus() == RaceSetupRow::Race);
-    CHECK(versus.Focus() == RaceSetupRow::SecondRacer);
-    CHECK(versus.SecondRacer() == 1);
-}
-
-TEST_CASE("changing track keeps player 2's racer within its grid") {
-    RaceSetupMenu menu(Tracks(), 2);
-
-    static_cast<void>(Press(menu, {MenuAction::Down, MenuAction::Down, MenuAction::Right,
-                                   MenuAction::Up, MenuAction::Up, MenuAction::Right}));
-
-    CHECK(menu.Course().track == "RACEC0R0");
-    CHECK(menu.SecondRacer() == 1);
 }
 
 std::vector<CourseChoice> Circuits() {

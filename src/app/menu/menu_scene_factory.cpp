@@ -1,5 +1,6 @@
 #include "app/menu/menu_scene_factory.hpp"
 
+#include <array>
 #include <cstddef>
 
 #include "app/circuit_awards.hpp"
@@ -12,6 +13,13 @@
 #include "app/menu/racer_pick_scene.hpp"
 
 namespace rr::app {
+namespace {
+
+constexpr std::size_t kVersusPlayers = 2;
+constexpr std::array kControls{kControlsScene, kPlayer2ControlsScene};
+constexpr std::array kPicks{kPickRacerScene, kPickSecondRacerScene};
+
+}
 
 std::optional<Result<std::unique_ptr<Scene>>> CreateMenuScene(const MenuSceneParts& parts,
                                                               std::string_view scene) {
@@ -28,13 +36,16 @@ std::optional<Result<std::unique_ptr<Scene>>> CreateMenuScene(const MenuScenePar
         return ControlsScene::Create(renderer, vfs, player, std::string(kOptionsScene))
             .transform(ToScene<ControlsScene>);
     }
-    if (const std::optional<std::string_view> back = SceneAfter(scene, kControlsScene)) {
-        return ControlsScene::Create(renderer, vfs, 0, std::string(*back))
-            .transform(ToScene<ControlsScene>);
-    }
-    if (const std::optional<std::string_view> next = SceneAfter(scene, kPickRacerScene)) {
-        return RacerPickScene::Create(renderer, vfs, sounds(), parts.racersFile, std::string(*next))
-            .transform(ToScene<RacerPickScene>);
+    for (std::size_t player = 0; player < kVersusPlayers; ++player) {
+        if (const std::optional<std::string_view> back = SceneAfter(scene, kControls.at(player))) {
+            return ControlsScene::Create(renderer, vfs, player, std::string(*back))
+                .transform(ToScene<ControlsScene>);
+        }
+        if (const std::optional<std::string_view> next = SceneAfter(scene, kPicks.at(player))) {
+            return RacerPickScene::Create(renderer, vfs, sounds(), parts.racersFile,
+                                          {.next = std::string(*next), .player = player})
+                .transform(ToScene<RacerPickScene>);
+        }
     }
     if (scene == kLanguageScene) {
         return LanguageScene::Create(renderer, vfs, sounds()).transform(ToScene<LanguageScene>);

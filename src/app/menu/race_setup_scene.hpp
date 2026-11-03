@@ -70,7 +70,6 @@ private:
 
     void DrawRow(RaceSetupRow row, const RowText& text);
     void DrawValue(const MenuButtonState& state, std::u16string_view value, float top);
-    [[nodiscard]] std::u16string_view RacerName(std::size_t racer) const;
     void DrawChampion();
     void ShowBestTimes();
     void DrawBestTimes();
@@ -84,7 +83,6 @@ private:
     MenuText text_;
     std::vector<std::u16string> raceNames_;
     std::vector<std::u16string> courseNames_;
-    std::vector<std::vector<std::u16string>> racerNames_;
     settings::Progress progress_;
     BestTimePanel bestTimes_;
     RaceSceneSetup rules_;

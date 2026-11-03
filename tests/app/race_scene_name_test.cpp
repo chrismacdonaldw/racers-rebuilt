@@ -123,6 +123,20 @@ TEST_CASE("the racer pick names its racer in every race of a scene chain") {
           "race:RACEC0R0:respawn=off:racer=0:player=ME@0000000000000001");
 }
 
+TEST_CASE("a versus race scene name carries player 2's own racer") {
+    const RaceSceneSetup versus{
+        .track = "RACEC0R0", .players = 2, .secondPlayer = {.name = "YOU", .hash = 2}};
+    const std::string chain = "menu:pick_racer2>race:RACEC0R0:respawn=3000:racer=0:players=2";
+
+    CHECK(RaceSceneName(versus) ==
+          "race:RACEC0R0:respawn=3000:racer=0:players=2:racer2=1:player2=YOU@0000000000000002");
+    CHECK(ParseRaceScene(RaceSceneName(versus)) == versus);
+    CHECK(SceneSecondPlayer(RaceSceneName(versus)) == versus.secondPlayer);
+    CHECK(WithSecondPlayer(chain, {.name = "ME"}) ==
+          "menu:pick_racer2>race:RACEC0R0:respawn=3000:racer=0:players=2:racer2=1:player2=ME");
+    CHECK_FALSE(ParseCircuitScene("circuit:c0:respawn=3000:racer=0:player2=ME"));
+}
+
 TEST_CASE("a single race scene name records fewer opponents than a full grid") {
     const RaceSceneSetup race{.track = "RACEC0R0", .opponents = 2};
 
