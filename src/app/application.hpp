@@ -13,6 +13,7 @@
 #include "app/frame_loop.hpp"
 #include "app/game_boot.hpp"
 #include "app/menu_pointer.hpp"
+#include "app/restart.hpp"
 #include "app/sound_banks.hpp"
 #include "app/time_trial/time_trial_run.hpp"
 #include "assets/track_loader.hpp"
@@ -61,6 +62,7 @@ private:
         std::optional<std::filesystem::path> replayFile;
         std::string startupSummary;
         std::optional<settings::Racer> playerRacer;
+        std::vector<std::string> relaunch;
     };
 
     using SceneFactory = std::function<Result<std::unique_ptr<Scene>>()>;
@@ -118,6 +120,7 @@ private:
     std::string startupSummary_;
     std::optional<settings::Racer> playerRacer_;
     sim::Cheats cheats_;
+    Restart restart_;
     FrameLoop frameLoop_;
 };
 

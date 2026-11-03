@@ -10,6 +10,7 @@
 #include "app/circuit_awards.hpp"
 #include "app/game_boot.hpp"
 #include "app/image_dump.hpp"
+#include "app/restart.hpp"
 #include "app/save_import.hpp"
 #include "core/result.hpp"
 #include "core/utf8_path.hpp"
@@ -17,11 +18,12 @@
 
 namespace {
 
-rr::Result<void> Run(std::span<const std::string_view> args) {
-    rr::Result<rr::app::GameBoot> boot = rr::app::BootGame(args);
+rr::Result<void> Run(std::span<const std::string_view> argv) {
+    rr::Result<rr::app::GameBoot> boot = rr::app::BootGame(argv.subspan(1));
     if (!boot) {
         return std::unexpected(std::move(boot.error()));
     }
+    boot->relaunch = rr::app::RelaunchCommand(argv);
     if (boot->commandLine.importSaveFile) {
         const rr::Result<bool> imported = rr::app::ImportOriginalSave(
             rr::PathFromUtf8(*boot->commandLine.importSaveFile),
@@ -44,7 +46,7 @@ rr::Result<void> Run(std::span<const std::string_view> args) {
 
 int main(int argc, char* argv[]) {
     const std::span<char*> argSpan(argv, static_cast<std::size_t>(argc));
-    const std::vector<std::string_view> args(argSpan.begin() + 1, argSpan.end());
+    const std::vector<std::string_view> args(argSpan.begin(), argSpan.end());
     const rr::Result<void> ran = Run(args);
     if (!ran) {
         rr::platform::ReportFatalError(ran.error());

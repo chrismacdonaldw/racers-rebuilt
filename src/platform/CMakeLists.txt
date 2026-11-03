@@ -9,6 +9,7 @@ rr_add_module(platform
         gamepads.cpp
         install_locations.cpp
         message_box.cpp
+        process.cpp
         image_file.cpp
         sdl_context.cpp
         window.cpp

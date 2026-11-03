@@ -90,7 +90,8 @@ void Overlay::Toggle() {
 std::vector<std::string> Overlay::Build(settings::Registry& registry, const DeveloperStats& stats,
                                         std::span<const MenuChoice> scenes,
                                         std::span<const MenuChoice> saveImports,
-                                        const RacerTools& racerTools) {
+                                        const RacerTools& racerTools,
+                                        const std::optional<MenuChoice>& restart) {
     if (!input_.IsOpen()) {
         return {};
     }
@@ -106,6 +107,9 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
                 ImGui::BeginMenu(std::string(menu.category).c_str())) {
                 if (menu.category == kModsCategory) {
                     ImGui::TextDisabled("Changes apply on restart");
+                    if (restart && ImGui::MenuItem(restart->name.c_str())) {
+                        restart->choose();
+                    }
                 }
                 Append(finished, DrawPresets(registry, presets_, menu.category));
                 Append(finished, DrawSettingItems(registry, menu));

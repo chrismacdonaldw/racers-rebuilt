@@ -261,7 +261,7 @@ enabled = true
 | `priority` | No | Whole number, default `0`. Higher wins when two mods replace the same file. On a tie, the id that sorts first wins. |
 | `enabled` | No | Default `true`. Sets the starting value of `mods.<id>.enabled`. |
 
-Turning a mod on or off applies on the next start. A mod with a broken `mod.toml` is skipped with a warning in the log.
+Turning a mod on or off applies on the next start. Once a setting in **Mods** changes, **Restart now** appears there: it relaunches the game with the same command line, minus `--record`, `--replay`, `--import-save` and `--dump-images`. A mod with a broken `mod.toml` is skipped with a warning in the log.
 
 ### Overrides
 

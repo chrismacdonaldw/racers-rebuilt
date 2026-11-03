@@ -173,7 +173,13 @@ Result<GameBoot> BootGame(std::span<const std::string_view> args) {
                     .extensions = std::move(extensions),
                     .sdl = std::move(*sdl),
                     .vfs = std::move(*vfs),
-                    .playerRacer = std::move(playerRacer)};
+                    .playerRacer = std::move(playerRacer),
+                    .relaunch = {}};
+}
+
+std::filesystem::path OriginalInstall(const GameBoot& boot) {
+    return PathFromUtf8(
+        boot.commandLine.gamePath.value_or(std::string(boot.settings.Get(kGamePath))));
 }
 
 }
