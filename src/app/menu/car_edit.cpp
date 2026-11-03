@@ -26,7 +26,8 @@ sim::BuiltCar LoadEditedCar(const assets::CarData& data, const assets::PieceLibr
 }
 
 std::vector<std::size_t> AvailablePartSets(const std::set<std::int32_t>& partSets,
-                                           const sim::BuiltCar& car) {
+                                           const sim::BuiltCar& car,
+                                           const assets::PieceCatalog& catalog) {
     std::array<bool, kPartSetCount> isAvailable{};
     std::fill_n(isAvailable.begin(), kStarterPartSets, true);
     for (const std::int32_t unlocked : partSets) {
@@ -36,8 +37,9 @@ std::vector<std::size_t> AvailablePartSets(const std::set<std::int32_t>& partSet
         }
     }
     for (const sim::CarPiece& piece : car.Pieces()) {
-        if (piece.partSet < kPartSetCount) {
-            isAvailable.at(piece.partSet) = true;
+        const std::optional<std::size_t> set = PartSetOfType(catalog, piece.partType);
+        if (set && *set < kPartSetCount) {
+            isAvailable.at(*set) = true;
         }
     }
     std::vector<std::size_t> sets;
@@ -47,6 +49,23 @@ std::vector<std::size_t> AvailablePartSets(const std::set<std::int32_t>& partSet
         }
     }
     return sets;
+}
+
+std::uint16_t PartTypeOf(const assets::PieceCatalog& catalog, std::size_t set) {
+    return catalog.library.pieces.at(catalog.partSets.at(set).chassis).type;
+}
+
+std::optional<std::size_t> PartSetOfType(const assets::PieceCatalog& catalog,
+                                         std::uint16_t partType) {
+    if (partType == 0) {
+        return std::nullopt;
+    }
+    for (std::size_t set = 0; set < catalog.partSets.size(); ++set) {
+        if (PartTypeOf(catalog, set) == partType) {
+            return set;
+        }
+    }
+    return std::nullopt;
 }
 
 Result<void> ResetToChassis(sim::BuiltCar& car, const assets::PieceCatalog& catalog,

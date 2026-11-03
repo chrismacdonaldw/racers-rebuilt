@@ -33,7 +33,7 @@ CarPiece EntryAt(std::span<const std::byte> entry) {
                           .y = static_cast<int>(ByteAt(entry, 3)),
                           .rotation = ByteAt(entry, 4) & 3U},
             .colour = static_cast<std::uint8_t>(ByteAt(entry, 5)),
-            .partSet = U16At(entry, 6)};
+            .partType = U16At(entry, 6)};
 }
 
 int TopOf(const assets::PieceRecord& piece) {
@@ -120,7 +120,7 @@ assets::CarData BuiltCar::Save() const {
         PutU8(bytes, 3, static_cast<unsigned>(entry.placement.y));
         PutU8(bytes, 4, entry.placement.rotation);
         PutU8(bytes, 5, entry.colour);
-        PutU16(bytes, 6, entry.partSet);
+        PutU16(bytes, 6, entry.partType);
     }
     return data;
 }
@@ -146,12 +146,12 @@ std::expected<int, PlacementFailure> BuiltCar::Test(const assets::PieceRecord& p
 
 std::expected<int, PlacementFailure> BuiltCar::Place(const assets::PieceRecord& piece,
                                                      PiecePlacement placement, std::uint8_t colour,
-                                                     std::uint16_t partSet) {
+                                                     std::uint16_t partType) {
     PiecePlacement turned = placement;
     turned.rotation &= 3U;
     const std::expected<int, PlacementFailure> height = Test(piece, turned);
     if (height) {
-        Add({.piece = &piece, .placement = turned, .colour = colour, .partSet = partSet},
+        Add({.piece = &piece, .placement = turned, .colour = colour, .partType = partType},
             piece.IsChassis());
     }
     return height;

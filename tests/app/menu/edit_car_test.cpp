@@ -93,11 +93,13 @@ TEST_CASE_FIXTURE(Pieces, "the starter sets, unlocked sets and the car's own set
     sim::BuiltCar car;
     REQUIRE(ResetToChassis(car, catalog, 0, 3).has_value());
 
-    CHECK(AvailablePartSets({}, car) == std::vector<std::size_t>{0, 1, 2, 3});
-    CHECK(AvailablePartSets({0, 7, 8, -1}, car) == std::vector<std::size_t>{0, 1, 2, 3, 4, 11});
+    catalog.partSets.at(6).chassis = 2;
+    CHECK(AvailablePartSets({}, car, catalog) == std::vector<std::size_t>{0, 1, 2, 3});
+    CHECK(AvailablePartSets({0, 7, 8, -1}, car, catalog) ==
+          std::vector<std::size_t>{0, 1, 2, 3, 4, 11});
 
-    REQUIRE(car.Place(Brick(), {.x = 2, .y = 1}, 7, 6).has_value());
-    CHECK(AvailablePartSets({0}, car) == std::vector<std::size_t>{0, 1, 2, 3, 4, 6});
+    REQUIRE(car.Place(Brick(), {.x = 2, .y = 1}, 7, Brick().type).has_value());
+    CHECK(AvailablePartSets({0}, car, catalog) == std::vector<std::size_t>{0, 1, 2, 3, 4, 6});
 }
 
 TEST_CASE("quick build cycles exactly the builds on the chassis, in any case") {

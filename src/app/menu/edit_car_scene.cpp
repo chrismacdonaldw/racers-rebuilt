@@ -105,7 +105,7 @@ Result<std::unique_ptr<EditCarScene>> EditCarScene::Create(render::Renderer& ren
     }
     const settings::Racer& record = store->racers.at(racer);
     sim::BuiltCar built = LoadEditedCar(record.car, pieces->library);
-    std::vector<std::size_t> sets = AvailablePartSets(partSets, built);
+    std::vector<std::size_t> sets = AvailablePartSets(partSets, built, *pieces);
     const std::size_t chassisSet = built.Pieces().empty() ? 0 : SetOf(*pieces, record.chassis);
     const auto set = std::ranges::find(sets, chassisSet);
     const bool isReplaceable = built.Pieces().size() <= 1 || quickBuilds->Contains(record.car);
