@@ -16,6 +16,7 @@ find_package(imgui CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
 find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h REQUIRED)
 find_path(STB_INCLUDE_DIR stb_vorbis.c REQUIRED)
+find_path(CGLTF_INCLUDE_DIR cgltf.h REQUIRED)
 
 add_subdirectory(src)
 

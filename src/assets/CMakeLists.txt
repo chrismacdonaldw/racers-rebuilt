@@ -5,6 +5,7 @@ rr_add_module(assets
         bmp_image.cpp
         brick_layout.cpp
         byte_reader.cpp
+        cgltf.cpp
         champion_database.cpp
         circuit_database.cpp
         chassis_database.cpp
@@ -23,6 +24,7 @@ rr_add_module(assets
         geometry_database.cpp
         geometry_writer.cpp
         ghost_run.cpp
+        gltf_model.cpp
         hazard_list.cpp
         image_list.cpp
         install.cpp
@@ -70,7 +72,8 @@ rr_add_module(assets
         rr::core
         rr::platform
 )
-target_include_directories(rr_assets SYSTEM PRIVATE "${STB_INCLUDE_DIR}")
+target_include_directories(rr_assets SYSTEM PRIVATE "${STB_INCLUDE_DIR}" "${CGLTF_INCLUDE_DIR}")
+set_source_files_properties(cgltf.cpp PROPERTIES COMPILE_DEFINITIONS CGLTF_IMPLEMENTATION)
 set_source_files_properties(stb_image.cpp PROPERTIES
     COMPILE_DEFINITIONS "STB_IMAGE_IMPLEMENTATION;STBI_ONLY_PNG;STBI_NO_STDIO"
 )

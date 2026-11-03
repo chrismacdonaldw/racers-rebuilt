@@ -147,6 +147,7 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `cheats.<plate>` | `false` | `true`, `false`. Keeps a license plate cheat on, such as `cheats.mxpmx`. Entered after the license's own cheats, from the next single race, versus race or test drive. Circuits and time trials ignore them, as the original does, and so does the attract demo. |
 | `mods.<id>.enabled` | The mod's `enabled` value | `true`, `false` |
 | `mods.hq_textures` | `true` | `true`, `false`. Uses PNG replacements for game images. Applies on **Apply now** or the next start. |
+| `mods.gltf_models` | `true` | `true`, `false`. Uses glTF replacements for game models. Applies on **Apply now** or the next start. |
 | `mods.overrides` | `true` | `true`, `false`. Loads `<data>/overrides/`. Applies on **Apply now** or the next start. |
 | `input.keys.<action>` | See below | The first keyboard set (arrows). Comma-separated SDL key names, such as `Up,W` or `Left Shift` |
 | `input.keys2.<action>` | See below | The second keyboard set (WASD), in the same form |
@@ -304,6 +305,17 @@ A PNG next to a game image's path, named like it but ending in `.png`, replaces 
 - Its alpha is used as is: the original's colour key doesn't apply.
 - **HQ textures** in the **Mods** menu (`mods.hq_textures`) turns replacements off. It applies on the next start.
 
+### Models
+
+A glTF binary next to a game model's path, named like it but ending in `.glb`, replaces that model, e.g. `files/GAMEDATA/COMMON/RRJMW.glb` for `GAMEDATA/COMMON/RRJMW.GDB`.
+
+- Export it as **glTF Binary** with Y up, as Blender does by default. Node transforms are applied.
+- Each material's name picks the game material it's drawn with, so name it after one in the materials file (`.MDB`) the game loads with that model. Case doesn't matter.
+- Every mesh needs normals or vertex colours. Vertex colours make the whole model unlit, the way the game draws coloured models.
+- Skins and animations are ignored for now.
+- A `.glb` that can't be read is skipped with a warning in the log, and the game's model is kept.
+- **glTF models** in the **Mods** menu (`mods.gltf_models`) turns replacements off. It applies on **Apply now** or the next start.
+
 ### Overrides
 
 To replace a few files without writing a mod, put them in `<data>/overrides/` at their paths inside `LEGO.JAM`, e.g. `<data>/overrides/GAMEDATA/COMMON/RRJMW.GDB`.
@@ -377,6 +389,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md#building). Builds need Visual Studio 2022,
 - [FFmpeg](https://ffmpeg.org/) for the intro videos' Indeo 5 decoder, built from source under the [LGPL-2.1-or-later](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html) with only that decoder enabled
 - [Dear ImGui](https://github.com/ocornut/imgui) for the overlay
 - [toml++](https://github.com/marzer/tomlplusplus) for settings and mod manifests
+- [cgltf](https://github.com/jkuhlmann/cgltf) for reading glTF models from mods
 - [glm](https://github.com/g-truc/glm) for rendering math
 - [doctest](https://github.com/doctest/doctest) for unit tests
 - The [LEGO Racers decompilation](https://github.com/isledecomp/racers) by the isledecomp team, used as a reference for game behavior and file formats

@@ -28,6 +28,7 @@ add_executable(racers-rebuilt-tests
     app/fov_swing_test.cpp
     app/game_extraction_test.cpp
     app/gameplay_fingerprint_test.cpp
+    app/gltf_models_test.cpp
     app/hazard/ghost_trail_test.cpp
     app/hazard/hazard_particles_test.cpp
     app/hazard/water_scroll_test.cpp
@@ -178,6 +179,7 @@ add_executable(racers-rebuilt-tests
     assets/geometry_database_test.cpp
     assets/geometry_writer_test.cpp
     assets/ghost_run_test.cpp
+    assets/gltf_model_test.cpp
     assets/hazard_list_retail_test.cpp
     assets/hazard_list_test.cpp
     assets/image_list_test.cpp

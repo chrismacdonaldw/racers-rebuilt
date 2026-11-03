@@ -37,6 +37,7 @@ rr_add_module(app
         player_cameras.cpp
         fov_swing.cpp
         gameplay_fingerprint.cpp
+        gltf_models.cpp
         frame_loop.cpp
         ground_decal.cpp
         free_camera.cpp
