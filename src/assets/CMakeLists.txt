@@ -21,6 +21,7 @@ rr_add_module(assets
         font_list.cpp
         game_path.cpp
         geometry_database.cpp
+        geometry_writer.cpp
         ghost_run.cpp
         hazard_list.cpp
         image_list.cpp
@@ -60,6 +61,7 @@ rr_add_module(assets
         tga_image.cpp
         token_reader.cpp
         token_schema.cpp
+        token_writer.cpp
         track_loader.cpp
         track_triggers.cpp
         vfs.cpp
