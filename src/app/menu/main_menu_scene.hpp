@@ -14,6 +14,7 @@
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/menu/message_dialog.hpp"
+#include "app/menu/pointer_buttons.hpp"
 #include "app/scene.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -35,6 +36,7 @@ public:
     [[nodiscard]] SceneMusic Music() const override {
         return {.track = kMenuTheme, .start = MusicStart::OnEntryIfSilent};
     }
+    [[nodiscard]] bool ShowsPointer() const override { return true; }
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
     void Tick(const sim::InputFrame& input) override;
     void Snapshot(sim::RenderSnapshot& out) const override;
@@ -58,8 +60,10 @@ private:
     MenuPage page_;
     std::unique_ptr<MenuChampion> champion_;
     std::vector<render::Rect> buttonBounds_;
+    std::vector<PointerTarget> targets_;
     MenuText text_;
     std::size_t focus_ = 0;
+    PointerButtons pointer_;
     std::optional<std::string> next_;
     std::optional<DialogLook> dialogLook_;
     std::optional<MessageDialog> dialog_;

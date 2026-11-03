@@ -127,6 +127,7 @@ rr_add_module(app
         menu/part_carousel.cpp
         menu/pause_menu.cpp
         menu/piece_models.cpp
+        menu/pointer_buttons.cpp
         menu/preview_cycle.cpp
         menu/racer_edit_flow.cpp
         menu/racer_pick_list.cpp
@@ -194,6 +195,7 @@ rr_add_module(app
         scene_stack.cpp
         screenshots.cpp
         sound_banks.cpp
+        menu_pointer.cpp
         save_import.cpp
         sprite_test_scene.cpp
         startup_scene.cpp

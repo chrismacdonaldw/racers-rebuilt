@@ -67,6 +67,15 @@ Result<void> LoadButtons(MenuImageCache& images, const MenuFiles& files, DialogL
     return {};
 }
 
+render::Rect Spanning(const render::Rect& a, const render::Rect& b) {
+    const float left = std::min(a.x, b.x);
+    const float top = std::min(a.y, b.y);
+    return {.x = left,
+            .y = top,
+            .width = std::max(a.x + a.width, b.x + b.width) - left,
+            .height = std::max(a.y + a.height, b.y + b.height) - top};
+}
+
 BoxSize MessageSize(const UiFont& font, std::span<const std::u16string_view> lines) {
     BoxSize size{.height = static_cast<float>(lines.size() * font.heightPx)};
     for (const std::u16string_view line : lines) {
@@ -103,8 +112,10 @@ std::optional<std::size_t> MessageDialog::Tick(const sim::InputFrame& input,
                                                const MenuSounds& sounds) {
     std::optional<std::size_t> pressed;
     if (animation_.Phase() == DialogPhase::Open && !buttons_.empty()) {
-        MoveFocus(input, sounds);
-        if (input.WasPressed(sim::MenuAction::Confirm)) {
+        const PointerChoice pointed = pointer_.Tick(input.pointer, buttonTargets_);
+        MoveFocus(input, sounds, pointed.Focus());
+        if (input.WasPressed(sim::MenuAction::Confirm) ||
+            pointed.Clicks(sim::MenuAction::Confirm)) {
             sounds.Confirm(LookOf(buttons_[focus_]).sounds);
             animation_.Close();
             pressed = focus_;
@@ -117,6 +128,7 @@ std::optional<std::size_t> MessageDialog::Tick(const sim::InputFrame& input,
 void MessageDialog::Measure(const MenuText& text) {
     lines_.clear();
     layout_.reset();
+    buttonTargets_.clear();
     const UiFont* font = text.Font(look_.font);
     if (font == nullptr) {
         return;
@@ -134,6 +146,10 @@ void MessageDialog::Measure(const MenuText& text) {
     }
     lines_ = WrapText(*font, text.Line(messageLine_), look_.wrapWidth);
     layout_ = LayOutDialog({.message = MessageSize(*font, lines_), .buttons = sizes});
+    for (std::size_t i = 0; i < layout_->buttons.size(); ++i) {
+        const DialogButtonRects& rects = layout_->buttons[i];
+        buttonTargets_.push_back({.area = Spanning(rects.image, rects.text), .control = i});
+    }
 }
 
 void MessageDialog::Draw(const MenuText& text, std::vector<render::SpriteDraw>& out) const {
@@ -166,9 +182,10 @@ const ImageButtonLook& MessageDialog::LookOf(const DialogButton& button) const {
     return look_.buttons.at(static_cast<std::size_t>(button.style));
 }
 
-void MessageDialog::MoveFocus(const sim::InputFrame& input, const MenuSounds& sounds) {
+void MessageDialog::MoveFocus(const sim::InputFrame& input, const MenuSounds& sounds,
+                              std::optional<std::size_t> pointed) {
     const std::size_t count = buttons_.size();
-    std::size_t next = focus_;
+    std::size_t next = pointed.value_or(focus_);
     if (input.WasPressed(sim::MenuAction::Up)) {
         next = (next + count - 1) % count;
     }

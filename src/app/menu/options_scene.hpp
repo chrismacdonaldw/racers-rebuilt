@@ -11,6 +11,7 @@
 #include "app/menu/message_dialog.hpp"
 #include "app/menu/options_look.hpp"
 #include "app/menu/options_menu.hpp"
+#include "app/menu/pointer_buttons.hpp"
 #include "app/scene.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -30,6 +31,7 @@ public:
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
     [[nodiscard]] std::vector<SettingChange> TakeSettingChanges() override;
+    [[nodiscard]] bool ShowsPointer() const override { return true; }
     void Tick(const sim::InputFrame& input) override;
     [[nodiscard]] SceneMusic Music() const override {
         return {.track = kMenuTheme, .start = MusicStart::OnEntryIfSilent};
@@ -43,6 +45,7 @@ private:
 
     void TickWarning(const sim::InputFrame& input);
     void Respond(OptionsRequest request, const OptionValues& before);
+    void AimPointer();
     void DrawTitle();
     void DrawButtons();
     void DrawLabels();
@@ -62,6 +65,8 @@ private:
     std::optional<std::string> next_;
     std::vector<SettingChange> changes_;
     std::vector<render::SpriteDraw> sprites_;
+    std::vector<PointerTarget> targets_;
+    PointerButtons pointer_;
 };
 
 }

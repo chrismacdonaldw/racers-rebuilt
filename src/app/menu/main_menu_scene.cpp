@@ -145,7 +145,11 @@ void MainMenuScene::Tick(const sim::InputFrame& input) {
             MoveFocus(NextFocus(buttonBounds_, focus_, move));
         }
     }
-    if (input.WasPressed(sim::MenuAction::Confirm)) {
+    const PointerChoice pointed = pointer_.Tick(input.pointer, targets_);
+    if (const std::optional<std::size_t> focus = pointed.Focus()) {
+        MoveFocus(*focus);
+    }
+    if (input.WasPressed(sim::MenuAction::Confirm) || pointed.Clicks(sim::MenuAction::Confirm)) {
         sounds_.Confirm(page_.buttons[focus_].sounds);
         Choose(page_.buttons[focus_]);
     }
@@ -193,6 +197,7 @@ MainMenuScene::MainMenuScene(render::Renderer& renderer, const assets::Vfs& vfs,
       champion_(std::move(champion)),
       dialogLook_(std::move(dialogLook)) {
     for (const MenuButton& button : page_.buttons) {
+        targets_.push_back({.area = button.bounds, .control = buttonBounds_.size()});
         buttonBounds_.push_back(button.bounds);
     }
 }

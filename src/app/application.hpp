@@ -12,6 +12,7 @@
 #include "app/extensions.hpp"
 #include "app/frame_loop.hpp"
 #include "app/game_boot.hpp"
+#include "app/menu_pointer.hpp"
 #include "app/sound_banks.hpp"
 #include "app/time_trial/time_trial_run.hpp"
 #include "assets/track_loader.hpp"
@@ -87,8 +88,7 @@ private:
     [[nodiscard]] Result<void> OpenScene(const std::optional<std::string>& scene);
     [[nodiscard]] Result<void> SwitchScene(const SceneFactory& create);
     [[nodiscard]] std::vector<overlay::MenuChoice> SceneChoices();
-    [[nodiscard]] std::vector<overlay::MenuChoice> SaveImportChoices();
-    void RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music);
+    void RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music, MenuPointer& pointer);
     void OpenNextScene();
     void StoreSceneSettings();
     void CyclePacing();

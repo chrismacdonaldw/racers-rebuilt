@@ -49,6 +49,13 @@ void OptionsMenu::Proceed() {
     Open(warnedPage_);
 }
 
+void OptionsMenu::FocusRow(OptionsRow row) {
+    const std::span<const OptionsRow> rows = Rows();
+    if (const auto found = std::ranges::find(rows, row); found != rows.end()) {
+        focus_ = static_cast<std::size_t>(found - rows.begin());
+    }
+}
+
 std::span<const OptionsRow> OptionsMenu::Rows() const {
     switch (page_) {
         case OptionsPage::Game:

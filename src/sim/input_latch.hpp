@@ -13,6 +13,9 @@ public:
     void Release(std::size_t player, Action action);
     void Press(MenuAction action);
     void SetSteerLeftAxis(std::size_t player, std::int8_t value);
+    void MovePointer(float x, float y, bool isOver);
+    void PressPointer();
+    void ReleasePointer();
     void ReleaseAll();
 
     [[nodiscard]] InputFrame TakeFrame();

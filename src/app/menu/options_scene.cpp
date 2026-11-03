@@ -96,8 +96,13 @@ void OptionsScene::Tick(const sim::InputFrame& input) {
         TickWarning(input);
         return;
     }
+    AimPointer();
+    const PointerChoice pointed = pointer_.Tick(input.pointer, targets_);
+    if (const std::optional<std::size_t> focus = pointed.Focus()) {
+        menu_.FocusRow(static_cast<OptionsRow>(*focus));
+    }
     const OptionValues before = menu_.Values();
-    Respond(menu_.Tick(input), before);
+    Respond(menu_.Tick(WithClick(input, pointed)), before);
 }
 
 void OptionsScene::Snapshot(sim::RenderSnapshot& out) const {
@@ -183,6 +188,35 @@ void OptionsScene::Respond(OptionsRequest request, const OptionValues& before) {
             return;
         case OptionsRequest::None:
             return;
+    }
+}
+
+void OptionsScene::AimPointer() {
+    targets_.clear();
+    const auto shows = [this](OptionsRow row) { return std::ranges::contains(menu_.Rows(), row); };
+    const auto control = [](OptionsRow row) { return static_cast<std::size_t>(row); };
+    for (const OptionsButton& button : look_.buttons) {
+        if (shows(button.row)) {
+            targets_.push_back({.area = button.bounds, .control = control(button.row)});
+        }
+    }
+    for (const OptionsSelector& selector : look_.selectors) {
+        if (shows(selector.row)) {
+            AddSelectorTargets(selector.place, control(selector.row), targets_);
+        }
+    }
+    for (const OptionsSlider& slider : look_.sliders) {
+        if (shows(slider.row)) {
+            const SliderParts parts = LayOutSlider(slider.bounds, look_, 0);
+            targets_.push_back({.area = parts.stepDown,
+                                .control = control(slider.row),
+                                .click = sim::MenuAction::Left});
+            targets_.push_back({.area = parts.stepUp,
+                                .control = control(slider.row),
+                                .click = sim::MenuAction::Right});
+            targets_.push_back(
+                {.area = slider.bounds, .control = control(slider.row), .click = std::nullopt});
+        }
     }
 }
 

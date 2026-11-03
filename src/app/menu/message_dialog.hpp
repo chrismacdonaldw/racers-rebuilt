@@ -15,6 +15,7 @@
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/menu/menu_widgets.hpp"
+#include "app/menu/pointer_buttons.hpp"
 #include "app/ui_text/ui_image.hpp"
 #include "assets/menu_layout.hpp"
 #include "assets/vfs.hpp"
@@ -61,7 +62,8 @@ public:
 
 private:
     [[nodiscard]] const ImageButtonLook& LookOf(const DialogButton& button) const;
-    void MoveFocus(const sim::InputFrame& input, const MenuSounds& sounds);
+    void MoveFocus(const sim::InputFrame& input, const MenuSounds& sounds,
+                   std::optional<std::size_t> pointed);
 
     DialogLook look_;
     std::size_t messageLine_;
@@ -69,6 +71,8 @@ private:
     std::size_t focus_;
     std::vector<std::u16string_view> lines_;
     std::optional<DialogLayout> layout_;
+    std::vector<PointerTarget> buttonTargets_;
+    PointerButtons pointer_;
     DialogAnimation animation_;
 };
 

@@ -5,6 +5,21 @@
 namespace rr::sim {
 namespace {
 
+TEST_CASE("a pointer click between two ticks reaches the next frame only") {
+    InputLatch latch;
+
+    latch.MovePointer(12.0F, 34.0F, true);
+    latch.PressPointer();
+    latch.ReleasePointer();
+    const InputFrame first = latch.TakeFrame();
+    const InputFrame second = latch.TakeFrame();
+
+    CHECK(first.pointer.moved);
+    CHECK(first.pointer.pressed);
+    CHECK(first.pointer.released);
+    CHECK(second.pointer == MenuPointer{.x = 12.0F, .y = 34.0F, .isOver = true});
+}
+
 TEST_CASE("a tap between two ticks reaches the next frame") {
     InputLatch latch;
 

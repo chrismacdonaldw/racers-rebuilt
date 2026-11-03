@@ -59,6 +59,7 @@ public:
 
     [[nodiscard]] OptionsRequest Tick(const sim::InputFrame& input);
     void Proceed();
+    void FocusRow(OptionsRow row);
 
     /// Keeps the page and focus.
     void Show(const OptionValues& values) { values_ = values; }

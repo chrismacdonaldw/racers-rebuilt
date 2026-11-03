@@ -46,13 +46,20 @@ public:
     [[nodiscard]] Result<TextureId> UploadTexture(const assets::ImageAsset& image);
     /// `image` must be the size `texture` was uploaded at.
     [[nodiscard]] Result<void> UpdateTexture(TextureId texture, const assets::ImageAsset& image);
-    /// Invalidates every `MeshId` and `TextureId` handed out so far, except `kWhiteTexture`.
+    /// Invalidates every `MeshId`, and every `TextureId` handed out after the last pin.
     void ReleaseAssets();
+
+    /// Keeps every texture uploaded so far through later `ReleaseAssets` calls.
+    void PinTextures() { textures_.Pin(); }
 
     /// The scene renders at this fraction of the window size, then scales to fit.
     void SetResolutionScale(float scale);
 
     void SetUiFit(UiFit fit) { uiFit_ = fit; }
+    [[nodiscard]] UiFit Fit() const { return uiFit_; }
+
+    /// Drawn over every view's sprites until replaced.
+    void SetPointer(const std::optional<SpriteDraw>& pointer) { pointer_ = pointer; }
 
     /// `overlay` must outlive the renderer or be replaced. Null removes it.
     void SetOverlay(OverlayPass* overlay) { overlay_ = overlay; }
@@ -156,6 +163,7 @@ private:
     std::uint32_t sceneWidthPx_ = 0;
     std::uint32_t sceneHeightPx_ = 0;
     OverlayPass* overlay_ = nullptr;
+    std::optional<SpriteDraw> pointer_;
     FrameReadback readback_;
     bool isCaptureRequested_ = false;
     std::optional<assets::ImageAsset> capture_;
