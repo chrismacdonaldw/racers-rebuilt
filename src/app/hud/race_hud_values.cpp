@@ -42,7 +42,7 @@ std::optional<BannerView> ReadBanner(const sim::RaceClock& clock, bool hasFinish
                                            ? kBannerScale
                                            : ShrinkingScale(kGoTime - clock.RaceTime())};
         case sim::RacePhase::Finished:
-            if (!hasFinished || clock.PhaseTime() > kResultsDelay) {
+            if (!hasFinished) {
                 return std::nullopt;
             }
             return BannerView{.text = HudBanner::Finish};

@@ -75,7 +75,7 @@ void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progr
         if (values.total) {
             AddLabelledTime(strings_.total, kBestLabelGap, *values.total, totalY_, out);
         } else {
-            AddPlace(values.place, out);
+            AddPlace(pulse_.Shown(), out);
         }
     }
     if (values.isWrongWay && showsRaceInfo) {
@@ -83,7 +83,7 @@ void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progr
             placement_.top + ((placement_.bottom - placement_.top) * kWrongWayFraction);
         out.push_back(Centered(strings_.wrongWay, wrongWayY, {}, placement_.textScale));
     }
-    if (values.banner) {
+    if (values.banner && !(racer.hasResults && ShowsResults(clock))) {
         AddBanner(*values.banner, out);
     }
 }
@@ -92,15 +92,10 @@ void RaceHud::LayoutResults(const sim::RaceClock& clock, const sim::RaceProgress
                             std::size_t racer, std::span<const std::u16string> names,
                             std::span<const std::int32_t> circuitPoints,
                             std::vector<HudText>& out) {
-    if (!ShowsResults(clock)) {
+    if (circuitPoints.empty() || !ShowsResults(clock)) {
         return;
     }
     const ResultLabels labels{.finished = strings_.finished, .stillRacing = strings_.stillRacing};
-    if (circuitPoints.empty()) {
-        ReadResults(progress, results_);
-        app::LayoutResults(results_, names, labels, std::nullopt, pool_, out);
-        return;
-    }
     const bool isLit = clock.PhaseTime() % kBlinkPeriod < kBlinkLit;
     if (clock.Phase() == sim::RacePhase::Results) {
         out.push_back(Centered(strings_.circuit, kCircuitTitleY, {}));

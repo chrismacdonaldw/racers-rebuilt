@@ -6,15 +6,16 @@
 
 namespace rr::app {
 
-/// Swells the place digit to twice its size and back over 350 ms when the place changes.
+/// Holds each newly shown place for 1050 ms before taking a newer one. Starts on 9.
 class PlacePulse {
 public:
     void Advance(int place, Milliseconds elapsed);
 
+    [[nodiscard]] int Shown() const { return shown_; }
     [[nodiscard]] float Scale() const;
 
 private:
-    std::optional<int> place_;
+    int shown_ = 9;
     std::optional<Milliseconds> sinceChange_;
 };
 

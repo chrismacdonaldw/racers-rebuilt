@@ -134,6 +134,7 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(
                        {.slot = player,
                         .isGhost = isGhost,
                         .hidesRaceInfo = session.Clock().IsTestDrive(),
+                        .hasResults = !circuitPoints_.empty(),
                         .trial = trial_},
                        texts_);
             DrawHudText(texts_, hud.Fonts(), sprites_);

@@ -128,7 +128,7 @@ TEST_CASE("the place follows the standings, then the finishing place") {
     CHECK(ReadHudValues(race.clock, race.progress, 0).place == 1);
 }
 
-TEST_CASE("finishing shows the banner until the results replace it") {
+TEST_CASE("finishing shows the banner through the finished state, results due after 5 s") {
     RingRace race(1, 1);
     race.StartRacing();
     race.DriveLap(0);
@@ -146,7 +146,7 @@ TEST_CASE("finishing shows the banner until the results replace it") {
     CHECK(finished.lap == 1);
     CHECK(finished.lapTime == Milliseconds{500});
     CHECK_FALSE(flashing.lapTime.has_value());
-    CHECK_FALSE(ReadHudValues(race.clock, race.progress, 0).banner.has_value());
+    CHECK(BannerText(ReadHudValues(race.clock, race.progress, 0)) == HudBanner::Finish);
     CHECK(ShowsResults(race.clock));
 }
 

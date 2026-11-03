@@ -178,6 +178,7 @@ TEST_CASE("the place digit ends where its suffix starts, top left") {
     race.progress.Rank(race.graph, positions);
     std::vector<HudText> texts;
 
+    hud.Tick(race.clock, race.progress, 0, Milliseconds{12});
     hud.Layout(race.clock, race.progress, {.slot = 0}, texts);
 
     const auto digit = std::ranges::find_if(
@@ -234,6 +235,7 @@ struct SplitLayout {
         const std::array<Vector3, 3> positions{Vector3{.x = -9.0F}, Vector3{.x = -8.0F},
                                                Vector3{.x = -7.0F}};
         race.progress.Rank(race.graph, positions);
+        hud.Tick(race.clock, race.progress, 0, Milliseconds{12});
         hud.Layout(race.clock, race.progress, {.slot = 0}, texts);
     }
 
@@ -285,7 +287,7 @@ TEST_CASE("a split HUD's countdown shrinks and sits under its half's rows") {
     CHECK(one.y == doctest::Approx(gapY - (static_cast<float>(kNumberHeight) * scale / 4.0F)));
 }
 
-TEST_CASE("the results table lists each racer with its gap to the winner") {
+TEST_CASE("a circuit's results table lists each racer with its gap to the winner") {
     const Fonts fonts;
     RaceHud hud(EnglishStrings(), fonts.Hud());
     test::RingRace race(3, 1);
@@ -300,10 +302,11 @@ TEST_CASE("the results table lists each racer with its gap to the winner") {
     const std::array<Vector3, 3> positions{};
     race.progress.Rank(race.graph, positions);
     const auto names = Names();
+    const std::array<std::int32_t, 3> before{};
     std::vector<HudText> texts;
 
-    hud.Layout(race.clock, race.progress, {.slot = 1}, texts);
-    hud.LayoutResults(race.clock, race.progress, 1, names, {}, texts);
+    hud.Layout(race.clock, race.progress, {.slot = 1, .hasResults = true}, texts);
+    hud.LayoutResults(race.clock, race.progress, 1, names, before, texts);
 
     CHECK(YOf(texts, u"ANN DROID") == doctest::Approx(132.0F));
     CHECK(XOf(texts, u"ANN DROID") == doctest::Approx(50.0F));
@@ -326,6 +329,21 @@ test::RingRace FinishedCircuitRace() {
     const std::array<Vector3, 3> positions{};
     race.progress.Rank(race.graph, positions);
     return race;
+}
+
+TEST_CASE("outside a circuit the finish banner stays and no results table shows") {
+    const Fonts fonts;
+    RaceHud hud(EnglishStrings(), fonts.Hud());
+    const test::RingRace race = FinishedCircuitRace();
+    const auto names = Names();
+    std::vector<HudText> texts;
+
+    hud.Layout(race.clock, race.progress, {.slot = 1}, texts);
+    hud.LayoutResults(race.clock, race.progress, 1, names, {}, texts);
+
+    CHECK(Find(texts, u"FINISH").has_value());
+    CHECK_FALSE(Find(texts, u"ANN DROID").has_value());
+    CHECK_FALSE(Find(texts, u"FINISHED").has_value());
 }
 
 TEST_CASE("a circuit race's results add each racer's points for its place") {

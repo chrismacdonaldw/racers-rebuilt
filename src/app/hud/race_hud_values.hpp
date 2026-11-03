@@ -34,7 +34,7 @@ struct HudValues {
                                       const sim::RaceProgress& progress, std::size_t racer,
                                       const sim::TimeTrialGhosts* trial = nullptr);
 
-/// The results table replaces the finish banner this long after the finish.
+/// A circuit's results table replaces the finish banner this long after the finish.
 inline constexpr Milliseconds kResultsDelay{5000};
 
 [[nodiscard]] bool ShowsResults(const sim::RaceClock& clock);

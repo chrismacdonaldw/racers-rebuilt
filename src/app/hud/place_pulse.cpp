@@ -4,26 +4,26 @@ namespace rr::app {
 namespace {
 
 constexpr Milliseconds kSwellTime{175};
+constexpr Milliseconds kHoldTime{1050};
 constexpr float kSwell = 1.0F;
 
 }
 
 void PlacePulse::Advance(int place, Milliseconds elapsed) {
-    if (!place_) {
-        place_ = place;
-    } else if (place != place_) {
-        place_ = place;
-        sinceChange_ = Milliseconds{0};
-    } else if (sinceChange_) {
+    if (sinceChange_) {
         *sinceChange_ += elapsed;
-        if (*sinceChange_ >= 2 * kSwellTime) {
+        if (*sinceChange_ >= kHoldTime) {
             sinceChange_.reset();
         }
+    }
+    if (!sinceChange_ && place != shown_) {
+        shown_ = place;
+        sinceChange_ = Milliseconds{0};
     }
 }
 
 float PlacePulse::Scale() const {
-    if (!sinceChange_) {
+    if (!sinceChange_ || *sinceChange_ >= 2 * kSwellTime) {
         return 1.0F;
     }
     const Milliseconds fromPeak =
