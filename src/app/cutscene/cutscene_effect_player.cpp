@@ -31,6 +31,11 @@ void CutsceneEffectPlayer::StopAll() {
     }
 }
 
+void CutsceneEffectPlayer::SetFrame(const assets::CutsceneFrame& frame) {
+    StopAll();
+    frame_ = &frame;
+}
+
 void CutsceneEffectPlayer::Run(const EffectCommand& command) {
     switch (command.kind) {
         case assets::EffectKind::Tint:

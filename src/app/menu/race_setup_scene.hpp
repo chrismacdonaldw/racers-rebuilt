@@ -14,6 +14,8 @@
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/menu/race_setup_menu.hpp"
+#include "app/menu/track_preview.hpp"
+#include "app/race_scene_parts.hpp"
 #include "app/scene.hpp"
 #include "assets/menu_layout.hpp"
 #include "assets/menu_styles.hpp"
@@ -40,10 +42,10 @@ struct RaceSetupLook {
 /// Picks a track or circuit and the players' racers over the main menu's backdrop, then races.
 class RaceSetupScene final : public Scene {
 public:
-    /// `renderer` and `vfs` must outlive the scene.
+    /// `outputs` and `vfs` must outlive the scene. Versus shows no race preview.
     [[nodiscard]] static Result<std::unique_ptr<RaceSetupScene>> Create(
-        render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds, RaceSetupMode mode,
-        const settings::Progress& progress);
+        const RaceOutputs& outputs, const assets::Vfs& vfs, MenuSounds sounds, RaceSetupMode mode,
+        const settings::Progress& progress, std::string_view language);
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] SceneMusic Music() const override { return {.start = MusicStart::Keep}; }
@@ -58,7 +60,16 @@ private:
 
     void PlaySounds(const sim::InputFrame& input, RaceSetupRow focusBefore) const;
     [[nodiscard]] std::vector<std::u16string> CourseNames() const;
-    void DrawRow(RaceSetupRow row, std::u16string_view label, std::u16string_view value);
+    void ShowPreview();
+    /// Beside the race preview, a value stands in for a label that isn't from the game's text.
+    struct RowText {
+        std::u16string_view label;
+        std::u16string_view value;
+        bool isGameText = false;
+    };
+
+    void DrawRow(RaceSetupRow row, const RowText& text);
+    void DrawValue(const MenuButtonState& state, std::u16string_view value, float top);
     [[nodiscard]] std::u16string_view RacerName(std::size_t racer) const;
     void DrawChampion();
     void ShowBestTimes();
@@ -77,6 +88,7 @@ private:
     settings::Progress progress_;
     BestTimePanel bestTimes_;
     RaceSceneSetup rules_;
+    std::unique_ptr<TrackPreview> preview_;
     std::optional<std::string> next_;
     std::vector<render::SpriteDraw> sprites_;
 };

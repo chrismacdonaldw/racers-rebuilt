@@ -36,6 +36,9 @@ public:
     /// Stops tints, sounds, text and images. Fades and particles run on, as in the original.
     void StopAll();
 
+    /// Calls `StopAll`, then follows `frame`'s links instead.
+    void SetFrame(const assets::CutsceneFrame& frame);
+
     [[nodiscard]] const CutsceneTints& Tints() const { return parts_.tints; }
 
     void AppendQuads(const Transform& camera, std::vector<render::QuadDraw>& out) const {

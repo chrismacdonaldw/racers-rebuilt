@@ -29,6 +29,7 @@ struct CourseChoice {
     std::size_t race = 0;
     std::int32_t nameLine = -1;
     std::vector<RacerChoice> racers;
+    std::vector<std::optional<std::string>> previews;
     bool isLocked = false;
 };
 

@@ -133,6 +133,21 @@ private:
     MenuPage page_;
 };
 
+void AppendPiece(const MenuPicture& picture, const render::Rect& piece,
+                 std::vector<render::SpriteDraw>& out) {
+    const render::Rect& bounds = picture.bounds;
+    if (piece.width <= 0.0F || piece.height <= 0.0F) {
+        return;
+    }
+    out.push_back({.texture = picture.texture,
+                   .bounds = piece,
+                   .uv = {.x = (piece.x - bounds.x) / bounds.width,
+                          .y = (piece.y - bounds.y) / bounds.height,
+                          .width = piece.width / bounds.width,
+                          .height = piece.height / bounds.height},
+                   .tint = picture.tint});
+}
+
 }
 
 MenuPoint OriginOf(const assets::MenuLayout& layout, const assets::MenuElement& element) {
@@ -198,6 +213,39 @@ std::array<MenuButtonState, assets::kControlStates> TextButtonStates(const MenuF
 void DrawPictures(std::span<const MenuPicture> pictures, std::vector<render::SpriteDraw>& out) {
     for (const MenuPicture& picture : pictures) {
         out.push_back({.texture = picture.texture, .bounds = picture.bounds, .tint = picture.tint});
+    }
+}
+
+void DrawPicturesAround(std::span<const MenuPicture> pictures, const render::Rect& hole,
+                        std::vector<render::SpriteDraw>& out) {
+    for (const MenuPicture& picture : pictures) {
+        const render::Rect& bounds = picture.bounds;
+        const float right = bounds.x + bounds.width;
+        const float bottom = bounds.y + bounds.height;
+        const float holeLeft = std::clamp(hole.x, bounds.x, right);
+        const float holeRight = std::clamp(hole.x + hole.width, bounds.x, right);
+        const float holeTop = std::clamp(hole.y, bounds.y, bottom);
+        const float holeBottom = std::clamp(hole.y + hole.height, bounds.y, bottom);
+        AppendPiece(
+            picture,
+            {.x = bounds.x, .y = bounds.y, .width = bounds.width, .height = holeTop - bounds.y},
+            out);
+        AppendPiece(
+            picture,
+            {.x = bounds.x, .y = holeBottom, .width = bounds.width, .height = bottom - holeBottom},
+            out);
+        AppendPiece(picture,
+                    {.x = bounds.x,
+                     .y = holeTop,
+                     .width = holeLeft - bounds.x,
+                     .height = holeBottom - holeTop},
+                    out);
+        AppendPiece(picture,
+                    {.x = holeRight,
+                     .y = holeTop,
+                     .width = right - holeRight,
+                     .height = holeBottom - holeTop},
+                    out);
     }
 }
 
