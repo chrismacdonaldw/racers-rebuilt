@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <numbers>
+#include <span>
 #include <vector>
 
 #include "../decal_ground.hpp"
@@ -43,10 +44,11 @@ Grid OneCar(const Transform& game) {
 }
 
 std::vector<render::QuadDraw> Cast(const CarShadows& shadows, const Grid& grid,
-                                   const DecalSurface& surface) {
+                                   const DecalSurface& surface,
+                                   std::span<const Vector3> cameras = {}) {
     GroundDecals ground(surface);
     std::vector<render::QuadDraw> quads;
-    shadows.Append(grid.poses, grid.racers, grid.looks, ground, quads);
+    shadows.Append(grid.poses, grid.racers, grid.looks, cameras, ground, quads);
     return quads;
 }
 
@@ -106,6 +108,27 @@ TEST_CASE("ghosts, cars high above the ground and slots without a material cast 
     CHECK(Cast(shadows, grid, test::FlatDecalGround()).empty());
     grid.poses[1].transform = TransformToEngine({.position = {.z = 8.0F}});
     CHECK(Cast(shadows, grid, test::FlatDecalGround()).size() == 1);
+}
+
+TEST_CASE("a car casts its shadow only within 500 of its player's camera") {
+    const std::vector<sim::ChassisSpec> chassis(3);
+    assets::NameMap<render::Material> materials = Materials();
+    materials.emplace("CARSHAD2", render::Material{.texture = render::TextureId{6}});
+    const CarShadows shadows(materials, chassis);
+    const Grid grid{.poses = {{.transform = TransformToEngine({.position = kAt})},
+                              {.transform = TransformToEngine({.position = kAt})},
+                              {.transform = TransformToEngine({.position = kAt})}},
+                    .racers = {{}, {}, {}},
+                    .looks = {{}, {}, {}}};
+    const std::vector<Vector3> cameras{ToEngine(kAt + Vector3{.x = 499.0F}),
+                                       ToEngine(kAt + Vector3{.y = 500.0F})};
+
+    const std::vector<render::QuadDraw> quads =
+        Cast(shadows, grid, test::FlatDecalGround(), cameras);
+
+    REQUIRE(quads.size() == 2);
+    CHECK(quads[0].texture == render::TextureId{4});
+    CHECK(quads[1].texture == render::TextureId{6});
 }
 
 }

@@ -315,8 +315,12 @@ std::span<const MapView> RaceScene::PlayerMapViews(const sim::RenderSnapshot& in
 
 void RaceScene::GatherCarMarks(const sim::RenderSnapshot& interpolated, float simMs) {
     carMarks_.clear();
-    shadows_.Append(interpolated.entities, interpolated.racers, carLooks_, groundDecals_,
-                    carMarks_);
+    std::array<Vector3, sim::kMaxPlayers> cameras{};
+    for (std::size_t player = 0; player < cameras_.Count(); ++player) {
+        cameras.at(player) = PlayerCameraPose(interpolated, player).position;
+    }
+    shadows_.Append(interpolated.entities, interpolated.racers, carLooks_,
+                    std::span(cameras).first(cameras_.Count()), groundDecals_, carMarks_);
     for (std::size_t player = 0; player < skids_.size(); ++player) {
         const std::size_t slot = kPlayerSlot + player;
         skids_[player].Update(interpolated.entities[slot], interpolated.racers[slot], simMs);
