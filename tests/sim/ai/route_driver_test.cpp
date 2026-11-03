@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <numbers>
@@ -116,6 +117,60 @@ TEST_CASE("a route driver calls a car stalled after 3 s without headway and rejo
     CHECK(rejoin.position.x > 0.0F);
     CHECK(rejoin.position.y == doctest::Approx(0.0F));
     CHECK(rejoin.headingRadians == doctest::Approx(0.0F));
+}
+
+TEST_CASE("a stuck route driver backs up between 1 s and 1.8 s without headway") {
+    const test::PlaneWorld world = test::FlatGround();
+    RouteDriver driver(test::StraightRoute({.z = 0.2F}, 3000));
+    Racer racer(kNeutralChassis, {}, {.position = {.y = 8.0F, .z = 0.2F}});
+    const auto stallFor = [&](int durationMs) {
+        for (int elapsed = 0; elapsed < durationMs; elapsed += static_cast<int>(kTick.count())) {
+            static_cast<void>(driver.Drive(racer));
+            racer.Tick(kTick, {}, world);
+            static_cast<void>(driver.IsStalled(kTick));
+        }
+    };
+
+    stallFor(900);
+    CHECK_FALSE(driver.Drive(racer).isBrakeHeld);
+    stallFor(300);
+    const RacerControls backing = driver.Drive(racer);
+    stallFor(800);
+
+    CHECK(backing.isBrakeHeld);
+    CHECK_FALSE(backing.isThrottleHeld);
+    CHECK_FALSE(driver.Drive(racer).isBrakeHeld);
+}
+
+assets::RaceRoute WideStraightRoute() {
+    assets::RaceRoute route = test::StraightRoute({.z = 0.2F}, 3000);
+    for (assets::RoutePoint& point : route.points) {
+        point.widthLeft = 10.0F;
+        point.widthRight = 10.0F;
+    }
+    return route;
+}
+
+TEST_CASE("a route driver steers around a rival just ahead, toward the open side") {
+    RouteDriver driver(WideStraightRoute());
+    const Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+    const std::array leftRival{Vector3{.x = 15.0F, .y = 1.0F, .z = 0.2F}};
+    const std::array rightRival{Vector3{.x = 15.0F, .y = -1.0F, .z = 0.2F}};
+    const std::array farRival{Vector3{.x = 60.0F, .z = 0.2F}};
+
+    CHECK(driver.Drive(racer, leftRival).steerLeftAxis < 0.0F);
+    CHECK(driver.Drive(racer, rightRival).steerLeftAxis > 0.0F);
+    CHECK(driver.Drive(racer, farRival).steerLeftAxis == 0.0F);
+}
+
+TEST_CASE("a route driver doesn't pass its own position in the field") {
+    RouteDriver driver(WideStraightRoute());
+    const Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+    const std::array field{Vector3{.x = 60.0F, .z = 0.2F},
+                           Vector3{.x = 2.0F, .y = 1.0F, .z = 0.2F}};
+
+    CHECK(driver.Drive(racer, field, 1).steerLeftAxis == 0.0F);
+    CHECK(driver.Drive(racer, field, 0).steerLeftAxis < 0.0F);
 }
 
 TEST_CASE("a route driver steers back onto a route it starts beside") {
