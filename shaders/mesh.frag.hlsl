@@ -23,14 +23,18 @@ cbuffer LightUniforms : register(b1, space3)
 
 static const float kMinNormalLengthSquared = 1e-6;
 
+bool IsPrelit(float3 normal)
+{
+    return dot(normal, normal) < kMinNormalLengthSquared;
+}
+
 float3 Shade(float3 normal, float4 vertexColor)
 {
-    float lengthSquared = dot(normal, normal);
-    if (lengthSquared < kMinNormalLengthSquared)
+    if (IsPrelit(normal))
     {
         return min(1.0, (vertexColor.rgb * vertexScale.rgb) + vertexOffset.rgb);
     }
-    float3 unit = normal * rsqrt(lengthSquared);
+    float3 unit = normal * rsqrt(dot(normal, normal));
     float3 lit = ambient.rgb;
     for (uint i = 0; i < lightCount; ++i)
     {
@@ -46,5 +50,7 @@ float4 main(float4 position : SV_Position, float3 normal : TEXCOORD0, float2 uv 
     float4 texel = baseTexture.Sample(baseSampler, uv + uvOffset);
     float alpha = texel.a * tint.a;
     clip(alpha - alphaCutoff);
-    return float4(texel.rgb * lerp(1.0, Shade(normal, vertexColor), modulateWeight), alpha);
+    float vertexAlpha = IsPrelit(normal) ? vertexColor.a : 1.0;
+    return float4(texel.rgb * lerp(1.0, Shade(normal, vertexColor), modulateWeight),
+                  alpha * lerp(1.0, vertexAlpha, modulateWeight));
 }

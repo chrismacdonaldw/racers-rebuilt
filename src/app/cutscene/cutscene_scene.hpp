@@ -25,7 +25,8 @@ inline constexpr std::string_view kCutsceneScenePrefix = "cutscene:";
 [[nodiscard]] bool IsCutsceneScene(std::string_view scene);
 
 /// `scene` is like `cutscene:CIRCUIT1/CIR1-01`, which loops full screen for checking by eye.
-[[nodiscard]] Result<CutscenePlay> ViewerPlay(std::string_view scene);
+[[nodiscard]] Result<CutscenePlay> ViewerPlay(const assets::Vfs& vfs, std::string_view scene,
+                                              const std::optional<settings::Racer>& playerRacer);
 
 /// Plays one cutscene's first frame, then shows `play.next` unless it loops.
 class CutsceneScene final : public Scene {

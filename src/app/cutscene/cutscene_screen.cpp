@@ -10,8 +10,10 @@
 #include "app/cutscene/cutscene_racer.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_scenes.hpp"
+#include "app/racer/racer_lookup.hpp"
 #include "assets/game_path.hpp"
 #include "assets/menu_layout.hpp"
+#include "core/log.hpp"
 
 namespace rr::app {
 namespace {
@@ -21,6 +23,7 @@ constexpr std::string_view kDriverField = ":driver=";
 constexpr std::string_view kCircuitPrefix = "c";
 constexpr std::string_view kIntroPrefix = "circuit";
 constexpr std::size_t kCircuitCount = 7;
+constexpr std::string_view kStandInChampion = "CR";
 
 constexpr std::array kScreens{
     CutsceneScreen{.menu = kLegalScreen, .layout = "SPLASH", .next = kMainMenuScene},
@@ -97,6 +100,16 @@ Result<const assets::MenuElement*> FindElement(const assets::MenuLayout& layout,
     return found;
 }
 
+std::optional<settings::Racer> FirstGameRacer(const assets::Vfs& vfs) {
+    Result<std::vector<settings::Racer>> racers = ReadDefaultRacers(vfs);
+    if (!racers || racers->empty()) {
+        log::Warn("{}, the cutscene keeps its stand-in racer",
+                  racers ? "the game has no default racers" : racers.error().message);
+        return std::nullopt;
+    }
+    return std::move(racers->front());
+}
+
 }
 
 std::string CutsceneScreenName(const CutsceneScreenSetup& setup) {
@@ -139,7 +152,9 @@ Result<CutsceneScreenSetup> ParseCutsceneScreen(std::string_view scene) {
 }
 
 std::optional<CutsceneScreen> FindCutsceneScreen(std::string_view menu) {
-    const auto found = std::ranges::find(kScreens, menu, &CutsceneScreen::menu);
+    const auto found = std::ranges::find_if(kScreens, [&](const CutsceneScreen& screen) {
+        return assets::ToUpperAscii(screen.menu) == assets::ToUpperAscii(menu);
+    });
     return found == kScreens.end() ? std::nullopt : std::optional(*found);
 }
 
@@ -195,6 +210,21 @@ bool IsSkipPress(const SDL_Event& event) {
     }
 }
 
+void CastScreenRacer(const assets::Vfs& vfs, const CutsceneScreen& screen, std::string_view driver,
+                     const std::optional<settings::Racer>& playerRacer, CutscenePlay& play) {
+    if (!screen.showsRacer) {
+        return;
+    }
+    if (screen.namesChampion) {
+        play.driver = std::string(driver.empty() ? kStandInChampion : driver);
+        play.showsChampionCar = true;
+        play.hiddenTexts = OtherChampionNames(play.driver);
+        return;
+    }
+    play.driver = std::string(driver);
+    play.playerRacer = playerRacer || !driver.empty() ? playerRacer : FirstGameRacer(vfs);
+}
+
 Result<CutscenePlay> ScreenPlay(const assets::Vfs& vfs, std::string_view scene,
                                 const std::optional<settings::Racer>& playerRacer) {
     Result<CutsceneScreenSetup> setup = ParseCutsceneScreen(scene);
@@ -203,7 +233,7 @@ Result<CutscenePlay> ScreenPlay(const assets::Vfs& vfs, std::string_view scene,
     }
     const CutsceneScreen screen = FindCutsceneScreen(setup->menu).value_or(CutsceneScreen{});
     return ReadCutsceneScreen(vfs, screen).transform([&](CutsceneScreenPlacement placed) {
-        return CutscenePlay{
+        CutscenePlay play{
             .folder = std::move(placed.folder),
             .file = std::move(placed.cutscene),
             .rect = placed.rect,
@@ -211,14 +241,9 @@ Result<CutscenePlay> ScreenPlay(const assets::Vfs& vfs, std::string_view scene,
             .isSkippable = screen.isSkippable,
             .music = {.track = screen.music,
                       .repeat = screen.loopsMusic ? audio::Repeat::Loop : audio::Repeat::Once},
-            .next = setup->next.empty() ? std::string(screen.next) : std::move(setup->next),
-            .driver = screen.showsRacer ? setup->driver : std::string(),
-            .playerRacer = screen.showsRacer && !screen.namesChampion
-                               ? playerRacer
-                               : std::optional<settings::Racer>(),
-            .showsChampionCar = screen.namesChampion,
-            .hiddenTexts = screen.namesChampion ? OtherChampionNames(setup->driver)
-                                                : std::vector<std::string>{}};
+            .next = setup->next.empty() ? std::string(screen.next) : std::move(setup->next)};
+        CastScreenRacer(vfs, screen, setup->driver, playerRacer, play);
+        return play;
     });
 }
 

@@ -19,23 +19,29 @@ bool IsCutsceneScene(std::string_view scene) {
     return scene.starts_with(kCutsceneScenePrefix) || IsCutsceneScreen(scene);
 }
 
-Result<CutscenePlay> ViewerPlay(std::string_view scene) {
+Result<CutscenePlay> ViewerPlay(const assets::Vfs& vfs, std::string_view scene,
+                                const std::optional<settings::Racer>& playerRacer) {
     const std::string_view path = scene.substr(kCutsceneScenePrefix.size());
     const std::size_t slash = path.find('/');
     if (slash == std::string_view::npos || slash == 0 || slash + 1 == path.size()) {
         return Fail(ErrorCode::InvalidData,
                     std::format("{} isn't {}<folder>/<file>", scene, kCutsceneScenePrefix));
     }
-    return CutscenePlay{
-        .folder = std::format("MENUDATA/{}", assets::ToUpperAscii(path.substr(0, slash))),
-        .file = assets::ToUpperAscii(path.substr(slash + 1))};
+    const std::string_view folder = path.substr(0, slash);
+    CutscenePlay play{.folder = std::format("MENUDATA/{}", assets::ToUpperAscii(folder)),
+                      .file = assets::ToUpperAscii(path.substr(slash + 1))};
+    if (const std::optional<CutsceneScreen> screen = FindCutsceneScreen(folder)) {
+        CastScreenRacer(vfs, *screen, "", playerRacer, play);
+    }
+    return play;
 }
 
 Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(
     const RaceOutputs& outputs, const assets::Vfs& vfs, assets::TrackLoader& loader,
     std::string_view language, std::string_view scene,
     const std::optional<settings::Racer>& playerRacer) {
-    return (IsCutsceneScreen(scene) ? ScreenPlay(vfs, scene, playerRacer) : ViewerPlay(scene))
+    return (IsCutsceneScreen(scene) ? ScreenPlay(vfs, scene, playerRacer)
+                                    : ViewerPlay(vfs, scene, playerRacer))
         .and_then([&](CutscenePlay play) {
             return CutsceneView::Create(outputs, vfs, loader, language, std::move(play));
         })

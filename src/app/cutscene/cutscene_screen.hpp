@@ -69,6 +69,10 @@ struct CutsceneScreenPlacement {
 /// A new key, mouse or pad button press, or any release, as the original's skip test takes.
 [[nodiscard]] bool IsSkipPress(const SDL_Event& event);
 
+/// Without a driver or player racer, casts the stand-in champion or the game's first racer.
+void CastScreenRacer(const assets::Vfs& vfs, const CutsceneScreen& screen, std::string_view driver,
+                     const std::optional<settings::Racer>& playerRacer, CutscenePlay& play);
+
 /// `scene` is a screen name such as `screen:legal`, played once in its `MIB` rectangle.
 [[nodiscard]] Result<CutscenePlay> ScreenPlay(const assets::Vfs& vfs, std::string_view scene,
                                               const std::optional<settings::Racer>& playerRacer);
