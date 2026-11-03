@@ -67,10 +67,10 @@ TEST_CASE("seen from overhead only the landing ghost shows") {
     CHECK(layers.ghost.value_or(PieceLayer{}).alpha == doctest::Approx(150.0F / 255.0F));
 }
 
-TEST_CASE("a dropped piece falls to the car before it's placed") {
+TEST_CASE("a dropped piece falls to where it was dropped before it's placed") {
     HeldPieceMotion motion;
-    motion.Tick(kTick, true, kDropRest);
-    motion.Drop();
+    motion.Tick(kTick, true, 0.0F);
+    motion.Drop(kDropRest);
     CHECK(motion.IsBusy());
 
     CHECK(TicksUntil(motion, PieceMotionEnd::Dropped) == 65);

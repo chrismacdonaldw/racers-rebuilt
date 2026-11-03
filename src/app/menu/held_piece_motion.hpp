@@ -30,7 +30,7 @@ public:
     /// `rest` is where the held piece would land.
     PieceMotionEnd Tick(Milliseconds elapsed, bool fits, float rest);
 
-    void Drop();
+    void Drop(float rest);
 
     void Lift(float rest);
 

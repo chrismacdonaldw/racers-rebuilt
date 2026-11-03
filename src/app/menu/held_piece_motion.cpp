@@ -36,9 +36,10 @@ PieceMotionEnd HeldPieceMotion::Tick(Milliseconds elapsed, bool fits, float rest
     return IsBusy() ? MoveBusy(elapsed) : PieceMotionEnd::None;
 }
 
-void HeldPieceMotion::Drop() {
+void HeldPieceMotion::Drop(float rest) {
     busy_ = Busy::Dropping;
     busyLeft_ = kDropTime;
+    rest_ = rest;
     busyHeight_ = kHoverHeight;
 }
 
