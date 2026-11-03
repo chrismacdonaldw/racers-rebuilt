@@ -375,6 +375,7 @@ add_executable(racers-rebuilt-tests
     sim/race/checkpoint_graph_test.cpp
     sim/race/circuit_run_test.cpp
     sim/race/lap_tracker_test.cpp
+    sim/race/lap_zones_test.cpp
     sim/race/race_clock_test.cpp
     sim/race/race_progress_test.cpp
     sim/race/race_session_test.cpp

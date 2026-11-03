@@ -5,11 +5,13 @@
 #include <span>
 #include <vector>
 
+#include "assets/event_table.hpp"
 #include "core/duration.hpp"
 #include "core/vector3.hpp"
 #include "sim/race/checkpoint_graph.hpp"
 #include "sim/race/lap_tracker.hpp"
 #include "sim/race/standings.hpp"
+#include "sim/track/track_event.hpp"
 
 namespace rr::sim {
 
@@ -29,13 +31,20 @@ struct RacerProgress {
 
 class RaceProgress {
 public:
-    RaceProgress(std::size_t racerCount, int lapCount);
+    RaceProgress(std::size_t racerCount, int lapCount, LapCounting counting = {});
 
     /// While `isRunning`, times the current lap and gives a racer reaching the lap count a place.
     void Move(const CheckpointGraph& graph, std::size_t racer, const RacerMove& move,
               Milliseconds elapsed, bool isRunning);
 
     void Rank(const CheckpointGraph& graph, std::span<const Vector3> positions);
+
+    /// Only the start edge of a racer's event enters its zone.
+    void EnterZones(std::span<const TrackEvent> events,
+                    std::span<const assets::LapZoneResource> zones);
+
+    /// Puts every racer's lap zones back as they stand when the race starts.
+    void StartZones();
 
     /// Gives every unfinished racer the remaining places, in racer order.
     void FinishRemaining();
@@ -54,6 +63,7 @@ public:
     [[nodiscard]] int LapCount() const { return lapCount_; }
 
 private:
+    void EnterZone(std::size_t racer, assets::LapZone zone);
     void TakeNextPlace(RacerProgress& racer);
     [[nodiscard]] Milliseconds GapToLeader(std::size_t racer) const;
 

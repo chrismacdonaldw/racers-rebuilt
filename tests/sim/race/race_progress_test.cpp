@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <vector>
 
@@ -155,6 +156,26 @@ TEST_CASE("the leader has no gap") {
     DriveLap(progress, graph, 0);
 
     CHECK(progress.OfRacer(0).lapGap == Milliseconds{0});
+}
+
+TEST_CASE("a racer's zone events enter its lap zones on their start edge only") {
+    const std::array zones{
+        assets::LapZoneResource{.trigger = {.event = 1}, .zone = assets::LapZone::FinishLine},
+        assets::LapZoneResource{.trigger = {.event = 2}, .zone = assets::LapZone::PostLine},
+        assets::LapZoneResource{.trigger = {.event = 3}, .zone = assets::LapZone::OpenTrack}};
+    RaceProgress progress(2, 3, {.usesZones = true});
+    const auto enter = [&](assets::EventId id, EventEdge edge, std::uint8_t racer) {
+        const std::array event{TrackEvent{.id = id, .edge = edge, .racer = racer}};
+        progress.EnterZones(event, zones);
+    };
+
+    for (const assets::EventId id : {1, 2, 3, 1}) {
+        enter(id, EventEdge::Start, 1);
+        enter(id, EventEdge::End, 0);
+    }
+
+    CHECK(progress.OfRacer(0).laps.CompletedLaps() == 0);
+    CHECK(progress.OfRacer(1).laps.CompletedLaps() == 1);
 }
 
 }

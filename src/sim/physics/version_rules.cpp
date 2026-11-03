@@ -18,6 +18,7 @@ constexpr VersionRules kRules2001{
     .firstCircuitPace = -0.03F,
     .racersStepFirst = true,
     .allowsInputLag = true,
+    .keepsOneLapZone = true,
 };
 
 }

@@ -81,6 +81,36 @@ TEST_CASE("backing further than checkpoint 0 returns to the previous lap") {
     CHECK(laps.Progress(graph) == 1.0F);
 }
 
+TEST_CASE("with lap zones, checkpoint crossings complete no laps") {
+    const CheckpointGraph graph = test::Ring();
+    LapTracker laps({.usesZones = true});
+
+    CrossAll(laps, graph, {0, 1, 2, 3, 0, 1});
+    CHECK(laps.CompletedLaps() == 0);
+}
+
+TEST_CASE("with lap zones, a full lap of zones after the first line crossing completes a lap") {
+    const CheckpointGraph graph = test::Ring();
+    LapTracker laps({.usesZones = true});
+    CrossAll(laps, graph, {0, 1, 2, 3, 0, 1});
+
+    int lapsDone = 0;
+    for (const assets::LapZone zone : {assets::LapZone::FinishLine, assets::LapZone::PostLine,
+                                       assets::LapZone::OpenTrack, assets::LapZone::FinishLine}) {
+        lapsDone += laps.EnterZone(zone) ? 1 : 0;
+    }
+    CHECK(lapsDone == 1);
+    CHECK(laps.CompletedLaps() == 1);
+    CHECK(laps.Progress(graph) == 1.25F);
+}
+
+TEST_CASE("without lap zones, zone entries count nothing") {
+    LapTracker laps;
+
+    CHECK_FALSE(laps.EnterZone(assets::LapZone::FinishLine));
+    CHECK(laps.CompletedLaps() == 0);
+}
+
 TEST_CASE("facing back past the last gate for 500 ms warns of the wrong way") {
     const CheckpointGraph graph = test::Ring();
     LapTracker laps;
