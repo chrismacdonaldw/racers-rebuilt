@@ -40,6 +40,8 @@ public:
         }
         look_.pickerSounds = SelectorSounds(*files_, kPickerStyle);
         look_.scrollSounds = ScrollSounds(*files_, kScrollStyle);
+        const assets::CarouselStyle* scroll = files_->FindCarouselStyle(kScrollStyle);
+        look_.setSlide = Milliseconds{scroll != nullptr ? scroll->scrollMs.value_or(0) : 0};
         look_.textButton = ButtonStates(*files_, kTextStyle);
         return std::move(look_);
     }

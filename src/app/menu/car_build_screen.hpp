@@ -18,6 +18,7 @@
 #include "app/menu/car_stand.hpp"
 #include "app/menu/carousel_view.hpp"
 #include "app/menu/held_piece_motion.hpp"
+#include "app/menu/icon_strip.hpp"
 #include "app/menu/menu_parts.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
@@ -71,6 +72,7 @@ private:
     [[nodiscard]] BuildOutcome ApplyInput(const sim::InputFrame& input);
     [[nodiscard]] BuildOutcome Apply(const BuildRequest& request);
     void StepSet(int direction);
+    void StepPiece(int direction);
     void ShowSet();
     void Move(std::size_t direction);
     void View(bool moved) const;
@@ -97,6 +99,8 @@ private:
     std::size_t set_ = 0;
     PartCarousel carousel_;
     CarouselView carouselView_;
+    float spin_ = 0.0F;
+    IconStrip setStrip_;
     CarBuildMenu menu_;
     BuildCamera camera_;
     HeldPieceMotion motion_;

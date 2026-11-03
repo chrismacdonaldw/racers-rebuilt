@@ -29,7 +29,7 @@ CarouselView::CarouselView(CarouselLayout layout, const CarouselColors& colors)
 
 void CarouselView::Render(const PartCarousel& carousel, std::span<const PartPreview> previews,
                           bool isHighlighted, std::span<const MenuPicture> under,
-                          std::vector<render::RenderView>& out) {
+                          std::vector<render::RenderView>& out, const Quaternion& itemTurn) {
     sides_.clear();
     centre_.clear();
     quads_.clear();
@@ -47,7 +47,7 @@ void CarouselView::Render(const PartCarousel& carousel, std::span<const PartPrev
             position = position + ((start - position) * carousel.Lag());
         }
         const bool isCentre = place == carousel.Shape().focused && !carousel.IsScrolling();
-        Place(preview, position, isCentre ? centre_ : sides_);
+        Place(preview, position, itemTurn, isCentre ? centre_ : sides_);
     }
     AppendBackdropQuads(under, layout_.bounds, camera_, quads_);
     const std::size_t lit = isHighlighted ? 1 : 0;
@@ -58,8 +58,9 @@ void CarouselView::Render(const PartCarousel& carousel, std::span<const PartPrev
 }
 
 void CarouselView::Place(const PartPreview& preview, const Vector3& position,
-                         std::vector<render::MeshDraw>& out) {
-    const Transform placed = TransformToEngine({.position = position});
+                         const Quaternion& turn, std::vector<render::MeshDraw>& out) {
+    const Vector3 pivot = preview.bounds.centre - Rotate(turn, preview.bounds.centre);
+    const Transform placed = TransformToEngine({.position = position + pivot, .rotation = turn});
     for (render::MeshDraw draw : preview.draws) {
         draw.transform = placed;
         out.push_back(draw);

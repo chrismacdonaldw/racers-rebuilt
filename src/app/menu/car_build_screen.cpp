@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <format>
+#include <numbers>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -45,6 +47,8 @@ constexpr std::int32_t kCarViewSound = 5;
 constexpr std::int32_t kPieceViewSound = 17;
 constexpr float kViewVolume = 0.6F;
 constexpr float kBlockedViewVolume = 0.7F;
+constexpr float kFullTurn = 2.0F * std::numbers::pi_v<float>;
+constexpr float kItemTilt = kFullTurn * 114.0F / 1024.0F;
 
 std::vector<std::uint8_t> ChoiceIndices(const assets::PieceCatalog& catalog, std::size_t set) {
     std::vector<std::uint8_t> choices(catalog.partSets.at(set).choices.size());
@@ -60,6 +64,11 @@ PartCarousel MakeCarousel(const assets::PieceCatalog& catalog, std::size_t set,
             static_cast<std::uint8_t>(choice),
             {.slots = look.carousel.slots.size(), .focused = look.carousel.focused},
             look.scroll};
+}
+
+Quaternion ItemTurn(float spin) {
+    const Vector3 axis{.x = std::sin(kItemTilt), .z = std::cos(kItemTilt)};
+    return FromAxisAngle(axis, spin) * FromAxisAngle(Vector3{.y = 1.0F}, kItemTilt);
 }
 
 std::size_t ButtonState(const CarBuildMenu& menu, std::size_t button) {
@@ -114,7 +123,9 @@ CarBuildScreen::CarBuildScreen(BuildServices services, CarBuildLook look, PieceM
       builder_(std::move(builder)),
       sets_(std::move(sets)),
       carousel_(MakeCarousel(*services_.catalog, builder_.Set(), look_, 0)),
-      carouselView_(look_.carousel, look_.itemColors) {
+      carouselView_(look_.carousel, look_.itemColors),
+      setStrip_(look_.setSlide) {
+    setStrip_.Snap(0, sets_.size());
     under_.push_back(look_.backdrop);
     holes_ = {look_.carousel.bounds, look_.garage.interior};
 }
@@ -128,6 +139,8 @@ void CarBuildScreen::HandleKey(SDL_Keycode key) {
 BuildOutcome CarBuildScreen::Tick(const sim::InputFrame& input) {
     carousel_.Tick(kSimTick);
     camera_.Tick(kSimTick);
+    setStrip_.Tick(kSimTick);
+    spin_ = std::fmod(spin_ + (look_.spinPerMs * static_cast<float>(kSimTick.count())), kFullTurn);
     const bool pressed = !keys_.empty() || input.menuPressed.any();
     BuildOutcome outcome = motion_.IsBusy() ? BuildOutcome::None : ApplyInput(input);
     keys_.clear();
@@ -162,10 +175,7 @@ BuildOutcome CarBuildScreen::Apply(const BuildRequest& request) {
             break;
         case BuildCommand::PreviousPiece:
         case BuildCommand::NextPiece:
-            if (carousel_.Step(request.command == BuildCommand::NextPiece ? 1 : -1) ==
-                CarouselStep::Moved) {
-                builder_.Choose(carousel_.Part());
-            }
+            StepPiece(request.command == BuildCommand::NextPiece ? 1 : -1);
             break;
         case BuildCommand::Move:
             Move(request.direction);
@@ -196,9 +206,23 @@ BuildOutcome CarBuildScreen::Apply(const BuildRequest& request) {
 
 void CarBuildScreen::StepSet(int direction) {
     const std::size_t count = sets_.size();
+    if (!setStrip_.Slide(direction, count)) {
+        return;
+    }
+    services_.sounds.Scroll(look_.setSounds, direction);
     set_ = (set_ + (direction > 0 ? 1 : count - 1)) % count;
     builder_.SelectSet(sets_.at(set_));
     ShowSet();
+}
+
+void CarBuildScreen::StepPiece(int direction) {
+    const CarouselStep step = carousel_.Step(direction);
+    if (step == CarouselStep::Moved) {
+        builder_.Choose(carousel_.Part());
+        services_.sounds.Scroll(look_.pieceSounds, direction);
+    } else if (step == CarouselStep::AtEnd) {
+        services_.sounds.Play(look_.pieceSounds.back());
+    }
 }
 
 void CarBuildScreen::ShowSet() {
@@ -261,6 +285,7 @@ bool CarBuildScreen::Undo() {
     const auto found = std::ranges::find(sets_, builder_.Set());
     if (found != sets_.end()) {
         set_ = static_cast<std::size_t>(found - sets_.begin());
+        setStrip_.Snap(set_, sets_.size());
     }
     ShowSet();
     return true;
@@ -407,20 +432,14 @@ void CarBuildScreen::Render(std::vector<render::RenderView>& views,
                                                   .extras = extras_}));
     DrawMenuFrameBorder(look_.garage.look, look_.garage.frame, sprites);
     carouselView_.Render(carousel_, models_.SetPreviews(builder_.Set()),
-                         menu_.Focus() == BuildRow::Pieces, under_, views);
+                         menu_.Focus() == BuildRow::Pieces, under_, views, ItemTurn(spin_));
     DrawControls(sprites);
 }
 
 void CarBuildScreen::DrawControls(std::vector<render::SpriteDraw>& sprites) const {
     DrawSelectorArrows(look_.arrows, look_.sets, menu_.Focus() == BuildRow::Sets, sprites);
     DrawSelectorArrows(look_.arrows, look_.pieces, menu_.Focus() == BuildRow::Pieces, sprites);
-    const UiImage& icon = look_.setImages.at(builder_.Set());
-    const render::Rect sized = SizedAt({}, icon);
-    sprites.push_back({.texture = icon.texture,
-                       .bounds = {.x = look_.setBox.x + ((look_.setBox.width - sized.width) / 2),
-                                  .y = look_.setBox.y + ((look_.setBox.height - sized.height) / 2),
-                                  .width = sized.width,
-                                  .height = sized.height}});
+    DrawStrip(setStrip_, look_.setImages, sets_, look_.setBox, sprites);
     for (std::size_t index = 0; index < kBuildButtons; ++index) {
         const StateButton& shown = look_.buttons.at(index);
         sprites.push_back(

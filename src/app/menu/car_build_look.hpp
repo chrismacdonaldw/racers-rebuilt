@@ -36,6 +36,10 @@ struct CarBuildLook {
     CarouselLayout carousel;
     CarouselColors itemColors{};
     Milliseconds scroll{0};
+    assets::CarouselSounds pieceSounds{};
+    float spinPerMs = 0.0F;
+    Milliseconds setSlide{0};
+    assets::CarouselSounds setSounds{};
     std::array<StateButton, kBuildButtons> buttons;
     StandFraming garage;
     render::Camera camera;
