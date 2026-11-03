@@ -41,6 +41,7 @@ rr_add_module(assets
         path_index.cpp
         piece_catalog.cpp
         piece_library.cpp
+        png_image.cpp
         race_catalog.cpp
         race_list.cpp
         race_map.cpp
@@ -51,6 +52,7 @@ rr_add_module(assets
         sound_list.cpp
         stored_rotation.cpp
         start_grid.cpp
+        stb_image.cpp
         string_table.cpp
         surface_table.cpp
         target_points.cpp
@@ -65,4 +67,8 @@ rr_add_module(assets
     DEPENDS
         rr::core
         rr::platform
+)
+target_include_directories(rr_assets SYSTEM PRIVATE "${STB_INCLUDE_DIR}")
+set_source_files_properties(stb_image.cpp PROPERTIES
+    COMPILE_DEFINITIONS "STB_IMAGE_IMPLEMENTATION;STBI_ONLY_PNG;STBI_NO_STDIO"
 )

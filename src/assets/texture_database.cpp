@@ -8,6 +8,7 @@
 
 #include "assets/bmp_image.hpp"
 #include "assets/color_key_field.hpp"
+#include "assets/png_image.hpp"
 #include "assets/tga_image.hpp"
 #include "assets/token_schema.hpp"
 
@@ -56,13 +57,16 @@ Result<std::vector<TextureDefinition>> ParseTextureDatabase(std::span<const std:
 }
 
 Result<ImageAsset> DecodeImage(std::span<const std::byte> bytes, TextureFileKind kind) {
+    if (IsPng(bytes)) {
+        return DecodePng(bytes);
+    }
     return kind == TextureFileKind::Bmp ? DecodeBmp(bytes) : DecodeTga(bytes);
 }
 
 Result<ImageAsset> DecodeTexture(std::span<const std::byte> bytes,
                                  const TextureDefinition& definition) {
     Result<ImageAsset> image = DecodeImage(bytes, definition.fileKind);
-    if (image && definition.colorKey) {
+    if (image && definition.colorKey && !IsPng(bytes)) {
         ApplyColorKey(*image, *definition.colorKey);
     }
     if (image && definition.flipsVertically) {

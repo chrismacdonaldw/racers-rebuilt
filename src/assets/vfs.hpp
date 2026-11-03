@@ -39,6 +39,12 @@ public:
 
     [[nodiscard]] Result<FileData> Read(std::string_view path) const;
 
+    /// Skips the resolver.
+    [[nodiscard]] Result<FileData> ReadOriginal(std::string_view path) const;
+
+    /// Skips the resolver.
+    [[nodiscard]] bool Contains(std::string_view path) const;
+
     /// Merges every layer's children, sorted by name.
     [[nodiscard]] Result<std::vector<VfsEntry>> List(std::string_view directory) const;
 

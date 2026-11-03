@@ -43,10 +43,11 @@ struct TextureDefinition {
 [[nodiscard]] Result<std::vector<TextureDefinition>> ParseTextureDatabase(
     std::span<const std::byte> bytes);
 
+/// Decodes PNG bytes as PNG, whatever `kind` says.
 [[nodiscard]] Result<ImageAsset> DecodeImage(std::span<const std::byte> bytes,
                                              TextureFileKind kind);
 
-/// Keys out the definition's colour and flips the rows when it asks.
+/// Keys out the definition's colour, unless the bytes are PNG, and flips the rows when it asks.
 [[nodiscard]] Result<ImageAsset> DecodeTexture(std::span<const std::byte> bytes,
                                                const TextureDefinition& definition);
 
