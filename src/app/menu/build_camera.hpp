@@ -17,6 +17,14 @@ public:
     /// False while a tilt is still easing or the tilt is already at that end.
     bool Tilt(int step);
 
+    /// Turns by part of a slot at once, keeping the slot. False while a turn is still easing.
+    bool Swing(float slots);
+
+    /// Tilts by part of a tilt at once, keeping the tilt. False while a tilt is still easing.
+    bool Lift(float tilts);
+
+    void Settle(float radius);
+
     /// Eases back to the opening turn and tilt. False while a turn or tilt is still easing.
     bool Reset();
 
@@ -32,10 +40,12 @@ public:
 
 private:
     std::size_t slot_ = 1;
+    float place_ = 1.0F;
     float turnFrom_ = 0.0F;
     Milliseconds turnLeft_{0};
     std::size_t pitch_ = 1;
-    std::size_t tiltFrom_ = 1;
+    float tilt_ = 1.0F;
+    float tiltFrom_ = 1.0F;
     Milliseconds tiltLeft_{0};
 };
 
