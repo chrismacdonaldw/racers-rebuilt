@@ -38,7 +38,7 @@ ctest --preset debug
 .\build\debug\bin\racers-rebuilt.exe
 ```
 
-vcpkg installs the dependencies from `vcpkg.json` on the first configure.
+vcpkg installs the dependencies from `vcpkg.json` on the first configure. FFmpeg comes from the overlay port in `vcpkg-ports/`, built with only the Indeo 5 decoder; its first build downloads MSYS2 and takes a few minutes.
 
 | Preset | Build | Tests and tools |
 |---|---|---|
