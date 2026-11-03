@@ -92,9 +92,9 @@ TEST_CASE("player 2's rows read and rebind player 2's own settings") {
     CHECK(keys[kAccelerateRow] == std::vector<std::string>{"W"});
     CHECK(buttons[kBrakeRow] == std::vector<std::string>{"b", "lefttrigger"});
     REQUIRE(changes.size() == 2);
-    CHECK(changes[0].key == "input.p2.buttons.accelerate");
+    CHECK(changes[0].key == "input.pad2.buttons.accelerate");
     CHECK(changes[0].value == settings::SettingValue{std::string("a")});
-    CHECK(changes[1].key == "input.p2.buttons.brake");
+    CHECK(changes[1].key == "input.pad2.buttons.brake");
     CHECK(changes[1].value == settings::SettingValue{std::string("righttrigger")});
 }
 

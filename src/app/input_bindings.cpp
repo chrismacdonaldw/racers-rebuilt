@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <string>
 
+#include "app/race_bindings.hpp"
 #include "core/log.hpp"
 
 namespace rr::app {
@@ -49,6 +50,12 @@ std::vector<SDL_Keycode> KeysNamed(std::string_view list, std::string_view setti
         keys.push_back(key);
     }
     return keys;
+}
+
+void CentreSticks(sim::InputLatch& latch) {
+    for (std::size_t player = 0; player < sim::kMaxPlayers; ++player) {
+        latch.SetSteerLeftAxis(player, 0);
+    }
 }
 
 template <typename Input>
@@ -119,61 +126,84 @@ std::vector<std::string> SplitBindingNames(std::string_view list) {
 }
 
 void DeclareInputSettings(settings::Registry& registry) {
-    const auto declare = [&registry](const auto& bindings) {
-        for (const auto& binding : bindings) {
-            registry.Declare(binding.keys);
-            registry.Declare(binding.buttons);
-        }
-    };
-    declare(kActionBindings);
-    declare(kMenuBindings);
-    declare(kPlayer2Bindings);
-}
-
-std::span<const Binding<sim::Action>> RaceBindingsOf(std::size_t player) {
-    if (player == 0) {
-        return kActionBindings;
+    for (const auto& binding : kMenuBindings) {
+        registry.Declare(binding.keys);
+        registry.Declare(binding.buttons);
     }
-    return kPlayer2Bindings;
+    for (const InputSet set : kInputSets) {
+        for (const RaceBinding& binding : RaceBindingsOf(set)) {
+            registry.Declare(binding.inputs);
+        }
+    }
+    for (const auto& device : kPlayerDeviceSettings) {
+        registry.Declare(device);
+    }
+    registry.Declare(kAnyDeviceSetting);
 }
 
 template <typename Action>
-InputBindings::BoundInputs<Action> InputBindings::Bind(const settings::Registry& registry,
-                                                       std::span<const Binding<Action>> bindings) {
-    BoundInputs<Action> bound;
-    for (const Binding<Action>& binding : bindings) {
-        for (const SDL_Keycode key : KeysNamed(registry.Get(binding.keys), binding.keys.key)) {
-            bound.keys.push_back({.input = key, .action = binding.action});
+void InputBindings::AddKeys(BoundInputs<Action>& bound, Action action,
+                            const settings::Registry& registry,
+                            const settings::SettingSpec<std::string_view>& spec) {
+    for (const SDL_Keycode key : KeysNamed(registry.Get(spec), spec.key)) {
+        bound.keys.push_back({.input = key, .action = action});
+    }
+}
+
+template <typename Action>
+void InputBindings::AddButtons(BoundInputs<Action>& bound, Action action,
+                               const settings::Registry& registry,
+                               const settings::SettingSpec<std::string_view>& spec) {
+    for (const std::string& name : SplitBindingNames(registry.Get(spec))) {
+        const SDL_GamepadButton button = SDL_GetGamepadButtonFromString(name.c_str());
+        const SDL_GamepadAxis axis = SDL_GetGamepadAxisFromString(name.c_str());
+        if (button != SDL_GAMEPAD_BUTTON_INVALID) {
+            bound.buttons.push_back({.input = button, .action = action});
+        } else if (IsTrigger(axis)) {
+            bound.triggers.push_back({.input = axis, .action = action});
+        } else {
+            log::Warn("`{}` in {} is not a gamepad button, ignoring it", name, spec.key);
         }
-        for (const std::string& name : SplitBindingNames(registry.Get(binding.buttons))) {
-            const SDL_GamepadButton button = SDL_GetGamepadButtonFromString(name.c_str());
-            const SDL_GamepadAxis axis = SDL_GetGamepadAxisFromString(name.c_str());
-            if (button != SDL_GAMEPAD_BUTTON_INVALID) {
-                bound.buttons.push_back({.input = button, .action = binding.action});
-            } else if (IsTrigger(axis)) {
-                bound.triggers.push_back({.input = axis, .action = binding.action});
+    }
+}
+
+InputBindings::InputBindings(const settings::Registry& registry) {
+    Load(registry);
+}
+
+void InputBindings::Load(const settings::Registry& registry) {
+    menu_ = {};
+    for (const auto& binding : kMenuBindings) {
+        AddKeys(menu_, binding.action, registry, binding.keys);
+        AddButtons(menu_, binding.action, registry, binding.buttons);
+    }
+    for (const InputSet set : kInputSets) {
+        BoundInputs<sim::Action>& bound = sets_.at(static_cast<std::size_t>(set));
+        bound = {};
+        for (const RaceBinding& binding : RaceBindingsOf(set)) {
+            if (PadOf(set)) {
+                AddButtons(bound, binding.action, registry, binding.inputs);
             } else {
-                log::Warn("`{}` in {} is not a gamepad button, ignoring it", name,
-                          binding.buttons.key);
+                AddKeys(bound, binding.action, registry, binding.inputs);
             }
         }
     }
-    return bound;
+    chosen_ = ChosenPlayerSets(registry);
+    isAnyDevice_ = registry.Get(kAnyDeviceSetting);
+    AssignSets();
 }
 
-InputBindings::InputBindings(const settings::Registry& registry)
-    : race_(Bind<sim::Action>(registry, kActionBindings)),
-      menu_(Bind<sim::MenuAction>(registry, kMenuBindings)),
-      player2_(Bind<sim::Action>(registry, kPlayer2Bindings)) {}
+void InputBindings::AssignSets() {
+    assigned_ = AssignInputSets(chosen_, pads_.size());
+}
 
 void InputBindings::Rebind(const settings::Registry& registry, sim::InputLatch& latch) {
-    race_ = Bind<sim::Action>(registry, kActionBindings);
-    menu_ = Bind<sim::MenuAction>(registry, kMenuBindings);
-    player2_ = Bind<sim::Action>(registry, kPlayer2Bindings);
+    Load(registry);
     heldKeys_.clear();
     heldButtons_.clear();
     heldTriggers_.clear();
     latch.ReleaseAll();
+    CentreSticks(latch);
 }
 
 void InputBindings::SetPlayerCount(std::size_t count, sim::InputLatch& latch) {
@@ -201,6 +231,7 @@ void InputBindings::Handle(const SDL_Event& event, sim::InputLatch& latch) {
             return;
         case SDL_EVENT_GAMEPAD_ADDED:
             AddPad(event.gdevice.which);
+            LatchHeldActions(latch);
             return;
         case SDL_EVENT_GAMEPAD_REMOVED:
             RemovePad(event.gdevice.which, latch);
@@ -235,7 +266,9 @@ void InputBindings::HandleAxis(const SDL_GamepadAxisEvent& event, sim::InputLatc
     AddPad(event.which);
     const auto axis = static_cast<SDL_GamepadAxis>(event.axis);
     if (axis == SDL_GAMEPAD_AXIS_LEFTX) {
-        latch.SetSteerLeftAxis(PlayerOfPad(event.which), SteerLeftFromStick(event.value));
+        if (const std::optional<std::size_t> player = PlayerOfPad(event.which)) {
+            latch.SetSteerLeftAxis(*player, SteerLeftFromStick(event.value));
+        }
         return;
     }
     if (!IsTrigger(axis)) {
@@ -256,16 +289,16 @@ void InputBindings::HandleAxis(const SDL_GamepadAxisEvent& event, sim::InputLatc
 void InputBindings::AddPad(SDL_JoystickID pad) {
     if (!std::ranges::contains(pads_, pad)) {
         pads_.push_back(pad);
+        AssignSets();
     }
 }
 
 void InputBindings::RemovePad(SDL_JoystickID pad, sim::InputLatch& latch) {
     std::erase_if(heldButtons_, [pad](const auto& held) { return held.pad == pad; });
     std::erase_if(heldTriggers_, [pad](const auto& held) { return held.pad == pad; });
-    for (std::size_t player = 0; player < sim::kMaxPlayers; ++player) {
-        latch.SetSteerLeftAxis(player, 0);
-    }
+    CentreSticks(latch);
     std::erase(pads_, pad);
+    AssignSets();
     LatchHeldActions(latch);
 }
 
@@ -282,28 +315,66 @@ void InputBindings::LatchHeldActions(sim::InputLatch& latch) const {
     }
 }
 
-std::size_t InputBindings::PlayerOfKey(SDL_Keycode key) const {
-    constexpr auto kKey = &Bound<SDL_Keycode, sim::Action>::input;
-    const bool isPlayer2 = playerCount_ > 1 && !std::ranges::contains(race_.keys, key, kKey) &&
-                           std::ranges::contains(player2_.keys, key, kKey);
-    return isPlayer2 ? 1 : 0;
+bool InputBindings::Drives(std::size_t player, InputSet set) const {
+    if (player >= playerCount_) {
+        return false;
+    }
+    if (isAnyDevice_ && playerCount_ == 1) {
+        return true;
+    }
+    return assigned_.at(player) == set;
 }
 
-std::size_t InputBindings::PlayerOfPad(SDL_JoystickID pad) const {
-    const auto found = std::ranges::find(pads_, pad);
-    const auto index = static_cast<std::size_t>(found - pads_.begin());
-    return index < playerCount_ ? index : 0;
+bool InputBindings::IsDriven(InputSet set) const {
+    for (std::size_t player = 0; player < playerCount_; ++player) {
+        if (Drives(player, set)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::optional<std::size_t> InputBindings::PlayerOfPad(SDL_JoystickID pad) const {
+    const auto index = static_cast<std::size_t>(std::ranges::find(pads_, pad) - pads_.begin());
+    if (index >= kPadSets.size()) {
+        return std::nullopt;
+    }
+    for (std::size_t player = 0; player < playerCount_; ++player) {
+        if (Drives(player, kPadSets.at(index))) {
+            return player;
+        }
+    }
+    return std::nullopt;
+}
+
+const InputBindings::BoundInputs<sim::Action>& InputBindings::Set(InputSet set) const {
+    return sets_.at(static_cast<std::size_t>(set));
 }
 
 bool InputBindings::IsHeld(std::size_t player, sim::Action action) const {
+    return std::ranges::any_of(kInputSets, [&](InputSet set) {
+        const bool isUnclaimedPause = player == 0 && action == sim::Action::Pause && !IsDriven(set);
+        return (Drives(player, set) || isUnclaimedPause) && IsHeldInSet(set, player, action);
+    });
+}
+
+bool InputBindings::IsHeldInSet(InputSet set, std::size_t player, sim::Action action) const {
+    const BoundInputs<sim::Action>& bound = Set(set);
+    if (const std::optional<std::size_t> pad = PadOf(set)) {
+        if (*pad >= pads_.size()) {
+            return false;
+        }
+        const auto ownsPad = [id = pads_.at(*pad)](SDL_JoystickID held) { return held == id; };
+        return AnyPadHeld(bound.buttons, heldButtons_, action, ownsPad) ||
+               AnyPadHeld(bound.triggers, heldTriggers_, action, ownsPad);
+    }
+    constexpr auto kKey = &Bound<SDL_Keycode, sim::Action>::input;
     const auto isKeyHeld = [&](SDL_Keycode key) {
-        return PlayerOfKey(key) == player && std::ranges::contains(heldKeys_, key);
+        const bool isPlayer1s =
+            player > 0 && std::ranges::contains(Set(assigned_.front()).keys, key, kKey);
+        return !isPlayer1s && std::ranges::contains(heldKeys_, key);
     };
-    const auto ownsPad = [&](SDL_JoystickID pad) { return PlayerOfPad(pad) == player; };
-    const BoundInputs<sim::Action>& bound = player == 0 ? race_ : player2_;
-    return AnyHeld(bound.keys, action, isKeyHeld) ||
-           AnyPadHeld(bound.buttons, heldButtons_, action, ownsPad) ||
-           AnyPadHeld(bound.triggers, heldTriggers_, action, ownsPad);
+    return AnyHeld(bound.keys, action, isKeyHeld);
 }
 
 }

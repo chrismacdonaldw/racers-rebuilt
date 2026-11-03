@@ -43,6 +43,7 @@ add_executable(racers-rebuilt-tests
     app/hud/text_pool_test.cpp
     app/circuit_awards_test.cpp
     app/circuit_leg_test.cpp
+    app/device_assignment_test.cpp
     app/free_camera_test.cpp
     app/input_bindings_test.cpp
     app/install_discovery_test.cpp
