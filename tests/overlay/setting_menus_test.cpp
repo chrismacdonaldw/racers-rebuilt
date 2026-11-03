@@ -17,8 +17,9 @@ constexpr SettingSpec<double> kVolume{
     .key = "audio.music_volume", .defaultValue = 1.0, .category = "Audio"};
 constexpr SettingSpec<std::string_view> kHidden{.key = "internal.note", .defaultValue = ""};
 
-std::vector<std::string_view> Categories(const std::vector<SettingMenu>& menus) {
-    return menus | std::views::transform(&SettingMenu::category) | std::ranges::to<std::vector>();
+template <typename Menu>
+std::vector<std::string_view> Categories(const std::vector<Menu>& menus) {
+    return menus | std::views::transform(&Menu::category) | std::ranges::to<std::vector>();
 }
 
 TEST_CASE("settings are grouped into menus by category, sorted by category and key") {
@@ -45,6 +46,27 @@ TEST_CASE("a newly declared setting gets a menu with no other code") {
 
     REQUIRE(Categories(menus) == std::vector<std::string_view>{"HUD", "Video"});
     CHECK(menus[0].keys == std::vector<std::string_view>{"hud.speedometer"});
+}
+
+TEST_CASE("a slash in a category makes a submenu, sorted by name") {
+    settings::Registry registry;
+    constexpr SettingSpec<bool> kFree{
+        .key = "enhancements.free", .defaultValue = false, .category = "Enhancements"};
+    constexpr SettingSpec<bool> kRespawn{
+        .key = "race.respawn", .defaultValue = true, .category = "Enhancements/Gameplay"};
+    constexpr SettingSpec<bool> kCamera{
+        .key = "camera.free", .defaultValue = false, .category = "Enhancements/Camera"};
+    registry.Declare(kFree);
+    registry.Declare(kRespawn);
+    registry.Declare(kCamera);
+
+    const std::vector<SettingMenu> menus = GroupSettingMenus(registry.AllDeclarations());
+
+    REQUIRE(Categories(menus) == std::vector<std::string_view>{"Enhancements"});
+    CHECK(menus[0].keys == std::vector<std::string_view>{"enhancements.free"});
+    REQUIRE(Categories(menus[0].submenus) == std::vector<std::string_view>{"Camera", "Gameplay"});
+    CHECK(menus[0].submenus[0].keys == std::vector<std::string_view>{"camera.free"});
+    CHECK(menus[0].submenus[1].keys == std::vector<std::string_view>{"race.respawn"});
 }
 
 TEST_CASE("settings without a category get no menu") {

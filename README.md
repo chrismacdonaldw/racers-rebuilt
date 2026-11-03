@@ -96,7 +96,7 @@ Create `music/`, `mods/` and `overrides/` when you first need them.
 
 ## Configuration
 
-Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Enhancements**, **Game** and **Video**, plus **Mods** when a mod is installed, and **Developer**. Video, audio and enhancement changes apply on the next frame. Game and mod changes apply on the next start. Every change saves when an edit finishes.
+Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Enhancements**, **Game**, **Input**, **Mods**, **Race**, **Video**, **Progress** and **Developer**. **Enhancements** holds the **Camera** and **Gameplay** submenus. Items marked * change gameplay: replays record them and warn when played back with other values. Video, audio and enhancement changes apply on the next frame. Game and mod changes apply on the next start. Every change saves when an edit finishes.
 
 **Developer** shows frame time, ticks per frame and startup timings. Its **Scenes** list opens the test scene, a sprite test that draws 1000 UI sprites, or any race track in your copy.
 
@@ -108,7 +108,7 @@ Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Enhancements
 | <kbd>F9</kbd> | Cycle VSync, 30, 60 and 144 FPS, and uncapped |
 | <kbd>Print Screen</kbd> | Save a screenshot to the [data folder](#data-folder) as `LEGO<n>.bmp`, with the first free number |
 
-With **Enhancements → Free camera** on:
+With **Enhancements → Camera → Free camera** on:
 
 | Key | Action |
 |---|---|

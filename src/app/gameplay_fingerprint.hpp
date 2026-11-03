@@ -16,7 +16,7 @@ struct PlayerRacers {
     std::optional<settings::Racer> second;
 };
 
-/// `mod:<id>@<version>` per enabled mod, `overrides:<hash>`, then `racer:` and `racer2:` lines.
+/// Mods, overrides, gameplay settings away from their defaults, then the players' racers.
 [[nodiscard]] std::vector<std::string> GameplayFingerprint(
     const settings::Registry& settings, const mods::ModList& mods,
     std::optional<std::uint64_t> overridesHash, const PlayerRacers& players);
