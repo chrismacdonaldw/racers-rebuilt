@@ -1,4 +1,4 @@
-﻿#include "app/menu/licence_scene.hpp"
+#include "app/menu/licence_scene.hpp"
 
 #include <SDL3/SDL_keycode.h>
 
@@ -16,6 +16,7 @@
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_widgets.hpp"
 #include "app/ui_text/text_layout.hpp"
+#include "app/video_settings.hpp"
 #include "assets/loader_pool.hpp"
 #include "core/log.hpp"
 #include "core/utf16_text.hpp"
@@ -143,6 +144,9 @@ void LicenceScene::ApplySettings(const settings::Registry& settings) {
     cursorWidth_ = font != nullptr ? WidestGlyph(*font, name_.Allowed()) : 0.0F;
     if (dialog_) {
         dialog_->Measure(text_);
+    }
+    if (views_.stand) {
+        views_.stand->DrawFarScenery(settings.Get(kFarScenerySetting));
     }
 }
 

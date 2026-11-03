@@ -15,6 +15,7 @@
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_widgets.hpp"
+#include "app/video_settings.hpp"
 #include "core/log.hpp"
 #include "core/quaternion.hpp"
 
@@ -158,6 +159,9 @@ void EditCarScene::ApplySettings(const settings::Registry& settings) {
     static_cast<void>(text_.Apply(*renderer_, *vfs_, settings));
     if (dialog_) {
         dialog_->Measure(text_);
+    }
+    if (views_.stand) {
+        views_.stand->DrawFarScenery(settings.Get(kFarScenerySetting));
     }
 }
 

@@ -14,6 +14,7 @@
 #include "assets/cutscene_timeline.hpp"
 #include "core/duration.hpp"
 #include "core/transform.hpp"
+#include "core/vector3.hpp"
 #include "render/camera.hpp"
 #include "render/render_view.hpp"
 #include "sim/track/track_entities.hpp"
@@ -52,8 +53,9 @@ public:
     /// The lights point into `storage`, which must outlive the returned value.
     [[nodiscard]] render::Lighting Lighting(std::vector<render::DirectionalLight>& storage) const;
 
-    /// Appends the active models' draws, with `jointed` already posed.
+    /// `jointed` must be posed. Leaves out models past their range from `rangeFrom`, if set.
     void AppendDraws(const TrackEntityDraws& jointed, const CutsceneTints& tints,
+                     const std::optional<Vector3>& rangeFrom,
                      std::vector<render::MeshDraw>& out) const;
 
     /// Appends the active sprites, facing `camera`, which is in engine space.

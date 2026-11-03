@@ -398,9 +398,11 @@ void CutsceneView::Advance(Milliseconds elapsed) {
 render::RenderView CutsceneView::Render(std::span<const sim::EntityClock> clocks,
                                         std::vector<render::SpriteDraw>& sprites) {
     parts_.jointed.Update(clocks);
-    draws_.clear();
-    parts_.player.AppendDraws(parts_.jointed, parts_.effectPlayer.Tints(), draws_);
     const render::Camera camera = parts_.player.ViewCamera(clocks).value_or(render::Camera{});
+    draws_.clear();
+    parts_.player.AppendDraws(
+        parts_.jointed, parts_.effectPlayer.Tints(),
+        isFarSceneryDrawn_ ? std::nullopt : std::optional(camera.transform.position), draws_);
     quads_.clear();
     parts_.player.AppendQuads(camera.transform, quads_);
     parts_.effectPlayer.AppendQuads(camera.transform, quads_);

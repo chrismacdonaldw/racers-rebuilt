@@ -46,6 +46,22 @@ TEST_CASE("model events bind by name, ignoring case, and indexed models to their
     CHECK(bound->models[2].sprite.value_or(assets::WorldSprite{}).materialName == "star");
 }
 
+TEST_CASE("model events carry their entity's draw range") {
+    assets::WorldAsset world = test::StageWorld();
+    world.modelEntities[0].lods = {assets::WorldLod{.maxDistance = 20.0F}};
+    sim::TrackEntitySources entities = test::StageEntities();
+    entities.entities[0].drawRangeSquared = 900.0F;
+    const std::array worlds{&world};
+    const assets::CutsceneFrame frame{.models = {Named("set"), Named("guy1", true)}};
+
+    const Result<CutsceneBindings> bound =
+        BindCutscene(frame, worlds, test::StageStatics(), entities);
+
+    REQUIRE(bound.has_value());
+    CHECK(bound->models[0].drawRangeSquared == 400.0F);
+    CHECK(bound->models[1].drawRangeSquared == 900.0F);
+}
+
 TEST_CASE("a model name no world has, or a sprite past its lists, fails") {
     CHECK(ErrorOf(Bind({.models = {Named("ghost")}})).contains("unable to find model ghost"));
     CHECK(ErrorOf(Bind({.models = {Named("ghost", true)}}))

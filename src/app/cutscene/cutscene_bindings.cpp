@@ -18,12 +18,17 @@ bool SameName(std::string_view a, std::string_view b) {
     return assets::ToUpperAscii(a) == assets::ToUpperAscii(b);
 }
 
-bool HasModelEntity(std::span<const assets::WorldAsset* const> worlds, std::string_view name) {
-    return std::ranges::any_of(worlds, [&](const assets::WorldAsset* world) {
-        return std::ranges::any_of(world->modelEntities, [&](const assets::WorldEntity& entity) {
-            return SameName(entity.name, name);
-        });
-    });
+const assets::WorldEntity* FindModelEntity(std::span<const assets::WorldAsset* const> worlds,
+                                           std::string_view name) {
+    for (const assets::WorldAsset* world : worlds) {
+        const auto found = std::ranges::find_if(
+            world->modelEntities,
+            [&](const assets::WorldEntity& entity) { return SameName(entity.name, name); });
+        if (found != world->modelEntities.end()) {
+            return &*found;
+        }
+    }
+    return nullptr;
 }
 
 std::optional<std::size_t> FindJointed(const sim::TrackEntitySources& entities,
@@ -123,9 +128,11 @@ Result<ModelBinding> BindEntity(const assets::EntityByName& entity,
             return Fail(ErrorCode::NotFound,
                         std::format("unable to find jointed model {}", entity.name));
         }
-        return ModelBinding{.jointed = jointed};
+        return ModelBinding{.jointed = jointed,
+                            .drawRangeSquared = entities.entities[*jointed].drawRangeSquared};
     }
-    if (!HasModelEntity(worlds, entity.name)) {
+    const assets::WorldEntity* model = FindModelEntity(worlds, entity.name);
+    if (model == nullptr) {
         return Fail(ErrorCode::NotFound, std::format("unable to find model {}", entity.name));
     }
     const auto drawn = std::ranges::find_if(
@@ -133,7 +140,8 @@ Result<ModelBinding> BindEntity(const assets::EntityByName& entity,
     if (drawn == statics.end()) {
         return ModelBinding{};
     }
-    return ModelBinding{.staticDraws = drawn->span};
+    return ModelBinding{.staticDraws = drawn->span,
+                        .drawRangeSquared = assets::DrawRangeSquared(*model)};
 }
 
 Result<CutsceneBindings> BindCutscene(const assets::CutsceneFrame& frame,

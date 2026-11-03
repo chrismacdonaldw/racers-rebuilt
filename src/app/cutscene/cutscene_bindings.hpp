@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <limits>
 #include <optional>
 #include <span>
 #include <vector>
@@ -19,6 +20,7 @@ struct ModelBinding {
     std::optional<DrawSpan> staticDraws;
     std::optional<std::size_t> jointed;
     std::optional<assets::WorldSprite> sprite;
+    float drawRangeSquared = std::numeric_limits<float>::infinity();
 };
 
 /// Follows `node` of `entity` when there is one, or stands at `placement`, in game space.

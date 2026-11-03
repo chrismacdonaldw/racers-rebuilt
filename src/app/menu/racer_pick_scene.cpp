@@ -17,6 +17,7 @@
 #include "app/race_scene_name.hpp"
 #include "app/racer/racer_lookup.hpp"
 #include "app/racer/racer_ref.hpp"
+#include "app/video_settings.hpp"
 #include "core/log.hpp"
 #include "core/utf16_text.hpp"
 
@@ -102,7 +103,11 @@ Result<std::unique_ptr<RacerPickScene>> RacerPickScene::Create(render::Renderer&
 
 void RacerPickScene::ApplySettings(const settings::Registry& settings) {
     static_cast<void>(text_.Apply(*renderer_, *vfs_, settings));
-    if (stand_ && stand_->UseCarBody(CarBodyFrom(settings))) {
+    if (!stand_) {
+        return;
+    }
+    stand_->DrawFarScenery(settings.Get(kFarScenerySetting));
+    if (stand_->UseCarBody(CarBodyFrom(settings))) {
         ShowPicked();
     }
 }

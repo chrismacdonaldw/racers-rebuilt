@@ -68,6 +68,7 @@ CarStand::CarStand(render::Renderer& renderer, const assets::Vfs& vfs, Loading l
       loading_(std::move(loading)),
       scene_(std::move(scene)),
       model_(std::move(model)),
+      farModels_(model_.farModels),
       framing_(framing),
       entities_(scene_->sources),
       jointed_(model_.animatedModels, scene_->sources) {
@@ -119,7 +120,7 @@ render::RenderView CarStand::Render(std::span<const sim::EntityClock> clocks,
     light_.front().color = kGrey;
     return {.camera = scene_->camera,
             .lighting = {.lights = light_, .ambient = kGrey},
-            .meshes = draws_,
+            .meshes = farModels_.Cull(0, scene_->camera.transform.position, draws_),
             .viewport = render::UiViewport(framing_.interior)};
 }
 
@@ -132,11 +133,12 @@ render::RenderView CarStand::Render(const Transform& car, const StandShot& shot)
     light_.front().color = shot.light;
     return {.camera = shot.camera,
             .lighting = {.lights = light_, .ambient = kGrey},
-            .meshes = draws_,
+            .meshes = farModels_.Cull(0, shot.camera.transform.position, draws_),
             .viewport = render::UiViewport(shot.interior)};
 }
 
 void CarStand::DrawCar(const Transform& car, const render::Color& ambient) {
+    farModels_.Reset(draws_);
     draws_.assign(model_.draws.begin(), model_.draws.end());
     if (!shown_) {
         return;

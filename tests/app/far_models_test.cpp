@@ -67,6 +67,19 @@ TEST_CASE("reset gives back only what the first view hid and forgets the cars") 
     CHECK(culled == std::vector<std::uint32_t>{0, 6, 9, 0});
 }
 
+TEST_CASE("scenery with no range is hidden from any camera but one at its position") {
+    FarModels models(
+        {{.position = {.x = 5.0F}, .draws = {.first = 1, .count = 1}, .rangeSquared = 0.0F}});
+    models.SetHidden(false, true);
+    std::vector<render::MeshDraw> meshes = Meshes();
+
+    CHECK(IndexCounts(models.Cull(0, {.x = 5.0F}, meshes)) ==
+          std::vector<std::uint32_t>{3, 6, 9, 0});
+    models.Reset(meshes);
+    CHECK(IndexCounts(models.Cull(0, {.x = 5.01F}, meshes)) ==
+          std::vector<std::uint32_t>{3, 0, 9, 0});
+}
+
 TEST_CASE("far models stay drawn unless hidden") {
     FarModels models = CarAndScenery();
     models.SetHidden(false, false);
