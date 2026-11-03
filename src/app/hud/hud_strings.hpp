@@ -22,6 +22,7 @@ struct HudStrings {
     std::u16string finished;
     std::u16string stillRacing;
     std::u16string circuit;
+    std::u16string demo;
     std::u16string paused;
     std::u16string resume;
     std::u16string restart;

@@ -118,6 +118,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
     : course_(course),
       respawn_(setup.respawn),
       cheats_(setup.cheats),
+      isDemo_(setup.isDemo),
       respawns_(setup.racers.size()),
       wasRespawned_(setup.racers.size()),
       positions_(setup.racers.size()),
@@ -444,6 +445,9 @@ HazardContext RaceSession::HazardsContext(Milliseconds elapsed, PowerupContext& 
 }
 
 bool RaceSession::HasPlayerFinished() const {
+    if (isDemo_ && !racers_.empty() && progress_.OfRacer(0).finishPlace) {
+        return true;
+    }
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         if (isPlayer_[i] && progress_.OfRacer(i).finishPlace) {
             return true;

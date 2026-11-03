@@ -25,7 +25,8 @@ sim::RaceSetup GridSetup(const RaceSceneSetup& scene, const RacerGrid& racers, s
                          .aiDriving = scene.aiDriving,
                          .effects = sim::EveryEffect(),
                          .cheats = scene.cheats,
-                         .isTestDrive = scene.isTestDrive};
+                         .isTestDrive = scene.isTestDrive,
+                         .isDemo = scene.isDemo};
     setup.racers.resize(slots);
     for (std::size_t i = 0; i < slots; ++i) {
         setup.racers[i].chassis = racers.Chassis(i);
@@ -33,7 +34,7 @@ sim::RaceSetup GridSetup(const RaceSceneSetup& scene, const RacerGrid& racers, s
         setup.racers[i].localBounds = racers.LocalBounds(i);
         setup.racers[i].habits = racers.Habits(i);
     }
-    for (std::size_t player = 0; player < scene.players; ++player) {
+    for (std::size_t player = 0; player < (scene.isDemo ? 0 : scene.players); ++player) {
         setup.racers[kPlayerSlot + player].isPlayer = true;
     }
     return setup;

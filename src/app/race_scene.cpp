@@ -123,6 +123,9 @@ RaceScene::RaceScene(Parts parts)
     draws_ = parts_.trackDraws;
     draws_.insert(draws_.end(), parts_.racers.Draws().begin(), parts_.racers.Draws().end());
     hud_.SetMap(parts_.map);
+    if (parts_.setup.isDemo) {
+        hud_.ShowDemo();
+    }
 }
 
 void RaceScene::ApplySettings(const settings::Registry& settings) {
@@ -194,6 +197,10 @@ overlay::RacerActionGroup RaceScene::PowerupTools() {
 }
 
 void RaceScene::Tick(const sim::InputFrame& input) {
+    if (parts_.setup.isDemo && input.WasAnythingPressed()) {
+        next_ = std::string(kMainMenuScene);
+        return;
+    }
     if (trial_ && trial_->IsAsking(parts_.session.Clock())) {
         TickTrialQuestion(*trial_, input);
         return;
@@ -206,7 +213,7 @@ void RaceScene::Tick(const sim::InputFrame& input) {
     if (!trial_) {
         LeaveAfterResults(input);
     }
-    StepRace(parts_.session, input, controls_, cameras_.Count());
+    StepRace(parts_.session, input, controls_, parts_.setup.isDemo ? 0 : cameras_.Count());
     if (trial_) {
         trial_->Follow(parts_.session, hud_.RacerName(kPlayerSlot));
     }
@@ -419,7 +426,7 @@ bool RaceScene::IsTrialAsking() const {
 
 void RaceScene::LeaveAfterResults(const sim::InputFrame& input) {
     const sim::RaceClock& clock = parts_.session.Clock();
-    if (clock.IsTestDrive()) {
+    if (clock.IsTestDrive() || parts_.setup.isDemo) {
         if (clock.Phase() == sim::RacePhase::Results) {
             next_ = MenuAfter(parts_.setup);
         }

@@ -38,6 +38,9 @@ constexpr float kCircuitTitleY = 60.0F;
 constexpr Milliseconds kBlinkPeriod{400};
 constexpr Milliseconds kBlinkLit{250};
 constexpr render::Color kCountdownTint{.r = 1.0F, .g = 1.0F, .b = 0.0F};
+constexpr Milliseconds kDemoBlinkPeriod{1000};
+constexpr Milliseconds kDemoBlinkLit{750};
+constexpr float kDemoBottomGap = 5.0F;
 
 float TimeWidth(const HudFonts& fonts) {
     std::array<char16_t, kRaceTimeLength> zero{};
@@ -107,6 +110,13 @@ void RaceHud::LayoutResults(const sim::RaceClock& clock, const sim::RaceProgress
     }
     app::LayoutResults(results_, names, labels, isLit ? std::nullopt : std::optional(racer), pool_,
                        out);
+}
+
+void RaceHud::LayoutDemo(Milliseconds shown, std::vector<HudText>& out) const {
+    if (shown % kDemoBlinkPeriod < kDemoBlinkLit) {
+        const float y = render::kUiHeight - fonts_.Height(HudFont::Text) - kDemoBottomGap;
+        out.push_back(Centered(strings_.demo, y, {}));
+    }
 }
 
 void RaceHud::TickPause(Milliseconds elapsed) {

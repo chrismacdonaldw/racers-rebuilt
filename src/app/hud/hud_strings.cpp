@@ -27,14 +27,15 @@ constexpr std::size_t kFinished = 0x2A;
 constexpr std::size_t kStillRacing = 0x2B;
 constexpr std::size_t kSure = 0x2C;
 constexpr std::size_t kCircuit = 0x2D;
+constexpr std::size_t kDemo = 0x2E;
 
 }
 
 Result<HudStrings> ReadHudStrings(std::span<const std::u16string> gameStrings) {
-    if (gameStrings.size() <= kCircuit) {
+    if (gameStrings.size() <= kDemo) {
         return Fail(ErrorCode::InvalidData,
                     std::format("game strings hold {} entries, the HUD needs {}",
-                                gameStrings.size(), kCircuit + 1));
+                                gameStrings.size(), kDemo + 1));
     }
     HudStrings strings{
         .gap = gameStrings[kGap],
@@ -47,6 +48,7 @@ Result<HudStrings> ReadHudStrings(std::span<const std::u16string> gameStrings) {
         .finished = gameStrings[kFinished],
         .stillRacing = gameStrings[kStillRacing],
         .circuit = gameStrings[kCircuit],
+        .demo = gameStrings[kDemo],
         .paused = gameStrings[kPaused],
         .resume = gameStrings[kResume],
         .restart = gameStrings[kRestart],

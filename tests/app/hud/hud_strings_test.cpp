@@ -19,7 +19,7 @@ std::vector<std::u16string> NumberedStrings(std::size_t count) {
 }
 
 TEST_CASE("HUD labels come from their game string slots") {
-    const std::vector<std::u16string> game = NumberedStrings(0x2E);
+    const std::vector<std::u16string> game = NumberedStrings(0x2F);
 
     const Result<HudStrings> strings = ReadHudStrings(game);
 
@@ -28,6 +28,7 @@ TEST_CASE("HUD labels come from their game string slots") {
     CHECK(strings->placeSuffixes.back() == game[0x20]);
     CHECK(strings->gap == game[0x21]);
     CHECK(strings->wrongWay == game[0x24]);
+    CHECK(strings->demo == game[0x2E]);
     CHECK(strings->best == game[0x25]);
     CHECK(strings->total == game[0x26]);
     CHECK(strings->lap == game[0x27]);
@@ -39,7 +40,7 @@ TEST_CASE("HUD labels come from their game string slots") {
 }
 
 TEST_CASE("pause labels come from their game string slots") {
-    const std::vector<std::u16string> game = NumberedStrings(0x2E);
+    const std::vector<std::u16string> game = NumberedStrings(0x2F);
 
     const Result<HudStrings> strings = ReadHudStrings(game);
 
@@ -57,7 +58,7 @@ TEST_CASE("pause labels come from their game string slots") {
 }
 
 TEST_CASE("a game string table without every HUD label fails") {
-    CHECK_FALSE(ReadHudStrings(NumberedStrings(0x2D)).has_value());
+    CHECK_FALSE(ReadHudStrings(NumberedStrings(0x2E)).has_value());
 }
 
 }

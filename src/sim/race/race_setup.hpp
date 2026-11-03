@@ -28,7 +28,7 @@ struct RacerEntry {
 /// `Physics` computer racers drive the car along their route instead of playing it back.
 enum class AiDriving : std::uint8_t { Route, Physics };
 
-/// Racer `i` starts in grid slot `firstSlot + i`.
+/// Racer `i` starts in grid slot `firstSlot + i`. A demo's racer 0 finishes it as a player would.
 struct RaceSetup {
     std::string track;
     std::vector<RacerEntry> racers;
@@ -40,6 +40,7 @@ struct RaceSetup {
     EffectFactories effects;
     Cheats cheats;
     bool isTestDrive = false;
+    bool isDemo = false;
 };
 
 }
