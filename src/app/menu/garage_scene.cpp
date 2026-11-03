@@ -16,6 +16,7 @@
 #include "app/menu/racer_edit_flow.hpp"
 #include "app/race_settings.hpp"
 #include "app/racer/racer_ref.hpp"
+#include "app/video_settings.hpp"
 #include "core/log.hpp"
 #include "core/utf16_text.hpp"
 
@@ -85,7 +86,11 @@ void GarageScene::ApplySettings(const settings::Registry& settings) {
         dialog_->Measure(text_);
     }
     rules_ = RaceRulesFrom(settings);
-    if (views_.stand && views_.stand->UseCarBody(CarBodyFrom(settings))) {
+    if (!views_.stand) {
+        return;
+    }
+    views_.stand->DrawFarScenery(settings.Get(kFarScenerySetting));
+    if (views_.stand->UseCarBody(CarBodyFrom(settings))) {
         ShowRacer();
     }
 }

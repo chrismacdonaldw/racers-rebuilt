@@ -9,6 +9,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/far_models.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/stand_racer.hpp"
 #include "app/menu/stand_scene.hpp"
@@ -59,6 +60,8 @@ public:
 
     void Tick(Milliseconds elapsed);
 
+    void DrawFarScenery(bool isDrawn) { farModels_.SetHidden(false, !isDrawn); }
+
     [[nodiscard]] std::span<const sim::EntityClock> Clocks() const { return entities_.Clocks(); }
 
     [[nodiscard]] const render::Rect& Bounds() const { return framing_.interior; }
@@ -99,6 +102,7 @@ private:
     Loading loading_;
     std::unique_ptr<StandScene> scene_;
     TrackModel model_;
+    FarModels farModels_;
     StandFraming framing_;
     sim::TrackEntities entities_;
     TrackEntityDraws jointed_;

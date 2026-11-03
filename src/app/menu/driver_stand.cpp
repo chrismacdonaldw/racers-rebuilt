@@ -41,6 +41,7 @@ DriverStand::DriverStand(std::unique_ptr<StandScene> scene, TrackModel model,
                          const StandFraming& framing, const StandSet& set)
     : scene_(std::move(scene)),
       model_(std::move(model)),
+      farModels_(model_.farModels),
       framing_(framing),
       entities_(scene_->sources),
       jointed_(model_.animatedModels, scene_->sources),
@@ -104,13 +105,14 @@ void DriverStand::Tick(Milliseconds elapsed) {
 
 render::RenderView DriverStand::Render(std::span<const sim::EntityClock> clocks) {
     jointed_.Update(clocks);
+    farModels_.Reset(draws_);
     draws_.assign(model_.draws.begin(), model_.draws.end());
     if (isShown_) {
         draws_.insert(draws_.end(), jointed_.Draws().begin(), jointed_.Draws().end());
     }
     return {.camera = scene_->camera,
             .lighting = {.lights = light_, .ambient = ambient_},
-            .meshes = draws_,
+            .meshes = farModels_.Cull(0, scene_->camera.transform.position, draws_),
             .viewport = render::UiViewport(framing_.interior)};
 }
 

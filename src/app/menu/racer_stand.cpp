@@ -53,6 +53,7 @@ RacerStand::RacerStand(const assets::Vfs& vfs, render::Renderer& renderer, Loadi
       loading_(std::move(loading)),
       scene_(std::move(scene)),
       model_(std::move(model)),
+      farModels_(model_.farModels),
       framing_(framing),
       entities_(scene_->sources),
       jointed_(model_.animatedModels, scene_->sources),
@@ -118,6 +119,7 @@ render::RenderView RacerStand::Render(std::span<const sim::EntityClock> clocks,
         return {.viewport = viewport};
     }
     jointed_.Update(clocks);
+    farModels_.Reset(draws_);
     draws_.assign(model_.draws.begin(), model_.draws.end());
     const std::optional<StandRacer>& parts = built_.at(*shown_).parts;
     if (parts && parts->car && scene_->turntable) {
@@ -130,7 +132,7 @@ render::RenderView RacerStand::Render(std::span<const sim::EntityClock> clocks,
     DrawMenuFrameBorder(framing_.look, framing_.frame, sprites);
     return {.camera = scene_->camera,
             .lighting = {.lights = light_, .ambient = kMenuSceneAmbient},
-            .meshes = draws_,
+            .meshes = farModels_.Cull(0, scene_->camera.transform.position, draws_),
             .viewport = viewport};
 }
 
