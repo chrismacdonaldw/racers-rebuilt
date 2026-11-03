@@ -75,6 +75,10 @@ public:
     [[nodiscard]] Result<void> PlayMusic(SoundId track);
     void StopMusic(Milliseconds fade = Milliseconds{0});
     [[nodiscard]] bool IsMusicPlaying() const;
+    /// Without a device, nothing plays until Render is called.
+    [[nodiscard]] bool HasDevice() const;
+    /// How much of the current music track has played, or nothing once it has stopped.
+    [[nodiscard]] std::optional<Milliseconds> MusicTime() const;
 
     void Render(std::span<float> interleavedStereo);
 

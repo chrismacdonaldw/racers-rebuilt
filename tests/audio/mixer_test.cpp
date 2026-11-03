@@ -5,11 +5,13 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <optional>
 #include <vector>
 
 #include "audio/alp_builder.hpp"
+#include "audio/decoded_file.hpp"
 
 namespace rr::audio {
 namespace {
@@ -121,6 +123,38 @@ TEST_CASE_FIXTURE(MixerFixture, "music keeps looping past the end of its track")
 
     mixer_.StopMusic();
     CHECK(RenderIsSilent());
+}
+
+TEST_CASE_FIXTURE(MixerFixture, "music time counts what has played and stops with the track") {
+    constexpr std::size_t kTrackFrames = 4410;
+    REQUIRE(mixer_
+                .PlayMusic(SampleStream({.channelCount = 2, .sampleRateHz = kRateHz},
+                                        std::vector<std::int16_t>(kTrackFrames * 2, 1000)),
+                           Milliseconds{0})
+                .has_value());
+
+    CHECK(mixer_.MusicTime() == Milliseconds{0});
+    mixer_.Render(output_);
+    mixer_.Render(output_);
+    CHECK(mixer_.MusicTime() ==
+          Milliseconds{static_cast<std::int64_t>(kFramesPerRender * 2 * 1000 / kRateHz)});
+
+    for (int render = 0; render < 3; ++render) {
+        mixer_.Render(output_);
+    }
+    CHECK_FALSE(mixer_.MusicTime().has_value());
+}
+
+TEST_CASE_FIXTURE(MixerFixture, "headless music time stands still until the mixer renders") {
+    REQUIRE(mixer_
+                .PlayMusic(SampleStream({.channelCount = 2, .sampleRateHz = kRateHz},
+                                        std::vector<std::int16_t>(kFramesPerRender * 2, 1000)),
+                           Milliseconds{0})
+                .has_value());
+
+    CHECK_FALSE(mixer_.HasDevice());
+    CHECK(mixer_.IsMusicPlaying());
+    CHECK(mixer_.MusicTime() == Milliseconds{0});
 }
 
 TEST_CASE_FIXTURE(MixerFixture, "a bus at zero volume is silent") {

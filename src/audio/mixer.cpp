@@ -115,6 +115,7 @@ struct Mixer::State {
     std::atomic<bool> isStereo{true};
     ma_engine engine{};
     bool hasEngine = false;
+    bool hasDevice = false;
     std::array<float, kBusCount> volumes{1.0F, 1.0F, 1.0F};
     std::array<Voice, kEffectVoiceCount> effects;
     std::array<Bus, kEffectVoiceCount> effectBuses{};
@@ -151,6 +152,7 @@ Result<Mixer> Mixer::Start(bool hasDevice, std::uint32_t sampleRateHz) {
         return CantStart(result);
     }
     state->hasEngine = true;
+    state->hasDevice = hasDevice;
     state->limiter.emplace(ma_engine_get_sample_rate(&state->engine), kHeadroomGain);
     if (hasDevice) {
         result = ma_engine_start(&state->engine);
@@ -280,6 +282,15 @@ void Mixer::StopMusic(Milliseconds fade) {
 
 bool Mixer::IsMusicPlaying() const {
     return state_->music[state_->currentMusic].IsPlaying();
+}
+
+bool Mixer::HasDevice() const {
+    return state_->hasDevice;
+}
+
+std::optional<Milliseconds> Mixer::MusicTime() const {
+    const Voice& music = state_->music[state_->currentMusic];
+    return music.IsPlaying() ? std::optional(music.PlayedTime()) : std::nullopt;
 }
 
 void Mixer::Render(std::span<float> interleavedStereo) {

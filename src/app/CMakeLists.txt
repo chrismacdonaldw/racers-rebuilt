@@ -61,6 +61,7 @@ rr_add_module(app
         image_dump.cpp
         intro/intro_video_scene.cpp
         intro/intro_videos.cpp
+        intro/soundtrack_clock.cpp
         input_bindings.cpp
         install_discovery.cpp
         loop_sidecar.cpp
