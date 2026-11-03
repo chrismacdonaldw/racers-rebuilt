@@ -4,6 +4,7 @@
 #include <string_view>
 #include <utility>
 
+#include "app/track_space.hpp"
 #include "core/log.hpp"
 #include "core/vector3.hpp"
 
@@ -17,6 +18,7 @@ constexpr std::string_view kRecordDriver = "GHOSTDR";
 constexpr Vector3 kRecordSeat{.x = -2.131681F, .y = 0.01123F, .z = 1.608F};
 constexpr std::size_t kRecordDriverPart = 12;
 constexpr std::size_t kBestDriverPart = 13;
+constexpr float kRecordGhostRangeSquared = 160000.0F;
 
 Result<GhostCarModels> RecordModels(const EffectModels& models) {
     const auto chassis = models.find(kRecordChassis);
@@ -73,6 +75,21 @@ void GhostCars::Update(const sim::GhostSnapshot& ghosts, float elapsedMs) {
 void GhostCars::AppendDraws(std::vector<render::MeshDraw>& out) const {
     out.insert(out.end(), bestCar_.Draws().begin(), bestCar_.Draws().end());
     out.insert(out.end(), recordCar_.Draws().begin(), recordCar_.Draws().end());
+}
+
+void GhostCars::AddFarCars(const sim::GhostSnapshot& ghosts, std::size_t firstDraw,
+                           FarCars& out) const {
+    if (ghosts.best) {
+        out.Add({.position = ToEngine(ghosts.best->pose.position),
+                 .firstDraw = firstDraw,
+                 .draws = bestCar_.Draws()});
+    }
+    if (ghosts.record) {
+        out.Add({.position = ToEngine(ghosts.record->pose.position),
+                 .firstDraw = firstDraw + bestCar_.Draws().size(),
+                 .draws = recordCar_.Draws(),
+                 .rangeSquared = kRecordGhostRangeSquared});
+    }
 }
 
 void AppendGhostMarkers(const sim::GhostSnapshot& ghosts, std::vector<MapMarker>& out) {

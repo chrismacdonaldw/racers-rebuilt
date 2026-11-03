@@ -120,7 +120,6 @@ RaceScene::RaceScene(Parts parts)
     : parts_(std::move(parts)),
       groundDecals_(parts_.decalSurface),
       shadows_(parts_.racerFx, PerSlot(parts_.racers, parts_.racers.Count(), &RacerGrid::Chassis)),
-      farCars_(DrawsPerSlot(parts_.racers)),
       skids_(PlayerSkids(parts_.racerFx, parts_.racers, parts_.setup.players)),
       powerupVisuals_(parts_.powerups.models),
       powerupQuads_(PlayerPowerupQuads(parts_.powerups.quadMaterials, parts_.setup.players)),
@@ -277,6 +276,8 @@ void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float simM
     draws_.resize(parts_.trackDraws.size() + parts_.racers.Draws().size());
     std::ranges::copy(parts_.racers.Draws(),
                       draws_.begin() + static_cast<std::ptrdiff_t>(parts_.trackDraws.size()));
+    farCars_.Clear();
+    AddGridCars(parts_.racers, interpolated.entities, parts_.trackDraws.size(), farCars_);
     parts_.entityDraws.Update(interpolated.entityClocks);
     draws_.insert(draws_.end(), parts_.entityDraws.Draws().begin(),
                   parts_.entityDraws.Draws().end());
@@ -289,6 +290,7 @@ void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float simM
     draws_.insert(draws_.end(), powerupVisuals_.Draws().begin(), powerupVisuals_.Draws().end());
     if (ghostCars_) {
         ghostCars_->Update(interpolated.ghosts, simMs);
+        ghostCars_->AddFarCars(interpolated.ghosts, draws_.size(), farCars_);
         ghostCars_->AppendDraws(draws_);
     }
 }
@@ -369,8 +371,7 @@ render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated
     parts_.sky.Place(parts_.session.Resources().Sky(), camera.transform.position, skyShownMs_, sky);
     return {.camera = camera,
             .backdrop = sky,
-            .meshes = farCars_.Cull(player, camera.transform.position, interpolated.entities,
-                                    draws_, parts_.trackDraws.size()),
+            .meshes = farCars_.Cull(player, camera.transform.position, draws_),
             .quads = quads,
             .lines = debugLines_,
             .viewport = viewport};
