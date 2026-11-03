@@ -129,7 +129,9 @@ TEST_CASE("every game racer's built car and minifig load and pose") {
 Result<RacerAssets> LoadJoanOfKart(const assets::Vfs& vfs, assets::TrackLoader& loader) {
     const Result<assets::RacerCatalog> catalog = assets::RacerCatalog::Load(vfs);
     return catalog
-        .and_then([&](const assets::RacerCatalog&) { return FindGameRacer(vfs, "JOAN OF KART"); })
+        .and_then([&](const assets::RacerCatalog&) {
+            return FindGameRacer(vfs, {.name = "JOAN OF KART"});
+        })
         .and_then([&](const settings::Racer& racer) {
             return LoadBuiltRacer(vfs, loader, *catalog, racer);
         });
@@ -165,7 +167,7 @@ TEST_CASE("a game racer's car and minifig also build at menu detail") {
     if (!vfs) {
         return;
     }
-    const Result<settings::Racer> joan = FindGameRacer(*vfs, "JOAN OF KART");
+    const Result<settings::Racer> joan = FindGameRacer(*vfs, {.name = "JOAN OF KART"});
     const Result<assets::DriverPartCatalog> parts = LoadDriverParts(*vfs);
     REQUIRE(joan.has_value());
     REQUIRE(parts.has_value());

@@ -36,19 +36,18 @@ std::optional<std::string> Press(RaceSetupMenu& menu, std::initializer_list<Menu
     return next;
 }
 
-TEST_CASE("single race setup builds the race scene name from its choices") {
+TEST_CASE("single race setup picks the player's racer, then races the chosen track") {
     RaceSetupMenu menu(Tracks());
 
     const std::optional<std::string> next =
-        Press(menu, {MenuAction::Right, MenuAction::Down, MenuAction::Right, MenuAction::Down,
-                     MenuAction::Confirm});
+        Press(menu, {MenuAction::Right, MenuAction::Down, MenuAction::Confirm});
 
     REQUIRE(next.has_value());
-    CHECK(*next == "race:RACEC0R0:respawn=3000:racer=1:circuit=c1");
+    CHECK(*next == "menu:pick_racer>race:RACEC0R0:respawn=3000:racer=0:circuit=c1");
 }
 
 TEST_CASE("changing track keeps the racer within its grid") {
-    RaceSetupMenu menu(Tracks());
+    RaceSetupMenu menu(Tracks(), 2);
 
     static_cast<void>(
         Press(menu, {MenuAction::Down, MenuAction::Left, MenuAction::Up, MenuAction::Right}));
@@ -68,7 +67,7 @@ TEST_CASE("confirming a choice moves on to the next row") {
     RaceSetupMenu menu(Tracks());
 
     CHECK_FALSE(Press(menu, {MenuAction::Confirm}).has_value());
-    CHECK(menu.Focus() == RaceSetupRow::Racer);
+    CHECK(menu.Focus() == RaceSetupRow::Race);
 }
 
 TEST_CASE("versus setup gives each player a racer and keeps the rules' lap count") {
@@ -87,17 +86,17 @@ TEST_CASE("single race setup keeps the rules' opponent count") {
     RaceSetupMenu menu(Tracks());
 
     const std::optional<std::string> next =
-        Press(menu, {MenuAction::Down, MenuAction::Down, MenuAction::Confirm},
+        Press(menu, {MenuAction::Down, MenuAction::Confirm},
               {.respawn = {.timeout = Milliseconds{3000}}, .opponents = 1});
 
-    CHECK(next == "race:RACEC0R1:respawn=3000:racer=0:circuit=c0:opponents=1");
+    CHECK(next == "menu:pick_racer>race:RACEC0R1:respawn=3000:racer=0:circuit=c0:opponents=1");
 }
 
-TEST_CASE("only versus setup stops on player 2's racer") {
+TEST_CASE("only versus setup stops on the players' racers") {
     RaceSetupMenu single(Tracks());
     RaceSetupMenu versus(Tracks(), 2);
 
-    static_cast<void>(Press(single, {MenuAction::Down, MenuAction::Down}));
+    static_cast<void>(Press(single, {MenuAction::Down}));
     static_cast<void>(Press(versus, {MenuAction::Down, MenuAction::Down}));
 
     CHECK(single.Focus() == RaceSetupRow::Race);
@@ -124,45 +123,45 @@ TEST_CASE("time trial setup builds the time trial scene name from its choices") 
     RaceSetupMenu menu(Tracks());
 
     const std::optional<std::string> next =
-        Press(menu, {MenuAction::Down, MenuAction::Right, MenuAction::Down, MenuAction::Confirm},
+        Press(menu, {MenuAction::Down, MenuAction::Confirm},
               {.respawn = {.timeout = Milliseconds{3000}}, .isTimeTrial = true});
 
-    CHECK(next == "trial:RACEC0R1:respawn=3000:racer=1");
+    CHECK(next == "menu:pick_racer>trial:RACEC0R1:respawn=3000:racer=0");
 }
 
-TEST_CASE("circuit setup plays the circuit's intro, then its first race") {
+TEST_CASE("circuit setup picks the racer, then plays the circuit's intro and its first race") {
     RaceSetupMenu menu(Circuits());
 
-    const std::optional<std::string> next =
-        Press(menu, {MenuAction::Down, MenuAction::Right, MenuAction::Down, MenuAction::Confirm});
-
-    CHECK(next == "screen:circuit1>circuit:c0:respawn=3000:racer=1:race=0:points=0,0,0,0,0,0");
-}
-
-TEST_CASE("the Rocket Racer circuit's intro shows the picked driver") {
-    RaceSetupMenu menu({{.circuit = "c6", .racers = {{.code = "RR"}, {.code = "JT"}}}});
-
-    const std::optional<std::string> next =
-        Press(menu, {MenuAction::Down, MenuAction::Right, MenuAction::Down, MenuAction::Confirm});
+    const std::optional<std::string> next = Press(menu, {MenuAction::Down, MenuAction::Confirm});
 
     CHECK(next ==
-          "screen:circuit7:driver=JT>circuit:c6:respawn=3000:racer=1:race=0:points=0,0,0,0,0,0");
+          "menu:pick_racer>screen:circuit1>circuit:c0:respawn=3000:racer=0:race=0:"
+          "points=0,0,0,0,0,0");
+}
+
+TEST_CASE("the Rocket Racer circuit's intro names the grid's driver for want of a racer") {
+    RaceSetupMenu menu({{.circuit = "c6", .racers = {{.code = "RR"}, {.code = "JT"}}}});
+
+    const std::optional<std::string> next = Press(menu, {MenuAction::Down, MenuAction::Confirm});
+
+    CHECK(next ==
+          "menu:pick_racer>screen:circuit7:driver=RR>circuit:c6:respawn=3000:racer=0:"
+          "race=0:points=0,0,0,0,0,0");
 }
 
 TEST_CASE("a circuit without an intro starts its first race") {
     RaceSetupMenu menu({{.circuit = "c9", .racers = {{.code = "a"}}}});
 
-    const std::optional<std::string> next =
-        Press(menu, {MenuAction::Down, MenuAction::Down, MenuAction::Confirm});
+    const std::optional<std::string> next = Press(menu, {MenuAction::Down, MenuAction::Confirm});
 
-    CHECK(next == "circuit:c9:respawn=3000:racer=0:race=0:points=0,0,0,0,0,0");
+    CHECK(next == "menu:pick_racer>circuit:c9:respawn=3000:racer=0:race=0:points=0,0,0,0,0,0");
 }
 
 TEST_CASE("a locked circuit can't start") {
     RaceSetupMenu menu(Circuits());
 
     const std::optional<std::string> next =
-        Press(menu, {MenuAction::Right, MenuAction::Down, MenuAction::Down, MenuAction::Confirm});
+        Press(menu, {MenuAction::Right, MenuAction::Down, MenuAction::Confirm});
 
     CHECK(menu.Course().circuit == "c1");
     CHECK(menu.Focus() == RaceSetupRow::Race);

@@ -35,7 +35,9 @@ float MiddleHeight(const assets::GeometryAsset& car) {
 
 Result<assets::GeometryAsset> BuildCar(const assets::Vfs& vfs, std::string_view name) {
     const Result<assets::CarData> data =
-        FindGameRacer(vfs, name).transform([](const settings::Racer& racer) { return racer.car; });
+        FindGameRacer(vfs, {.name = std::string(name)}).transform([](const settings::Racer& racer) {
+            return racer.car;
+        });
     const Result<assets::PieceCatalog> catalog = data.and_then([&](const assets::CarData&) {
         return assets::PieceCatalog::Load(vfs, assets::PieceDetail::Menu);
     });

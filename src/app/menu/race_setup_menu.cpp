@@ -226,7 +226,8 @@ std::uint64_t RaceSetupMenu::StateHash() const {
 
 void RaceSetupMenu::MoveFocus(int step) {
     focus_ = Stepped(focus_, step);
-    if (focus_ == RaceSetupRow::SecondRacer && players_ == 1) {
+    while (players_ == 1 &&
+           (focus_ == RaceSetupRow::Racer || focus_ == RaceSetupRow::SecondRacer)) {
         focus_ = Stepped(focus_, step);
     }
 }
@@ -249,6 +250,10 @@ void RaceSetupMenu::Change(int step) {
     }
 }
 
+std::string RaceSetupMenu::PickedRacer(std::string_view scenes) const {
+    return players_ == 1 ? ChainedScene(kPickRacerScene, scenes) : std::string(scenes);
+}
+
 std::optional<std::string> RaceSetupMenu::Confirm(const RaceSceneSetup& rules) {
     RaceSceneSetup race = rules;
     switch (focus_) {
@@ -261,7 +266,8 @@ std::optional<std::string> RaceSetupMenu::Confirm(const RaceSceneSetup& rules) {
             race.racer = racer_;
             race.players = players_;
             race.secondRacer = secondRacer_;
-            return race.track.empty() ? CircuitStart(race, Course().racers) : RaceSceneName(race);
+            return PickedRacer(race.track.empty() ? CircuitStart(race, Course().racers)
+                                                  : RaceSceneName(race));
         case RaceSetupRow::Back:
             return std::string(kMainMenuScene);
         default:

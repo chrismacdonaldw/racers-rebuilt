@@ -5,6 +5,7 @@
 #include <string>
 #include <string_view>
 
+#include "app/racer/racer_ref.hpp"
 #include "core/result.hpp"
 #include "settings/racers.hpp"
 #include "sim/race/circuit_run.hpp"
@@ -32,7 +33,7 @@ struct RaceSceneSetup {
     std::size_t opponents = kDefaultOpponentCount;
     bool isTimeTrial = false;
     std::size_t firstSlot = 0;
-    std::string player;
+    RacerRef player;
     std::optional<settings::Racer> playerRacer;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
@@ -46,7 +47,10 @@ struct RaceSceneSetup {
 
 [[nodiscard]] bool IsRaceScene(std::string_view scene);
 
-[[nodiscard]] std::string ScenePlayer(std::string_view scene);
+[[nodiscard]] RacerRef ScenePlayer(std::string_view scene);
+
+/// Names `player` in each race, circuit or time trial scene of a `>` chain.
+[[nodiscard]] std::string WithPlayer(std::string_view scenes, const RacerRef& player);
 [[nodiscard]] Result<RaceSceneSetup> ParseRaceScene(std::string_view scene);
 
 [[nodiscard]] bool IsTrialScene(std::string_view scene);

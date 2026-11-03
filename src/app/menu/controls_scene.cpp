@@ -9,7 +9,6 @@
 #include <utility>
 
 #include "app/menu/menu_page.hpp"
-#include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_widgets.hpp"
 #include "app/ui_text/text_layout.hpp"
 #include "core/log.hpp"
@@ -52,13 +51,13 @@ std::array<std::u16string, kControlRows> ShownNames(const ControlNames& names) {
 
 Result<std::unique_ptr<ControlsScene>> ControlsScene::Create(render::Renderer& renderer,
                                                              const assets::Vfs& vfs,
-                                                             std::size_t player) {
+                                                             std::size_t player, std::string back) {
     Result<ControlsLook> look = LoadControlsLook(renderer, vfs);
     if (!look) {
         return std::unexpected(std::move(look.error()));
     }
     return std::unique_ptr<ControlsScene>(
-        new ControlsScene(renderer, vfs, std::move(*look), player));
+        new ControlsScene(renderer, vfs, std::move(*look), player, std::move(back)));
 }
 
 void ControlsScene::ApplySettings(const settings::Registry& settings) {
@@ -97,7 +96,7 @@ void ControlsScene::HandleEvent(const SDL_Event& event) {
 void ControlsScene::Tick(const sim::InputFrame& input) {
     switch (menu_.Tick(input)) {
         case ControlsRequest::Leave:
-            next_ = std::string(kOptionsScene);
+            next_ = back_;
             return;
         case ControlsRequest::Listen:
         case ControlsRequest::None:
@@ -128,8 +127,12 @@ void ControlsScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpola
 }
 
 ControlsScene::ControlsScene(render::Renderer& renderer, const assets::Vfs& vfs, ControlsLook look,
-                             std::size_t player)
-    : renderer_(&renderer), vfs_(&vfs), look_(std::move(look)), player_(player) {}
+                             std::size_t player, std::string back)
+    : renderer_(&renderer),
+      vfs_(&vfs),
+      look_(std::move(look)),
+      player_(player),
+      back_(std::move(back)) {}
 
 const ControlNames& ControlsScene::DeviceNames() const {
     return menu_.Device() == ControlsDevice::Keyboard ? keyboardNames_ : gamepadNames_;

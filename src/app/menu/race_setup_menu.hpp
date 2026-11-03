@@ -53,7 +53,7 @@ struct CourseChoice {
 
 enum class RaceSetupRow : std::uint8_t { Course, Racer, SecondRacer, Race, Back, Count };
 
-/// A single race, versus or circuit setup's choices, moved through with the menu actions.
+/// Versus players pick drivers here, but a lone player goes on to pick their own racer.
 class RaceSetupMenu {
 public:
     /// `courses` must not be empty, nor any course's racers. Two `players` each pick a racer.
@@ -75,6 +75,7 @@ private:
     void MoveFocus(int step);
     void Change(int step);
     [[nodiscard]] std::optional<std::string> Confirm(const RaceSceneSetup& rules);
+    [[nodiscard]] std::string PickedRacer(std::string_view scenes) const;
 
     std::vector<CourseChoice> courses_;
     std::size_t course_ = 0;

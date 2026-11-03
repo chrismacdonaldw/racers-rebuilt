@@ -154,7 +154,7 @@ Result<GameBoot> BootGame(std::span<const std::string_view> args) {
     std::optional<settings::Racer> playerRacer;
     if (commandLine->racer) {
         Result<settings::Racer> racer =
-            FindRacer(*vfs, *dataFolder / kRacersFileName, *commandLine->racer);
+            FindRacer(*vfs, *dataFolder / kRacersFileName, {.name = *commandLine->racer});
         if (!racer) {
             return std::unexpected(std::move(racer.error()));
         }
