@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string_view>
 
 #include "assets/original_save.hpp"
@@ -20,6 +21,9 @@ namespace rr::app {
 [[nodiscard]] Result<settings::Racer> FindRacer(const assets::Vfs& vfs,
                                                 const std::filesystem::path& racersFile,
                                                 std::string_view name);
+
+[[nodiscard]] Result<std::optional<settings::Racer>> SelectedRacer(
+    const std::filesystem::path& racersFile);
 
 /// The game's `CHAMP` quick build on `chassis`, the car a champion hands over.
 [[nodiscard]] Result<settings::Racer> FindChampionCar(const assets::Vfs& vfs,

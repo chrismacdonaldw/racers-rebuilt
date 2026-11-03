@@ -80,6 +80,10 @@ private:
                                                               Nanoseconds started);
     [[nodiscard]] Result<std::unique_ptr<Scene>> CreateRace(const std::string& track);
     [[nodiscard]] std::filesystem::path ProgressFile() const;
+    [[nodiscard]] std::filesystem::path RacersFile() const;
+    [[nodiscard]] std::optional<settings::Racer> ScenePlayerRacer() const;
+    /// `--racer`, else the selected racer. Logs a racers file that doesn't load.
+    [[nodiscard]] std::optional<settings::Racer> AwardRacer() const;
     [[nodiscard]] Result<void> OpenScene(const std::optional<std::string>& scene);
     [[nodiscard]] Result<void> SwitchScene(const SceneFactory& create);
     [[nodiscard]] std::vector<overlay::MenuChoice> SceneChoices();

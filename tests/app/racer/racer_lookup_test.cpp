@@ -23,6 +23,24 @@ TEST_CASE("a racer in racers.toml wins over the game's racer of the same name") 
     CHECK(racer->chassis == "rrchas0");
 }
 
+TEST_CASE("the selected racer comes from racers.toml, and none while nothing is selected") {
+    const rr::test::TempFolder folder;
+    const std::filesystem::path file = folder.Path() / "racers.toml";
+    const Result<std::optional<settings::Racer>> missing = SelectedRacer(file);
+    REQUIRE(missing.has_value());
+    CHECK_FALSE(missing->has_value());
+    REQUIRE(settings::SaveRacers(
+                {.racers = {{.name = "ONE", .chassis = "a"}, {.name = "TWO", .chassis = "b"}},
+                 .selected = 1},
+                file)
+                .has_value());
+
+    const Result<std::optional<settings::Racer>> selected = SelectedRacer(file);
+
+    REQUIRE(selected.has_value());
+    CHECK(selected->value_or(settings::Racer{}).name == "TWO");
+}
+
 TEST_CASE("a racer nobody has fails") {
     const rr::test::TempFolder folder;
 

@@ -1,7 +1,7 @@
 #include "app/startup_scene.hpp"
 
 #include <format>
-#include <utility>
+#include <string>
 
 #include "app/car_viewer_scene.hpp"
 #include "app/cutscene/cutscene_scene.hpp"
@@ -11,11 +11,10 @@
 
 namespace rr::app {
 
-std::string RaceNamed(std::string track, std::size_t players, const settings::Registry& settings) {
-    return RaceSceneName({.track = std::move(track),
-                          .respawn = RespawnRuleFrom(settings),
-                          .aiDriving = AiDrivingFrom(settings),
-                          .players = players});
+std::string RaceNamed(RaceSceneSetup setup, const settings::Registry& settings) {
+    setup.respawn = RespawnRuleFrom(settings);
+    setup.aiDriving = AiDrivingFrom(settings);
+    return RaceSceneName(setup);
 }
 
 Result<std::optional<std::string>> StartupScene(const settings::CommandLine& commandLine,
@@ -39,8 +38,10 @@ Result<std::optional<std::string>> StartupScene(const settings::CommandLine& com
         return std::optional(std::format("{}{}", kCutsceneScenePrefix, *commandLine.cutscene));
     }
     if (commandLine.race) {
-        return std::optional(
-            RaceNamed(*commandLine.race, commandLine.players.value_or(1), settings));
+        return std::optional(RaceNamed({.track = *commandLine.race,
+                                        .players = commandLine.players.value_or(1),
+                                        .player = commandLine.racer.value_or(std::string())},
+                                       settings));
     }
     return std::optional(
         commandLine.track.value_or(CutsceneScreenName({.menu = std::string(kLegalScreen)})));

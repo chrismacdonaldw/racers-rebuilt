@@ -66,6 +66,14 @@ Result<settings::Racer> FindRacer(const assets::Vfs& vfs, const std::filesystem:
     return FindGameRacer(vfs, name);
 }
 
+Result<std::optional<settings::Racer>> SelectedRacer(const std::filesystem::path& racersFile) {
+    return settings::LoadRacers(racersFile).transform([](settings::RacerStore store) {
+        return store.selected && *store.selected < store.racers.size()
+                   ? std::optional(std::move(store.racers[*store.selected]))
+                   : std::nullopt;
+    });
+}
+
 Result<settings::Racer> FindChampionCar(const assets::Vfs& vfs, std::string_view chassis) {
     return ReadRacerFile(vfs, kQuickBuildFile)
         .and_then([&](const std::vector<assets::SavedRacer>& racers) -> Result<settings::Racer> {
