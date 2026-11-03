@@ -147,23 +147,27 @@ std::size_t EventResources::MostFiredPerTick(const assets::EventTableAsset& tabl
 
 void EventResources::Rephase(const assets::EventTrigger& trigger, ResourcePhase from,
                              ResourcePhase to, TrackEvents& events) {
-    FireSubEvent(SubEventOf(trigger.subEvents, to), EventEdge::Start, events);
-    FireSubEvent(SubEventOf(trigger.subEvents, from), EventEdge::End, events);
+    const assets::EventId started = SubEventOf(trigger.subEvents, to);
+    const assets::EventId ended = SubEventOf(trigger.subEvents, from);
+    const bool isPaired = started != assets::kNoEvent && ended != assets::kNoEvent;
+    FireSubEvent({.id = started, .edge = EventEdge::Start, .isPaired = isPaired}, events);
+    FireSubEvent({.id = ended, .edge = EventEdge::End, .isPaired = isPaired}, events);
 }
 
-void EventResources::FireSubEvent(assets::EventId id, EventEdge edge, TrackEvents& events) {
-    if (id == assets::kNoEvent) {
+void EventResources::FireSubEvent(const TrackEvent& event, TrackEvents& events) {
+    if (event.id == assets::kNoEvent) {
         return;
     }
     if (subEventsFired_ == subEventBudget_) {
         if (!hasWarnedOfCascade_) {
-            log::Warn("track event {} keeps firing sub-events, dropping the rest this tick", id);
+            log::Warn("track event {} keeps firing sub-events, dropping the rest this tick",
+                      event.id);
             hasWarnedOfCascade_ = true;
         }
         return;
     }
     ++subEventsFired_;
-    events.Fire({.id = id, .edge = edge});
+    events.Fire(event);
 }
 
 void EventResources::Dispatch(TrackEvents& events, TrackEntities& entities) {

@@ -352,6 +352,7 @@ add_executable(racers-rebuilt-tests
     sim/physics/turbo_test.cpp
     sim/physics/version_rules_test.cpp
     sim/powerup/aim_cones_test.cpp
+    sim/powerup/aim_targets_test.cpp
     sim/powerup/ballistic_flight_test.cpp
     sim/powerup/brick_field_test.cpp
     sim/powerup/cannonball_effect_test.cpp

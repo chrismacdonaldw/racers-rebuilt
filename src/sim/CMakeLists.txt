@@ -69,6 +69,7 @@ rr_add_module(sim
         physics/version_rules.cpp
         physics/wall_sweep.cpp
         powerup/aim_cones.cpp
+        powerup/aim_targets.cpp
         powerup/ballistic_flight.cpp
         powerup/brick_field.cpp
         powerup/cannonball_effect.cpp

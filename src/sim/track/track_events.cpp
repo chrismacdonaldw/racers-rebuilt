@@ -25,8 +25,8 @@ void TrackEvents::BeginTick() {
 }
 
 void TrackEvents::FireStartAndEnd(assets::EventId id, std::optional<Vector3> position) {
-    queue_.Fire({.id = id, .edge = EventEdge::Start, .position = position});
-    queue_.Fire({.id = id, .edge = EventEdge::End, .position = position});
+    queue_.Fire({.id = id, .edge = EventEdge::Start, .position = position, .isPaired = true});
+    queue_.Fire({.id = id, .edge = EventEdge::End, .position = position, .isPaired = true});
 }
 
 void TrackEvents::TestSpheres(std::span<const TriggerRacer> racers) {
