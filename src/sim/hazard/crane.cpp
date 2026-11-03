@@ -6,7 +6,6 @@
 namespace rr::sim {
 namespace {
 
-constexpr std::size_t kBallNode = 3;
 constexpr float kBallRadius = 3.0F;
 constexpr float kSpinTurns = 1.0F;
 constexpr float kSpinRatePerMs = 0.01F;
@@ -20,7 +19,7 @@ void Crane::Tick(HazardContext& context) {
     if (!entity) {
         return;
     }
-    ball = context.entities->NodeWorld(*entity, kBallNode).position;
+    ball = context.entities->NodeWorld(*entity, kCraneBallNode).position;
     if (Swing(kWindows, context.entities->Frame(*entity), isArmed)) {
         context.events->FireStartAndEnd(kCraneSwingEvent, ball);
     }

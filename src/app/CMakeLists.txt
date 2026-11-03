@@ -48,6 +48,7 @@ rr_add_module(app
         hq_textures.cpp
         game_boot.cpp
         game_extraction.cpp
+        hazard/crane_shadow.cpp
         hazard/ghost_trail.cpp
         hazard/water_scroll.cpp
         hazard/hazard_materials.cpp

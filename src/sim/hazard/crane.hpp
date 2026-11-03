@@ -13,6 +13,7 @@ namespace rr::sim {
 inline constexpr assets::EventId kCraneTrigger = 1;
 inline constexpr assets::EventId kCraneSwingEvent = 20;
 inline constexpr assets::EventId kCraneHitEvent = 21;
+inline constexpr std::size_t kCraneBallNode = 3;
 
 struct Crane {
     std::optional<std::size_t> entity;

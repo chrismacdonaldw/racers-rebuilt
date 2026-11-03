@@ -12,7 +12,6 @@ namespace {
 
 constexpr Vector3 kGameUp{.z = 1.0F};
 constexpr Vector3 kGameForward{.x = 1.0F};
-constexpr float kCastAbove = 6.0F;
 constexpr float kCastDepth = 15.0F;
 constexpr float kTextureSpan = 0.99F;
 constexpr float kCentre = 0.5F;
@@ -50,7 +49,7 @@ Projector ProjectorOf(const GroundDecal& decal) {
     const Vector3 down = ToEngine(-kGameUp);
     const Vector3 forward = ToEngine(decal.forward);
     const Vector3 along = Normalized(forward - (down * Dot(forward, down)), ToEngine(kGameForward));
-    return {.origin = ToEngine(decal.centre + (kGameUp * kCastAbove)),
+    return {.origin = ToEngine(decal.centre + (kGameUp * kDecalCastAbove)),
             .down = down,
             .uAxis = Cross(along, down),
             .vAxis = along,

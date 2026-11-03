@@ -9,6 +9,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "app/brick_models.hpp"
@@ -16,6 +17,7 @@
 #include "app/decal_surface.hpp"
 #include "app/far_models.hpp"
 #include "app/ground_decal.hpp"
+#include "app/hazard/crane_shadow.hpp"
 #include "app/hazard/ghost_trail.hpp"
 #include "app/hazard/water_scroll.hpp"
 #include "app/hidden_models.hpp"
@@ -76,7 +78,9 @@ public:
     void AdoptHudFonts(std::string_view language, UiFonts fonts);
 
     void ApplySettings(const settings::Registry& settings) override;
-    [[nodiscard]] std::optional<std::string> TakeNextScene() override;
+    [[nodiscard]] std::optional<std::string> TakeNextScene() override {
+        return std::exchange(next_, std::nullopt);
+    }
     [[nodiscard]] overlay::RacerTools OverlayRacerTools() override;
     void Tick(const sim::InputFrame& input) override;
     void Snapshot(sim::RenderSnapshot& out) const override;
@@ -107,6 +111,7 @@ private:
         TrackMaterialAnims materialAnims;
         HiddenModels hiddenModels;
         GhostTrail ghostTrail;
+        CraneShadow craneShadow;
         WaterScroll waterScroll;
         std::vector<ScrolledDraws> scrolledDraws;
         std::unique_ptr<sim::WorldList> world;
