@@ -34,6 +34,11 @@ struct MenuChoice {
     std::function<void()> choose;
 };
 
+struct SettingActions {
+    std::span<const MenuChoice> mods;
+    std::span<const MenuChoice> game;
+};
+
 /// ImGui state is global, so only one may exist. `window` and `renderer` must outlive it.
 class Overlay final : public render::OverlayPass {
 public:
@@ -57,7 +62,7 @@ public:
                                                  std::span<const MenuChoice> scenes,
                                                  std::span<const MenuChoice> saveImports,
                                                  const RacerTools& racerTools,
-                                                 std::span<const MenuChoice> modActions);
+                                                 const SettingActions& actions);
 
     [[nodiscard]] ImDrawData* TakeDrawData() override;
 

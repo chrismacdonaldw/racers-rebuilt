@@ -83,6 +83,20 @@ bool DrawText(settings::Registry& registry, const Item& item, const std::string&
     return false;
 }
 
+bool DrawChoice(settings::Registry& registry, const Item& item, const std::string& value) {
+    bool isChosen = false;
+    if (ImGui::BeginCombo(item.label, value.c_str())) {
+        for (const std::string& choice : item.declaration.choices) {
+            if (ImGui::Selectable(choice.c_str(), choice == value) && choice != value) {
+                Assign(registry, item.key, choice);
+                isChosen = true;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    return isChosen;
+}
+
 template <typename Menu>
 Menu& FindOrAddMenu(std::vector<Menu>& menus, std::string_view category) {
     auto menu = std::ranges::find(menus, category, &Menu::category);
@@ -116,8 +130,10 @@ void DrawItem(settings::Registry& registry, std::string_view key, std::string la
                 return DrawInt(registry, item, current);
             } else if constexpr (std::same_as<V, double>) {
                 return DrawDouble(registry, item, current);
-            } else {
+            } else if (declaration.choices.empty()) {
                 return DrawText(registry, item, current);
+            } else {
+                return DrawChoice(registry, item, current);
             }
         },
         value);

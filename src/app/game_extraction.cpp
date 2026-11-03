@@ -9,7 +9,6 @@
 #include <utility>
 
 #include "assets/game_path.hpp"
-#include "assets/install.hpp"
 #include "core/log.hpp"
 #include "core/utf8_path.hpp"
 
@@ -143,17 +142,18 @@ Result<void> ExtractGameFiles(const std::filesystem::path& install,
 }
 
 std::optional<GameInstall> OpenExtractedCopy(const std::filesystem::path& folder,
-                                             const std::optional<std::filesystem::path>& gamePath) {
+                                             const std::optional<std::filesystem::path>& gamePath,
+                                             assets::GameVersion version) {
     if (!IsStampCurrent(folder, gamePath)) {
         return std::nullopt;
     }
-    Result<assets::JamArchive> jam = assets::OpenInstall(folder);
+    Result<assets::JamArchive> jam = OpenRelease(folder, version);
     if (!jam) {
         log::Warn("extracted game files rejected, extracting again: {}", jam.error().message);
         return std::nullopt;
     }
     log::Info("game files found in {} (extracted copy)", Utf8FromPath(folder));
-    return GameInstall{.folder = folder, .jam = std::move(*jam)};
+    return GameInstall{.folder = folder, .jam = std::move(*jam), .version = version};
 }
 
 }

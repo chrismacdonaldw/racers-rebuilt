@@ -22,6 +22,7 @@ rr_add_module(assets
         folder_layer.cpp
         font_list.cpp
         game_path.cpp
+        game_version.cpp
         geometry_database.cpp
         geometry_writer.cpp
         ghost_run.cpp

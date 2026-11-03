@@ -30,6 +30,7 @@ add_executable(racers-rebuilt-tests
     app/extensions_test.cpp
     app/frame_loop_test.cpp
     app/fov_swing_test.cpp
+    app/game_boot_test.cpp
     app/game_extraction_test.cpp
     app/gameplay_fingerprint_test.cpp
     app/gltf_models_test.cpp
@@ -185,6 +186,7 @@ add_executable(racers-rebuilt-tests
     assets/sky_file_test.cpp
     assets/font_list_test.cpp
     assets/game_path_test.cpp
+    assets/game_version_test.cpp
     assets/geometry_database_test.cpp
     assets/geometry_writer_test.cpp
     assets/ghost_run_test.cpp

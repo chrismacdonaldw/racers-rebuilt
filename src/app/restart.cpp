@@ -37,9 +37,10 @@ std::vector<std::string> RelaunchCommand(std::span<const std::string_view> argv)
     return command;
 }
 
-ModChanges::ModChanges(const settings::Registry& registry) {
+ModChanges::ModChanges(const settings::Registry& registry,
+                       std::span<const std::string_view> alsoWatched) {
     for (const auto& [key, declaration] : registry.AllDeclarations()) {
-        if (declaration.category == kModsCategory) {
+        if (declaration.category == kModsCategory || std::ranges::contains(alsoWatched, key)) {
             startup_.emplace(key, registry.AllValues().find(key)->second);
         }
     }
@@ -65,6 +66,15 @@ std::optional<overlay::MenuChoice> LiveRemount::Choice(const settings::Registry&
         return std::nullopt;
     }
     return overlay::MenuChoice{.name = "Apply now", .choose = [this] { isRequested_ = true; }};
+}
+
+std::vector<overlay::MenuChoice> GameActions(const Restart& restart,
+                                             const settings::Registry& registry, bool& isQuitting) {
+    std::vector<overlay::MenuChoice> actions;
+    if (std::optional<overlay::MenuChoice> choice = restart.Choice(registry, isQuitting)) {
+        actions.push_back(std::move(*choice));
+    }
+    return actions;
 }
 
 std::vector<overlay::MenuChoice> ModActions(LiveRemount& remount, const Restart& restart,

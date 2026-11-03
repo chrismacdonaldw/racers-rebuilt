@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include "app/install_discovery.hpp"
+#include "assets/game_version.hpp"
 #include "core/result.hpp"
 
 namespace rr::app {
@@ -17,8 +18,9 @@ inline constexpr std::string_view kExtractionStamp = "extracted.txt";
 [[nodiscard]] Result<void> ExtractGameFiles(const std::filesystem::path& install,
                                             const std::filesystem::path& destination);
 
-/// Empty unless `folder` holds a valid current copy taken from `gamePath`, when that is set.
+/// Empty unless `folder` holds a current `version` copy taken from `gamePath`, when that is set.
 [[nodiscard]] std::optional<GameInstall> OpenExtractedCopy(
-    const std::filesystem::path& folder, const std::optional<std::filesystem::path>& gamePath);
+    const std::filesystem::path& folder, const std::optional<std::filesystem::path>& gamePath,
+    assets::GameVersion version);
 
 }

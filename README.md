@@ -40,7 +40,7 @@ racers-rebuilt is a reimplementation of LEGO Racers for 64-bit Windows. It reads
 | GPU | Direct3D 12 with Shader Model 6.0 |
 | Game | An installed copy of LEGO Racers for PC (the folder with `LEGO.JAM`) |
 
-Tested with the English PC release.
+Tested with the English PC release from 1999 and the 2001 re-release. `game.version` picks which one to play.
 
 ## Install
 
@@ -53,28 +53,31 @@ The choice is saved, so the picker only shows once.
 
 ### Game files
 
-The first launch copies `LEGO.JAM` and the `.tun` music and `.avi` videos from your install to `game/` in the [data folder](#data-folder), about 130 MB. Later launches read that copy, so the original install can be moved or removed.
+The first launch copies `LEGO.JAM` and the `.tun` music and `.avi` videos from your install to `game/` in the [data folder](#data-folder), about 130 MB. The 2001 release copies to `game-2001/` instead, so switching `game.version` never copies again. Later launches read that copy, so the original install can be moved or removed.
 
 - A racers-rebuilt update that needs different files copies them again on its next launch. It needs the install to do that.
-- Changing `game.path` copies from the new folder on the next launch.
+- Changing `game.path` or `game.path_2001` copies from the new folder on the next launch.
 - `--game-path` reads that folder in place and copies nothing.
 - If the copy fails, for example on a full disk, the game reads the install in place and the log says why.
-- Deleting `game/` makes the next launch find the install and copy it again.
+- Deleting `game/` or `game-2001/` makes the next launch find that install and copy it again.
 
 ### How the game is found
 
-This runs on the first launch, with `--game-path`, and when the game files need copying again. Each location is checked in order. The first folder with a valid `LEGO.JAM` wins.
+This runs on the first launch, with `--game-path`, and when the game files need copying again. It looks for the release `game.version` names. Each location is checked in order, and the first folder with a valid `LEGO.JAM` of that release wins. A folder of the other release is skipped.
 
 1. `--game-path <folder>` on the command line
-2. `game.path` in `settings.toml`
-3. The folder `racers-rebuilt.exe` is in
-4. The LEGO Racers entries in the Windows registry, left by the original installer
-5. `%ProgramFiles(x86)%\LEGO Media\Games\LEGO Racers`, then the same under `%ProgramFiles%`, then `C:\Games\LEGO Racers`
-6. The folder picker
+2. `game.path` in `settings.toml`, or `game.path_2001` for the 2001 release
+3. The other release's path setting
+4. The folder `racers-rebuilt.exe` is in
+5. The LEGO Racers entries in the Windows registry, left by the original installer
+6. `%ProgramFiles(x86)%\LEGO Media\Games\LEGO Racers`, then the same under `%ProgramFiles%`, then `C:\Games\LEGO Racers`
+7. The folder picker
 
 A folder is valid when `LEGO.JAM` exists and contains the `GAMEDATA` and `MENUDATA` folders. If the picked folder fails that check, a message says why and the picker opens again. Closing the picker exits with a message.
 
-`--game-path` doesn't fall back. If that folder is invalid, racers-rebuilt shows the error and exits.
+If only the other release turns up, from steps 3 to 7 or `--game-path`, racers-rebuilt switches `game.version` to it and saves the change. It tells the releases apart by the console menu names the 2001 release added to `MENUDATA/MENUNAME.SRF`.
+
+`--game-path` doesn't fall back. If that folder is invalid, or holds the other release while `--set game.version` asks for this one, racers-rebuilt shows the error and exits.
 
 ### Data folder
 
@@ -123,7 +126,9 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 
 | Key | Default | Values |
 |---|---|---|
-| `game.path` | Empty | The LEGO Racers folder |
+| `game.version` | `1999` | `1999`, `2001`. The release to play, the original 1999 one or the 2001 re-release. Needs that release's files. Marked * in the overlay. Applies on **Restart now** or the next start. |
+| `game.path` | Empty | The LEGO Racers folder of the 1999 release |
+| `game.path_2001` | Empty | The LEGO Racers folder of the 2001 release |
 | `game.language` | From the original installer, else `ENGLISH` | `ENGLISH`, `GERMAN`, `FRENCH`, `SPANISH`, `ITALIAN`, `DUTCH`, `DANISH`, `NORWEGI`, `SWEDISH` |
 | `startup.intro_videos` | `true` | `true`, `false`. Plays the original's three intro videos at launch. Any key skips the second and third. |
 | `video.vsync` | `true` | `true`, `false` |

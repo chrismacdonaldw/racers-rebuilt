@@ -3,6 +3,7 @@
 #include <concepts>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -34,6 +35,7 @@ struct SettingSpec {
     std::string_view label;
     std::string_view category;
     bool changesGameplay = false;
+    std::span<const std::string_view> choices;
 };
 
 template <SettingType T>
