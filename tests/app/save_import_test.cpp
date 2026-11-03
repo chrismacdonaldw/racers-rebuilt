@@ -146,6 +146,25 @@ TEST_CASE("importing a missing save fails") {
             .has_value());
 }
 
+TEST_CASE("a bad racers file stops an import and the error names it") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const test::TempFolder folder;
+    const std::filesystem::path save = folder.Path() / "LEGORac1";
+    const std::filesystem::path progress = folder.Path() / kProgressFileName;
+    WriteFile(save, test::SaveBytes().Byte(0x006, 0b10).File());
+    std::ofstream(folder.Path() / kRacersFileName) << "[[racers]]\nname = 3\n";
+
+    const Result<bool> imported = ImportOriginalSave(save, progress, *vfs);
+
+    const std::string message = imported ? std::string() : imported.error().message;
+    CHECK(message.contains("LEGORac1 not imported"));
+    CHECK(message.contains(kRacersFileName));
+    CHECK_FALSE(std::filesystem::exists(progress));
+}
+
 Racer OnlyRacer(const std::filesystem::path& folder) {
     const Result<RacerStore> racers = settings::LoadRacers(folder / kRacersFileName);
     REQUIRE(racers.has_value());
