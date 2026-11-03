@@ -20,6 +20,7 @@
 #include "assets/archive_survey.hpp"
 #include "assets/game_path.hpp"
 #include "assets/loader_pool.hpp"
+#include "sim/race/random.hpp"
 
 namespace rr::app {
 namespace {
@@ -52,12 +53,12 @@ Result<void> PoseOnce(const RacerAssets& racer) {
             })
             .and_then([&](ModelDraws driver) {
                 draws.driver = std::move(driver);
-                return RacerVisuals::Create(racer, std::move(draws));
+                return RacerVisuals::Create(racer, std::move(draws), sim::Random(0));
             });
     if (!visuals) {
         return std::unexpected(std::move(visuals.error()));
     }
-    visuals->Update({}, {.id = {}, .forwardSpeed = 0.05F, .turnRadius = 20.0F}, 16.0F);
+    visuals->Update({}, {.id = {}, .forwardSpeed = 0.05F, .turnRadius = 20.0F}, {}, 16.0F);
     for (const render::MeshDraw& draw : visuals->Draws()) {
         if (!IsFinite(draw.transform)) {
             return Fail(ErrorCode::InvalidData, "a draw was placed at a non-finite pose");

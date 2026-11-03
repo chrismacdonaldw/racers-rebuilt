@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <format>
+#include <limits>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -18,6 +20,9 @@
 
 namespace rr::app {
 namespace {
+
+constexpr float kLookRangeSquared = 200.0F * 200.0F;
+constexpr float kSelfDistanceSquared = 2.0F;
 
 Result<std::unique_ptr<RacerAssets>> LoadSlot(const assets::Vfs& vfs, assets::TrackLoader& loader,
                                               const assets::RacerCatalog& catalog,
@@ -71,6 +76,22 @@ RacerParts ShownParts(const sim::Cheats& cheats) {
             .driver = !cheats.Has(sim::Cheat::NoDriver)};
 }
 
+std::optional<Vector3> NearestRacer(std::span<const sim::EntitySnapshot> poses, std::size_t slot) {
+    const Vector3 own = ToGame(poses[slot].transform.position);
+    std::optional<Vector3> nearest;
+    float nearestDistance = std::numeric_limits<float>::max();
+    for (const sim::EntitySnapshot& pose : poses) {
+        const Vector3 other = ToGame(pose.transform.position);
+        const float distance = Dot(other - own, other - own);
+        if (distance >= kSelfDistanceSquared && distance <= kLookRangeSquared &&
+            distance < nearestDistance) {
+            nearest = other;
+            nearestDistance = distance;
+        }
+    }
+    return nearest;
+}
+
 void Dress(const Vector3& origin, const CarLook& look, std::span<render::MeshDraw> draws) {
     for (render::MeshDraw& draw : draws) {
         draw.transform.position = origin + ((draw.transform.position - origin) * look.scale);
@@ -105,7 +126,8 @@ Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs&
         Result<RacerVisuals> visuals = bounds.and_then([&](const BoundingSphere&) {
             return UploadRacer(renderer, **assets).and_then([&](RacerDraws draws) {
                 models = draws;
-                return RacerVisuals::Create(**assets, ShowOnly(std::move(draws), shown));
+                return RacerVisuals::Create(**assets, ShowOnly(std::move(draws), shown),
+                                            sim::Random(loaded.size()));
             });
         });
         if (!visuals) {
@@ -164,7 +186,8 @@ void RacerGrid::Update(std::span<const sim::EntitySnapshot> poses,
     auto next = draws_.begin();
     for (std::size_t i = 0; i < slots_.size() && i < poses.size() && i < motion.size(); ++i) {
         RacerVisuals& visuals = slots_[i].visuals;
-        visuals.Update(TransformToGame(poses[i].transform), motion[i], elapsedMs);
+        visuals.Update(TransformToGame(poses[i].transform), motion[i], NearestRacer(poses, i),
+                       elapsedMs);
         const auto first = next;
         next = std::ranges::copy(visuals.Draws(), next).out;
         if (motion[i].isGhost) {

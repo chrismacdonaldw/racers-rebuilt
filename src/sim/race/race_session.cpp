@@ -376,6 +376,9 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     const Vector3 from = positions_[racer];
     car.RollCurse(elapsed, random_);
     car.Tick(elapsed, controls, WorldsOf(racer));
+    if (progress_.OfRacer(racer).laps.CompletedLaps() < progress_.LapCount()) {
+        car.WatchForSuddenStop();
+    }
     surfaceEvents_.Hear(static_cast<std::uint8_t>(racer), car, surfaces_, triggers_);
     const BodyMotion& motion = car.Body().motion;
     std::optional<RouteDriver>& driver = drivers_[racer];

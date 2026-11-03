@@ -80,6 +80,14 @@ void SnapshotExplosions(const sim::Explosions& pool, sim::ExplosionKind kind,
     }
 }
 
+std::optional<int> DrivenPlace(const sim::RaceProgress& progress, std::size_t racer) {
+    const sim::RacerProgress& own = progress.OfRacer(racer);
+    if (own.laps.CompletedLaps() < progress.LapCount()) {
+        return std::nullopt;
+    }
+    return own.finishPlace;
+}
+
 sim::SkidSnapshot SkidOf(const sim::Racer& racer) {
     const sim::BodyMotion& motion = racer.Body().motion;
     const std::optional<sim::Turbo>& turbo = racer.ActiveTurbo();
@@ -113,18 +121,22 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
                                 .transform = TransformToEngine(racer.Pose()),
                                 .flags = session.WasRespawned(i) ? sim::SnapshotFlags::Teleported
                                                                  : sim::SnapshotFlags::None});
-        out.racers.push_back({.id = id,
-                              .forwardSpeed = racer.Body().derived.forwardSpeed,
-                              .turnRadius = racer.Body().turnRadius,
-                              .hitReactions = racer.Status().hitReactions,
-                              .heldColour = inventory.Colour(),
-                              .whiteCount = static_cast<std::uint8_t>(inventory.WhiteCount()),
-                              .isGhost = racer.Status().isGhost,
-                              .isCursed = racer.Status().isCursed,
-                              .curseSource = CurseSourceToEngine(racer.Status().curseSource),
-                              .tint = session.Tints().Of(i).transform(
-                                  [](std::size_t tint) { return static_cast<std::uint8_t>(tint); }),
-                              .skid = SkidOf(racer)});
+        out.racers.push_back(
+            {.id = id,
+             .forwardSpeed = racer.Body().derived.forwardSpeed,
+             .turnRadius = racer.Body().turnRadius,
+             .hitReactions = racer.Status().hitReactions,
+             .suddenStops = racer.Status().suddenStops,
+             .isReversing = racer.Body().thrust < 0.0F && racer.Body().derived.forwardSpeed < 0.0F,
+             .finishPlace = DrivenPlace(session.Progress(), i),
+             .heldColour = inventory.Colour(),
+             .whiteCount = static_cast<std::uint8_t>(inventory.WhiteCount()),
+             .isGhost = racer.Status().isGhost,
+             .isCursed = racer.Status().isCursed,
+             .curseSource = CurseSourceToEngine(racer.Status().curseSource),
+             .tint = session.Tints().Of(i).transform(
+                 [](std::size_t tint) { return static_cast<std::uint8_t>(tint); }),
+             .skid = SkidOf(racer)});
     }
     SnapshotBricks(session.Bricks(), out);
     SnapshotEffects(session.Powerups(), session.TrackHazards().Aims(), out);

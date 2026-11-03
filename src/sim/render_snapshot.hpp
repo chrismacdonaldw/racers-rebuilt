@@ -65,13 +65,16 @@ struct SkidSnapshot {
 };
 
 /// `turnRadius` is in world units, positive turning left and 0 when driving straight.
-/// `hitReactions` only ever counts up, so a change means the driver was hit since.
+/// `hitReactions` and `suddenStops` only count up. `finishPlace` waits for the last lap.
 /// `curseSource.trap` is in engine space.
 struct RacerSnapshot {
     EntityId id{};
     float forwardSpeed = 0.0F;
     float turnRadius = 0.0F;
     std::uint32_t hitReactions = 0;
+    std::uint32_t suddenStops = 0;
+    bool isReversing = false;
+    std::optional<int> finishPlace;
     std::optional<assets::BrickColour> heldColour;
     std::uint8_t whiteCount = 0;
     bool isGhost = false;

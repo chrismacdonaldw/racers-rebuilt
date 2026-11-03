@@ -174,6 +174,7 @@ rr_add_module(app
         racer/body_lean.cpp
         racer/built_racer.cpp
         racer/car_look.cpp
+        racer/driver_moves.cpp
         racer/racer_light.cpp
         racer/racer_assets.cpp
         racer/racer_bounds.cpp

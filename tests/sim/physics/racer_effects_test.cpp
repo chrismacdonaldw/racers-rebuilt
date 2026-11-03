@@ -27,6 +27,13 @@ void Drive(Racer& racer, const RacerControls& controls, int durationMs,
     }
 }
 
+void DriveWatchingForStops(Racer& racer, int durationMs, const CollisionQuery& world) {
+    for (int elapsed = 0; elapsed < durationMs; elapsed += kTickMs) {
+        Drive(racer, {.isThrottleHeld = true}, kTickMs, world);
+        racer.WatchForSuddenStop();
+    }
+}
+
 float Heading(const Racer& racer) {
     const Vector3& forward = racer.Body().motion.basis.forward;
     return std::atan2(forward.y, forward.x);
@@ -201,6 +208,21 @@ TEST_CASE("respawning clears every effect but keeps the hit count") {
     CHECK_FALSE(racer.Status().isHalted);
     CHECK_FALSE(racer.IsSpinning());
     CHECK(racer.Status().hitReactions == 1);
+}
+
+TEST_CASE("a sudden stop counts once and the count survives a respawn") {
+    const test::PlaneWorld world = test::FlatGround();
+    Racer racer = RacerOnGround();
+    DriveWatchingForStops(racer, 1000, world);
+    CHECK(racer.Status().suddenStops == 0);
+
+    racer.Place({.position = {.z = 0.2F}});
+    racer.WatchForSuddenStop();
+    racer.WatchForSuddenStop();
+    CHECK(racer.Status().suddenStops == 1);
+
+    racer.Place({.position = {.z = 0.2F}});
+    CHECK(racer.Status().suddenStops == 1);
 }
 
 }

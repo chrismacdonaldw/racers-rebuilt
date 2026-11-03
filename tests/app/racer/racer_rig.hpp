@@ -2,12 +2,15 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <numbers>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
+#include "app/racer/driver_moves.hpp"
 #include "app/racer/racer_assets.hpp"
 #include "app/racer/racer_draws.hpp"
 #include "app/track_space.hpp"
@@ -51,8 +54,16 @@ inline void CheckNear(const Vector3& actual, const Vector3& expected) {
     };
 }
 
-/// Part `steer-l` moves the pelvis 64 units along Y, and `power1` along Z.
+/// `steer-l` and `s-lean-l` move the pelvis 64 units along Y, `power1` and `velostop` along Z.
 [[nodiscard]] inline app::JointedAssets Driver() {
+    std::vector<assets::AnimationPart> parts{Part("default", 0),  Part("power1", 3),
+                                             Part("steer-r", 1),  Part("steer-l", 2),
+                                             Part("velostop", 3), Part("s-lean-l", 2)};
+    for (const std::string_view name : app::kDriverPartNames) {
+        if (std::ranges::find(parts, name, &assets::AnimationPart::name) == parts.end()) {
+            parts.push_back(Part(std::string(name), 0));
+        }
+    }
     return {
         .skeleton = {.nodes = {{.name = "alpelvis", .position = {}, .rotation = {}, .parent = {}}}},
         .animations = {.positionKeys = {{.y = 64.0F}, {.z = 64.0F}},
@@ -62,8 +73,7 @@ inline void CheckNear(const Vector3& actual, const Vector3& expected) {
                                   {},
                                   {.rotations = {}, .positions = {.count = 1}},
                                   {.rotations = {}, .positions = {.firstValue = 1, .count = 1}}},
-                       .parts = {Part("default", 0), Part("power1", 3), Part("steer-r", 1),
-                                 Part("steer-l", 2)}},
+                       .parts = std::move(parts)},
     };
 }
 
