@@ -20,7 +20,7 @@ public:
     CarShadows(const assets::NameMap<render::Material>& materials,
                std::span<const sim::ChassisSpec> chassis);
 
-    /// Spans run by slot except `cameras`, one per player; later slots go by the first camera.
+    /// Slot spans; `cameras` has one per player, the first serving later slots. Empty: no limit.
     void Append(std::span<const sim::EntitySnapshot> poses,
                 std::span<const sim::RacerSnapshot> racers, std::span<const CarLook> looks,
                 std::span<const Vector3> cameras, GroundDecals& ground,

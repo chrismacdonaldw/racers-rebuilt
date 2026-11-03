@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <format>
 
+#include "app/racer/far_cars.hpp"
 #include "app/track_space.hpp"
 #include "core/quaternion.hpp"
 
@@ -10,7 +11,6 @@ namespace rr::app {
 namespace {
 
 constexpr Vector3 kGameForward{.x = 1.0F};
-constexpr float kCastRangeSquared = 250000.0F;
 
 bool IsInCastRange(const Vector3& car, std::span<const Vector3> cameras, std::size_t slot) {
     if (cameras.empty()) {
@@ -18,7 +18,7 @@ bool IsInCastRange(const Vector3& car, std::span<const Vector3> cameras, std::si
     }
     const Vector3& camera = slot < cameras.size() ? cameras[slot] : cameras.front();
     const Vector3 offset = car - camera;
-    return Dot(offset, offset) < kCastRangeSquared;
+    return Dot(offset, offset) < kCarRangeSquared;
 }
 
 }
