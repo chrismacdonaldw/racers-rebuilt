@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "app/input_bindings.hpp"
+#include "app/race_bindings.hpp"
 
 namespace rr::app {
 namespace {
@@ -20,14 +21,21 @@ constexpr std::array kRefusedKeys{
     SDLK_WAKE,   kToggleOverlayKey, kCyclePacingKey,
 };
 
+InputSet SetOf(std::size_t player, ControlsDevice device) {
+    if (device == ControlsDevice::Keyboard) {
+        return player == 0 ? InputSet::Keys1 : InputSet::Keys2;
+    }
+    return player == 0 ? InputSet::Pad1 : InputSet::Pad2;
+}
+
 const settings::SettingSpec<std::string_view>* SpecFor(sim::Action action, std::size_t player,
                                                        ControlsDevice device) {
-    const std::span<const Binding<sim::Action>> bindings = RaceBindingsOf(player);
-    const auto binding = std::ranges::find(bindings, action, &Binding<sim::Action>::action);
+    const std::span<const RaceBinding> bindings = RaceBindingsOf(SetOf(player, device));
+    const auto binding = std::ranges::find(bindings, action, &RaceBinding::action);
     if (binding == bindings.end()) {
         return nullptr;
     }
-    return device == ControlsDevice::Keyboard ? &binding->keys : &binding->buttons;
+    return &binding->inputs;
 }
 
 bool IsSameName(std::string_view left, std::string_view right) {

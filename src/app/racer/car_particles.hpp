@@ -14,7 +14,7 @@
 
 namespace rr::app {
 
-/// Dust, exhaust and tyre smoke follow each player's car; every car lands and sparks.
+/// Every car puffs dust and exhaust on a turbo, lands and sparks; players also on drifts and skids.
 class CarParticles {
 public:
     struct Puffs {
@@ -25,11 +25,16 @@ public:
         std::optional<render::EmitterHandle> tireSmoke;
     };
 
-    void Tick(std::span<const sim::Racer> racers, render::ParticleBank& bank);
+    struct PuffSource {
+        std::optional<SkidWheels> skidding;
+        bool isRearKicking = false;
+        bool isPlayer = false;
+        Vector3 velocity;
+    };
 
-    /// `velocity` is the one the player's wheel emitters get.
-    void Update(const sim::Racer& player, Puffs& puffs, const std::optional<SkidWheels>& skidding,
-                bool isRearKicking, const Vector3& velocity, render::ParticleBank& bank);
+    void Tick(std::span<const sim::Racer> racers, render::ParticleBank& bank);
+    void Update(const sim::Racer& racer, Puffs& puffs, const PuffSource& source,
+                render::ParticleBank& bank);
 
 private:
     struct Landing {
@@ -37,7 +42,7 @@ private:
         int contacts = 0;
     };
 
-    static void StartPuffs(const sim::Racer& player, Puffs& puffs, bool isRearKicking,
+    static void StartPuffs(const sim::Racer& racer, Puffs& puffs, const PuffSource& source,
                            const render::EmitterPlacement& moving, render::ParticleBank& bank);
     void UpdateTireSmoke(const sim::Racer& player, Puffs& puffs,
                          const std::optional<SkidWheels>& skidding,

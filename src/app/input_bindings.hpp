@@ -7,11 +7,12 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <span>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "app/device_assignment.hpp"
 #include "settings/registry.hpp"
 #include "settings/setting_spec.hpp"
 #include "sim/input_frame.hpp"
@@ -37,56 +38,6 @@ template <typename Action>
             .buttons = {
                 .key = buttonsKey, .defaultValue = buttons, .label = name, .category = "Gamepad"}};
 }
-
-/// Values are comma-separated SDL key names, or SDL gamepad button and trigger names.
-inline constexpr std::array kActionBindings{
-    BindingFor(sim::Action::Accelerate, "Accelerate", "input.keys.accelerate",
-               "input.buttons.accelerate", "Up", "a,righttrigger"),
-    BindingFor(sim::Action::Brake, "Brake", "input.keys.brake", "input.buttons.brake", "Down",
-               "b,lefttrigger"),
-    BindingFor(sim::Action::SteerLeft, "Steer left", "input.keys.steer_left",
-               "input.buttons.steer_left", "Left", "dpleft"),
-    BindingFor(sim::Action::SteerRight, "Steer right", "input.keys.steer_right",
-               "input.buttons.steer_right", "Right", "dpright"),
-    BindingFor(sim::Action::Drift, "Drift", "input.keys.drift", "input.buttons.drift", "Space",
-               "rightshoulder,leftshoulder"),
-    BindingFor(sim::Action::UsePowerup, "Use powerup", "input.keys.use_powerup",
-               "input.buttons.use_powerup", "Return", "x"),
-    BindingFor(sim::Action::Pause, "Pause", "input.keys.pause", "input.buttons.pause", "Escape",
-               "start"),
-    BindingFor(sim::Action::ToggleDisplay, "Toggle display", "input.keys.toggle_display",
-               "input.buttons.toggle_display", "M", "back"),
-    BindingFor(sim::Action::ChangeCamera, "Change camera view", "input.keys.change_camera",
-               "input.buttons.change_camera", "Right Ctrl", "y"),
-    BindingFor(sim::Action::LookBack, "Look backwards", "input.keys.look_back",
-               "input.buttons.look_back", "Right Alt", "rightstick"),
-};
-
-/// Player 2's bindings in a two-player race. Player 1's pause keys pause for both.
-inline constexpr std::array kPlayer2Bindings{
-    BindingFor(sim::Action::Accelerate, "Player 2 accelerate", "input.p2.keys.accelerate",
-               "input.p2.buttons.accelerate", "W", "a,righttrigger"),
-    BindingFor(sim::Action::Brake, "Player 2 brake", "input.p2.keys.brake",
-               "input.p2.buttons.brake", "X", "b,lefttrigger"),
-    BindingFor(sim::Action::SteerLeft, "Player 2 steer left", "input.p2.keys.steer_left",
-               "input.p2.buttons.steer_left", "A", "dpleft"),
-    BindingFor(sim::Action::SteerRight, "Player 2 steer right", "input.p2.keys.steer_right",
-               "input.p2.buttons.steer_right", "D", "dpright"),
-    BindingFor(sim::Action::Drift, "Player 2 drift", "input.p2.keys.drift",
-               "input.p2.buttons.drift", "Left Shift", "rightshoulder,leftshoulder"),
-    BindingFor(sim::Action::UsePowerup, "Player 2 use powerup", "input.p2.keys.use_powerup",
-               "input.p2.buttons.use_powerup", "Left Alt", "x"),
-    BindingFor(sim::Action::Pause, "Player 2 pause", "input.p2.keys.pause",
-               "input.p2.buttons.pause", "", "start"),
-    BindingFor(sim::Action::ToggleDisplay, "Player 2 toggle display",
-               "input.p2.keys.toggle_display", "input.p2.buttons.toggle_display", "E", "back"),
-    BindingFor(sim::Action::ChangeCamera, "Player 2 change camera view",
-               "input.p2.keys.change_camera", "input.p2.buttons.change_camera", "Q", "y"),
-    BindingFor(sim::Action::LookBack, "Player 2 look backwards", "input.p2.keys.look_back",
-               "input.p2.buttons.look_back", "Z", "rightstick"),
-};
-
-[[nodiscard]] std::span<const Binding<sim::Action>> RaceBindingsOf(std::size_t player);
 
 inline constexpr std::array kMenuBindings{
     BindingFor(sim::MenuAction::Up, "Menu up", "input.keys.menu_up", "input.buttons.menu_up", "Up",
@@ -119,7 +70,7 @@ void DeclareInputSettings(settings::Registry& registry);
 /// The names in a bindings setting, trimmed, without empty ones.
 [[nodiscard]] std::vector<std::string> SplitBindingNames(std::string_view list);
 
-/// With two players, keys only player 2 binds drive player 2. Pads go in connection order.
+/// Each player drives only from their assigned set; a key both players bind drives player 1.
 class InputBindings {
 public:
     explicit InputBindings(const settings::Registry& registry);
@@ -128,6 +79,8 @@ public:
     void Rebind(const settings::Registry& registry, sim::InputLatch& latch);
     void SetPlayerCount(std::size_t count, sim::InputLatch& latch);
     void Handle(const SDL_Event& event, sim::InputLatch& latch);
+
+    [[nodiscard]] const PlayerSets& AssignedSets() const { return assigned_; }
 
 private:
     template <typename Input, typename Action>
@@ -152,22 +105,34 @@ private:
     };
 
     template <typename Action>
-    static BoundInputs<Action> Bind(const settings::Registry& registry,
-                                    std::span<const Binding<Action>> bindings);
+    static void AddKeys(BoundInputs<Action>& bound, Action action,
+                        const settings::Registry& registry,
+                        const settings::SettingSpec<std::string_view>& spec);
+    template <typename Action>
+    static void AddButtons(BoundInputs<Action>& bound, Action action,
+                           const settings::Registry& registry,
+                           const settings::SettingSpec<std::string_view>& spec);
 
+    void Load(const settings::Registry& registry);
+    void AssignSets();
     void HandleKey(const SDL_KeyboardEvent& event, sim::InputLatch& latch);
     void HandleButton(const SDL_GamepadButtonEvent& event, sim::InputLatch& latch);
     void HandleAxis(const SDL_GamepadAxisEvent& event, sim::InputLatch& latch);
     void AddPad(SDL_JoystickID pad);
     void RemovePad(SDL_JoystickID pad, sim::InputLatch& latch);
     void LatchHeldActions(sim::InputLatch& latch) const;
-    [[nodiscard]] std::size_t PlayerOfKey(SDL_Keycode key) const;
-    [[nodiscard]] std::size_t PlayerOfPad(SDL_JoystickID pad) const;
+    [[nodiscard]] bool Drives(std::size_t player, InputSet set) const;
+    [[nodiscard]] bool IsDriven(InputSet set) const;
+    [[nodiscard]] std::optional<std::size_t> PlayerOfPad(SDL_JoystickID pad) const;
     [[nodiscard]] bool IsHeld(std::size_t player, sim::Action action) const;
+    [[nodiscard]] bool IsHeldInSet(InputSet set, std::size_t player, sim::Action action) const;
+    [[nodiscard]] const BoundInputs<sim::Action>& Set(InputSet set) const;
 
-    BoundInputs<sim::Action> race_;
     BoundInputs<sim::MenuAction> menu_;
-    BoundInputs<sim::Action> player2_;
+    std::array<BoundInputs<sim::Action>, kInputSets.size()> sets_;
+    PlayerSets chosen_ = kDefaultPlayerSets;
+    PlayerSets assigned_ = kDefaultPlayerSets;
+    bool isAnyDevice_ = false;
     std::size_t playerCount_ = 1;
     std::vector<SDL_JoystickID> pads_;
     std::vector<SDL_Keycode> heldKeys_;

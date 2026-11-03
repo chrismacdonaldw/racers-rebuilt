@@ -43,6 +43,7 @@ rr_add_module(app
         hazard/hazard_particles.cpp
         hazard/hazard_sounds.cpp
         hidden_models.cpp
+        device_assignment.cpp
         hud/hud_assets.cpp
         hud/hud_gadget.cpp
         hud/hud_placement.cpp
@@ -150,6 +151,7 @@ rr_add_module(app
         powerup_tools.cpp
         quad_shapes.cpp
         race_audio.cpp
+        race_bindings.cpp
         race_camera.cpp
         voice_reactions.cpp
         race_loading_screen.cpp

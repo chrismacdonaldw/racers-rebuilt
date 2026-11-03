@@ -66,29 +66,28 @@ void CarParticles::Tick(std::span<const sim::Racer> racers, render::ParticleBank
     }
 }
 
-void CarParticles::Update(const sim::Racer& player, Puffs& puffs,
-                          const std::optional<SkidWheels>& skidding, bool isRearKicking,
-                          const Vector3& velocity, render::ParticleBank& bank) {
-    const render::EmitterPlacement moving{.rotation = TransformToEngine(player.Pose()).rotation,
-                                          .velocity = velocity};
-    StartPuffs(player, puffs, isRearKicking, moving, bank);
+void CarParticles::Update(const sim::Racer& racer, Puffs& puffs, const PuffSource& source,
+                          render::ParticleBank& bank) {
+    const render::EmitterPlacement moving{.rotation = TransformToEngine(racer.Pose()).rotation,
+                                          .velocity = source.velocity};
+    StartPuffs(racer, puffs, source, moving, bank);
     const std::size_t dustWheel = random_.Next() < 0.5F ? kRearLeft : kRearRight;
-    Puff(puffs.dust, kDustPuffs, At(moving, WheelOf(player, dustWheel)), bank);
-    Puff(puffs.exhaust, kExhaustPuffs, At(moving, ExhaustOf(player)), bank);
-    UpdateTireSmoke(player, puffs, skidding, moving, bank);
+    Puff(puffs.dust, kDustPuffs, At(moving, WheelOf(racer, dustWheel)), bank);
+    Puff(puffs.exhaust, kExhaustPuffs, At(moving, ExhaustOf(racer)), bank);
+    UpdateTireSmoke(racer, puffs, source.skidding, moving, bank);
 }
 
-void CarParticles::StartPuffs(const sim::Racer& player, Puffs& puffs, bool isRearKicking,
+void CarParticles::StartPuffs(const sim::Racer& racer, Puffs& puffs, const PuffSource& source,
                               const render::EmitterPlacement& moving, render::ParticleBank& bank) {
-    const bool hasTurboStarted = player.TurboCount() != puffs.turboCount;
-    const bool hasDriftStarted = player.Driver().isDrifting && !puffs.wasDrifting;
-    puffs.turboCount = player.TurboCount();
-    puffs.wasDrifting = player.Driver().isDrifting;
-    if ((hasTurboStarted || hasDriftStarted) && !puffs.dust && !isRearKicking) {
-        puffs.dust = bank.Start(kDust, At(moving, WheelOf(player, kRearLeft)));
+    const bool hasTurboStarted = racer.TurboCount() != puffs.turboCount;
+    const bool hasDriftStarted = source.isPlayer && racer.Driver().isDrifting && !puffs.wasDrifting;
+    puffs.turboCount = racer.TurboCount();
+    puffs.wasDrifting = racer.Driver().isDrifting;
+    if ((hasTurboStarted || hasDriftStarted) && !puffs.dust && !source.isRearKicking) {
+        puffs.dust = bank.Start(kDust, At(moving, WheelOf(racer, kRearLeft)));
     }
     if (hasTurboStarted && !puffs.exhaust) {
-        puffs.exhaust = bank.Start(kExhaust, At(moving, ExhaustOf(player)));
+        puffs.exhaust = bank.Start(kExhaust, At(moving, ExhaustOf(racer)));
     }
 }
 

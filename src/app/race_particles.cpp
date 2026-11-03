@@ -50,9 +50,18 @@ void RaceParticles::Tick(const sim::RaceSession& session, const Transform& camer
 void RaceParticles::Update(const sim::RaceSession& session,
                            std::span<const std::optional<SkidWheels>> skidding,
                            render::FloatMilliseconds elapsed) {
+    const std::span<const sim::Racer> racers = session.Racers();
     players_.resize(skidding.size());
-    for (std::size_t i = 0; i < skidding.size(); ++i) {
-        UpdatePlayer(session.Racers()[player_ + i], skidding[i], players_[i]);
+    computers_.resize(racers.size());
+    for (std::size_t slot = 0; slot < racers.size(); ++slot) {
+        if (slot >= player_ && slot - player_ < skidding.size()) {
+            UpdatePlayer(racers[slot], skidding[slot - player_], players_[slot - player_]);
+        } else {
+            cars_.Update(
+                racers[slot], computers_[slot],
+                {.velocity = ToEngine(racers[slot].Body().motion.velocity) * kVelocityScale},
+                Bank(ParticleFile::Common));
+        }
     }
     for (render::ParticleBank& bank : banks_) {
         bank.Update(elapsed);
@@ -72,7 +81,11 @@ void RaceParticles::UpdatePlayer(const sim::Racer& racer, const std::optional<Sk
                     {.position = ToEngine(probe.position), .velocity = velocity});
     }
     const bool isRearKicking = wheels[kRearRight].handle || wheels[kRearLeft].handle;
-    cars_.Update(racer, emitters.puffs, skidding, isRearKicking, velocity,
+    cars_.Update(racer, emitters.puffs,
+                 {.skidding = skidding,
+                  .isRearKicking = isRearKicking,
+                  .isPlayer = true,
+                  .velocity = velocity},
                  Bank(ParticleFile::Common));
 }
 
