@@ -37,6 +37,7 @@ add_executable(racers-rebuilt-tests
     app/gameplay_fingerprint_test.cpp
     app/gltf_models_test.cpp
     app/hazard/ghost_trail_test.cpp
+    app/hazard/hazard_materials_test.cpp
     app/hazard/hazard_particles_test.cpp
     app/hazard/water_scroll_test.cpp
     app/hidden_models_test.cpp

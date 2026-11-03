@@ -50,6 +50,7 @@ rr_add_module(app
         game_extraction.cpp
         hazard/ghost_trail.cpp
         hazard/water_scroll.cpp
+        hazard/hazard_materials.cpp
         hazard/hazard_particles.cpp
         hazard/hazard_sounds.cpp
         hidden_models.cpp

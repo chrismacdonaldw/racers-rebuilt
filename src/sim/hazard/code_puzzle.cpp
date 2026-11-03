@@ -51,6 +51,7 @@ void CodePuzzle::Tick(HazardContext& context) {
     }
     if (revealLeft <= context.elapsed) {
         revealLeft = Milliseconds{0};
+        lampCode = code;
         context.events->Fire({.id = kCodeJingleEvent, .edge = EventEdge::End});
     } else {
         revealLeft -= context.elapsed;
@@ -93,12 +94,25 @@ void CodePuzzle::Solve(HazardContext& context) {
     context.events->Fire({.id = kCodeJingleEvent, .edge = EventEdge::Start});
 }
 
+bool CodePuzzle::IsLampRed(std::size_t gate) const {
+    return IsRed(lampCode.at(gate));
+}
+
+std::optional<Milliseconds> CodePuzzle::Flashing() const {
+    if (revealLeft == Milliseconds{0}) {
+        return std::nullopt;
+    }
+    return kRevealDelay - revealLeft;
+}
+
 std::size_t CodePuzzle::MostEventsPerTick(std::size_t racerCount) {
     return kHeardIds * (racerCount + 1) * (kEventsPerHeard + kEventsPerSolve);
 }
 
 CodePuzzle LoadCodePuzzle(Random& random) {
-    return {.code = DrawCode(random)};
+    CodePuzzle puzzle{.code = DrawCode(random)};
+    puzzle.lampCode = puzzle.code;
+    return puzzle;
 }
 
 }

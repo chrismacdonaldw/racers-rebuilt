@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <chrono>
 #include <optional>
+#include <string_view>
+#include <utility>
 
 #include "app/track_entity_draws.hpp"
 #include "assets/game_path.hpp"
@@ -23,13 +25,12 @@ const assets::MaterialAnimationAsset* AnimationOf(const assets::WorldAsset& worl
     return found == sources.animations->end() ? nullptr : &*found->second;
 }
 
-std::optional<assets::MaterialAnimationAsset> TrackFrames(
-    const assets::MaterialAnimationAsset& source, std::size_t track, const MaterialSources& sources,
-    std::vector<render::Material>& materials) {
+std::optional<PlayedTrack> TrackFrames(const assets::MaterialAnimationAsset& source,
+                                       std::size_t track, const MaterialSources& sources) {
     if (track >= source.tracks.size()) {
         return std::nullopt;
     }
-    assets::MaterialAnimationAsset frames;
+    PlayedTrack played;
     assets::MaterialTrack cycle = source.tracks[track];
     for (std::size_t key = cycle.firstKey; key < cycle.firstKey + cycle.keyCount; ++key) {
         const auto material =
@@ -37,12 +38,26 @@ std::optional<assets::MaterialAnimationAsset> TrackFrames(
         if (material == sources.materials->end()) {
             return std::nullopt;
         }
-        frames.keys.push_back(source.keys[key]);
-        materials.push_back(material->second);
+        played.frames.keys.push_back(source.keys[key]);
+        played.materials.push_back(material->second);
     }
     cycle.firstKey = 0;
-    frames.tracks.push_back(cycle);
-    return frames;
+    played.frames.tracks.push_back(cycle);
+    return played;
+}
+
+std::optional<HazardDriven> DrivenBy(std::string_view entity, std::size_t track,
+                                     const assets::MaterialAnimationAsset& source,
+                                     const MaterialSources& sources) {
+    std::optional<HazardDriven> driven = FindHazardDriven(entity, track);
+    if (driven && driven->kind == HazardDriven::Kind::Sphinx) {
+        std::optional<PlayedTrack> blowUp = TrackFrames(source, driven->blowUpTrack, sources);
+        if (!blowUp) {
+            return std::nullopt;
+        }
+        driven->blowUp = std::move(*blowUp);
+    }
+    return driven;
 }
 
 }
@@ -59,15 +74,15 @@ void TrackMaterialAnims::Bind(const assets::WorldAsset& world, const assets::Wor
                     .track = track,
                     .entity = entity.name,
                     .slot = static_cast<std::uint32_t>(binding.material)};
-        std::optional<assets::MaterialAnimationAsset> frames =
-            source == nullptr ? std::nullopt
-                              : TrackFrames(*source, track, sources, bound.materials);
-        if (!frames) {
+        std::optional<PlayedTrack> played =
+            source == nullptr ? std::nullopt : TrackFrames(*source, track, sources);
+        if (!played) {
             log::Warn("{} binds material animation {} track {}, which can't be played", entity.name,
                       binding.animation, binding.track);
             continue;
         }
-        bound.frames = std::move(*frames);
+        bound.played = std::move(*played);
+        bound.driven = DrivenBy(entity.name, track, *source, sources);
         for (std::size_t i = 0; i < slots.size(); ++i) {
             if (slots[i] == bound.slot) {
                 bound.trackDraws.push_back(firstDraw + i);
@@ -106,11 +121,16 @@ void TrackMaterialAnims::FindEntities(const sim::TrackEntitySources& sources,
     }
 }
 
-void TrackMaterialAnims::Apply(float shownMs, std::size_t entityFirst,
-                               std::span<render::MeshDraw> draws) const {
+void TrackMaterialAnims::Apply(float shownMs, const sim::HazardMaterialsSnapshot& hazards,
+                               std::size_t entityFirst, std::span<render::MeshDraw> draws) const {
     const Milliseconds age{static_cast<Milliseconds::rep>(shownMs)};
     for (const Track& track : tracks_) {
-        const render::Material& shown = track.materials[assets::SampleTrack(track.frames, 0, age)];
+        const render::Material* driven =
+            track.driven ? HazardShown(*track.driven, track.played, hazards) : nullptr;
+        const render::Material& shown =
+            driven != nullptr
+                ? *driven
+                : track.played.materials[assets::SampleTrack(track.played.frames, 0, age)];
         const auto show = [&](std::size_t draw) {
             if (draw < draws.size()) {
                 const render::UvOffset scroll = draws[draw].material.uvOffset;

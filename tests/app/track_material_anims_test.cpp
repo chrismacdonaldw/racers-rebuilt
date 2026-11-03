@@ -64,9 +64,9 @@ TEST_CASE("a bound track swaps the material of its slot's draws over its cycle")
     std::vector<render::MeshDraw> draws(5);
     draws[2].material.uvOffset = {.u = 0.25F};
 
-    anims.Apply(50.0F, draws.size(), draws);
+    anims.Apply(50.0F, {}, draws.size(), draws);
     const std::vector<render::TextureId> early = Textures(draws);
-    anims.Apply(150.0F, draws.size(), draws);
+    anims.Apply(150.0F, {}, draws.size(), draws);
 
     CHECK(early == std::vector<render::TextureId>{render::kWhiteTexture, render::kWhiteTexture, kOn,
                                                   render::kWhiteTexture, kOn});
@@ -83,7 +83,7 @@ TEST_CASE("the last binding of a track takes it over") {
     anims.Bind(fixture.World(), Bound(1, 0), slot, 1, fixture.Sources());
     std::vector<render::MeshDraw> draws(2);
 
-    anims.Apply(0.0F, draws.size(), draws);
+    anims.Apply(0.0F, {}, draws.size(), draws);
 
     CHECK(Textures(draws) == std::vector<render::TextureId>{render::kWhiteTexture, kOff});
 }
@@ -95,9 +95,23 @@ TEST_CASE("a binding past the animation's tracks is left out") {
     anims.Bind(fixture.World(), Bound(5, 0), slot, 0, fixture.Sources());
     std::vector<render::MeshDraw> draws(1);
 
-    anims.Apply(0.0F, draws.size(), draws);
+    anims.Apply(0.0F, {}, draws.size(), draws);
 
     CHECK(Textures(draws)[0] == render::kWhiteTexture);
+}
+
+TEST_CASE("a code lamp holds the frame its gate shows instead of looping") {
+    const Fixture fixture;
+    TrackMaterialAnims anims;
+    const std::array<std::uint32_t, 1> slot{0};
+    const assets::WorldEntity lamp{.name = "mmcode1",
+                                   .materialAnimations = {{.animation = 0, .track = 0}}};
+    anims.Bind(fixture.World(), lamp, slot, 0, fixture.Sources());
+    std::vector<render::MeshDraw> draws(1);
+
+    anims.Apply(0.0F, {.areLampsRed = {false, true, true}}, draws.size(), draws);
+
+    CHECK(Textures(draws)[0] == kOff);
 }
 
 TEST_CASE("an animated entity's binding finds its draws by name") {
@@ -113,7 +127,7 @@ TEST_CASE("an animated entity's binding finds its draws by name") {
     anims.FindEntities(sources, entityDraws);
     std::vector<render::MeshDraw> draws(4);
 
-    anims.Apply(0.0F, 2, draws);
+    anims.Apply(0.0F, {}, 2, draws);
 
     CHECK(Textures(draws) == std::vector<render::TextureId>{render::kWhiteTexture,
                                                             render::kWhiteTexture, kOn,

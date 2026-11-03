@@ -41,4 +41,8 @@ struct MaterialAnimationAsset {
 [[nodiscard]] std::size_t SampleTrack(const MaterialAnimationAsset& animation, std::size_t track,
                                       Milliseconds age);
 
+/// As `SampleTrack`, once `frames` of the track have played.
+[[nodiscard]] std::size_t KeyAtFrame(const MaterialAnimationAsset& animation, std::size_t track,
+                                     std::int64_t frames);
+
 }

@@ -1,12 +1,15 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <vector>
 
 #include "assets/brick_layout.hpp"
+#include "core/duration.hpp"
 #include "core/transform.hpp"
 #include "sim/animation/part_clock.hpp"
+#include "sim/hazard/code_gates.hpp"
 #include "sim/physics/curse_source.hpp"
 #include "sim/physics/turbo.hpp"
 #include "sim/powerup/powerup_kind.hpp"
@@ -120,6 +123,16 @@ struct ExplosionSnapshot {
     friend bool operator==(const ExplosionSnapshot&, const ExplosionSnapshot&) = default;
 };
 
+/// `lampsFlashing` and `sphinxBlowingUp` count up from the solve and the hit.
+struct HazardMaterialsSnapshot {
+    std::array<bool, kCodeGates> areLampsRed{};
+    std::optional<Milliseconds> lampsFlashing;
+    std::optional<Milliseconds> sphinxBlowingUp;
+
+    friend bool operator==(const HazardMaterialsSnapshot&,
+                           const HazardMaterialsSnapshot&) = default;
+};
+
 /// `entities` stays sorted by id. Reuse a snapshot between ticks so its storage isn't reallocated.
 struct RenderSnapshot {
     std::uint64_t tick = 0;
@@ -130,6 +143,7 @@ struct RenderSnapshot {
     std::vector<ExplosionSnapshot> explosions;
     std::vector<std::optional<PartClock>> entityClocks;
     std::vector<bool> hiddenModels;
+    HazardMaterialsSnapshot hazardMaterials;
     CameraSnapshot camera;
     std::vector<CameraSnapshot> otherPlayerCameras;
     GhostSnapshot ghosts;

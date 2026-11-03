@@ -47,6 +47,12 @@ void CrossRetailGate(const RaceTrack& track, RaceSession& session, assets::Event
     session.Tick(Milliseconds{12}, idle);
 }
 
+void TickTimes(test::HazardRig& rig, int ticks) {
+    for (int tick = 0; tick < ticks; ++tick) {
+        rig.Tick();
+    }
+}
+
 void Cross(test::HazardRig& rig, assets::EventId gate) {
     rig.Tick();
     rig.Hear({.id = gate, .racer = 0});
@@ -150,6 +156,29 @@ TEST_CASE("the jingle ends and the new code shows 2.5 s after the doors open") {
 
     CHECK(Puzzle(rig).revealLeft == Milliseconds{0});
     CHECK(rig.Events().back() == TrackEvent{.id = kCodeJingleEvent, .edge = EventEdge::End});
+}
+
+TEST_CASE("the lamps hold the code from load") {
+    const test::HazardRig rig({PuzzleHazard()}, {});
+
+    CHECK(Puzzle(rig).IsLampRed(1) == (Puzzle(rig).code[1] % 2 == 0));
+    CHECK_FALSE(Puzzle(rig).Flashing());
+}
+
+TEST_CASE("the lamps hold the old code while they flash, then the new one") {
+    test::HazardRig rig({PuzzleHazard()}, {});
+    const auto code = Puzzle(rig).code;
+    Cross(rig, code[0]);
+    Cross(rig, code[1]);
+    Cross(rig, code[2]);
+
+    rig.Tick();
+    CHECK(Puzzle(rig).Flashing() == Milliseconds{12});
+    CHECK(Puzzle(rig).lampCode == code);
+    TickTimes(rig, 2'500 / 12);
+
+    CHECK_FALSE(Puzzle(rig).Flashing());
+    CHECK(Puzzle(rig).lampCode == Puzzle(rig).code);
 }
 
 TEST_CASE("end edges and other ids leave the code alone") {
