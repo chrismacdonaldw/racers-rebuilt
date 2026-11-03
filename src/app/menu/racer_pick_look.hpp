@@ -1,7 +1,9 @@
 #pragma once
 
 #include <array>
+#include <string_view>
 
+#include "app/menu/menu_files.hpp"
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_parts.hpp"
 #include "app/menu/menu_widgets.hpp"
@@ -31,7 +33,10 @@ struct RacerPickLook {
     assets::CarouselSounds scrollSounds{};
 };
 
+inline constexpr std::string_view kRacerPickScreen = "PICKRCR";
+
 [[nodiscard]] Result<RacerPickLook> LoadRacerPickLook(render::Renderer& renderer,
-                                                      const assets::Vfs& vfs);
+                                                      const assets::Vfs& vfs,
+                                                      const MenuFiles& files);
 
 }

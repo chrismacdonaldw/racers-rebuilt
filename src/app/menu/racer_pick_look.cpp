@@ -10,7 +10,7 @@
 namespace rr::app {
 namespace {
 
-constexpr std::string_view kScreen = "PICKRCR";
+constexpr std::string_view kScreen = kRacerPickScreen;
 constexpr std::string_view kBackdrop = "backdrp";
 constexpr std::string_view kBanner = "banner";
 constexpr std::string_view kLabelStyle = "menufont";
@@ -91,10 +91,9 @@ private:
 
 }
 
-Result<RacerPickLook> LoadRacerPickLook(render::Renderer& renderer, const assets::Vfs& vfs) {
-    return ReadMenuFiles(vfs, kScreen).and_then([&](const MenuFiles& files) {
-        return LookLoader(renderer, vfs, files).Load();
-    });
+Result<RacerPickLook> LoadRacerPickLook(render::Renderer& renderer, const assets::Vfs& vfs,
+                                        const MenuFiles& files) {
+    return LookLoader(renderer, vfs, files).Load();
 }
 
 }
