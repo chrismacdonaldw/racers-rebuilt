@@ -94,7 +94,8 @@ struct Mixer::State {
         if (!state->isStereo.load(std::memory_order_relaxed)) {
             DownmixToMono(mix);
         }
-        if (std::optional<PeakLimiter>& limiter = state->limiter) {
+        std::optional<PeakLimiter>& limiter = state->limiter;
+        if (limiter && state->isLimiting.load(std::memory_order_relaxed)) {
             limiter->Process(mix);
         }
     }
@@ -113,6 +114,7 @@ struct Mixer::State {
 
     std::atomic<std::uint64_t> allocationCount{0};
     std::atomic<bool> isStereo{true};
+    std::atomic<bool> isLimiting{true};
     ma_engine engine{};
     bool hasEngine = false;
     bool hasDevice = false;
@@ -198,6 +200,10 @@ void Mixer::SetVolume(Bus bus, float volume) {
 
 void Mixer::SetStereo(bool isStereo) {
     state_->isStereo.store(isStereo, std::memory_order_relaxed);
+}
+
+void Mixer::SetClippingPrevented(bool isPrevented) {
+    state_->isLimiting.store(isPrevented, std::memory_order_relaxed);
 }
 
 void Mixer::Play(std::span<const SoundCue> cues) {

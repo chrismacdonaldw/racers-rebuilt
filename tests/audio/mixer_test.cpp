@@ -238,6 +238,23 @@ TEST_CASE_FIXTURE(MixerFixture, "a stack of full-volume voices stays within full
     CHECK(peaks[0] == doctest::Approx(1.0F).epsilon(0.01));
 }
 
+TEST_CASE_FIXTURE(MixerFixture, "without clipping prevention a voice mixes at full gain") {
+    static_cast<void>(mixer_.Loop({.sound = effectId_}));
+    mixer_.SetClippingPrevented(false);
+
+    CHECK(RenderPeaks()[0] == doctest::Approx(1.0F).epsilon(0.01));
+}
+
+TEST_CASE_FIXTURE(MixerFixture, "without clipping prevention two voices go past full scale") {
+    static_cast<void>(mixer_.Loop({.sound = effectId_}));
+    static_cast<void>(mixer_.Loop({.sound = effectId_}));
+    mixer_.SetClippingPrevented(false);
+
+    CHECK(RenderPeaks()[0] > 1.5F);
+    mixer_.SetClippingPrevented(true);
+    CHECK(RenderPeaks()[0] <= 1.0F);
+}
+
 TEST_CASE_FIXTURE(MixerFixture, "a stopped voice's id leaves the next voice in its slot alone") {
     const std::optional<VoiceId> stopped = mixer_.Loop({.sound = effectId_});
     REQUIRE(stopped.has_value());

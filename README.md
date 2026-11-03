@@ -135,6 +135,7 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `audio.music_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.effects_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.voice_volume` | `1.0` | `0.0` to `1.0` |
+| `audio.prevent_clipping` | `true` | `true`, `false`. Mixes with headroom and a limiter so loud moments don't crackle. `false` mixes at full volume and clips, as the original does. |
 | `enhancements.free_camera` | `false` | `true`, `false` |
 | `enhancements.free_camera_speed` | `40.0` | `1.0` to `400.0` |
 | `race.respawn` | `true` | `true`, `false`. Puts a racer back on the track after it falls off or stays in the air too long. Applies from the next race. |

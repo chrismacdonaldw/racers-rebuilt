@@ -4,6 +4,7 @@
 
 #include <vector>
 
+#include "app/audio_settings.hpp"
 #include "app/cheat_settings.hpp"
 #include "app/race_settings.hpp"
 #include "app/video_settings.hpp"
@@ -16,6 +17,7 @@ settings::Registry DeclaredRegistry() {
     DeclareRaceSettings(registry);
     DeclareCheatSettings(registry);
     DeclareVideoSettings(registry);
+    DeclareAudioSettings(registry);
     return registry;
 }
 
@@ -57,15 +59,17 @@ TEST_CASE("the original preset clears the cheats and the enhanced one keeps them
     CHECK_FALSE(IsPresetActive(registry, enhanced));
 }
 
-TEST_CASE("the original preset turns smooth textures off and the enhanced one on") {
+TEST_CASE("the original preset turns smoothing and clipping prevention off, enhanced on") {
     settings::Registry registry = DeclaredRegistry();
     const std::vector<settings::SettingPreset> presets = EnhancementPresets();
     REQUIRE(presets.size() == 2);
 
     static_cast<void>(ApplyPreset(registry, presets[0]));
     CHECK_FALSE(registry.Get(kSmoothTexturesSetting));
+    CHECK_FALSE(registry.Get(kPreventClipping));
     static_cast<void>(ApplyPreset(registry, presets[1]));
     CHECK(registry.Get(kSmoothTexturesSetting));
+    CHECK(registry.Get(kPreventClipping));
 }
 
 }

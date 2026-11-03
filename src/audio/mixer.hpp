@@ -54,6 +54,9 @@ public:
     /// Mono plays the average of both channels on each.
     void SetStereo(bool isStereo);
 
+    /// Off mixes at full gain with no limiter, so loud mixes clip as they do in the original.
+    void SetClippingPrevented(bool isPrevented);
+
     /// Drops cues once every effect voice is busy.
     void Play(std::span<const SoundCue> cues);
 
