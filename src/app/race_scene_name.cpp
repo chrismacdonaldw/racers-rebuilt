@@ -25,6 +25,7 @@ constexpr std::string_view kRacerKey = "racer";
 constexpr std::string_view kCircuitKey = "circuit";
 constexpr std::string_view kAiKey = "ai";
 constexpr std::string_view kMirroredKey = "mirrored";
+constexpr std::string_view kTestDriveKey = "testdrive";
 constexpr std::string_view kPlayersKey = "players";
 constexpr std::string_view kSecondRacerKey = "racer2";
 constexpr std::string_view kLapsKey = "laps";
@@ -167,6 +168,10 @@ bool ReadStanding(Field field, sim::CircuitStanding& standing) {
 }
 
 bool ReadRaceField(Field field, RaceSceneSetup& setup) {
+    if (field.key == kTestDriveKey) {
+        setup.isTestDrive = true;
+        return field.value.empty();
+    }
     if (field.key == kPlayersKey) {
         setup.players = ParseNumber<std::size_t>(field.value).value_or(0);
         return setup.players >= 1 && setup.players <= sim::kMaxPlayers;
@@ -277,6 +282,9 @@ std::string RaceSceneName(const RaceSceneSetup& setup) {
     }
     if (setup.isMirrored) {
         name += std::format(":{}", kMirroredKey);
+    }
+    if (setup.isTestDrive) {
+        name += std::format(":{}", kTestDriveKey);
     }
     if (setup.players > 1) {
         name += std::format(":{}={}:{}={}", kPlayersKey, setup.players, kSecondRacerKey,

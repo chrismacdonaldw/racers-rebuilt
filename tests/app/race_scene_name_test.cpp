@@ -63,6 +63,14 @@ TEST_CASE("a race scene name marks a mirrored race") {
     CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:mirrored=no").has_value());
 }
 
+TEST_CASE("a race scene name marks a test drive") {
+    const RaceSceneSetup drive{.track = "TEST", .isTestDrive = true, .opponents = 0};
+
+    CHECK(RaceSceneName(drive) == "race:TEST:respawn=3000:racer=0:testdrive:opponents=0");
+    CHECK(ParseRaceScene(RaceSceneName(drive)) == drive);
+    CHECK_FALSE(ParseRaceScene("race:TEST:respawn=3000:testdrive=1").has_value());
+}
+
 TEST_CASE("a race scene name records a two-player race") {
     const RaceSceneSetup versus{.track = "RACEC0R0", .players = 2};
 

@@ -37,6 +37,10 @@ constexpr std::uint64_t kHashPrime = 1099511628211ULL;
 constexpr Milliseconds kCircuitResultsTime{5000};
 constexpr std::size_t kChampionSlot = 1;
 
+std::string MenuAfter(const RaceSceneSetup& setup) {
+    return std::string(setup.isTestDrive ? kGarageScene : kMainMenuScene);
+}
+
 }
 
 Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
@@ -380,9 +384,10 @@ void RaceScene::TickPause(const sim::InputFrame& input) {
     Hush();
     if (chosen == PauseRow::Restart) {
         next_ = circuit_ ? circuit_->AfterRestart() : RaceSceneName(parts_.setup);
+    } else if (chosen == PauseRow::Quit && circuit_) {
+        next_ = circuit_->AfterQuit();
     } else if (chosen == PauseRow::Quit) {
-        next_ = circuit_ ? circuit_->AfterQuit()
-                         : std::string(trial_ ? kTrialEndScene : kMainMenuScene);
+        next_ = trial_ ? std::string(kTrialEndScene) : MenuAfter(parts_.setup);
     }
 }
 
@@ -416,7 +421,7 @@ void RaceScene::LeaveAfterResults(const sim::InputFrame& input) {
     }
     if (!circuit_) {
         if (ShowsResults(clock) && input.WasPressed(sim::MenuAction::Confirm)) {
-            next_ = std::string(kMainMenuScene);
+            next_ = MenuAfter(parts_.setup);
         }
         return;
     }

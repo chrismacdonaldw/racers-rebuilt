@@ -18,6 +18,7 @@ inline constexpr std::string_view kPlayer2ControlsScene = "menu:controls2";
 inline constexpr std::string_view kLanguageScene = "menu:language";
 inline constexpr std::string_view kPickRacerScene = "menu:pick_racer";
 inline constexpr std::string_view kPickSecondRacerScene = "menu:pick_racer2";
+inline constexpr std::string_view kGarageScene = "menu:garage";
 
 inline constexpr char kSceneChainMark = '>';
 
