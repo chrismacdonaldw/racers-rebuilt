@@ -12,6 +12,7 @@ namespace {
 constexpr Milliseconds kDelay{15000};
 constexpr float kPull = 0.05F;
 constexpr float kMirroredBonus = 0.05F;
+constexpr std::string_view kFirstCircuit = "c0";
 
 std::optional<float> BestPlayerProgress(std::span<const PacedRacer> racers) {
     std::optional<float> best;
@@ -25,8 +26,7 @@ std::optional<float> BestPlayerProgress(std::span<const PacedRacer> racers) {
 
 }
 
-RubberBand::RubberBand(bool isMirrored)
-    : delay_(kDelay), bonus_(isMirrored ? kMirroredBonus : 0.0F) {}
+RubberBand::RubberBand(float bonus) : delay_(kDelay), bonus_(bonus) {}
 
 void RubberBand::Update(Milliseconds elapsed, std::span<const PacedRacer> racers,
                         std::span<float> targetSpeeds) {
@@ -37,6 +37,13 @@ void RubberBand::Update(Milliseconds elapsed, std::span<const PacedRacer> racers
     }
     delay_ = Milliseconds{0};
     Pace(racers, targetSpeeds);
+}
+
+float PaceBonus(bool isMirrored, std::string_view circuit, const VersionRules& rules) {
+    if (isMirrored) {
+        return kMirroredBonus;
+    }
+    return circuit == kFirstCircuit ? rules.firstCircuitPace : 0.0F;
 }
 
 void RubberBand::Pace(std::span<const PacedRacer> racers, std::span<float> targetSpeeds) const {

@@ -75,7 +75,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     const sim::RaceTrack& race = *raceTrack;
     auto world = std::make_unique<sim::WorldList>(race.collision.Track());
     Result<sim::RaceSession> session = sim::RaceSession::Create(
-        GridSetup(setup, *racers, seed, racers->Count()), sim::CourseOf(*raceTrack, *world));
+        GridSetup(vfs, setup, *racers, seed, racers->Count()), sim::CourseOf(*raceTrack, *world));
     if (!session) {
         return std::unexpected(std::move(session.error()));
     }

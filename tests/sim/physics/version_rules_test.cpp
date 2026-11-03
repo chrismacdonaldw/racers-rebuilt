@@ -4,8 +4,11 @@
 
 #include <cmath>
 
+#include "plane_world.hpp"
+#include "sim/physics/body_effects.hpp"
 #include "sim/physics/car_body.hpp"
 #include "sim/physics/facing.hpp"
+#include "sim/physics/ground_contact.hpp"
 #include "sim/physics/wall_sweep.hpp"
 
 namespace rr::sim {
@@ -34,6 +37,17 @@ BodyState HitSlope(const VersionRules& rules) {
     return body;
 }
 
+BodyState HoverOverFloor(const BodyConstants& constants, float lift) {
+    BodyState body = BodyFor(constants);
+    StartHover(body, constants);
+    body.hover.lift.height = lift;
+    body.derived.isAtRest = false;
+    PlaceWheels(body.motion, constants);
+    body.motion.position.z += 0.5F - body.motion.wheels[0].position.z;
+    PlaceWheels(body.motion, constants);
+    return body;
+}
+
 TEST_CASE("1999 rules are the defaults") {
     const VersionRules& rules = RulesFor(assets::GameVersion::Release1999);
     const VersionRules defaults;
@@ -49,6 +63,20 @@ TEST_CASE("2001 swings the facing toward the nose 46 percent faster") {
     CHECK(TurnedAfter({}, 100) == doctest::Approx(0.25F).epsilon(0.01));
     CHECK(TurnedAfter(RulesFor(assets::GameVersion::Release2001), 100) ==
           doctest::Approx(0.3662109F).epsilon(0.01));
+}
+
+TEST_CASE("2001 holds a hovering car's wheels the lift height above the ground") {
+    const BodyConstants constants =
+        MakeBodyConstants({}, {}, RulesFor(assets::GameVersion::Release2001));
+    BodyState body = HoverOverFloor(constants, 1.0F);
+    const test::PlaneWorld floor = test::FlatGround();
+
+    UpdateGroundContact(body, constants, 12, floor);
+
+    CHECK(body.motion.contactCount == kWheelCount);
+    for (const WheelProbe& wheel : body.motion.wheels) {
+        CHECK(wheel.position.z == doctest::Approx(1.0F));
+    }
 }
 
 TEST_CASE("2001 bounces off a gentle slope like a floor, without the wall yaw") {

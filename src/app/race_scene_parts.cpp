@@ -1,9 +1,12 @@
 #include "app/race_scene_parts.hpp"
 
 #include <chrono>
+#include <optional>
+#include <string>
 #include <utility>
 
 #include "app/race_step.hpp"
+#include "assets/race_catalog.hpp"
 #include "core/log.hpp"
 #include "platform/clock.hpp"
 #include "sim/powerup/every_effect.hpp"
@@ -13,6 +16,15 @@ namespace {
 
 constexpr float kPercent = 100.0F;
 
+std::string RaceCircuit(const assets::Vfs& vfs, const RaceSceneSetup& scene) {
+    if (!scene.circuit.empty()) {
+        return scene.circuit;
+    }
+    const Result<assets::RaceCatalog> races = assets::RaceCatalog::Load(vfs);
+    const std::optional<std::size_t> home = races ? races->HomeCircuit(scene.track) : std::nullopt;
+    return home ? races->Circuits()[*home].name : std::string{};
+}
+
 }
 
 Result<sim::RaceTrack> LoadSceneTrack(const assets::Vfs& vfs, const RaceSceneSetup& setup) {
@@ -20,9 +32,10 @@ Result<sim::RaceTrack> LoadSceneTrack(const assets::Vfs& vfs, const RaceSceneSet
                               setup.isTimeTrial ? sim::BrickSet::TimeTrial : sim::BrickSet::Race);
 }
 
-sim::RaceSetup GridSetup(const RaceSceneSetup& scene, const RacerGrid& racers, std::uint64_t seed,
-                         std::size_t slots) {
+sim::RaceSetup GridSetup(const assets::Vfs& vfs, const RaceSceneSetup& scene,
+                         const RacerGrid& racers, std::uint64_t seed, std::size_t slots) {
     sim::RaceSetup setup{.track = scene.track,
+                         .circuit = RaceCircuit(vfs, scene),
                          .firstSlot = scene.firstSlot,
                          .seed = seed,
                          .lapCount = scene.lapCount,

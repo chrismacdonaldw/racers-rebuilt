@@ -11,6 +11,7 @@ namespace rr::sim {
 namespace {
 
 constexpr float kFollowRatePerMs = 0.04F;
+constexpr float kHoverFollowRatePerMs = 0.01F;
 constexpr float kContactBand = 0.4F;
 constexpr float kRideHeight = 0.2F;
 constexpr float kLiftOffDrop = 0.008F;
@@ -35,13 +36,21 @@ void CastWheelRay(WheelProbe& wheel, const CollisionQuery& query, std::size_t wo
     wheel.hitHeight = hit->point.z - end.z;
 }
 
+float SweepDistance(const BodyState& body, int dtMs) {
+    const bool follows = IsGrounded(body.motion) && !body.isSpunOut;
+    if (!body.hover.isHovering) {
+        return follows ? static_cast<float>(dtMs) * kFollowRatePerMs : 0.0F;
+    }
+    const float follow = follows ? static_cast<float>(dtMs) * kHoverFollowRatePerMs : 0.0F;
+    return follow + body.hover.lift.height;
+}
+
 std::optional<std::size_t> CastWheelRays(BodyState& body, const BodyConstants& constants, int dtMs,
                                          const CollisionQuery& query) {
     BodyMotion& motion = body.motion;
     const float drop = std::max(0.0F, body.saved.position.z - motion.position.z);
     const float sweepHeight = constants.boundsRadius + drop;
-    const float sweepDistance =
-        IsGrounded(motion) && !body.isSpunOut ? static_cast<float>(dtMs) * kFollowRatePerMs : 0.0F;
+    const float sweepDistance = SweepDistance(body, dtMs);
     for (WheelProbe& wheel : motion.wheels) {
         wheel.hasHit = false;
         wheel.isInContact = false;
@@ -103,6 +112,16 @@ void SnapToContacts(BodyState& body, const BodyConstants& constants, std::size_t
     const WheelProbe& wheel = motion.wheels[selected];
     motion.position += wheel.hitPoint - wheel.position + Vector3{.z = kRideHeight};
     PlaceWheels(motion, constants);
+}
+
+void RiseToHover(BodyState& body, std::size_t highest) {
+    BodyMotion& motion = body.motion;
+    const WheelProbe& wheel = motion.wheels[highest];
+    const Vector3 rise = wheel.hitPoint - wheel.position + Vector3{.z = body.hover.lift.height};
+    motion.position += rise;
+    for (WheelProbe& probe : motion.wheels) {
+        probe.position += rise;
+    }
 }
 
 bool BouncesOnLanding(BodyState& body, bool wasAirborne) {
@@ -173,6 +192,9 @@ void UpdateGroundContact(BodyState& body, const BodyConstants& constants, int dt
         motion.supportNormal = motion.basis.up;
     } else {
         motion.supportNormal = Normalized(motion.supportNormal, motion.basis.up);
+    }
+    if (body.hover.isHovering) {
+        RiseToHover(body, *highest);
     }
     if (BouncesOnLanding(body, wasAirborne)) {
         return;

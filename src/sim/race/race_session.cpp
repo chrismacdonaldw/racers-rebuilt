@@ -121,6 +121,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       respawn_(setup.respawn),
       cheats_(setup.cheats),
       isDemo_(setup.isDemo),
+      rules_(&RulesFor(setup.version)),
       respawns_(setup.racers.size()),
       wasRespawned_(setup.racers.size()),
       positions_(setup.racers.size()),
@@ -142,7 +143,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       sphereWorlds_(SphereWorldsFor(course)),
       switchedWorlds_(setup.racers.size()),
       surfaceEvents_(setup.racers.size()),
-      rubberBand_(course.isMirrored),
+      rubberBand_(PaceBonus(course.isMirrored, setup.circuit, *rules_)),
       paced_(setup.racers.size()),
       routeSpeeds_(setup.racers.size(), 1.0F),
       bricks_(BricksFor(course, setup.cheats)),
@@ -156,8 +157,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
     localBounds_.reserve(setup.racers.size());
     for (std::size_t i = 0; i < setup.racers.size(); ++i) {
         const RacerEntry& entry = setup.racers[i];
-        Racer& racer = racers_.emplace_back(entry.chassis, entry.build, course.grid[i],
-                                            RulesFor(setup.version));
+        Racer& racer = racers_.emplace_back(entry.chassis, entry.build, course.grid[i], *rules_);
         racer.HoldAtStart();
         if (setup.cheats.Has(Cheat::IgnoreSurfaces)) {
             racer.IgnoreSurfaces();
@@ -189,12 +189,11 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     weapons_.Clear();
     triggers_.BeginTick();
     resources_.BeginTick();
-    for (TriggerWorlds& worlds : switchedWorlds_) {
-        worlds.Tick(elapsed);
-    }
     PowerupContext hazardEffects = EffectContext();
     HazardContext hazards = HazardsContext(elapsed, hazardEffects);
-    hazards_.Tick(hazards);
+    if (!rules_->racersStepFirst) {
+        TickHazards(elapsed, hazards);
+    }
     MeasureReaches();
     std::ranges::copy(positions_, rivals_.begin());
     for (std::size_t i = 0; i < racers_.size(); ++i) {
@@ -203,6 +202,9 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     }
     ResolveContacts();
     TickBricks(elapsed);
+    if (rules_->racersStepFirst) {
+        TickHazards(elapsed, hazards);
+    }
     MeasureReaches();
     hazards.bodies = contactBodies_;
     hazards_.Touch(hazards);
@@ -316,6 +318,13 @@ void RaceSession::TickTriggers(Milliseconds elapsed) {
     resources_.Update(elapsed, triggers_, entities_);
     triggers_.TickTimers(elapsed, random_);
     resources_.Dispatch(triggers_, entities_);
+}
+
+void RaceSession::TickHazards(Milliseconds elapsed, HazardContext& hazards) {
+    for (TriggerWorlds& worlds : switchedWorlds_) {
+        worlds.Tick(elapsed);
+    }
+    hazards_.Tick(hazards);
 }
 
 void RaceSession::SwitchOnTriggerWorlds() {

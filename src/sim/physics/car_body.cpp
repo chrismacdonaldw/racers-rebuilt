@@ -59,6 +59,8 @@ void UpdateContacts(BodyState& body, const BodyConstants& constants, int dtMs,
                     const CollisionQuery& world) {
     if (body.hover.isHovering) {
         UpdateHoverLift(body.hover.lift, dtMs);
+    }
+    if (body.hover.isHovering && !constants.rules.hoversOnWheels) {
         UpdateHoverContact(body, constants, dtMs, world);
     } else {
         UpdateGroundContact(body, constants, dtMs, world);

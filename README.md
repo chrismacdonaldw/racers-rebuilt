@@ -126,7 +126,7 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 
 | Key | Default | Values |
 |---|---|---|
-| `game.version` | `1999` | `1999`, `2001`. The release to play, the original 1999 one or the 2001 re-release. Needs that release's files. 2001 also drives as the 2001 game does: faster steering and recentring, the stick on a squared curve, wheels set from the car's shadow size, a faster turning nose, slopes that bounce like floors and a harder hover bank. Marked * in the overlay. Applies on **Restart now** or the next start. |
+| `game.version` | `1999` | `1999`, `2001`. The release to play, the original 1999 one or the 2001 re-release. Needs that release's files. 2001 also drives as the 2001 game does: faster steering and recentring, the stick on a squared curve, wheels set from the car's shadow size, a faster turning nose, slopes that bounce like floors, a harder hover bank, hovering on the wheels, computer racers 3% slower on the first circuit, and racers moving before hazards each frame. Marked * in the overlay. Applies on **Restart now** or the next start. |
 | `game.path` | Empty | The LEGO Racers folder of the 1999 release |
 | `game.path_2001` | Empty | The LEGO Racers folder of the 2001 release |
 | `game.language` | From the original installer, else `ENGLISH` | `ENGLISH`, `GERMAN`, `FRENCH`, `SPANISH`, `ITALIAN`, `DUTCH`, `DANISH`, `NORWEGI`, `SWEDISH` |

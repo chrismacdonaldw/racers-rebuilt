@@ -32,6 +32,7 @@ enum class AiDriving : std::uint8_t { Route, Physics };
 /// Racer `i` starts in grid slot `firstSlot + i`. A demo's racer 0 finishes it as a player would.
 struct RaceSetup {
     std::string track;
+    std::string circuit;
     std::vector<RacerEntry> racers;
     std::size_t firstSlot = 0;
     std::uint64_t seed = 0;

@@ -115,7 +115,7 @@ void AddGroundedForces(BodyState& body, const BodyConstants& constants) {
     if (Length(body.supportForce) > kGravity * constants.massScale * threshold) {
         body.force += body.supportForce;
     }
-    if (body.hover.isHovering) {
+    if (body.hover.isHovering && !constants.rules.hoversOnWheels) {
         AddHoverForces(body);
     } else if (body.impulses.rollMs <= 0 && body.impulses.pitchMs <= 0) {
         AddWheelForces(body, constants);
