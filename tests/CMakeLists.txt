@@ -54,6 +54,7 @@ add_executable(racers-rebuilt-tests
     app/menu/best_time_panel_test.cpp
     app/menu/build_camera_test.cpp
     app/menu/build_help_test.cpp
+    app/menu/build_pointer_test.cpp
     app/menu/car_build_menu_test.cpp
     app/menu/car_builder_test.cpp
     app/menu/carousel_layout_test.cpp

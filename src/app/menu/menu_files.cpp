@@ -71,6 +71,11 @@ const assets::CarouselStyle* MenuFiles::FindCarouselStyle(std::string_view name)
                         [&](const assets::MenuStyles& style) { return style.FindCarousel(name); });
 }
 
+const assets::HotspotStyle* MenuFiles::FindHotspotStyle(std::string_view name) const {
+    return FindInStyles(styles,
+                        [&](const assets::MenuStyles& style) { return style.FindHotspot(name); });
+}
+
 const assets::SelectorStyle* MenuFiles::FindSelectorStyle(std::string_view name) const {
     return FindInStyles(styles,
                         [&](const assets::MenuStyles& style) { return style.FindSelector(name); });

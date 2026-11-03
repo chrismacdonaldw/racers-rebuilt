@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <format>
 #include <span>
 #include <string>
 #include <string_view>
@@ -19,6 +21,7 @@ constexpr FieldId kCapacityField = 0x27;
 constexpr FieldId kImageStyle = 0x32;
 constexpr FieldId kTextStyle = 0x33;
 constexpr FieldId kFrameStyle = 0x34;
+constexpr FieldId kHotspotStyle = 0x37;
 constexpr FieldId kCarouselStyle = 0x38;
 constexpr FieldId kSelectorStyle = 0x39;
 constexpr FieldId kGameButtonStyle = 0x3E;
@@ -51,6 +54,36 @@ template <typename Style>
 Result<void> ReadIconStyle(TokenReader& reader, Style& style) {
     return ReadBlock<IconStyle>(reader, kIconStyleFields, style.icon);
 }
+
+Result<void> ReadHotspotCount(TokenReader& reader, HotspotStyle& style) {
+    std::int32_t count = 0;
+    return ReadValue(reader, count).and_then([&]() -> Result<void> {
+        if (count < 0 || std::cmp_greater(count, kMaxHotspots)) {
+            return Fail(ErrorCode::InvalidData,
+                        std::format("hotspot style {} has {} hotspots", style.name, count));
+        }
+        style.hotspots.resize(static_cast<std::size_t>(count));
+        return {};
+    });
+}
+
+template <auto Member>
+Result<void> ReadHotspotValues(TokenReader& reader, HotspotStyle& style) {
+    for (Hotspot& hotspot : style.hotspots) {
+        if (Result<void> read = ReadValue(reader, hotspot.*Member); !read) {
+            return read;
+        }
+    }
+    return {};
+}
+
+constexpr std::array kHotspotStyleFields{
+    FieldRule<HotspotStyle>{.id = 0x3A, .read = ReadIconStyle<HotspotStyle>},
+    FieldRule<HotspotStyle>{.id = 0x2F, .read = ReadHotspotCount},
+    FieldRule<HotspotStyle>{.id = 0x31, .read = ReadHotspotValues<&Hotspot::id>},
+    FieldRule<HotspotStyle>{.id = 0x30, .read = ReadHotspotValues<&Hotspot::rect>},
+    Field<&HotspotStyle::image>(0x28),
+};
 
 constexpr std::array kCarouselStyleFields{
     Field<&CarouselStyle::sounds>(0x2B),
@@ -111,6 +144,9 @@ Result<void> ReadSection(TokenReader& reader, MenuStyles& styles) {
             return ReadStyles<TextStyle>(reader, kTextStyle, kTextStyleFields, styles.texts);
         case kFrameStyle:
             return ReadStyles<FrameStyle>(reader, kFrameStyle, kFrameStyleFields, styles.frames);
+        case kHotspotStyle:
+            return ReadStyles<HotspotStyle>(reader, kHotspotStyle, kHotspotStyleFields,
+                                            styles.hotspots);
         case kCarouselStyle:
             return ReadStyles<CarouselStyle>(reader, kCarouselStyle, kCarouselStyleFields,
                                              styles.carousels);
@@ -155,6 +191,10 @@ const SelectorStyle* MenuStyles::FindSelector(std::string_view name) const {
 
 const GameButtonStyle* MenuStyles::FindGameButton(std::string_view name) const {
     return FindStyle<GameButtonStyle>(gameButtons, name);
+}
+
+const HotspotStyle* MenuStyles::FindHotspot(std::string_view name) const {
+    return FindStyle<HotspotStyle>(hotspots, name);
 }
 
 Result<MenuStyles> ParseMenuStyles(std::span<const std::byte> bytes) {

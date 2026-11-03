@@ -90,6 +90,30 @@ TEST_CASE("menu styles read the sounds of game buttons, selectors and carousels"
     CHECK(carousel->wraps == 1);
 }
 
+TEST_CASE("a hotspot style reads as many ids and rects as its count") {
+    const std::vector<std::byte> body =
+        Join({ControlFields(), Bytes({0x2F}), Ints({2}), Bytes({0x31}), Ints({1, 3}), Bytes({0x30}),
+              Ints({0, 0, 9, 9, 10, 0, 19, 9}), Bytes({0x28}), Text("mta")});
+    const Result<MenuStyles> styles = ParseMenuStyles(
+        Join({Bytes({0x27}), Ints({1}), NamedLibrary(0x37, {NamedEntry(0x37, "procker", body)})}));
+
+    REQUIRE(styles.has_value());
+    const HotspotStyle* pad = styles->FindHotspot("procker");
+    REQUIRE(pad != nullptr);
+    REQUIRE(pad->hotspots.size() == 2);
+    CHECK(pad->hotspots[1].id == 3);
+    CHECK(pad->hotspots[1].rect == MenuRect{.left = 10, .top = 0, .right = 19, .bottom = 9});
+    CHECK(pad->image == "mta");
+}
+
+TEST_CASE("a hotspot style with more than eight hotspots fails") {
+    CHECK_FALSE(
+        ParseMenuStyles(Join({Bytes({0x27}), Ints({1}),
+                              NamedLibrary(0x37, {NamedEntry(0x37, "procker",
+                                                             Join({Bytes({0x2F}), Ints({9})}))})}))
+            .has_value());
+}
+
 TEST_CASE("a style's control fields with an unknown field fail") {
     const std::vector<std::byte> unknown =
         Join({Bytes({0x3A}), Block(Join({Bytes({0x31}), Ints({1})}))});
@@ -141,6 +165,19 @@ void CheckMenuFontStyle(const MenuStyles& shared) {
     CHECK(text->color == MenuColor{.alpha = 255, .red = 239, .green = 239, .blue = 239});
 }
 
+void CheckBuilderPads(const JamArchive& archive) {
+    const Result<MenuStyles> builder =
+        test::ReadRetailFile(archive, "MENUDATA/CARBUILD.MSB").and_then([](const FileData& file) {
+            return ParseMenuStyles(file.Bytes());
+        });
+    REQUIRE(builder.has_value());
+    const HotspotStyle* view = builder->FindHotspot("crocker");
+    REQUIRE(view != nullptr);
+    REQUIRE(view->hotspots.size() == 5);
+    CHECK(view->hotspots[4].id == 9);
+    CHECK(view->hotspots[0].rect == MenuRect{.left = 24, .top = 0, .right = 67, .bottom = 24});
+}
+
 TEST_CASE("every menu style file in the retail game parses") {
     const std::optional<JamArchive> archive = test::OpenRetailJam();
     if (!archive) {
@@ -157,6 +194,7 @@ TEST_CASE("every menu style file in the retail game parses") {
     CheckMenuFontStyle(*shared);
     CheckControlSounds(*shared);
     CheckPickerSounds(*shared);
+    CheckBuilderPads(*archive);
 }
 
 }

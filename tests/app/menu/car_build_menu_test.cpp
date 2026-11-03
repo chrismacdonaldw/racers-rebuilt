@@ -72,6 +72,18 @@ TEST_CASE("the view pad turns and tilts the view until confirm") {
     CHECK_FALSE(menu.Held().has_value());
 }
 
+TEST_CASE("the focus stays on a held pad") {
+    CarBuildMenu menu;
+    CHECK(menu.FocusOn(BuildRow::Undo));
+    CHECK(menu.Focus() == BuildRow::Undo);
+
+    CHECK(menu.FocusOn(BuildRow::View));
+    Press(menu, {sim::MenuAction::Confirm});
+    REQUIRE(menu.Held() == BuildPad::View);
+    CHECK_FALSE(menu.FocusOn(BuildRow::Done));
+    CHECK(menu.Focus() == BuildRow::View);
+}
+
 TEST_CASE("the buttons act on confirm and back is done") {
     CarBuildMenu menu;
 

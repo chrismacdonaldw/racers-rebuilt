@@ -59,6 +59,21 @@ TEST_CASE("a tilt stops at the overhead and lowest views") {
     CHECK(SameEye(camera.Eye(0.0F), {.y = -14.0F, .z = 9.0F}));
 }
 
+TEST_CASE("a reset eases back to the opening slot and tilt") {
+    BuildCamera camera;
+    camera.Turn(3);
+    camera.Tilt(1);
+    CHECK_FALSE(camera.Reset());
+    camera.Tick(Milliseconds{300});
+
+    REQUIRE(camera.Reset());
+    CHECK(camera.Slot() == 1);
+    CHECK_FALSE(camera.IsOverhead());
+    camera.Tick(Milliseconds{300});
+    CHECK(camera.Angle() == doctest::Approx(kFirstAngle + kQuarter));
+    CHECK(SameEye(camera.Eye(0.0F), {.y = -10.0F, .z = 14.0F}));
+}
+
 TEST_CASE("the eye eases between tilts and pulls back for a bigger car") {
     BuildCamera camera;
     CHECK(SameEye(camera.Eye(5.9F), {.y = -10.0F, .z = 14.0F}));
