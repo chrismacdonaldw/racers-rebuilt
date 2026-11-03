@@ -119,7 +119,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
 RaceScene::RaceScene(Parts parts)
     : parts_(std::move(parts)),
       groundDecals_(parts_.decalSurface),
-      shadows_(parts_.racerFx, PerSlot(parts_.racers, parts_.racers.Count(), &RacerGrid::Chassis)),
+      shadows_(parts_.racerFx, ShadowCasters(*parts_.renderer, parts_.racers)),
       skids_(PlayerSkids(parts_.racerFx, parts_.racers, parts_.setup.players)),
       powerupVisuals_(parts_.powerups.models),
       powerupQuads_(PlayerPowerupQuads(parts_.powerups.quadMaterials, parts_.setup.players)),
@@ -319,8 +319,7 @@ void RaceScene::GatherCarMarks(const sim::RenderSnapshot& interpolated, float si
         cameras.at(player) = PlayerCameraPose(interpolated, player).position;
     }
     shadows_.Append(interpolated.entities, interpolated.racers, carLooks_,
-                    std::span(cameras).first(parts_.farModels.HidesCars() ? cameras_.Count() : 0),
-                    groundDecals_, carMarks_);
+                    std::span(cameras).first(cameras_.Count()), groundDecals_, carMarks_);
     for (std::size_t player = 0; player < skids_.size(); ++player) {
         const std::size_t slot = kPlayerSlot + player;
         skids_[player].Update(interpolated.entities[slot], interpolated.racers[slot], simMs);
