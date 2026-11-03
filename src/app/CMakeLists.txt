@@ -36,6 +36,7 @@ rr_add_module(app
         decal_surface.cpp
         enhancement_presets.cpp
         extensions.cpp
+        far_models.cpp
         player_cameras.cpp
         fov_swing.cpp
         gameplay_fingerprint.cpp

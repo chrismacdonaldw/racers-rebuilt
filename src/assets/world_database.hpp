@@ -136,4 +136,7 @@ struct WorldAsset {
 /// Fails on any index past its list. Start parts and camera nodes are not checked.
 [[nodiscard]] Result<WorldAsset> ParseWorld(std::span<const std::byte> bytes);
 
+/// From the camera, as the original squares it at load. Past it no level is drawn.
+[[nodiscard]] float DrawRangeSquared(const WorldEntity& entity);
+
 }

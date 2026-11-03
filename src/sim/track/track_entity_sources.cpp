@@ -190,6 +190,7 @@ private:
         placed.startPart = StartPart(entity, sources_.animations[*animation]);
         placed.scale = bounds->scale * entity.scale;
         placed.radius = bounds->radius * entity.scale;
+        placed.drawRangeSquared = assets::DrawRangeSquared(entity);
         sources_.entities.push_back(std::move(placed));
         return {};
     }

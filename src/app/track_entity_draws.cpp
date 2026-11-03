@@ -1,5 +1,7 @@
 #include "app/track_entity_draws.hpp"
 
+#include <cmath>
+
 #include "app/track_space.hpp"
 #include "assets/game_path.hpp"
 
@@ -37,6 +39,19 @@ void TrackEntityDraws::Update(std::span<const sim::EntityClock> clocks) {
             draws_[i].transform = placement;
             draws_[i].joints = poses;
         }
+    }
+}
+
+void TrackEntityDraws::AddFarModels(std::size_t firstDraw, FarModels& out) const {
+    for (std::size_t entity = 0; entity < spans_.size(); ++entity) {
+        const sim::TrackEntity& source = sources_->entities[entity];
+        if (spans_[entity].count == 0 || !std::isfinite(source.drawRangeSquared)) {
+            continue;
+        }
+        out.AddScenery(
+            {.position = ToEngine(source.placement.position),
+             .draws = {.first = firstDraw + spans_[entity].first, .count = spans_[entity].count},
+             .rangeSquared = source.drawRangeSquared});
     }
 }
 

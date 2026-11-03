@@ -12,6 +12,7 @@
 #include "assets/track_loader.hpp"
 #include "assets/world_database.hpp"
 #include "core/result.hpp"
+#include "core/vector3.hpp"
 #include "render/camera.hpp"
 #include "render/renderer.hpp"
 
@@ -34,6 +35,13 @@ struct NamedDraws {
     DrawSpan span;
 };
 
+/// `position` is in engine space, and `rangeSquared` from the camera.
+struct FarModel {
+    Vector3 position;
+    DrawSpan draws;
+    float rangeSquared = 0.0F;
+};
+
 /// A sky world model. Its draws hold the entity's rotation; the race moves them to the camera.
 struct SkyModel {
     std::vector<render::MeshDraw> draws;
@@ -46,6 +54,7 @@ struct TrackModel {
     std::vector<render::MeshDraw> draws;
     std::vector<std::uint32_t> drawSlots;
     std::vector<NamedDraws> entityDraws;
+    std::vector<FarModel> farModels;
     assets::NameMap<JointedModel> animatedModels;
     std::vector<SkyModel> skyModels;
     assets::NameMap<render::Material> materials;

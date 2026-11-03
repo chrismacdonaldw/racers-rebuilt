@@ -6,9 +6,9 @@
 #include <utility>
 #include <vector>
 
+#include "app/far_models.hpp"
 #include "app/hud/minimap.hpp"
 #include "app/powerup/powerup_models.hpp"
-#include "app/racer/far_cars.hpp"
 #include "app/racer/racer_grid.hpp"
 #include "app/time_trial/ghost_car.hpp"
 #include "assets/track_loader.hpp"
@@ -36,17 +36,20 @@ public:
     void AppendDraws(std::vector<render::MeshDraw>& out) const;
 
     /// `firstDraw` is where `AppendDraws` starts in the scene's meshes.
-    void AddFarCars(const sim::GhostSnapshot& ghosts, std::size_t firstDraw, FarCars& out) const;
+    void AddFarCars(const sim::GhostSnapshot& ghosts, std::size_t firstDraw, FarModels& out) const;
 
 private:
-    GhostCars(std::unique_ptr<EffectAssets> recordAssets, GhostCar recordCar, GhostCar bestCar)
+    GhostCars(std::unique_ptr<EffectAssets> recordAssets, GhostCar recordCar, GhostCar bestCar,
+              float recordRangeSquared)
         : recordAssets_(std::move(recordAssets)),
           recordCar_(std::move(recordCar)),
-          bestCar_(std::move(bestCar)) {}
+          bestCar_(std::move(bestCar)),
+          recordRangeSquared_(recordRangeSquared) {}
 
     std::unique_ptr<EffectAssets> recordAssets_;
     GhostCar recordCar_;
     GhostCar bestCar_;
+    float recordRangeSquared_;
 };
 
 /// The best ghost takes a racer's marker and the record ghost the champion's.

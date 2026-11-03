@@ -320,4 +320,12 @@ Result<WorldAsset> ParseWorld(std::span<const std::byte> bytes) {
         .transform([&] { return std::move(world); });
 }
 
+float DrawRangeSquared(const WorldEntity& entity) {
+    if (entity.lods.empty()) {
+        return std::numeric_limits<float>::infinity();
+    }
+    const float distance = std::ranges::max(entity.lods, {}, &WorldLod::maxDistance).maxDistance;
+    return distance * distance;
+}
+
 }

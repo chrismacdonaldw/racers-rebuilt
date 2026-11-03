@@ -291,5 +291,17 @@ TEST_CASE("node references and binding tables are not checked") {
     CHECK_FALSE(ParseWorld(binding).has_value());
 }
 
+TEST_CASE("the draw range is the farthest level's distance, squared") {
+    constexpr float kNoLimit = std::numeric_limits<float>::infinity();
+    WorldEntity entity;
+    CHECK(DrawRangeSquared(entity) == kNoLimit);
+
+    entity.lods = {WorldLod{.maxDistance = 300.0F}, WorldLod{.maxDistance = 20.0F}};
+    CHECK(DrawRangeSquared(entity) == 90000.0F);
+
+    entity.lods.push_back(WorldLod{});
+    CHECK(DrawRangeSquared(entity) == kNoLimit);
+}
+
 }
 }

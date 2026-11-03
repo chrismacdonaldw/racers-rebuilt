@@ -42,6 +42,12 @@ inline constexpr settings::SettingSpec<bool> kSmoothTexturesSetting{.key = "vide
 inline constexpr settings::SettingSpec<bool> kFarCarsSetting{
     .key = "video.far_cars", .defaultValue = true, .label = "Draw far cars", .category = "Video"};
 
+/// Draws track models past the distance each one's world file gives, unlike the original.
+inline constexpr settings::SettingSpec<bool> kFarScenerySetting{.key = "video.far_scenery",
+                                                                .defaultValue = true,
+                                                                .label = "Draw far scenery",
+                                                                .category = "Video"};
+
 void DeclareVideoSettings(settings::Registry& registry);
 
 [[nodiscard]] platform::PacingConfig PacingFromSettings(const settings::Registry& registry);
