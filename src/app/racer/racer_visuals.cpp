@@ -21,9 +21,21 @@ Result<std::size_t> FindPart(const AnimationPlayer& player, std::string_view nam
     return *part;
 }
 
+std::optional<Vector3> Facing(const Transform& wheels, const std::optional<Vector3>& other) {
+    if (!other) {
+        return std::nullopt;
+    }
+    const Vector3 toward = *other - wheels.position;
+    if (Length(toward) <= 0.0F) {
+        return std::nullopt;
+    }
+    return Rotate(Conjugate(wheels.rotation), Normalized(toward, {}));
 }
 
-Result<RacerVisuals> RacerVisuals::Create(const RacerAssets& assets, RacerDraws draws) {
+}
+
+Result<RacerVisuals> RacerVisuals::Create(const RacerAssets& assets, RacerDraws draws,
+                                          sim::Random random) {
     Result<AnimatedSkeleton> wheels = AnimatedSkeleton::Bind(assets.wheels, draws.wheels);
     Result<AnimatedSkeleton> driver = wheels.and_then([&](const AnimatedSkeleton&) {
         return AnimatedSkeleton::Bind(assets.driver, draws.driver);
@@ -45,8 +57,8 @@ Result<RacerVisuals> RacerVisuals::Create(const RacerAssets& assets, RacerDraws 
     parts.bodyDraws = parts.posed.Append(draws.body);
     parts.driverDraws = parts.posed.Append(draws.driver);
     parts.wheels.player.Play(parts.wheelParts.forward, true);
-    parts.driver.player.Play(parts.driverParts.straight, true);
-    return RacerVisuals(std::move(parts));
+    parts.driver.player.Play(parts.driverParts[std::to_underlying(DriverPart::Default)], true);
+    return RacerVisuals(std::move(parts), random);
 }
 
 Result<RacerVisuals::WheelParts> RacerVisuals::FindWheelParts(const AnimationPlayer& player) {
@@ -63,30 +75,27 @@ Result<RacerVisuals::WheelParts> RacerVisuals::FindWheelParts(const AnimationPla
 }
 
 Result<RacerVisuals::DriverParts> RacerVisuals::FindDriverParts(const AnimationPlayer& player) {
-    DriverParts parts;
-    return FindPart(player, "default")
-        .and_then([&](std::size_t straight) {
-            parts.straight = straight;
-            return FindPart(player, "steer-r");
-        })
-        .and_then([&](std::size_t steerRight) {
-            parts.steerRight = steerRight;
-            return FindPart(player, "steer-l");
-        })
-        .and_then([&](std::size_t steerLeft) {
-            parts.steerLeft = steerLeft;
-            return FindPart(player, "power1");
-        })
-        .transform([&](std::size_t hit) {
-            parts.hit = hit;
-            return parts;
-        });
+    DriverParts parts{};
+    for (std::size_t i = 0; i < kDriverPartCount; ++i) {
+        Result<std::size_t> part = FindPart(player, kDriverPartNames[i]);
+        if (!part) {
+            return std::unexpected(std::move(part.error()));
+        }
+        parts[i] = *part;
+    }
+    return parts;
 }
 
 void RacerVisuals::Update(const Transform& wheels, const sim::RacerSnapshot& motion,
-                          float elapsedMs) {
+                          std::optional<Vector3> nearestRacer, float elapsedMs) {
     Spin(motion.forwardSpeed, elapsedMs);
-    Drive(motion, elapsedMs);
+    Drive({.turnRadius = motion.turnRadius,
+           .isReversing = motion.isReversing,
+           .wasHit = std::exchange(hitReactions_, motion.hitReactions) != motion.hitReactions,
+           .hasStopped = std::exchange(suddenStops_, motion.suddenStops) != motion.suddenStops,
+           .finishPlace = motion.finishPlace,
+           .nearestRacer = Facing(wheels, nearestRacer)},
+          elapsedMs);
     const Transform body = lean_.Update(wheels, elapsedMs, parts_.mass);
     const Transform seat{.position = Apply(body, parts_.seat), .rotation = body.rotation};
     parts_.posed.Place(parts_.wheelDraws, wheels, parts_.wheels.Solve());
@@ -101,30 +110,24 @@ void RacerVisuals::Spin(float forwardSpeed, float elapsedMs) {
     player.AdvanceFrames(speed < kStillSpeed ? 0.0F : speed * kWheelFramesPerSpeed * elapsedMs);
 }
 
-void RacerVisuals::Drive(const sim::RacerSnapshot& motion, float elapsedMs) {
+void RacerVisuals::Drive(const DriverSense& sense, float elapsedMs) {
     AnimationPlayer& player = parts_.driver.player;
-    if (std::exchange(hitReactions_, motion.hitReactions) != motion.hitReactions) {
-        player.Play(parts_.driverParts.hit, false);
-        isReacting_ = true;
-    } else if (!player.IsPlayingOnce()) {
-        if (std::exchange(isReacting_, false)) {
-            player.Play(parts_.driverParts.straight, true);
+    if (const std::optional<DriverCue> cue =
+            moves_.Next(sense, player.IsPlayingOnce(), elapsedMs)) {
+        const std::size_t part = parts_.driverParts.at(std::to_underlying(cue->part));
+        switch (cue->kind) {
+            case DriverCueKind::Once:
+                player.Play(part, false);
+                break;
+            case DriverCueKind::Loop:
+                player.Play(part, true);
+                break;
+            case DriverCueKind::Blend:
+                player.BlendTo(part, kSteerBlendMs);
+                break;
         }
-        Steer(motion.turnRadius);
     }
     player.Advance(elapsedMs);
-}
-
-void RacerVisuals::Steer(float turnRadius) {
-    AnimationPlayer& player = parts_.driver.player;
-    const DriverParts& driverParts = parts_.driverParts;
-    std::size_t part = driverParts.straight;
-    if (turnRadius < 0.0F) {
-        part = driverParts.steerRight;
-    } else if (turnRadius > 0.0F) {
-        part = driverParts.steerLeft;
-    }
-    player.BlendTo(part, kSteerBlendMs);
 }
 
 }

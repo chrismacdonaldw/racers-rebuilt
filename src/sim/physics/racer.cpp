@@ -1,7 +1,6 @@
 #include "sim/physics/racer.hpp"
 
 #include <cmath>
-#include <cstdint>
 #include <utility>
 
 #include "core/assert.hpp"
@@ -43,9 +42,9 @@ void Racer::Place(const RacerStart& start) {
     SetDrive(body_, constants_, 0.0F, kBaseMaxSpeed * stats_.topSpeed);
     driver_ = {};
     turbo_.reset();
-    const std::uint32_t hitReactions = status_.hitReactions;
-    status_ = {};
-    status_.hitReactions = hitReactions;
+    const RacerStatus kept = std::exchange(status_, {});
+    status_.hitReactions = kept.hitReactions;
+    status_.suddenStops = kept.suddenStops;
 }
 
 void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const CollisionQuery& world) {

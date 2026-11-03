@@ -19,6 +19,8 @@ constexpr int kShieldCooldownMs = 500;
 constexpr int kShoveMs = 750;
 constexpr float kShoveGain = 2.5F;
 constexpr float kShoveSlip = 0.9F;
+constexpr float kSuddenStopFromSpeed = 0.05F;
+constexpr float kStoppedSpeed = 0.01F;
 
 int CountDown(int remainingMs, int elapsedMs) {
     return std::max(0, remainingMs - elapsedMs);
@@ -192,6 +194,17 @@ void Racer::React(VoiceReaction reaction) {
     if (!events_.reaction) {
         events_.reaction = reaction;
     }
+}
+
+void Racer::WatchForSuddenStop() {
+    const float speed = body_.derived.forwardSpeed;
+    if (watchedSpeed_ > kSuddenStopFromSpeed && speed < kStoppedSpeed) {
+        ++status_.suddenStops;
+        React(VoiceReaction::Negative);
+        watchedSpeed_ = 0.0F;
+        return;
+    }
+    watchedSpeed_ = speed;
 }
 
 void Racer::ReactToHit() {

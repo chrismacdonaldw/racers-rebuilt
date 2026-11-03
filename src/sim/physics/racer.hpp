@@ -69,6 +69,7 @@ struct RacerStatus {
     CurseSource curseSource;
     CurseJitter jitter;
     std::uint32_t hitReactions = 0;
+    std::uint32_t suddenStops = 0;
     ShieldStatus shield;
     std::optional<std::size_t> shoveForce;
     int shoveMs = 0;
@@ -134,6 +135,9 @@ public:
 
     /// Only the first reaction since the last `Tick` counts.
     void React(VoiceReaction reaction);
+
+    /// Call after each `Tick` until the racer finishes. A sudden stop groans and counts.
+    void WatchForSuddenStop();
 
     /// Fails while the racer is a ghost or already warping. Ends any magnet hold.
     [[nodiscard]] bool BeginWarp();
@@ -228,6 +232,7 @@ private:
     RacerStatus status_;
     bool wasBrakeHeld_ = false;
     std::uint32_t turboCount_ = 0;
+    float watchedSpeed_ = 0.0F;
 };
 
 }

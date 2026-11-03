@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "../racer/racer_rig.hpp"
+#include "app/racer/driver_moves.hpp"
 
 namespace rr::app {
 namespace {
@@ -97,7 +98,7 @@ TEST_CASE("a ghost's wheels turn at the frame's rate in frames per second") {
 TEST_CASE("a ghost driver part past the animations fails") {
     const Rig rig;
 
-    CHECK_FALSE(GhostCar::Create(rig.Models(4)).has_value());
+    CHECK_FALSE(GhostCar::Create(rig.Models(kDriverPartCount)).has_value());
 }
 
 }
