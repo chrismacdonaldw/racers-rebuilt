@@ -106,6 +106,17 @@ TEST_CASE_FIXTURE(Pieces, "the starter sets, unlocked sets and the car's own set
     CHECK(AvailablePartSets({0}, car, catalog) == std::vector<std::size_t>{0, 2, 3, 4, 6});
 }
 
+TEST_CASE_FIXTURE(Pieces, "a mod's sets are always there and show their chassis set's icon") {
+    catalog.partSets.at(kRaceSet).chassis = 1;
+    catalog.partSets.push_back(catalog.partSets.at(kRaceSet));
+    const sim::BuiltCar car;
+
+    const std::vector<std::size_t> sets = AvailablePartSets({}, car, catalog);
+
+    CHECK(sets == std::vector<std::size_t>{0, 1, 2, 3, kPartSetCount});
+    CHECK(SetIcons(catalog, sets) == std::vector<std::size_t>{0, 1, 2, 3, kRaceSet});
+}
+
 TEST_CASE("quick build cycles exactly the builds on the chassis, in any case") {
     QuickBuilds builds({Build("ddchas0", std::byte{0}), Build("rrchas0", std::byte{1}),
                         Build("DDCHAS0", std::byte{2}), Build("bbchas0", std::byte{3}),

@@ -4,11 +4,15 @@
 #include <format>
 #include <optional>
 #include <span>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "assets/game_path.hpp"
 #include "assets/material_library.hpp"
+#include "assets/merged_table.hpp"
 #include "assets/part_sets.hpp"
+#include "assets/piece_merge.hpp"
 #include "core/log.hpp"
 
 namespace rr::assets {
@@ -16,6 +20,7 @@ namespace {
 
 constexpr std::string_view kPieceFolder = "MENUDATA/PIECEDB";
 constexpr std::size_t kBuilderVariant = 1;
+constexpr std::string_view kSetList = "CRSTMGR.LEB";
 
 auto InFile(std::string_view file) {
     return [file](Error error) {
@@ -71,23 +76,93 @@ Result<CatalogPartSet> ResolveSet(const PieceCatalog& catalog, PartSet set) {
     return resolved;
 }
 
-Result<void> LoadPartSets(const Vfs& vfs, PieceCatalog& catalog) {
-    Result<std::vector<std::string>> files = ReadPieceFile(vfs, "CRSTMGR.LEB", ParsePartSetList);
-    if (!files) {
-        return std::unexpected(std::move(files.error()));
+std::vector<std::string> UniteNames(std::vector<std::vector<std::string>> lists) {
+    std::vector<std::string> united;
+    for (std::vector<std::string>& list : lists) {
+        for (std::string& name : list) {
+            const std::string upper = ToUpperAscii(name);
+            if (std::ranges::find(united, upper, ToUpperAscii) == united.end()) {
+                united.push_back(std::move(name));
+            }
+        }
     }
-    for (const std::string& listed : *files) {
-        const std::string file = BinaryPartSetFile(listed);
+    return united;
+}
+
+Result<void> LoadPartSets(const Vfs& vfs, PieceCatalog& catalog) {
+    Result<std::vector<std::vector<std::string>>> lists =
+        ParseEveryLayer(vfs, JoinGamePath(kPieceFolder, kSetList), ParsePartSetList)
+            .transform_error(InFile(kSetList));
+    if (!lists) {
+        return std::unexpected(std::move(lists.error()));
+    }
+    const std::size_t gameSets = lists->front().size();
+    const std::vector<std::string> files = UniteNames(std::move(*lists));
+    for (std::size_t index = 0; index < files.size(); ++index) {
+        const std::string file = BinaryPartSetFile(files[index]);
         Result<CatalogPartSet> set =
             ReadPieceFile(vfs, file, ParsePartSet).and_then([&](PartSet parsed) {
                 return ResolveSet(catalog, std::move(parsed)).transform_error(InFile(file));
             });
-        if (!set) {
+        if (set) {
+            catalog.partSets.push_back(std::move(*set));
+        } else if (index < gameSets) {
             return std::unexpected(std::move(set.error()));
+        } else {
+            log::Warn("skipping a mod's part set: {}", set.error().message);
         }
-        catalog.partSets.push_back(std::move(*set));
     }
     return {};
+}
+
+Result<std::optional<PieceLayer>> ReadPieceLayer(const Vfs& vfs, std::size_t layer,
+                                                 std::string_view stem) {
+    const std::string libraryFile = std::format("{}.LEB", stem);
+    const std::string materialFile = std::format("{}.MDB", stem);
+    Result<std::optional<FileData>> library =
+        vfs.ReadLayer(layer, JoinGamePath(kPieceFolder, libraryFile));
+    if (!library || !*library) {
+        return library.transform([](const auto&) { return std::optional<PieceLayer>(); });
+    }
+    PieceLayer read;
+    Result<std::optional<FileData>> materials =
+        ParsePieceLibrary((*library)->Bytes())
+            .transform_error(InFile(libraryFile))
+            .and_then([&](PieceLibrary parsed) {
+                read.library = std::move(parsed);
+                return vfs.ReadLayer(layer, JoinGamePath(kPieceFolder, materialFile));
+            });
+    if (!materials || !*materials) {
+        return materials.transform([&](const auto&) { return std::optional(std::move(read)); });
+    }
+    return ParseMaterialLibrary((*materials)->Bytes())
+        .transform_error(InFile(materialFile))
+        .transform([&](const std::vector<MaterialAsset>& parsed) {
+            for (const MaterialAsset& material : parsed) {
+                read.materials.push_back(material.name);
+            }
+            return std::optional(std::move(read));
+        });
+}
+
+Result<std::vector<PieceLayer>> ReadPieceLayers(const Vfs& vfs, std::string_view stem) {
+    std::vector<PieceLayer> layers;
+    for (std::size_t layer = 0; layer < vfs.LayerCount(); ++layer) {
+        Result<std::optional<PieceLayer>> read = ReadPieceLayer(vfs, layer, stem);
+        if (!read && layers.empty()) {
+            return std::unexpected(std::move(read.error()));
+        }
+        if (!read) {
+            log::Warn("skipping a mod's {} pieces: {}", stem, read.error().message);
+        } else if (*read) {
+            layers.push_back(std::move(**read));
+        }
+    }
+    if (layers.empty() || layers.front().materials.empty()) {
+        return Fail(ErrorCode::NotFound,
+                    std::format("{}.LEB or its MDB isn't in the game files", stem));
+    }
+    return layers;
 }
 
 }
@@ -100,15 +175,11 @@ std::string BinaryPartSetFile(std::string_view listed) {
 Result<PieceCatalog> PieceCatalog::Load(const Vfs& vfs, PieceDetail detail) {
     PieceCatalog catalog;
     const std::string_view stem = detail == PieceDetail::Menu ? "LPIECEHI" : "LPIECELO";
-    return ReadPieceFile(vfs, std::format("{}.LEB", stem), ParsePieceLibrary)
-        .and_then([&](PieceLibrary library) {
-            catalog.library = std::move(library);
-            return ReadPieceFile(vfs, std::format("{}.MDB", stem), ParseMaterialLibrary);
-        })
-        .and_then([&](const std::vector<MaterialAsset>& materials) {
-            for (const MaterialAsset& material : materials) {
-                catalog.materials.push_back(material.name);
-            }
+    return ReadPieceLayers(vfs, stem)
+        .transform(MergePieceLayers)
+        .and_then([&](PieceLayer merged) {
+            catalog.library = std::move(merged.library);
+            catalog.materials = std::move(merged.materials);
             return ReadPieceFile(vfs, "L_COLORS.LEB", ParsePieceColours);
         })
         .and_then([&](std::vector<std::string> colours) {

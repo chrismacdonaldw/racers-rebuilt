@@ -50,6 +50,10 @@ public:
     /// Skips the resolver.
     [[nodiscard]] bool Contains(std::string_view path) const;
 
+    /// Layer 0 is the first mounted. Skips the resolver.
+    [[nodiscard]] Result<std::optional<FileData>> ReadLayer(std::size_t layer,
+                                                            std::string_view path) const;
+
     /// Lowest layer first, skipping the resolver. Empty when no layer has `path`.
     [[nodiscard]] Result<std::vector<FileData>> ReadEveryLayer(std::string_view path) const;
 

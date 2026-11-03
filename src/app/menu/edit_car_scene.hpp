@@ -66,6 +66,7 @@ private:
         sim::BuiltCar built;
         QuickBuilds quickBuilds;
         std::vector<std::size_t> sets;
+        std::vector<std::size_t> setIcons;
         std::size_t set = 0;
         bool isReplaceable = false;
     };

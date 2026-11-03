@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -185,6 +186,16 @@ TEST_CASE_FIXTURE(VfsFixture, "reading every layer counts only the layers with t
     CHECK(vfs_.ReadEveryLayer("GAMEDATA/B.TXT")->size() == 1);
     CHECK(vfs_.ReadEveryLayer("GAMEDATA/MISSING.TXT")->empty());
     CHECK(vfs_.ReadEveryLayer("GAMEDATA").value().empty());
+}
+
+TEST_CASE_FIXTURE(VfsFixture, "reading one layer finds only that layer's file") {
+    MountLoose();
+
+    const std::optional<FileData> loose = vfs_.ReadLayer(1, "gamedata/a.txt").value();
+    const auto text = [](const FileData& file) { return std::string(test::AsText(file.Bytes())); };
+
+    CHECK(loose.transform(text) == "loose a");
+    CHECK_FALSE(vfs_.ReadLayer(1, "GAMEDATA/B.TXT").value().has_value());
 }
 
 TEST_CASE_FIXTURE(VfsFixture, "a folder layer skips names that can't be game paths") {

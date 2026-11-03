@@ -46,24 +46,23 @@ sim::BuiltCar LoadEditedCar(const assets::CarData& data, const assets::PieceLibr
 std::vector<std::size_t> AvailablePartSets(const std::set<std::int32_t>& partSets,
                                            const sim::BuiltCar& car,
                                            const assets::PieceCatalog& catalog) {
-    std::array<bool, kPartSetCount> isAvailable{};
+    std::vector<bool> isAvailable(std::max(catalog.partSets.size(), kPartSetCount), false);
     std::fill_n(isAvailable.begin(), kStarterPartSets, true);
+    std::fill(isAvailable.begin() + kPartSetCount, isAvailable.end(), true);
     for (const std::int32_t unlocked : partSets) {
         const auto set = kStarterPartSets + static_cast<std::size_t>(unlocked);
         if (unlocked >= 0 && set < kPartSetCount) {
-            isAvailable.at(set) = true;
+            isAvailable[set] = true;
         }
     }
     for (const sim::CarPiece& piece : car.Pieces()) {
-        const std::optional<std::size_t> set = PartSetOfType(catalog, piece.partType);
-        if (set && *set < kPartSetCount) {
-            isAvailable.at(*set) = true;
+        if (const std::optional<std::size_t> set = PartSetOfType(catalog, piece.partType)) {
+            isAvailable[*set] = true;
         }
     }
     std::vector<std::size_t> sets;
-    for (std::size_t set = 0; set < kPartSetCount; ++set) {
-        if (isAvailable.at(set) && set < catalog.partSets.size() &&
-            !catalog.partSets[set].choices.empty()) {
+    for (std::size_t set = 0; set < catalog.partSets.size(); ++set) {
+        if (isAvailable[set] && !catalog.partSets[set].choices.empty()) {
             sets.push_back(set);
         }
     }
@@ -85,6 +84,18 @@ std::optional<std::size_t> PartSetOfType(const assets::PieceCatalog& catalog,
         }
     }
     return std::nullopt;
+}
+
+std::vector<std::size_t> SetIcons(const assets::PieceCatalog& catalog,
+                                  std::span<const std::size_t> sets) {
+    std::vector<std::size_t> icons;
+    icons.reserve(sets.size());
+    for (const std::size_t set : sets) {
+        icons.push_back(set < kPartSetCount
+                            ? set
+                            : PartSetOfType(catalog, PartTypeOf(catalog, set)).value_or(set));
+    }
+    return icons;
 }
 
 Result<void> ResetToChassis(sim::BuiltCar& car, const assets::PieceCatalog& catalog,

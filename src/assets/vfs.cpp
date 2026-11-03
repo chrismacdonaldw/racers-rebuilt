@@ -60,22 +60,30 @@ bool Vfs::Contains(std::string_view path) const {
            });
 }
 
-Result<std::vector<FileData>> Vfs::ReadEveryLayer(std::string_view path) const {
+Result<std::optional<FileData>> Vfs::ReadLayer(std::size_t layer, std::string_view path) const {
+    RR_ASSERT(layer < layers_.size());
     Result<std::string> normalized = NormalizeGamePath(path);
     if (!normalized) {
         return std::unexpected(std::move(normalized.error()));
     }
+    const std::optional<EntryInfo> entry = layers_[layer]->Index().Find(*normalized);
+    if (!entry || entry->kind != EntryKind::File) {
+        return std::nullopt;
+    }
+    return layers_[layer]->Read(*entry).transform(
+        [](FileData data) { return std::optional<FileData>(std::move(data)); });
+}
+
+Result<std::vector<FileData>> Vfs::ReadEveryLayer(std::string_view path) const {
     std::vector<FileData> files;
-    for (const std::unique_ptr<VfsLayer>& layer : layers_) {
-        const std::optional<EntryInfo> entry = layer->Index().Find(*normalized);
-        if (!entry || entry->kind != EntryKind::File) {
-            continue;
-        }
-        Result<FileData> data = layer->Read(*entry);
+    for (std::size_t layer = 0; layer < layers_.size(); ++layer) {
+        Result<std::optional<FileData>> data = ReadLayer(layer, path);
         if (!data) {
             return std::unexpected(std::move(data.error()));
         }
-        files.push_back(std::move(*data));
+        if (*data) {
+            files.push_back(std::move(**data));
+        }
     }
     return files;
 }
