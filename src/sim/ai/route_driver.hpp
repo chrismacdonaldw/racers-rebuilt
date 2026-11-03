@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
 
 #include "assets/race_route.hpp"
@@ -15,7 +16,7 @@ class RouteDriver {
 public:
     explicit RouteDriver(const assets::RaceRoute& route, std::optional<float> pace = std::nullopt);
 
-    /// With a pace, coasts while faster than that fraction of the route's recorded speed.
+    /// Paced, coasts above its share of the route's recorded speed and brakes well above it.
     [[nodiscard]] RacerControls Drive(const Racer& racer);
 
     /// True once `Drive` has made no headway along the route for 3 s. The count then restarts.
@@ -34,7 +35,9 @@ public:
 
 private:
     void Follow(const Vector3& position);
-    [[nodiscard]] bool IsBelowPace(const BodyMotion& motion) const;
+    enum class Pedal : std::uint8_t { Throttle, Coast, Brake };
+
+    [[nodiscard]] Pedal PedalFor(const BodyMotion& motion) const;
 
     RoutePlayback nearest_;
     RoutePlayback reference_;

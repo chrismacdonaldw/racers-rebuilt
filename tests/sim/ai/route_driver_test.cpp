@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <numbers>
@@ -67,6 +68,35 @@ TEST_CASE("a paced route driver cruises near its share of the route's recorded s
 
         CHECK(racer.Body().derived.speed == doctest::Approx(0.01F * pace).epsilon(0.15));
     }
+}
+
+assets::RaceRoute FastThenSlow() {
+    assets::RaceRoute route = test::StraightRoute({.z = 0.2F}, 700);
+    for (std::size_t i = 0; i < 400; ++i) {
+        route.points[i].durationMs = 10;
+    }
+    return route;
+}
+
+TEST_CASE("a paced route driver brakes ahead of the route slowing down") {
+    const test::PlaneWorld world = test::FlatGround();
+    RouteDriver driver(FastThenSlow(), 1.0F);
+    Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+    float fastest = 0.0F;
+    float brakedAtX = 0.0F;
+    for (int elapsed = 0; elapsed < 16000; elapsed += static_cast<int>(kTick.count())) {
+        const RacerControls controls = driver.Drive(racer);
+        if (controls.isBrakeHeld && brakedAtX == 0.0F) {
+            brakedAtX = racer.Body().motion.position.x;
+        }
+        racer.Tick(kTick, controls, world);
+        fastest = std::max(fastest, racer.Body().derived.speed);
+    }
+
+    CHECK(fastest > 0.05F);
+    CHECK(brakedAtX > 300.0F);
+    CHECK(brakedAtX < 400.0F);
+    CHECK(racer.Body().derived.speed == doctest::Approx(0.01F).epsilon(0.15));
 }
 
 TEST_CASE("a route driver calls a car stalled after 3 s without headway and rejoins it ahead") {
