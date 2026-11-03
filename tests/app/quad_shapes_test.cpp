@@ -3,7 +3,10 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <numbers>
 #include <vector>
+
+#include "core/quaternion.hpp"
 
 namespace rr::app {
 namespace {
@@ -25,6 +28,38 @@ TEST_CASE("a billboard spans the camera's right and up axes") {
     CHECK(quads[0].texture == kLook.texture);
     CheckNear(quads[0].corners[0], {.x = -2.0F, .y = 1.0F, .z = -10.0F});
     CheckNear(quads[0].corners[3], {.x = 2.0F, .y = -1.0F, .z = -10.0F});
+}
+
+TEST_CASE("an upright billboard stays upright when the camera looks down on it") {
+    const Transform camera{.rotation = FromAxisAngle({.x = 1.0F}, -std::numbers::pi_v<float> / 4)};
+    std::vector<render::QuadDraw> quads;
+
+    AppendUprightBillboard(kLook, {.z = -10.0F}, {.y = 1.0F}, 4.0F, camera, quads);
+
+    REQUIRE(quads.size() == 1);
+    CheckNear(quads[0].corners[0], {.x = -2.0F, .y = 1.0F, .z = -10.0F});
+    CheckNear(quads[0].corners[3], {.x = 2.0F, .y = -1.0F, .z = -10.0F});
+}
+
+TEST_CASE("an upright billboard turns about its axis to face against the view") {
+    const Transform camera{.rotation = FromAxisAngle({.y = 1.0F}, std::numbers::pi_v<float> / 2)};
+    std::vector<render::QuadDraw> quads;
+
+    AppendUprightBillboard(kLook, {}, {.y = 1.0F}, 4.0F, camera, quads);
+
+    REQUIRE(quads.size() == 1);
+    CheckNear(quads[0].corners[0], {.y = 1.0F, .z = 2.0F});
+    CheckNear(quads[0].corners[3], {.y = -1.0F, .z = -2.0F});
+}
+
+TEST_CASE("an upright billboard seen along its axis takes the camera's right") {
+    const Transform camera{.rotation = FromAxisAngle({.x = 1.0F}, -std::numbers::pi_v<float> / 2)};
+    std::vector<render::QuadDraw> quads;
+
+    AppendUprightBillboard(kLook, {}, {.y = 1.0F}, 4.0F, camera, quads);
+
+    REQUIRE(quads.size() == 1);
+    CheckNear(quads[0].corners[0], {.x = -2.0F, .y = 1.0F});
 }
 
 TEST_CASE("a decal lies level, just above its centre") {

@@ -227,6 +227,7 @@ rr_add_module(app
         sky_backdrop.cpp
         track_model.cpp
         track_space.cpp
+        track_sprites.cpp
         track_viewer_scene.cpp
         trigger_spheres.cpp
         ui_text/text_layout.cpp

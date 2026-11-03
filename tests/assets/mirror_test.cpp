@@ -41,7 +41,7 @@ TEST_CASE("a mirrored world reflects its entities and sprites but keeps its came
     world.animatedEntities.push_back({.position = kPoint});
     world.collidableEntities.push_back({.up = {.y = 1.0F}});
     world.boundedEntities.push_back({.position = kPoint});
-    world.sprites.push_back({.position = kPoint});
+    world.sprites.push_back({.position = kPoint, .axis = Vector3{.y = 1.0F}});
     world.cameras.push_back({.position = kPoint});
 
     MirrorY(world);
@@ -53,6 +53,7 @@ TEST_CASE("a mirrored world reflects its entities and sprites but keeps its came
     CHECK(world.collidableEntities[0].up == Vector3{.y = -1.0F});
     CHECK(world.boundedEntities[0].position == kMirroredPoint);
     CHECK(world.sprites[0].position == kMirroredPoint);
+    CHECK(world.sprites[0].axis == Vector3{.y = -1.0F});
     CHECK(world.cameras[0].position == kPoint);
 }
 

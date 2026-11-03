@@ -313,6 +313,9 @@ Result<TrackModel> UploadTrack(render::Renderer& renderer, const assets::TrackAs
         }
     }
     TrackModel model = std::move(builder).Finish();
+    for (const assets::AssetCache<assets::WorldAsset>::Handle& world : track.worlds) {
+        model.sprites.Add(world->sprites, model.materials);
+    }
     model.textures = std::move(*textures);
     return model;
 }

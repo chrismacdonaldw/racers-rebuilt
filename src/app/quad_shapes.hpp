@@ -25,6 +25,11 @@ struct QuadLook {
 void AppendBillboard(const QuadLook& look, const Vector3& centre, float width, float height,
                      const Transform& camera, std::vector<render::QuadDraw>& out);
 
+/// In engine space. `top` runs from the centre to the top edge, and the quad turns about it.
+void AppendUprightBillboard(const QuadLook& look, const Vector3& centre, const Vector3& top,
+                            float width, const Transform& camera,
+                            std::vector<render::QuadDraw>& out);
+
 /// In engine space. `top` and `right` run from the centre to the texture's top and right edges.
 void AppendGroundQuad(const QuadLook& look, const Vector3& centre, const Vector3& normal,
                       const Vector3& top, const Vector3& right, std::vector<render::QuadDraw>& out);

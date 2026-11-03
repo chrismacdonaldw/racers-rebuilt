@@ -54,5 +54,15 @@ TEST_CASE("the flash fades in dark blue over the start's last 200 ms") {
     CHECK(half.bounds.x + half.bounds.width > 640.0F);
 }
 
+TEST_CASE("each player flashes for their own racer's warp") {
+    const std::vector<sim::EffectSnapshot> effects{Warp(2, sim::WarpPhase::Starting, 100.0F),
+                                                   Warp(1, sim::WarpPhase::Starting, 300.0F)};
+
+    const auto flashes = WarpFlashes(effects, 1, 2);
+
+    CHECK_FALSE(flashes[0].has_value());
+    CHECK(flashes[1].has_value());
+}
+
 }
 }

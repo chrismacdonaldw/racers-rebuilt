@@ -42,6 +42,7 @@
 #include "app/time_trial/time_trial_race.hpp"
 #include "app/time_trial/time_trial_run.hpp"
 #include "app/track_entity_draws.hpp"
+#include "app/track_sprites.hpp"
 #include "app/trigger_spheres.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
@@ -102,6 +103,7 @@ private:
         std::unique_ptr<sim::RaceTrack> raceTrack;
         TrackEntityDraws entityDraws;
         FarModels farModels;
+        TrackSprites sprites;
         HiddenModels hiddenModels;
         GhostTrail ghostTrail;
         WaterScroll waterScroll;

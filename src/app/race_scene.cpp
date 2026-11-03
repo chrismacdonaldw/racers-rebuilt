@@ -72,8 +72,8 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
         return std::unexpected(std::move(sky.error()));
     }
     auto raceTrack = std::make_unique<sim::RaceTrack>(std::move(*loaded));
-    auto world = std::make_unique<sim::WorldList>(raceTrack->collision.Track());
-    TrackEntityDraws entityDraws(model->animatedModels, raceTrack->entities);
+    const sim::RaceTrack& race = *raceTrack;
+    auto world = std::make_unique<sim::WorldList>(race.collision.Track());
     Result<sim::RaceSession> session = sim::RaceSession::Create(
         GridSetup(setup, *racers, seed, racers->Count()), sim::CourseOf(*raceTrack, *world));
     if (!session) {
@@ -83,7 +83,6 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                               session->TrackHazards().Models().Names(), model->entityDraws,
                               raceTrack->entities);
     GhostTrail ghostTrail(model->draws, model->entityDraws, raceTrack->entities);
-    WaterScroll waterScroll(raceTrack->hazards, model->entityDraws);
     const std::vector<std::int32_t> voices =
         PerSlot(*racers, session->Racers().size(), &RacerGrid::Voice);
     std::unique_ptr<RaceAudio> audio =
@@ -104,11 +103,12 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                        .sky = std::move(*sky),
                        .camera = TrackCamera(model->bounds),
                        .raceTrack = std::move(raceTrack),
-                       .entityDraws = std::move(entityDraws),
+                       .entityDraws = TrackEntityDraws(model->animatedModels, race.entities),
                        .farModels = FarModels(std::move(model->farModels)),
+                       .sprites = std::move(model->sprites),
                        .hiddenModels = std::move(hiddenModels),
                        .ghostTrail = std::move(ghostTrail),
-                       .waterScroll = std::move(waterScroll),
+                       .waterScroll = WaterScroll(race.hazards, model->entityDraws),
                        .world = std::move(world),
                        .session = std::move(*session),
                        .audio = std::move(audio),
@@ -351,6 +351,7 @@ render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated
     }
     std::vector<render::QuadDraw>& quads = playerQuads_.at(player);
     quads.assign(carMarks_.begin(), carMarks_.end());
+    parts_.sprites.Append(camera.transform, parts_.farModels.HidesScenery(), quads);
     if (parts_.particles) {
         parts_.particles->AppendQuads(camera.transform, quads);
     }
@@ -382,14 +383,7 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     for (std::size_t player = 0; player < cameras_.Count(); ++player) {
         views_.push_back(PlayerView(interpolated, player, simMs));
     }
-    std::array<std::optional<render::SpriteDraw>, sim::kMaxPlayers> flashes{};
-    for (std::size_t player = 0; player < cameras_.Count(); ++player) {
-        const sim::EffectSnapshot* start =
-            FindWarp(interpolated.effects, kPlayerSlot + player, sim::WarpPhase::Starting);
-        if (start != nullptr) {
-            flashes.at(player) = WarpFlash(start->phaseLeftMs);
-        }
-    }
+    const auto flashes = WarpFlashes(interpolated.effects, kPlayerSlot, cameras_.Count());
     views_.front().sprites =
         hud_.Draw(parts_.session, interpolated.racers, PlayerMapViews(interpolated),
                   std::span(flashes).first(cameras_.Count()), PauseShown());

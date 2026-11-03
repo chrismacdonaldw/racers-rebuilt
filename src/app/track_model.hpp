@@ -9,6 +9,7 @@
 
 #include "app/decal_surface.hpp"
 #include "app/track_space.hpp"
+#include "app/track_sprites.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/world_database.hpp"
 #include "core/result.hpp"
@@ -57,6 +58,7 @@ struct TrackModel {
     std::vector<FarModel> farModels;
     assets::NameMap<JointedModel> animatedModels;
     std::vector<SkyModel> skyModels;
+    TrackSprites sprites;
     assets::NameMap<render::Material> materials;
     Bounds bounds;
     assets::NameMap<render::TextureId> textures;

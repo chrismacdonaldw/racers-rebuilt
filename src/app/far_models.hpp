@@ -22,6 +22,7 @@ public:
 
     void SetHidden(bool hidesCars, bool hidesScenery);
     [[nodiscard]] bool HidesCars() const { return GroupOf(FarKind::Car).isHidden; }
+    [[nodiscard]] bool HidesScenery() const { return GroupOf(FarKind::Scenery).isHidden; }
 
     void Keep(FarKind kind, const FarModel& model);
 
