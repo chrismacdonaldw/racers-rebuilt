@@ -17,6 +17,7 @@ namespace {
 
 constexpr std::string_view kBindingsCategory = "Bindings";
 constexpr std::string_view kDeveloperCategory = "Developer";
+constexpr std::string_view kGameCategory = "Game";
 constexpr std::string_view kModsCategory = "Mods";
 
 void Append(std::vector<std::string>& to, std::vector<std::string> from) {
@@ -36,8 +37,8 @@ void DrawStats(const DeveloperStats& stats, Nanoseconds overlayCost) {
                            stats.startupSummary.data() + stats.startupSummary.size());
 }
 
-void DrawModActions(std::span<const MenuChoice> actions) {
-    ImGui::TextDisabled("Apply now returns to the main menu");
+void DrawActions(const char* hint, std::span<const MenuChoice> actions) {
+    ImGui::TextDisabled("%s", hint);
     for (const MenuChoice& action : actions) {
         if (ImGui::MenuItem(action.name.c_str())) {
             action.choose();
@@ -98,7 +99,7 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
                                         std::span<const MenuChoice> scenes,
                                         std::span<const MenuChoice> saveImports,
                                         const RacerTools& racerTools,
-                                        std::span<const MenuChoice> modActions) {
+                                        const SettingActions& actions) {
     if (!input_.IsOpen()) {
         return {};
     }
@@ -112,7 +113,9 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
             if (menu.category != kDeveloperCategory &&
                 ImGui::BeginMenu(std::string(menu.category).c_str())) {
                 if (menu.category == kModsCategory) {
-                    DrawModActions(modActions);
+                    DrawActions("Apply now returns to the main menu", actions.mods);
+                } else if (menu.category == kGameCategory && !actions.game.empty()) {
+                    DrawActions("Changes here apply after a restart", actions.game);
                 }
                 Append(finished, DrawPresets(registry, presets_, menu.category));
                 Append(finished, menu.category == kBindingsCategory

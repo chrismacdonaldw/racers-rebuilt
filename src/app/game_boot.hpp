@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "app/extensions.hpp"
+#include "app/install_discovery.hpp"
 #include "app/startup_timer.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -31,8 +32,13 @@ struct GameBoot {
     std::vector<std::string> relaunch;
 };
 
-/// The player's own install, from `--game-path` or `game.path`, not the extracted copy.
+/// The player's own install from `--game-path` or the path setting, not the extracted copy.
 [[nodiscard]] std::filesystem::path OriginalInstall(const GameBoot& boot);
+
+/// Adopts the release `install` holds and returns the setting keys it changed.
+[[nodiscard]] std::vector<std::string_view> RecordInstall(settings::Registry& registry,
+                                                          const GameInstall& install,
+                                                          bool isFromCommandLine);
 
 /// `args` excludes the program name. `--racer` must name a racer in `racers.toml` or the game.
 [[nodiscard]] Result<GameBoot> BootGame(std::span<const std::string_view> args);

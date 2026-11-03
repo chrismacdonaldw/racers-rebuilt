@@ -23,10 +23,56 @@ TEST_CASE("a stale registry entry falls through to the next candidate") {
         {.folder = folder.Path() / "installed", .source = "default install folder"},
     }};
 
-    std::optional<GameInstall> install = FirstValidInstall(candidates);
+    std::optional<GameInstall> install =
+        FirstValidInstall(candidates, assets::GameVersion::Release1999);
 
     CHECK((install && install->folder == folder.Path() / "installed"));
     CHECK((install && !install->wasPicked));
+}
+
+TEST_CASE("an install of another release falls through to the next candidate") {
+    const test::TempFolder folder;
+    test::WriteInstall(folder.Path() / "1999", assets::GameVersion::Release1999);
+    test::WriteInstall(folder.Path() / "2001", assets::GameVersion::Release2001);
+    const std::array<platform::InstallCandidate, 2> candidates{{
+        {.folder = folder.Path() / "1999", .source = "game folder setting"},
+        {.folder = folder.Path() / "2001", .source = "exe folder"},
+    }};
+
+    std::optional<GameInstall> install =
+        FirstValidInstall(candidates, assets::GameVersion::Release2001);
+
+    CHECK((install && install->folder == folder.Path() / "2001"));
+}
+
+TEST_CASE("with no install of the selected release, the first other release is taken") {
+    const test::TempFolder folder;
+    test::WriteInstall(folder.Path() / "a", assets::GameVersion::Release2001);
+    test::WriteInstall(folder.Path() / "b", assets::GameVersion::Release2001);
+    const std::array<platform::InstallCandidate, 3> candidates{{
+        {.folder = folder.Path() / "deleted", .source = "game folder setting"},
+        {.folder = folder.Path() / "a", .source = "exe folder"},
+        {.folder = folder.Path() / "b", .source = "default install folder"},
+    }};
+
+    std::optional<GameInstall> install =
+        FirstValidInstall(candidates, assets::GameVersion::Release1999);
+
+    CHECK((install && install->folder == folder.Path() / "a"));
+    CHECK((install && install->version == assets::GameVersion::Release2001));
+}
+
+TEST_CASE("a --game-path of another release is taken unless the version was set too") {
+    const test::TempFolder folder;
+    test::WriteInstall(folder.Path(), assets::GameVersion::Release2001);
+
+    Result<GameInstall> adopted = DiscoverInstall({.commandLine = folder.Path()});
+    Result<GameInstall> forced =
+        DiscoverInstall({.commandLine = folder.Path(), .isVersionForced = true});
+
+    CHECK((adopted && adopted->version == assets::GameVersion::Release2001));
+    REQUIRE_FALSE(forced.has_value());
+    CHECK(forced.error().message.find("holds the 2001 release, not 1999") != std::string::npos);
 }
 
 TEST_CASE("no valid candidate finds nothing") {
@@ -35,7 +81,7 @@ TEST_CASE("no valid candidate finds nothing") {
         {.folder = folder.Path(), .source = "exe folder"},
     }};
 
-    CHECK_FALSE(FirstValidInstall(candidates).has_value());
+    CHECK_FALSE(FirstValidInstall(candidates, assets::GameVersion::Release1999).has_value());
 }
 
 TEST_CASE("a --game-path without LEGO.JAM is an error that names the file") {

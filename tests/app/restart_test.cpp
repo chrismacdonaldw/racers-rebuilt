@@ -8,6 +8,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/game_settings.hpp"
 #include "settings/registry.hpp"
 #include "settings/setting_spec.hpp"
 
@@ -23,6 +24,7 @@ settings::Registry Declared() {
     settings::Registry registry;
     registry.Declare(kModSetting);
     registry.Declare(kVsync);
+    registry.Declare(kGameVersion);
     return registry;
 }
 
@@ -63,6 +65,19 @@ TEST_CASE("restart is offered only once a Mods setting changes") {
           "Restart now");
     CHECK_FALSE(unknown.Choice(registry, isQuitting).has_value());
     CHECK_FALSE(isQuitting);
+}
+
+TEST_CASE("a game version change offers a restart in the Game menu but no live remount") {
+    settings::Registry registry = Declared();
+    const Restart restart({"racers-rebuilt.exe"}, registry);
+    LiveRemount remount(true, registry);
+    bool isQuitting = false;
+    CHECK(GameActions(restart, registry, isQuitting).empty());
+
+    registry.Set(kGameVersion, "2001");
+
+    CHECK(GameActions(restart, registry, isQuitting).size() == 1);
+    CHECK_FALSE(remount.Choice(registry).has_value());
 }
 
 std::vector<std::string> Names(std::span<const overlay::MenuChoice> choices) {

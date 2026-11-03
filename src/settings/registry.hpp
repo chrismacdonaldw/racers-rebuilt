@@ -28,6 +28,7 @@ public:
         std::string label;
         std::string category;
         bool changesGameplay = false;
+        std::vector<std::string> choices;
     };
 
     using Declarations = std::map<std::string, Declaration, std::less<>>;
@@ -42,7 +43,8 @@ public:
                                 .range = range,
                                 .label = std::string(spec.label),
                                 .category = std::string(spec.category),
-                                .changesGameplay = spec.changesGameplay});
+                                .changesGameplay = spec.changesGameplay,
+                                .choices = {spec.choices.begin(), spec.choices.end()}});
     }
 
     /// `spec` must be declared.
@@ -62,7 +64,7 @@ public:
         SetDeclared(spec.key, ToSettingValue<T>(value));
     }
 
-    /// Converts and clamps values for declared keys, and fails on a type that doesn't fit.
+    /// Converts and clamps values for declared keys. Fails on a type or choice that doesn't fit.
     [[nodiscard]] Result<void> Assign(std::string_view key, SettingValue value);
 
     /// Parses `text` as the declared type of `key`, as `--set key=value` does.

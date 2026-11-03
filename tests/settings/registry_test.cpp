@@ -2,7 +2,9 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace rr::settings {
@@ -13,6 +15,9 @@ constexpr SettingSpec<int> kFpsCap{
 constexpr SettingSpec<double> kVolume{.key = "audio.volume", .defaultValue = 1.0};
 constexpr SettingSpec<bool> kVsync{.key = "video.vsync", .defaultValue = true};
 constexpr SettingSpec<std::string_view> kGamePath{.key = "game.path", .defaultValue = ""};
+constexpr std::array<std::string_view, 2> kVersions{"1999", "2001"};
+constexpr SettingSpec<std::string_view> kVersion{
+    .key = "game.version", .defaultValue = "1999", .choices = kVersions};
 
 Registry DeclaredRegistry() {
     Registry registry;
@@ -20,6 +25,7 @@ Registry DeclaredRegistry() {
     registry.Declare(kVolume);
     registry.Declare(kVsync);
     registry.Declare(kGamePath);
+    registry.Declare(kVersion);
     return registry;
 }
 
@@ -45,6 +51,18 @@ TEST_CASE("a value of the wrong type is rejected and the old value kept") {
 
     CHECK_FALSE(registry.Assign("video.fps_cap", std::string("fast")).has_value());
     CHECK(registry.Get(kFpsCap) == 144);
+}
+
+TEST_CASE("a text setting with choices takes only those choices") {
+    Registry registry = DeclaredRegistry();
+
+    CHECK(registry.AssignText("game.version", "2001").has_value());
+    const Result<void> rejected = registry.AssignText("game.version", "2000");
+
+    REQUIRE_FALSE(rejected.has_value());
+    CHECK(rejected.error().message == "game.version must be one of 1999, 2001");
+    CHECK(registry.Get(kVersion) == "2001");
+    CHECK(registry.AllDeclarations().find("game.version")->second.choices.size() == 2);
 }
 
 TEST_CASE("a whole number is accepted for a fractional setting") {

@@ -1,5 +1,6 @@
 #include "app/game_boot.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -14,6 +15,7 @@
 #include "app/racer/racer_lookup.hpp"
 #include "app/startup_settings.hpp"
 #include "assets/folder_layer.hpp"
+#include "assets/game_version.hpp"
 #include "assets/install.hpp"
 #include "core/log.hpp"
 #include "core/utf8_path.hpp"
@@ -28,6 +30,7 @@ constexpr std::string_view kSettingsFileName = "settings.toml";
 constexpr std::string_view kModsFolderName = "mods";
 constexpr std::string_view kOverridesFolderName = "overrides";
 constexpr std::string_view kExtractedFolderName = "game";
+constexpr std::string_view kExtracted2001FolderName = "game-2001";
 
 void OpenLogFile(const std::filesystem::path& dataFolder) {
     const std::filesystem::path logPath = dataFolder / "logs" / "racers-rebuilt.log";
@@ -51,20 +54,38 @@ std::string_view InstalledLanguage() {
     return language.value_or(assets::kDefaultLanguage);
 }
 
+std::string_view ExtractedFolderName(assets::GameVersion version) {
+    return version == assets::GameVersion::Release2001 ? kExtracted2001FolderName
+                                                       : kExtractedFolderName;
+}
+
+assets::GameVersion OtherVersion(assets::GameVersion version) {
+    return version == assets::GameVersion::Release1999 ? assets::GameVersion::Release2001
+                                                       : assets::GameVersion::Release1999;
+}
+
+bool IsVersionForced(const settings::CommandLine& commandLine) {
+    return std::ranges::contains(commandLine.overrides, kGameVersion.key,
+                                 &settings::SettingOverride::key);
+}
+
 Result<GameInstall> ResolveInstall(const settings::CommandLine& commandLine,
                                    settings::Registry& registry,
                                    const std::filesystem::path& settingsFile) {
-    Result<GameInstall> install =
-        DiscoverInstall({.commandLine = OptionalPath(commandLine.gamePath.value_or("")),
-                         .setting = OptionalPath(registry.Get(kGamePath))});
+    const assets::GameVersion version = SelectedVersion(registry);
+    const std::optional<std::filesystem::path> gamePath =
+        OptionalPath(commandLine.gamePath.value_or(""));
+    Result<GameInstall> install = DiscoverInstall(
+        {.commandLine = gamePath,
+         .setting = OptionalPath(registry.Get(GamePathFor(version))),
+         .otherSetting = OptionalPath(registry.Get(GamePathFor(OtherVersion(version)))),
+         .version = version,
+         .isVersionForced = IsVersionForced(commandLine)});
     if (!install) {
         return install;
     }
-    std::vector<std::string_view> changedKeys;
-    if (install->wasPicked) {
-        registry.Set(kGamePath, Utf8FromPath(install->folder));
-        changedKeys.push_back(kGamePath.key);
-    }
+    std::vector<std::string_view> changedKeys =
+        RecordInstall(registry, *install, gamePath.has_value());
     if (registry.Get(kGameLanguage).empty()) {
         registry.Set(kGameLanguage, std::string(InstalledLanguage()));
         changedKeys.push_back(kGameLanguage.key);
@@ -75,7 +96,8 @@ Result<GameInstall> ResolveInstall(const settings::CommandLine& commandLine,
     return install;
 }
 
-GameInstall ExtractedOrInstall(GameInstall install, const std::filesystem::path& extractedFolder) {
+GameInstall ExtractedOrInstall(GameInstall install, const std::filesystem::path& dataFolder) {
+    const std::filesystem::path extractedFolder = dataFolder / ExtractedFolderName(install.version);
     log::Info("copying the game files from {} to {}", Utf8FromPath(install.folder),
               Utf8FromPath(extractedFolder));
     Result<void> extracted = ExtractGameFiles(install.folder, extractedFolder);
@@ -84,7 +106,8 @@ GameInstall ExtractedOrInstall(GameInstall install, const std::filesystem::path&
                   Utf8FromPath(install.folder));
         return install;
     }
-    std::optional<GameInstall> copy = OpenExtractedCopy(extractedFolder, std::nullopt);
+    std::optional<GameInstall> copy =
+        OpenExtractedCopy(extractedFolder, std::nullopt, install.version);
     return copy ? std::move(*copy) : std::move(install);
 }
 
@@ -95,14 +118,15 @@ Result<GameInstall> ResolveGameFiles(const settings::CommandLine& commandLine,
     if (OptionalPath(commandLine.gamePath.value_or(""))) {
         return ResolveInstall(commandLine, registry, settingsFile);
     }
-    const std::filesystem::path extractedFolder = dataFolder / kExtractedFolderName;
-    std::optional<GameInstall> extracted =
-        OpenExtractedCopy(extractedFolder, OptionalPath(registry.Get(kGamePath)));
+    const assets::GameVersion version = SelectedVersion(registry);
+    const std::filesystem::path extractedFolder = dataFolder / ExtractedFolderName(version);
+    std::optional<GameInstall> extracted = OpenExtractedCopy(
+        extractedFolder, OptionalPath(registry.Get(GamePathFor(version))), version);
     if (extracted) {
         return std::move(*extracted);
     }
     return ResolveInstall(commandLine, registry, settingsFile).transform([&](GameInstall install) {
-        return ExtractedOrInstall(std::move(install), extractedFolder);
+        return ExtractedOrInstall(std::move(install), dataFolder);
     });
 }
 
@@ -120,6 +144,24 @@ Result<assets::Vfs> MountGameFiles(GameInstall install, Extensions& extensions,
     return vfs;
 }
 
+}
+
+std::vector<std::string_view> RecordInstall(settings::Registry& registry,
+                                            const GameInstall& install, bool isFromCommandLine) {
+    std::vector<std::string_view> changedKeys;
+    const bool isAdopted = install.version != SelectedVersion(registry);
+    if (isAdopted) {
+        log::Info("found only the {} release, switching game.version to it",
+                  assets::NameOf(install.version));
+        registry.Set(kGameVersion, std::string(assets::NameOf(install.version)));
+        changedKeys.push_back(kGameVersion.key);
+    }
+    const settings::SettingSpec<std::string_view>& pathSetting = GamePathFor(install.version);
+    if (install.wasPicked || (isAdopted && !isFromCommandLine)) {
+        registry.Set(pathSetting, Utf8FromPath(install.folder));
+        changedKeys.push_back(pathSetting.key);
+    }
+    return changedKeys;
 }
 
 Result<GameBoot> BootGame(std::span<const std::string_view> args) {
@@ -175,8 +217,10 @@ Result<GameBoot> BootGame(std::span<const std::string_view> args) {
 }
 
 std::filesystem::path OriginalInstall(const GameBoot& boot) {
+    const settings::SettingSpec<std::string_view>& pathSetting =
+        GamePathFor(SelectedVersion(boot.settings));
     return PathFromUtf8(
-        boot.commandLine.gamePath.value_or(std::string(boot.settings.Get(kGamePath))));
+        boot.commandLine.gamePath.value_or(std::string(boot.settings.Get(pathSetting))));
 }
 
 }

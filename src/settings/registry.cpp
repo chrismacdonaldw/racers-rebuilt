@@ -4,7 +4,9 @@
 #include <array>
 #include <charconv>
 #include <format>
+#include <string>
 #include <system_error>
+#include <vector>
 
 #include "core/assert.hpp"
 #include "core/log.hpp"
@@ -22,6 +24,19 @@ std::string_view TypeName(const SettingValue& value) {
 
 std::unexpected<Error> FailType(std::string_view key, const SettingValue& target) {
     return Fail(ErrorCode::InvalidData, std::format("{} must be {}", key, TypeName(target)));
+}
+
+bool IsChoice(const SettingValue& value, const std::vector<std::string>& choices) {
+    const auto* text = std::get_if<std::string>(&value);
+    return choices.empty() || (text != nullptr && std::ranges::contains(choices, *text));
+}
+
+std::unexpected<Error> FailChoice(std::string_view key, const std::vector<std::string>& choices) {
+    std::string listed;
+    for (const std::string& choice : choices) {
+        listed += listed.empty() ? choice : ", " + choice;
+    }
+    return Fail(ErrorCode::InvalidData, std::format("{} must be one of {}", key, listed));
 }
 
 Result<SettingValue> Convert(std::string_view key, const SettingValue& target, SettingValue value) {
@@ -85,6 +100,9 @@ Result<void> Registry::Assign(std::string_view key, SettingValue value) {
         Convert(key, declaration->second.defaultValue, std::move(value));
     if (!converted) {
         return std::unexpected(std::move(converted.error()));
+    }
+    if (!IsChoice(*converted, declaration->second.choices)) {
+        return FailChoice(key, declaration->second.choices);
     }
     if (declaration->second.range) {
         *converted = Clamp(*converted, *declaration->second.range);

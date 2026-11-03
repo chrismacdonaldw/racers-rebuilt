@@ -15,6 +15,8 @@
 namespace rr::app {
 namespace {
 
+constexpr assets::GameVersion k1999 = assets::GameVersion::Release1999;
+
 void WriteFile(const std::filesystem::path& path, std::string_view contents = "x") {
     std::filesystem::create_directories(path.parent_path());
     std::ofstream(path, std::ios::binary) << contents;
@@ -47,7 +49,7 @@ TEST_CASE("a fresh copy opens from its own folder") {
     const std::filesystem::path copy = folder.Path() / "game";
     REQUIRE(ExtractGameFiles(WriteRetailInstall(folder.Path()), copy).has_value());
 
-    const std::optional<GameInstall> opened = OpenExtractedCopy(copy, std::nullopt);
+    const std::optional<GameInstall> opened = OpenExtractedCopy(copy, std::nullopt, k1999);
 
     CHECK((opened && opened->folder == copy));
 }
@@ -67,7 +69,7 @@ TEST_CASE("a folder without a stamp isn't an extracted copy") {
     const test::TempFolder folder;
     test::WriteInstall(folder.Path());
 
-    CHECK_FALSE(OpenExtractedCopy(folder.Path(), std::nullopt).has_value());
+    CHECK_FALSE(OpenExtractedCopy(folder.Path(), std::nullopt, k1999).has_value());
 }
 
 TEST_CASE("a copy from another extraction version is extracted again") {
@@ -80,7 +82,7 @@ TEST_CASE("a copy from another extraction version is extracted again") {
     WriteFile(copy / kExtractionStamp,
               std::format("{}\n{}\n", kExtractionVersion + 1, Utf8FromPath(install)));
 
-    CHECK_FALSE(OpenExtractedCopy(copy, std::nullopt).has_value());
+    CHECK_FALSE(OpenExtractedCopy(copy, std::nullopt, k1999).has_value());
 }
 
 TEST_CASE("a copy is kept while game.path names its source or the copy itself") {
@@ -90,9 +92,20 @@ TEST_CASE("a copy is kept while game.path names its source or the copy itself") 
     test::WriteInstall(install);
     REQUIRE(ExtractGameFiles(install, copy).has_value());
 
-    CHECK(OpenExtractedCopy(copy, install).has_value());
-    CHECK(OpenExtractedCopy(copy, copy).has_value());
-    CHECK_FALSE(OpenExtractedCopy(copy, folder.Path() / "other install").has_value());
+    CHECK(OpenExtractedCopy(copy, install, k1999).has_value());
+    CHECK(OpenExtractedCopy(copy, copy, k1999).has_value());
+    CHECK_FALSE(OpenExtractedCopy(copy, folder.Path() / "other install", k1999).has_value());
+}
+
+TEST_CASE("a copy of another release isn't opened") {
+    const test::TempFolder folder;
+    const std::filesystem::path install = folder.Path() / "install";
+    const std::filesystem::path copy = folder.Path() / "game";
+    test::WriteInstall(install, assets::GameVersion::Release2001);
+    REQUIRE(ExtractGameFiles(install, copy).has_value());
+
+    CHECK_FALSE(OpenExtractedCopy(copy, install, k1999).has_value());
+    CHECK(OpenExtractedCopy(copy, install, assets::GameVersion::Release2001).has_value());
 }
 
 TEST_CASE("extracting again replaces the older copy and a leftover partial copy") {
@@ -112,7 +125,7 @@ TEST_CASE("extracting again replaces the older copy and a leftover partial copy"
     CHECK(std::filesystem::exists(copy / "new.tun"));
     CHECK_FALSE(std::filesystem::exists(copy / "old.tun"));
     CHECK_FALSE(std::filesystem::exists(folder.Path() / "game.partial"));
-    CHECK(OpenExtractedCopy(copy, newInstall).has_value());
+    CHECK(OpenExtractedCopy(copy, newInstall, k1999).has_value());
 }
 
 TEST_CASE("a failed extraction leaves no copy behind") {

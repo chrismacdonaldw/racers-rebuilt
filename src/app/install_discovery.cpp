@@ -17,19 +17,28 @@
 namespace rr::app {
 namespace {
 
-constexpr std::string_view kPickerTitle = "Choose the LEGO Racers folder, the one with LEGO.JAM";
+constexpr std::string_view kPickerTitle = "Choose the LEGO Racers {}folder, the one with LEGO.JAM";
 constexpr std::string_view kRightFolderHint =
     "Choose the folder LEGO Racers is installed in. It holds LEGO.JAM and LEGORacers.exe, and is "
     R"(usually Program Files (x86)\LEGO Media\Games\LEGO Racers.)";
 constexpr std::string_view kNoInstallMessage =
-    "racers-rebuilt needs the files from your copy of LEGO Racers. Run it again and choose the "
+    "racers-rebuilt needs the files from your {}copy of LEGO Racers. Run it again and choose the "
     "folder that contains LEGO.JAM, or start it with --game-path <folder>.";
 
-std::vector<platform::InstallCandidate> AutomaticCandidates(
-    const std::optional<std::filesystem::path>& setting) {
+std::string ReleaseLabel(assets::GameVersion version) {
+    return version == assets::GameVersion::Release1999
+               ? std::string()
+               : std::format("{} ", assets::NameOf(version));
+}
+
+std::vector<platform::InstallCandidate> AutomaticCandidates(const InstallHints& hints) {
     std::vector<platform::InstallCandidate> candidates;
-    if (setting) {
-        candidates.push_back({.folder = *setting, .source = "game.path setting"});
+    if (hints.setting) {
+        candidates.push_back({.folder = *hints.setting, .source = "game folder setting"});
+    }
+    if (hints.otherSetting) {
+        candidates.push_back(
+            {.folder = *hints.otherSetting, .source = "other release's game folder setting"});
     }
     if (Result<std::filesystem::path> exeFolder = platform::ExeFolder()) {
         candidates.push_back({.folder = std::move(*exeFolder), .source = "exe folder"});
@@ -41,60 +50,98 @@ std::vector<platform::InstallCandidate> AutomaticCandidates(
     return candidates;
 }
 
-Result<GameInstall> PickInstall() {
-    const std::string title(kPickerTitle);
+std::unexpected<Error> FailWrongRelease(const std::filesystem::path& folder,
+                                        assets::GameVersion held, assets::GameVersion wanted) {
+    return Fail(ErrorCode::InvalidData,
+                std::format("{} holds the {} release, not {}", Utf8FromPath(folder),
+                            assets::NameOf(held), assets::NameOf(wanted)));
+}
+
+Result<GameInstall> OpenAnyRelease(const std::filesystem::path& folder) {
+    return assets::OpenInstall(folder).transform([&](assets::JamArchive jam) {
+        const assets::GameVersion version = assets::IdentifyRelease(jam);
+        return GameInstall{.folder = folder, .jam = std::move(jam), .version = version};
+    });
+}
+
+Result<GameInstall> PickInstall(assets::GameVersion version) {
+    const std::string title = std::format(kPickerTitle, ReleaseLabel(version));
     while (true) {
         Result<std::optional<std::filesystem::path>> picked = platform::PickFolder(title);
         if (!picked) {
             return std::unexpected(std::move(picked.error()));
         }
         if (!*picked) {
-            return Fail(ErrorCode::NotFound, std::string(kNoInstallMessage));
+            return Fail(ErrorCode::NotFound, std::format(kNoInstallMessage, ReleaseLabel(version)));
         }
-        Result<assets::JamArchive> jam = assets::OpenInstall(**picked);
-        if (jam) {
-            return GameInstall{
-                .folder = std::move(**picked), .jam = std::move(*jam), .wasPicked = true};
+        Result<GameInstall> install = OpenAnyRelease(**picked);
+        if (install) {
+            install->wasPicked = true;
+            return install;
         }
-        log::Warn("picked folder rejected: {}", jam.error().message);
-        platform::ShowErrorBox(RejectedFolderMessage(jam.error()));
+        log::Warn("picked folder rejected: {}", install.error().message);
+        platform::ShowErrorBox(RejectedFolderMessage(install.error()));
     }
 }
 
+}
+
+Result<assets::JamArchive> OpenRelease(const std::filesystem::path& folder,
+                                       assets::GameVersion version) {
+    Result<assets::JamArchive> jam = assets::OpenInstall(folder);
+    if (!jam) {
+        return jam;
+    }
+    const assets::GameVersion held = assets::IdentifyRelease(*jam);
+    if (held != version) {
+        return FailWrongRelease(folder, held, version);
+    }
+    return jam;
 }
 
 std::string RejectedFolderMessage(const Error& error) {
-    return std::format("That folder isn't a LEGO Racers install.\n\nProblem: {}\n\n{}",
+    return std::format("That folder isn't a usable LEGO Racers install.\n\nProblem: {}\n\n{}",
                        error.message, kRightFolderHint);
 }
 
-std::optional<GameInstall> FirstValidInstall(
-    std::span<const platform::InstallCandidate> candidates) {
+std::optional<GameInstall> FirstValidInstall(std::span<const platform::InstallCandidate> candidates,
+                                             assets::GameVersion version) {
+    std::optional<GameInstall> otherRelease;
     for (const platform::InstallCandidate& candidate : candidates) {
-        Result<assets::JamArchive> jam = assets::OpenInstall(candidate.folder);
-        if (jam) {
-            log::Info("game files found in {} ({})", Utf8FromPath(candidate.folder),
-                      candidate.source);
-            return GameInstall{.folder = candidate.folder, .jam = std::move(*jam)};
+        Result<GameInstall> install = OpenAnyRelease(candidate.folder);
+        if (!install) {
+            log::Info("skipping {}: {}", candidate.source, install.error().message);
+            continue;
         }
-        log::Info("skipping {}: {}", candidate.source, jam.error().message);
+        log::Info("{} game files found in {} ({})", assets::NameOf(install->version),
+                  Utf8FromPath(candidate.folder), candidate.source);
+        if (install->version == version) {
+            return std::move(*install);
+        }
+        if (!otherRelease) {
+            otherRelease = std::move(*install);
+        }
     }
-    return std::nullopt;
+    return otherRelease;
 }
 
 Result<GameInstall> DiscoverInstall(const InstallHints& hints) {
     if (hints.commandLine) {
-        Result<assets::JamArchive> jam = assets::OpenInstall(*hints.commandLine);
-        if (!jam) {
-            return Fail(jam.error().code, std::format("--game-path: {}", jam.error().message));
+        Result<GameInstall> install = OpenAnyRelease(*hints.commandLine);
+        if (install && hints.isVersionForced && install->version != hints.version) {
+            install = FailWrongRelease(*hints.commandLine, install->version, hints.version);
         }
-        return GameInstall{.folder = *hints.commandLine, .jam = std::move(*jam)};
+        if (!install) {
+            return Fail(install.error().code,
+                        std::format("--game-path: {}", install.error().message));
+        }
+        return install;
     }
-    std::optional<GameInstall> found = FirstValidInstall(AutomaticCandidates(hints.setting));
+    std::optional<GameInstall> found = FirstValidInstall(AutomaticCandidates(hints), hints.version);
     if (found) {
         return std::move(*found);
     }
-    return PickInstall();
+    return PickInstall(hints.version);
 }
 
 }
