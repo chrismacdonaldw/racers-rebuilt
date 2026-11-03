@@ -165,6 +165,12 @@ Result<RacerStore> LoadRacers(const std::filesystem::path& path) {
         [&](const TomlFile& file) { return ReadStore(file.table, Utf8FromPath(path)); });
 }
 
+Result<RacerStore> ParseRacers(std::string_view text, std::string_view sourceName) {
+    return ParseToml(text, sourceName).and_then([&](const toml::table& table) {
+        return ReadStore(table, sourceName);
+    });
+}
+
 Result<void> SaveRacers(const RacerStore& store, const std::filesystem::path& path) {
     return ReplaceTomlKeys(path, ToToml(store), kStoreKeys, kHeader);
 }

@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "assets/car_data.hpp"
@@ -37,6 +38,8 @@ struct RacerStore {
 
 /// Follows `LoadProgress`, but fails on a racer that doesn't parse so a save can't drop it.
 [[nodiscard]] Result<RacerStore> LoadRacers(const std::filesystem::path& path);
+
+[[nodiscard]] Result<RacerStore> ParseRacers(std::string_view text, std::string_view sourceName);
 
 /// Follows `SaveProgress`. Unknown keys inside a racer are lost.
 [[nodiscard]] Result<void> SaveRacers(const RacerStore& store, const std::filesystem::path& path);

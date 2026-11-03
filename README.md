@@ -279,6 +279,21 @@ Keep the `EMITC0R0` files as they are: the track's worlds refer to them by name.
 
 New tracks aren't part of any circuit, so they race with the first circuit's grid.
 
+### Racers
+
+These tables merge with the game's instead of replacing it, so a mod only needs the entries it adds or changes:
+
+| File in `files/` | Entries |
+|---|---|
+| `GAMEDATA/COMMON/DRIVERS.DDB` | Opponent drivers, by code |
+| `GAMEDATA/COMMON/CHAMPS.CCB` | Champion cars, by name |
+| `GAMEDATA/COMMON/CHASSIS.CMB`, `MENUDATA/PIECEDB/CHASSIS.CMB` | Chassis, by name |
+| `MENUDATA/RACERS.TOML` | Prebuilt racers in the racer pick, by name |
+
+- An entry named like one before it, in any case, replaces it. Mods merge in priority order, lowest first, and overrides last.
+- `RACERS.TOML` uses the data folder's `racers.toml` layout, so a racer built in the game can be copied in. Trophies and `selected` are ignored.
+- Entries can't be removed.
+
 ### HQ textures
 
 A PNG next to a game image's path, named like it but ending in `.png`, replaces that image, e.g. `files/GAMEDATA/COMMON/BRICK.png` for `GAMEDATA/COMMON/BRICK.TGA`.

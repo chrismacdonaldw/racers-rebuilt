@@ -17,7 +17,7 @@ namespace rr::app {
 /// Leaves the trophies empty.
 [[nodiscard]] settings::Racer RacerFromSave(const assets::SavedRacer& saved);
 
-/// Looks in the game's `DEFAULT.LRS`, then `QBUILD.LRS`.
+/// Looks in `ReadDefaultRacers`, then the game's `QBUILD.LRS`.
 [[nodiscard]] Result<settings::Racer> FindGameRacer(const assets::Vfs& vfs, const RacerRef& ref);
 
 /// Looks in `racersFile` before the game's racers, and logs a `racersFile` that won't load.
@@ -34,6 +34,7 @@ namespace rr::app {
                                           const std::filesystem::path& racersFile,
                                           RaceSceneSetup& setup);
 
+/// `DEFAULT.LRS`, merged by name with each mod's `MENUDATA/RACERS.TOML`, without trophies.
 [[nodiscard]] Result<std::vector<settings::Racer>> ReadDefaultRacers(const assets::Vfs& vfs);
 
 [[nodiscard]] Result<std::optional<settings::Racer>> SelectedRacer(

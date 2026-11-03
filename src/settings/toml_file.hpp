@@ -16,6 +16,8 @@ struct TomlFile {
     std::string leadingComments;
 };
 
+[[nodiscard]] Result<toml::table> ParseToml(std::string_view text, std::string_view sourceName);
+
 /// A missing file reads as empty. `leadingComments` keeps the comment lines before the first key.
 [[nodiscard]] Result<TomlFile> ReadTomlFile(const std::filesystem::path& path);
 
