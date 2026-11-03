@@ -355,7 +355,7 @@ render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated
     }
     std::vector<render::QuadDraw>& quads = playerQuads_.at(player);
     quads.assign(carMarks_.begin(), carMarks_.end());
-    parts_.sprites.Append(camera.transform, parts_.farModels.HidesScenery(), quads);
+    parts_.sprites.Append(camera.transform, parts_.farModels.HidesScenery(), shownMs_, quads);
     if (parts_.particles) {
         parts_.particles->AppendQuads(camera.transform, quads);
     }

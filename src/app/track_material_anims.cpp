@@ -46,12 +46,13 @@ std::optional<PlayedTrack> TrackFrames(const assets::MaterialAnimationAsset& sou
     return played;
 }
 
-std::optional<HazardDriven> DrivenBy(std::string_view entity, std::size_t track,
-                                     const assets::MaterialAnimationAsset& source,
+std::optional<HazardDriven> DrivenBy(std::string_view entity, const assets::WorldAsset& world,
+                                     std::size_t animation, std::size_t track,
                                      const MaterialSources& sources) {
     std::optional<HazardDriven> driven = FindHazardDriven(entity, track);
     if (driven && driven->kind == HazardDriven::Kind::Sphinx) {
-        std::optional<PlayedTrack> blowUp = TrackFrames(source, driven->blowUpTrack, sources);
+        std::optional<PlayedTrack> blowUp =
+            ResolveTrack(world, animation, driven->blowUpTrack, sources);
         if (!blowUp) {
             return std::nullopt;
         }
@@ -62,27 +63,31 @@ std::optional<HazardDriven> DrivenBy(std::string_view entity, std::size_t track,
 
 }
 
+std::optional<PlayedTrack> ResolveTrack(const assets::WorldAsset& world, std::size_t animation,
+                                        std::size_t track, const MaterialSources& sources) {
+    const assets::MaterialAnimationAsset* source = AnimationOf(world, animation, sources);
+    return source == nullptr ? std::nullopt : TrackFrames(*source, track, sources);
+}
+
 void TrackMaterialAnims::Bind(const assets::WorldAsset& world, const assets::WorldEntity& entity,
                               std::span<const std::uint32_t> slots, std::size_t firstDraw,
                               const MaterialSources& sources) {
     for (const assets::MaterialAnimationBinding& binding : entity.materialAnimations) {
         const auto animation = static_cast<std::size_t>(binding.animation);
         const auto track = static_cast<std::size_t>(binding.track);
-        const assets::MaterialAnimationAsset* source = AnimationOf(world, animation, sources);
         Track bound{.world = &world,
                     .animation = animation,
                     .track = track,
                     .entity = entity.name,
                     .slot = static_cast<std::uint32_t>(binding.material)};
-        std::optional<PlayedTrack> played =
-            source == nullptr ? std::nullopt : TrackFrames(*source, track, sources);
+        std::optional<PlayedTrack> played = ResolveTrack(world, animation, track, sources);
         if (!played) {
             log::Warn("{} binds material animation {} track {}, which can't be played", entity.name,
                       binding.animation, binding.track);
             continue;
         }
         bound.played = std::move(*played);
-        bound.driven = DrivenBy(entity.name, track, *source, sources);
+        bound.driven = DrivenBy(entity.name, world, animation, track, sources);
         for (std::size_t i = 0; i < slots.size(); ++i) {
             if (slots[i] == bound.slot) {
                 bound.trackDraws.push_back(firstDraw + i);
