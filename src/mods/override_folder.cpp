@@ -24,6 +24,17 @@ struct FileStamp {
     auto operator<=>(const FileStamp&) const = default;
 };
 
+std::string GamePathKey(const std::filesystem::path& relative) {
+    std::string key = Utf8FromPath(relative);
+    std::ranges::transform(key, key.begin(), [](char c) {
+        if (c == '\\') {
+            return '/';
+        }
+        return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c;
+    });
+    return key;
+}
+
 std::vector<FileStamp> FileStamps(const std::filesystem::path& folder) {
     std::vector<FileStamp> stamps;
     using DirectoryIterator = std::filesystem::recursive_directory_iterator;
@@ -36,7 +47,7 @@ std::vector<FileStamp> FileStamps(const std::filesystem::path& folder) {
         }
         std::error_code sizeError;
         const std::uintmax_t size = entry->file_size(sizeError);
-        stamps.push_back({.path = Utf8FromPath(entry->path().lexically_relative(folder)),
+        stamps.push_back({.path = GamePathKey(entry->path().lexically_relative(folder)),
                           .size = sizeError ? 0 : size});
     }
     std::ranges::sort(stamps);
@@ -69,12 +80,15 @@ void OverrideFolder::Mount(assets::Vfs& vfs, const settings::Registry& registry)
     if (!registry.Get(kOverridesSetting) || !std::filesystem::is_directory(folder_, error)) {
         return;
     }
+    const std::vector<FileStamp> stamps = FileStamps(folder_);
+    if (stamps.empty()) {
+        return;
+    }
     Result<assets::FolderLayer> layer = assets::FolderLayer::Scan(folder_);
     if (!layer) {
         log::Warn("overrides: {}, skipping them", layer.error().message);
         return;
     }
-    const std::vector<FileStamp> stamps = FileStamps(folder_);
     vfs.Mount(std::make_unique<assets::FolderLayer>(std::move(*layer)));
     hash_ = HashStamps(stamps);
     log::Info("overrides: {} files mounted from {}", stamps.size(), Utf8FromPath(folder_));
