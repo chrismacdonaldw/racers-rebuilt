@@ -50,6 +50,21 @@ public:
         vfs_.Mount(std::make_unique<FolderLayer>(std::move(*layer)));
     }
 
+    void MountMod() {
+        const std::filesystem::path common = folder_.Path() / "mod" / "GAMEDATA" / "COMMON";
+        WriteBytes(common / "DRIVERS.DDB",
+                   NamedLibrary(0x27, {NamedEntry(0x27, "MM", Join({Bytes({0x2B}), Text("mm")}))}));
+        WriteBytes(
+            common / "CHAMPS.CCB",
+            NamedLibrary(0x27, {NamedEntry(0x27, "mm", Join({Bytes({0x2B}), Text("rrchas0")}))}));
+        WriteBytes(common / "CHASSIS.CMB",
+                   NamedLibrary(
+                       0x27, {NamedEntry(0x27, "RRCHAS0", Join({Bytes({0x39}), Text("modded")}))}));
+        Result<FolderLayer> layer = FolderLayer::Scan(folder_.Path() / "mod");
+        REQUIRE(layer.has_value());
+        vfs_.Mount(std::make_unique<FolderLayer>(std::move(*layer)));
+    }
+
     [[nodiscard]] const Vfs& Files() const { return vfs_; }
 
 private:
@@ -90,6 +105,20 @@ TEST_CASE("a built racer's chassis is found by name in any case") {
     REQUIRE(chassis.has_value());
     CHECK(chassis->shadowTexture == "shadow");
     CHECK_FALSE(catalog->FindChassis("dachas0").has_value());
+}
+
+TEST_CASE("a mod's tables add a driver and replace a chassis of the same name") {
+    CatalogFixture fixture;
+    fixture.MountMod();
+    const Result<RacerCatalog> catalog = RacerCatalog::Load(fixture.Files());
+    REQUIRE(catalog.has_value());
+
+    const Result<RacerFiles> added = catalog->Find("mm");
+
+    REQUIRE(added.has_value());
+    CHECK(added->chassis.shadowTexture == "modded");
+    CHECK(catalog->Find("RR").value().chassis.shadowTexture == "modded");
+    CHECK(catalog->Drivers().size() == 3);
 }
 
 TEST_CASE("every retail driver leads to a champion and a chassis") {

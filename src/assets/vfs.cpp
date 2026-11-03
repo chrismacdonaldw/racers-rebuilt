@@ -54,6 +54,26 @@ bool Vfs::Contains(std::string_view path) const {
            });
 }
 
+Result<std::vector<FileData>> Vfs::ReadEveryLayer(std::string_view path) const {
+    Result<std::string> normalized = NormalizeGamePath(path);
+    if (!normalized) {
+        return std::unexpected(std::move(normalized.error()));
+    }
+    std::vector<FileData> files;
+    for (const std::unique_ptr<VfsLayer>& layer : layers_) {
+        const std::optional<EntryInfo> entry = layer->Index().Find(*normalized);
+        if (!entry || entry->kind != EntryKind::File) {
+            continue;
+        }
+        Result<FileData> data = layer->Read(*entry);
+        if (!data) {
+            return std::unexpected(std::move(data.error()));
+        }
+        files.push_back(std::move(*data));
+    }
+    return files;
+}
+
 Result<FileData> Vfs::ReadLayers(std::string_view normalized, std::string_view shown) const {
     for (const std::unique_ptr<VfsLayer>& layer : layers_ | std::views::reverse) {
         const std::optional<EntryInfo> entry = layer->Index().Find(normalized);

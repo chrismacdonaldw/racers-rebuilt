@@ -157,6 +157,26 @@ TEST_CASE_FIXTURE(VfsFixture, "only a layer's files count as contained") {
     CHECK_FALSE(vfs_.Contains("GAMEDATA"));
 }
 
+TEST_CASE_FIXTURE(VfsFixture, "reading every layer gives the lowest layer first") {
+    MountLoose();
+    vfs_.SetResolver([](AssetRequest& request) { request.generated = BytesOf("made"); });
+
+    const Result<std::vector<FileData>> files = vfs_.ReadEveryLayer("gamedata\\a.txt");
+
+    REQUIRE(files.has_value());
+    REQUIRE(files->size() == 2);
+    CHECK(test::AsText((*files)[0].Bytes()) == "jam a");
+    CHECK(test::AsText((*files)[1].Bytes()) == "loose a");
+}
+
+TEST_CASE_FIXTURE(VfsFixture, "reading every layer counts only the layers with the file") {
+    MountLoose();
+
+    CHECK(vfs_.ReadEveryLayer("GAMEDATA/B.TXT")->size() == 1);
+    CHECK(vfs_.ReadEveryLayer("GAMEDATA/MISSING.TXT")->empty());
+    CHECK(vfs_.ReadEveryLayer("GAMEDATA").value().empty());
+}
+
 TEST_CASE_FIXTURE(VfsFixture, "a folder layer skips names that can't be game paths") {
     WriteText(Loose() / u8"café" / "x.txt", "skipped");
 

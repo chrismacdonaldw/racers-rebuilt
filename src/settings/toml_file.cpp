@@ -32,6 +32,16 @@ std::string LeadingComments(std::string_view text) {
 
 }
 
+Result<toml::table> ParseToml(std::string_view text, std::string_view sourceName) {
+    toml::parse_result parsed = toml::parse(text, sourceName);
+    if (!parsed) {
+        return Fail(ErrorCode::InvalidData,
+                    std::format("{} line {}: {}", sourceName, parsed.error().source().begin.line,
+                                parsed.error().description()));
+    }
+    return std::move(parsed).table();
+}
+
 Result<TomlFile> ReadTomlFile(const std::filesystem::path& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
@@ -42,14 +52,9 @@ Result<TomlFile> ReadTomlFile(const std::filesystem::path& path) {
         return Fail(ErrorCode::Io, std::format("can't read {}", Utf8FromPath(path)));
     }
     const std::string text{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
-    const std::string fileName = Utf8FromPath(path);
-    toml::parse_result parsed = toml::parse(text, fileName);
-    if (!parsed) {
-        return Fail(ErrorCode::InvalidData,
-                    std::format("{} line {}: {}", fileName, parsed.error().source().begin.line,
-                                parsed.error().description()));
-    }
-    return TomlFile{.table = std::move(parsed).table(), .leadingComments = LeadingComments(text)};
+    return ParseToml(text, Utf8FromPath(path)).transform([&](toml::table table) {
+        return TomlFile{.table = std::move(table), .leadingComments = LeadingComments(text)};
+    });
 }
 
 Result<void> WriteTomlFile(const TomlFile& file, const std::filesystem::path& path) {

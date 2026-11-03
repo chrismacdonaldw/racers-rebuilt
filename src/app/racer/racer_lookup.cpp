@@ -1,12 +1,15 @@
 #include "app/racer/racer_lookup.hpp"
 
 #include <algorithm>
-#include <array>
+#include <cstddef>
 #include <format>
+#include <optional>
+#include <span>
 #include <utility>
 #include <vector>
 
 #include "assets/game_path.hpp"
+#include "assets/merged_table.hpp"
 #include "core/log.hpp"
 #include "core/utf16_text.hpp"
 
@@ -15,7 +18,7 @@ namespace {
 
 constexpr std::string_view kQuickBuildFile = "MENUDATA/QBUILD.LRS";
 constexpr std::string_view kDefaultFile = "MENUDATA/DEFAULT.LRS";
-constexpr std::array<std::string_view, 2> kRacerFiles{kDefaultFile, kQuickBuildFile};
+constexpr std::string_view kModRacersFile = "MENUDATA/RACERS.TOML";
 constexpr std::string_view kChampionCarName = "CHAMP";
 
 bool IsNamed(std::string_view name, std::string_view wanted) {
@@ -26,6 +29,47 @@ Result<std::vector<assets::SavedRacer>> ReadRacerFile(const assets::Vfs& vfs,
                                                       std::string_view file) {
     return vfs.Read(file).and_then(
         [](const assets::FileData& data) { return assets::ParseRacerFile(data.Bytes()); });
+}
+
+std::vector<settings::Racer> RacersFromSaves(const std::vector<assets::SavedRacer>& saved) {
+    std::vector<settings::Racer> racers;
+    racers.reserve(saved.size());
+    for (const assets::SavedRacer& racer : saved) {
+        racers.push_back(RacerFromSave(racer));
+    }
+    return racers;
+}
+
+Result<std::vector<settings::Racer>> ReadGameRacers(const assets::Vfs& vfs, std::string_view file) {
+    return ReadRacerFile(vfs, file).transform(RacersFromSaves);
+}
+
+std::optional<std::vector<settings::Racer>> ParseModRacers(const assets::FileData& file) {
+    const std::span<const std::byte> bytes = file.Bytes();
+    Result<settings::RacerStore> store = settings::ParseRacers(
+        std::string_view(reinterpret_cast<const char*>(bytes.data()), bytes.size()),
+        kModRacersFile);
+    if (!store) {
+        log::Warn("{}, skipping a mod's racers", store.error().message);
+        return std::nullopt;
+    }
+    for (settings::Racer& racer : store->racers) {
+        racer.trophies = {};
+    }
+    return std::move(store->racers);
+}
+
+void AppendModRacers(const assets::Vfs& vfs, std::vector<std::vector<settings::Racer>>& tables) {
+    Result<std::vector<assets::FileData>> files = vfs.ReadEveryLayer(kModRacersFile);
+    if (!files) {
+        log::Warn("{}, the racer list has no mod racers", files.error().message);
+        return;
+    }
+    for (const assets::FileData& file : *files) {
+        if (std::optional<std::vector<settings::Racer>> racers = ParseModRacers(file)) {
+            tables.push_back(std::move(*racers));
+        }
+    }
 }
 
 }
@@ -39,16 +83,17 @@ settings::Racer RacerFromSave(const assets::SavedRacer& saved) {
 }
 
 Result<settings::Racer> FindGameRacer(const assets::Vfs& vfs, const RacerRef& ref) {
-    for (const std::string_view file : kRacerFiles) {
-        Result<std::vector<assets::SavedRacer>> racers = ReadRacerFile(vfs, file);
-        if (!racers) {
-            return std::unexpected(std::move(racers.error()));
-        }
-        for (const assets::SavedRacer& saved : *racers) {
-            settings::Racer racer = RacerFromSave(saved);
-            if (IsRef(racer, ref)) {
-                return racer;
-            }
+    Result<std::vector<settings::Racer>> defaults = ReadDefaultRacers(vfs);
+    Result<std::vector<settings::Racer>> quickBuilds =
+        defaults.and_then([&](const auto&) { return ReadGameRacers(vfs, kQuickBuildFile); });
+    if (!quickBuilds) {
+        return std::unexpected(std::move(quickBuilds.error()));
+    }
+    for (std::vector<settings::Racer>* racers : {&*defaults, &*quickBuilds}) {
+        const auto found = std::ranges::find_if(
+            *racers, [&](const settings::Racer& racer) { return IsRef(racer, ref); });
+        if (found != racers->end()) {
+            return std::move(*found);
         }
     }
     return Fail(ErrorCode::NotFound, std::format("no racer named {}", ref.name));
@@ -86,15 +131,12 @@ Result<void> ResolvePlayers(const assets::Vfs& vfs, const std::filesystem::path&
 }
 
 Result<std::vector<settings::Racer>> ReadDefaultRacers(const assets::Vfs& vfs) {
-    return ReadRacerFile(vfs, kDefaultFile)
-        .transform([](const std::vector<assets::SavedRacer>& saved) {
-            std::vector<settings::Racer> racers;
-            racers.reserve(saved.size());
-            for (const assets::SavedRacer& racer : saved) {
-                racers.push_back(RacerFromSave(racer));
-            }
-            return racers;
-        });
+    return ReadGameRacers(vfs, kDefaultFile).transform([&](std::vector<settings::Racer> racers) {
+        std::vector<std::vector<settings::Racer>> tables;
+        tables.push_back(std::move(racers));
+        AppendModRacers(vfs, tables);
+        return assets::MergeNamed(std::move(tables));
+    });
 }
 
 Result<std::optional<settings::Racer>> SelectedRacer(const std::filesystem::path& racersFile) {

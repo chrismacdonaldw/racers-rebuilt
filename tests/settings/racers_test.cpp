@@ -89,6 +89,17 @@ TEST_CASE("hand-written racers skip the trophies and pick that don't parse") {
     CHECK_FALSE(store->selected.has_value());
 }
 
+TEST_CASE("racers parse from text, and broken text names its source and line") {
+    const Result<RacerStore> store = ParseRacers(kHandWritten, "MENUDATA/RACERS.TOML");
+
+    REQUIRE(store.has_value());
+    REQUIRE(store->racers.size() == 1);
+    CHECK(store->racers[0].chassis == "dachas0");
+    const Result<RacerStore> broken = ParseRacers("x = 1\n[[racers\n", "MENUDATA/RACERS.TOML");
+    REQUIRE_FALSE(broken.has_value());
+    CHECK(broken.error().message.starts_with("MENUDATA/RACERS.TOML line 2"));
+}
+
 TEST_CASE("a racer that doesn't parse fails the whole file") {
     const test::TempFolder folder;
     const std::filesystem::path path = folder.Path() / "racers.toml";

@@ -187,6 +187,7 @@ add_executable(racers-rebuilt-tests
     assets/lzss_test.cpp
     assets/material_animation_test.cpp
     assets/material_library_test.cpp
+    assets/merged_table_test.cpp
     assets/menu_layout_test.cpp
     assets/menu_styles_test.cpp
     assets/mirror_test.cpp

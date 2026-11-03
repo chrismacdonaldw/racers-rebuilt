@@ -18,7 +18,7 @@ struct RacerFiles {
     ChassisEntry chassis;
 };
 
-/// The prebuilt drivers and the cars they drive, from the tables in `GAMEDATA/COMMON`.
+/// Prebuilt drivers and their cars from `GAMEDATA/COMMON`, merged with the tables mods add.
 class RacerCatalog {
 public:
     [[nodiscard]] static Result<RacerCatalog> Load(const Vfs& vfs);

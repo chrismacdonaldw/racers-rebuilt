@@ -17,6 +17,7 @@
 #include "app/racer/racer_models.hpp"
 #include "assets/chassis_database.hpp"
 #include "assets/game_path.hpp"
+#include "assets/merged_table.hpp"
 #include "assets/racer_catalog.hpp"
 #include "assets/skeleton_database.hpp"
 #include "core/transform.hpp"
@@ -103,7 +104,8 @@ Result<Chassis> LoadChassis(const assets::Vfs& vfs, assets::TrackLoader& loader,
 }
 
 Result<assets::ChassisEntry> FindMenuChassis(const assets::Vfs& vfs, std::string_view name) {
-    return ReadParsed(vfs, std::format("{}/CHASSIS.CMB", kPieceFolder), assets::ParseChassis)
+    return assets::ReadMergedTable(vfs, std::format("{}/CHASSIS.CMB", kPieceFolder),
+                                   assets::ParseChassis)
         .and_then(
             [&](const std::vector<assets::ChassisEntry>& chassis) -> Result<assets::ChassisEntry> {
                 const std::string upper = assets::ToUpperAscii(name);
