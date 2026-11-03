@@ -179,6 +179,7 @@ add_executable(racers-rebuilt-tests
     assets/geometry_database_test.cpp
     assets/geometry_writer_test.cpp
     assets/ghost_run_test.cpp
+    assets/gltf_joints_test.cpp
     assets/gltf_model_test.cpp
     assets/hazard_list_retail_test.cpp
     assets/hazard_list_test.cpp
