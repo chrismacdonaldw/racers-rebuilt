@@ -50,6 +50,8 @@ add_executable(racers-rebuilt-tests
     app/menu/attract_demo_test.cpp
     app/menu/award_scene_name_test.cpp
     app/menu/best_time_panel_test.cpp
+    app/menu/car_build_menu_test.cpp
+    app/menu/car_builder_test.cpp
     app/menu/carousel_layout_test.cpp
     app/menu/control_bindings_test.cpp
     app/menu/controls_menu_test.cpp
@@ -255,6 +257,7 @@ add_executable(racers-rebuilt-tests
     sim/car_build/car_data_test.cpp
     sim/car_build/car_mesh_test.cpp
     sim/car_build/car_studs_test.cpp
+    sim/car_build/piece_cursor_test.cpp
     sim/collision/collision_mesh_test.cpp
     sim/collision/collision_world_test.cpp
     sim/collision/racer_worlds_test.cpp

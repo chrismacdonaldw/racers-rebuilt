@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <set>
 #include <string_view>
 #include <utility>
@@ -19,7 +20,14 @@ inline constexpr std::size_t kPartSetCount = 12;
 
 /// The four starter sets, those `partSets` unlocks, and any set the car's pieces come from.
 [[nodiscard]] std::vector<std::size_t> AvailablePartSets(const std::set<std::int32_t>& partSets,
-                                                         const sim::BuiltCar& car);
+                                                         const sim::BuiltCar& car,
+                                                         const assets::PieceCatalog& catalog);
+
+/// A placed piece's part type is its set's chassis type.
+[[nodiscard]] std::uint16_t PartTypeOf(const assets::PieceCatalog& catalog, std::size_t set);
+
+[[nodiscard]] std::optional<std::size_t> PartSetOfType(const assets::PieceCatalog& catalog,
+                                                       std::uint16_t partType);
 
 /// An empty car, with a warning, when `data` doesn't load, so the editor can start it afresh.
 [[nodiscard]] sim::BuiltCar LoadEditedCar(const assets::CarData& data,

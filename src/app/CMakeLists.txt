@@ -69,6 +69,8 @@ rr_add_module(app
         menu/best_time_panel.cpp
         menu/attract_demo.cpp
         menu/award_scene_name.cpp
+        menu/car_build_menu.cpp
+        menu/car_builder.cpp
         menu/car_edit.cpp
         menu/car_stand.cpp
         menu/carousel_layout.cpp

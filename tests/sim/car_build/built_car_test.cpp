@@ -109,7 +109,7 @@ TEST_CASE_FIXTURE(Pieces, "undo takes back the newest piece but never the chassi
     CHECK(newest.piece == &wide);
     CHECK(newest.placement == PiecePlacement{.x = 3, .rotation = 1});
     CHECK(newest.colour == 9);
-    CHECK(newest.partSet == 2);
+    CHECK(newest.partType == 2);
     CHECK(build.Grid().At(3, 1).height == 1);
     CHECK(build.Grid().At(3, 0).height == 4);
     CHECK(build.Undo().has_value());
