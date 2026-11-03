@@ -64,6 +64,7 @@ rr_add_module(app
         loop_sidecar.cpp
         loop_voice.cpp
         menu/best_time_panel.cpp
+        menu/attract_demo.cpp
         menu/award_scene_name.cpp
         menu/control_bindings.cpp
         menu/controls_look.cpp

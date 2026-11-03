@@ -68,6 +68,11 @@ struct InputFrame {
         return std::ranges::any_of(
             players, [action](const PlayerInput& player) { return player.WasPressed(action); });
     }
+    [[nodiscard]] bool WasAnythingPressed() const {
+        return menuPressed.any() || std::ranges::any_of(players, [](const PlayerInput& player) {
+                   return player.pressed.any();
+               });
+    }
     [[nodiscard]] bool IsAnyHeld(Action action) const {
         return std::ranges::any_of(
             players, [action](const PlayerInput& player) { return player.IsHeld(action); });

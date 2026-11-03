@@ -131,6 +131,7 @@ private:
     RespawnRule respawn_;
     Cheats cheats_;
     std::vector<bool> isPlayer_;
+    bool isDemo_ = false;
     std::vector<Racer> racers_;
     std::vector<std::optional<RouteDriver>> drivers_;
     std::vector<RespawnWatch> respawns_;

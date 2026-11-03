@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/menu/attract_demo.hpp"
 #include "app/menu/menu_champion.hpp"
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_scenes.hpp"
@@ -64,6 +65,8 @@ private:
     std::optional<MessageDialog> dialog_;
     std::string_view firstButtonScene_;
     std::vector<render::SpriteDraw> sprites_;
+    std::string demo_;
+    AttractTimer attract_;
 };
 
 }

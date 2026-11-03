@@ -45,6 +45,7 @@ add_executable(racers-rebuilt-tests
     app/input_bindings_test.cpp
     app/install_discovery_test.cpp
     app/loop_sidecar_test.cpp
+    app/menu/attract_demo_test.cpp
     app/menu/award_scene_name_test.cpp
     app/menu/best_time_panel_test.cpp
     app/menu/control_bindings_test.cpp

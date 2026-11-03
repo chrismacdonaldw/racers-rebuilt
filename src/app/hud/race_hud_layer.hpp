@@ -45,6 +45,8 @@ public:
     /// Shows TOTAL and the gap to `ghosts`, which must outlive the layer, and no results.
     void SetTimeTrial(const sim::TimeTrialGhosts& ghosts);
 
+    void ShowDemo() { demoTime_ = Milliseconds{0}; }
+
     /// Empty until the HUD's language loads.
     [[nodiscard]] std::u16string_view RacerName(std::size_t slot) const;
     void CycleGadget(std::size_t player);
@@ -65,6 +67,7 @@ private:
     std::vector<DriverName> drivers_;
     std::vector<std::int32_t> circuitPoints_;
     const sim::TimeTrialGhosts* trial_ = nullptr;
+    std::optional<Milliseconds> demoTime_;
     std::string language_;
     UiFonts fonts_;
     std::vector<std::u16string> names_;

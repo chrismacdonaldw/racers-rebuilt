@@ -100,6 +100,9 @@ void RaceHudLayer::CycleGadget(std::size_t player) {
 }
 
 void RaceHudLayer::Tick(const sim::RaceSession& session, Milliseconds elapsed) {
+    if (demoTime_) {
+        *demoTime_ += elapsed;
+    }
     for (std::size_t player = 0; player < gadgets_.size(); ++player) {
         const sim::Racer& racer = session.Racers()[player];
         if (!racer.Status().isGhost) {
@@ -155,8 +158,11 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(
     }
     RaceHud& first = huds_.front();
     texts_.clear();
-    if (players_ == 1 && trial_ == nullptr && !session.Clock().IsTestDrive()) {
+    if (players_ == 1 && trial_ == nullptr && !session.Clock().IsTestDrive() && !demoTime_) {
         first.LayoutResults(session.Clock(), session.Progress(), 0, names_, circuitPoints_, texts_);
+    }
+    if (demoTime_) {
+        first.LayoutDemo(*demoTime_, texts_);
     }
     DrawHudText(texts_, first.Fonts(), sprites_);
     if (pause) {

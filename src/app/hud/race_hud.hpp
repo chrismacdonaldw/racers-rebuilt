@@ -59,6 +59,9 @@ public:
 
     void LayoutPause(PauseView view, bool restartsCircuit, std::vector<HudText>& out) const;
 
+    /// `shown` is how long the demo has run. The text blinks on a second's cycle.
+    void LayoutDemo(Milliseconds shown, std::vector<HudText>& out) const;
+
     [[nodiscard]] const HudFonts& Fonts() const { return fonts_; }
 
 private:

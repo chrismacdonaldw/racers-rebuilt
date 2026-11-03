@@ -8,10 +8,14 @@
 #include <utility>
 
 #include "app/frame_loop.hpp"
+#include "app/menu/attract_demo.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_focus.hpp"
 #include "app/menu/menu_scenes.hpp"
+#include "assets/race_catalog.hpp"
 #include "core/log.hpp"
+#include "platform/clock.hpp"
+#include "sim/race/random.hpp"
 
 namespace rr::app {
 namespace {
@@ -62,6 +66,17 @@ std::optional<DialogLook> MainMenuDialogLook(render::Renderer& renderer, const a
     return std::move(*look);
 }
 
+std::string PickDemo(const assets::Vfs& vfs) {
+    sim::Random random(static_cast<std::uint64_t>(platform::Now().count()));
+    Result<std::string> demo = assets::RaceCatalog::Load(vfs).and_then(
+        [&](const assets::RaceCatalog& races) { return AttractDemoScene(races, random.Next()); });
+    if (!demo) {
+        log::Warn("{}, the main menu won't start a demo", demo.error().message);
+        return {};
+    }
+    return std::move(*demo);
+}
+
 std::unique_ptr<MenuChampion> LoadChampion(render::Renderer& renderer, const assets::Vfs& vfs,
                                            const MenuFiles& files, std::string_view champion) {
     Result<std::unique_ptr<MenuChampion>> loaded =
@@ -89,6 +104,7 @@ Result<std::unique_ptr<MainMenuScene>> MainMenuScene::Create(render::Renderer& r
     auto scene = std::unique_ptr<MainMenuScene>(new MainMenuScene(
         renderer, vfs, sounds, std::move(*page), LoadChampion(renderer, vfs, *files, champion),
         MainMenuDialogLook(renderer, vfs)));
+    scene->demo_ = PickDemo(vfs);
     if (showsUnlockNotice) {
         scene->OpenDialog(kUnlockNoticeLine, {{.line = kOkLine}}, {});
     }
@@ -107,8 +123,15 @@ std::optional<std::string> MainMenuScene::TakeNextScene() {
 }
 
 void MainMenuScene::Tick(const sim::InputFrame& input) {
+    if (next_) {
+        return;
+    }
     if (champion_ && champion_->Tick(kSimTick)) {
         sounds_.Play(kGlassTapSound);
+    }
+    if (attract_.Tick(kSimTick, !dialog_) && !demo_.empty()) {
+        next_ = demo_;
+        return;
     }
     if (dialog_) {
         TickDialog(*dialog_, input);

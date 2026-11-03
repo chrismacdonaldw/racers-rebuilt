@@ -29,6 +29,7 @@ struct RaceSceneSetup {
     sim::AiDriving aiDriving = sim::AiDriving::Route;
     bool isMirrored = false;
     bool isTestDrive = false;
+    bool isDemo = false;
     std::size_t players = 1;
     std::size_t secondRacer = 1;
     int lapCount = kDefaultLapCount;
