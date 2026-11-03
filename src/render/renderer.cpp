@@ -50,19 +50,30 @@ struct MaterialUniforms {
     glm::vec2 uvOffset{};
     Color vertexScale;
     Color vertexOffset;
+    float flatWeight = 0.0F;
+    std::array<float, 3> padding{};
 };
 
 assets::ImageAsset WhitePixel() {
     return {.widthPx = 1, .heightPx = 1, .rgba = std::vector(4, std::byte{0xFF})};
 }
 
-GpuSampler CreateSampler(SDL_GPUDevice* device, SDL_GPUSamplerAddressMode addressMode) {
-    const SDL_GPUSamplerCreateInfo info{.min_filter = SDL_GPU_FILTER_LINEAR,
-                                        .mag_filter = SDL_GPU_FILTER_LINEAR,
+std::size_t SamplerSlot(TextureFilter filter, TextureAddress address) {
+    return (static_cast<std::size_t>(filter) * 2) + static_cast<std::size_t>(address);
+}
+
+GpuSampler CreateSampler(SDL_GPUDevice* device, TextureFilter filter, TextureAddress address) {
+    const SDL_GPUFilter texels =
+        filter == TextureFilter::Point ? SDL_GPU_FILTER_NEAREST : SDL_GPU_FILTER_LINEAR;
+    const SDL_GPUSamplerAddressMode edges = address == TextureAddress::Clamp
+                                                ? SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE
+                                                : SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
+    const SDL_GPUSamplerCreateInfo info{.min_filter = texels,
+                                        .mag_filter = texels,
                                         .mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
-                                        .address_mode_u = addressMode,
-                                        .address_mode_v = addressMode,
-                                        .address_mode_w = addressMode,
+                                        .address_mode_u = edges,
+                                        .address_mode_v = edges,
+                                        .address_mode_w = edges,
                                         .max_lod = kMaxLod};
     return {device, SDL_CreateGPUSampler(device, &info)};
 }
@@ -257,10 +268,14 @@ Result<void> Renderer::CreateResources() {
     quadStream_ = std::move(*quadStream);
     spriteStream_ = std::move(*spriteStream);
     spriteIndices_ = std::move(*spriteIndices);
-    sampler_ = CreateSampler(device_.get(), SDL_GPU_SAMPLERADDRESSMODE_REPEAT);
-    uiSampler_ = CreateSampler(device_.get(), SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE);
-    if (sampler_.Get() == nullptr || uiSampler_.Get() == nullptr) {
-        return GpuFailure("can't create renderer samplers");
+    for (const TextureFilter filter : {TextureFilter::Linear, TextureFilter::Point}) {
+        for (const TextureAddress address : {TextureAddress::Repeat, TextureAddress::Clamp}) {
+            GpuSampler sampler = CreateSampler(device_.get(), filter, address);
+            if (sampler.Get() == nullptr) {
+                return GpuFailure("can't create renderer samplers");
+            }
+            samplers_.at(SamplerSlot(filter, address)) = std::move(sampler);
+        }
     }
     return {};
 }
@@ -368,8 +383,9 @@ void Renderer::DrawBatches(SDL_GPURenderPass* pass, const StreamBuffer& stream,
             SDL_BindGPUGraphicsPipeline(pass, pipeline);
             bound = pipeline;
         }
-        const SDL_GPUTextureSamplerBinding texture{.texture = Shown(batch.texture),
-                                                   .sampler = uiSampler_.Get()};
+        const SDL_GPUTextureSamplerBinding texture{
+            .texture = Shown(batch.texture),
+            .sampler = Sampler(TextureFilter::Linear, TextureAddress::Clamp)};
         SDL_BindGPUFragmentSamplers(pass, 0, &texture, 1);
         SDL_DrawGPUIndexedPrimitives(pass, batch.spriteCount * kIndicesPerSprite, 1,
                                      batch.firstSprite * kIndicesPerSprite, 0, 0);
@@ -422,7 +438,8 @@ void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
         .modulateWeight = draw.material.modulates ? 1.0F : 0.0F,
         .uvOffset = {draw.material.uvOffset.u, draw.material.uvOffset.v},
         .vertexScale = draw.material.vertexColors.scale,
-        .vertexOffset = draw.material.vertexColors.offset};
+        .vertexOffset = draw.material.vertexColors.offset,
+        .flatWeight = draw.material.shading == Shading::Flat ? 1.0F : 0.0F};
     SDL_PushGPUVertexUniformData(commands, 0, &drawUniforms, sizeof(drawUniforms));
     if (isSkinned) {
         const JointUniforms joints = ToJointUniforms(draw.joints);
@@ -432,8 +449,10 @@ void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
 
     const SDL_GPUBufferBinding vertices{.buffer = mesh.vertices.Get()};
     const SDL_GPUBufferBinding indices{.buffer = mesh.indices.Get()};
+    const TextureFilter filter =
+        isSmoothingTextures_ ? TextureFilter::Linear : draw.material.filter;
     const SDL_GPUTextureSamplerBinding texture{.texture = Shown(draw.material.texture),
-                                               .sampler = sampler_.Get()};
+                                               .sampler = Sampler(filter, draw.material.address)};
     SDL_BindGPUVertexBuffers(pass, 0, &vertices, 1);
     SDL_BindGPUIndexBuffer(pass, &indices, SDL_GPU_INDEXELEMENTSIZE_32BIT);
     SDL_BindGPUFragmentSamplers(pass, 0, &texture, 1);
@@ -444,6 +463,10 @@ SDL_GPUTexture* Renderer::Shown(TextureId texture) const {
     const Texture& shown = textures_.Get(texture);
     return isSmoothingTextures_ && shown.enhanced.Get() != nullptr ? shown.enhanced.Get()
                                                                    : shown.original.Get();
+}
+
+SDL_GPUSampler* Renderer::Sampler(TextureFilter filter, TextureAddress address) const {
+    return samplers_.at(SamplerSlot(filter, address)).Get();
 }
 
 void Renderer::DrawLines(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,

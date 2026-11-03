@@ -136,6 +136,7 @@ add_executable(racers-rebuilt-tests
     app/racer/skid_marks_test.cpp
     app/racer/skid_trail_test.cpp
     app/racer_determinism_test.cpp
+    app/render_material_test.cpp
     app/replay_session_test.cpp
     app/save_import_test.cpp
     app/scene_stack_test.cpp

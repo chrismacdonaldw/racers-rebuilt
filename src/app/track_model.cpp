@@ -216,12 +216,20 @@ render::Material ToRenderMaterial(const assets::MaterialAsset& material,
     tint.a = material.transparency ? ToUnit(*material.transparency) : 1.0F;
     const render::BlendMode blend = BlendModeOf(material);
     return {.texture = isTextured ? texture->second : render::kWhiteTexture,
+            .filter = material.filter == assets::TextureFilter::Point
+                          ? render::TextureFilter::Point
+                          : render::TextureFilter::Linear,
+            .address = material.address == assets::TextureAddress::Clamp
+                           ? render::TextureAddress::Clamp
+                           : render::TextureAddress::Repeat,
             .tint = tint,
             .ambient = ToColor(material.ambient),
             .alphaCutoff = blend == render::BlendMode::Opaque ? kColorKeyCutoff : kBlendedCutoff,
             .blend = blend,
             .modulates = !isTextured || material.textureMode == assets::TextureMode::Modulate ||
-                         material.transparency.has_value()};
+                         material.transparency.has_value(),
+            .shading = material.shading == assets::Shading::Flat ? render::Shading::Flat
+                                                                 : render::Shading::Gouraud};
 }
 
 Result<TrackModel> UploadTrack(render::Renderer& renderer, const assets::TrackAssets& track) {
