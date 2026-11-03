@@ -139,6 +139,24 @@ TEST_CASE_FIXTURE(VfsFixture,
     CHECK(vfs_.Read("GAMEDATA/B.TXT").error().code == ErrorCode::InvalidData);
 }
 
+TEST_CASE_FIXTURE(VfsFixture, "reading the original skips the resolver") {
+    vfs_.SetResolver([](AssetRequest& request) { request.generated = BytesOf("made"); });
+
+    const Result<FileData> original = vfs_.ReadOriginal("gamedata/a.txt");
+
+    REQUIRE(original.has_value());
+    CHECK(test::AsText(original->Bytes()) == "jam a");
+    CHECK(ReadText("GAMEDATA/A.TXT") == "made");
+}
+
+TEST_CASE_FIXTURE(VfsFixture, "only a layer's files count as contained") {
+    vfs_.SetResolver([](AssetRequest& request) { request.generated = BytesOf("made"); });
+
+    CHECK(vfs_.Contains("gamedata\\b.txt"));
+    CHECK_FALSE(vfs_.Contains("GAMEDATA/NEW.TXT"));
+    CHECK_FALSE(vfs_.Contains("GAMEDATA"));
+}
+
 TEST_CASE_FIXTURE(VfsFixture, "a folder layer skips names that can't be game paths") {
     WriteText(Loose() / u8"café" / "x.txt", "skipped");
 

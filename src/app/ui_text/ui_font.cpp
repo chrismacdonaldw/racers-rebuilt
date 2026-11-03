@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 
+#include "app/ui_text/ui_pixels.hpp"
 #include "assets/game_path.hpp"
 #include "assets/texture_database.hpp"
 
@@ -10,22 +11,20 @@ namespace rr::app {
 
 Result<UiFont> LoadUiFont(render::Renderer& renderer, const assets::Vfs& vfs,
                           std::string_view folder, const assets::FontDefinition& definition) {
-    Result<assets::ImageAsset> image =
-        vfs.Read(assets::JoinGamePath(folder, definition.FileName()))
-            .and_then([&](const assets::FileData& file) {
-                return assets::DecodeImage(file.Bytes(), definition.fileKind);
-            });
+    Result<UiPixels> image =
+        ReadUiPixels(vfs, assets::JoinGamePath(folder, definition.FileName()), definition.fileKind);
     if (!image) {
         return std::unexpected(std::move(image.error()));
     }
-    UiFont font{.widthPx = image->widthPx,
-                .heightPx = image->heightPx,
+    const assets::ImageAsset& layout = image->Layout();
+    UiFont font{.widthPx = layout.widthPx,
+                .heightPx = layout.heightPx,
                 .spacingPx = definition.spacingPx,
-                .glyphs = assets::ScanGlyphs(*image, definition.characters)};
-    if (definition.colorKey) {
-        assets::ApplyColorKey(*image, *definition.colorKey);
+                .glyphs = assets::ScanGlyphs(layout, definition.characters)};
+    if (definition.colorKey && !image->original) {
+        assets::ApplyColorKey(image->pixels, *definition.colorKey);
     }
-    return renderer.UploadTexture(*image).transform([&](render::TextureId texture) {
+    return renderer.UploadTexture(image->pixels).transform([&](render::TextureId texture) {
         font.texture = texture;
         return std::move(font);
     });

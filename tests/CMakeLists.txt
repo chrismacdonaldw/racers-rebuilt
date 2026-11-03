@@ -49,6 +49,7 @@ add_executable(racers-rebuilt-tests
     app/circuit_leg_test.cpp
     app/device_assignment_test.cpp
     app/free_camera_test.cpp
+    app/hq_textures_test.cpp
     app/input_bindings_test.cpp
     app/install_discovery_test.cpp
     app/loop_sidecar_test.cpp
@@ -195,6 +196,7 @@ add_executable(racers-rebuilt-tests
     assets/part_sets_test.cpp
     assets/piece_catalog_test.cpp
     assets/piece_library_test.cpp
+    assets/png_image_test.cpp
     assets/race_catalog_test.cpp
     assets/race_list_test.cpp
     assets/race_map_test.cpp

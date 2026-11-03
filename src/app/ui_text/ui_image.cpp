@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "app/ui_text/ui_pixels.hpp"
 #include "assets/game_path.hpp"
 #include "assets/texture_database.hpp"
 
@@ -9,19 +10,17 @@ namespace rr::app {
 
 Result<UiImage> LoadUiImage(render::Renderer& renderer, const assets::Vfs& vfs,
                             std::string_view folder, const assets::ImageListEntry& entry) {
-    Result<assets::ImageAsset> image =
-        vfs.Read(assets::JoinGamePath(folder, entry.FileName()))
-            .and_then([&](const assets::FileData& file) {
-                return assets::DecodeImage(file.Bytes(), entry.fileKind);
-            });
+    Result<UiPixels> image =
+        ReadUiPixels(vfs, assets::JoinGamePath(folder, entry.FileName()), entry.fileKind);
     if (!image) {
         return std::unexpected(std::move(image.error()));
     }
-    if (entry.colorKey) {
-        assets::ApplyColorKey(*image, *entry.colorKey);
+    if (entry.colorKey && !image->original) {
+        assets::ApplyColorKey(image->pixels, *entry.colorKey);
     }
-    return renderer.UploadTexture(*image).transform([&](render::TextureId texture) {
-        return UiImage{.texture = texture, .widthPx = image->widthPx, .heightPx = image->heightPx};
+    const assets::ImageAsset& layout = image->Layout();
+    return renderer.UploadTexture(image->pixels).transform([&](render::TextureId texture) {
+        return UiImage{.texture = texture, .widthPx = layout.widthPx, .heightPx = layout.heightPx};
     });
 }
 

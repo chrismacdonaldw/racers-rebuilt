@@ -40,6 +40,7 @@ struct SettingChanged {
 /// Handlers run on loader threads at once, and must answer a path the same way all session.
 struct AssetResolving {
     assets::AssetRequest& request;
+    const assets::Vfs& vfs;
 };
 
 /// Handlers run in the order they subscribed, on the main thread unless the event says otherwise.
