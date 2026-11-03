@@ -368,7 +368,7 @@ void Renderer::DrawBatches(SDL_GPURenderPass* pass, const StreamBuffer& stream,
             SDL_BindGPUGraphicsPipeline(pass, pipeline);
             bound = pipeline;
         }
-        const SDL_GPUTextureSamplerBinding texture{.texture = textures_.Get(batch.texture).Get(),
+        const SDL_GPUTextureSamplerBinding texture{.texture = Shown(batch.texture),
                                                    .sampler = uiSampler_.Get()};
         SDL_BindGPUFragmentSamplers(pass, 0, &texture, 1);
         SDL_DrawGPUIndexedPrimitives(pass, batch.spriteCount * kIndicesPerSprite, 1,
@@ -432,12 +432,18 @@ void Renderer::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
 
     const SDL_GPUBufferBinding vertices{.buffer = mesh.vertices.Get()};
     const SDL_GPUBufferBinding indices{.buffer = mesh.indices.Get()};
-    const SDL_GPUTextureSamplerBinding texture{
-        .texture = textures_.Get(draw.material.texture).Get(), .sampler = sampler_.Get()};
+    const SDL_GPUTextureSamplerBinding texture{.texture = Shown(draw.material.texture),
+                                               .sampler = sampler_.Get()};
     SDL_BindGPUVertexBuffers(pass, 0, &vertices, 1);
     SDL_BindGPUIndexBuffer(pass, &indices, SDL_GPU_INDEXELEMENTSIZE_32BIT);
     SDL_BindGPUFragmentSamplers(pass, 0, &texture, 1);
     SDL_DrawGPUIndexedPrimitives(pass, indexCount, 1, draw.firstIndex, 0, 0);
+}
+
+SDL_GPUTexture* Renderer::Shown(TextureId texture) const {
+    const Texture& shown = textures_.Get(texture);
+    return isSmoothingTextures_ && shown.enhanced.Get() != nullptr ? shown.enhanced.Get()
+                                                                   : shown.original.Get();
 }
 
 void Renderer::DrawLines(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,

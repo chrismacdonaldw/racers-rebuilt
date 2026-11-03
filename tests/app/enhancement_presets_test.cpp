@@ -6,6 +6,7 @@
 
 #include "app/cheat_settings.hpp"
 #include "app/race_settings.hpp"
+#include "app/video_settings.hpp"
 
 namespace rr::app {
 namespace {
@@ -14,6 +15,7 @@ settings::Registry DeclaredRegistry() {
     settings::Registry registry;
     DeclareRaceSettings(registry);
     DeclareCheatSettings(registry);
+    DeclareVideoSettings(registry);
     return registry;
 }
 
@@ -53,6 +55,17 @@ TEST_CASE("the original preset clears the cheats and the enhanced one keeps them
     CHECK_FALSE(registry.Get(noWheels));
     CHECK(IsPresetActive(registry, original));
     CHECK_FALSE(IsPresetActive(registry, enhanced));
+}
+
+TEST_CASE("the original preset turns smooth textures off and the enhanced one on") {
+    settings::Registry registry = DeclaredRegistry();
+    const std::vector<settings::SettingPreset> presets = EnhancementPresets();
+    REQUIRE(presets.size() == 2);
+
+    static_cast<void>(ApplyPreset(registry, presets[0]));
+    CHECK_FALSE(registry.Get(kSmoothTexturesSetting));
+    static_cast<void>(ApplyPreset(registry, presets[1]));
+    CHECK(registry.Get(kSmoothTexturesSetting));
 }
 
 }

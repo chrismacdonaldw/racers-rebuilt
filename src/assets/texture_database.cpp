@@ -60,8 +60,8 @@ private:
     std::uint32_t count_ = 0;
 };
 
-std::span<std::byte> PixelAt(ImageAsset& image, std::size_t index) {
-    return std::span(image.rgba).subspan(index * kBytesPerPixel, kBytesPerPixel);
+std::span<std::byte> PixelAt(std::vector<std::byte>& rgba, std::size_t index) {
+    return std::span(rgba).subspan(index * kBytesPerPixel, kBytesPerPixel);
 }
 
 std::span<const std::byte> PixelAt(const ImageAsset& image, std::size_t index) {
@@ -93,13 +93,21 @@ std::uint32_t GameMipLevels(const ImageAsset& image, const TextureDefinition& de
     return std::min(requested, FullMipLevels(image.widthPx, image.heightPx));
 }
 
-void FlipRows(ImageAsset& image) {
-    const std::size_t rowBytes = std::size_t{image.widthPx} * kBytesPerPixel;
-    const std::span<std::byte> pixels = image.rgba;
-    for (std::size_t top = 0, bottom = image.heightPx; top + 1 < bottom; ++top, --bottom) {
+void FlipRows(std::span<std::byte> pixels, std::size_t rowBytes) {
+    for (std::size_t top = 0, bottom = pixels.size() / rowBytes; top + 1 < bottom;
+         ++top, --bottom) {
         std::ranges::swap_ranges(pixels.subspan(top * rowBytes, rowBytes),
                                  pixels.subspan((bottom - 1) * rowBytes, rowBytes));
     }
+}
+
+void FlipRows(ImageAsset& image) {
+    const std::size_t rowBytes = std::size_t{image.widthPx} * kBytesPerPixel;
+    if (rowBytes == 0) {
+        return;
+    }
+    FlipRows(image.rgba, rowBytes);
+    FlipRows(image.enhancedRgba, rowBytes);
 }
 
 }
@@ -137,7 +145,7 @@ Result<ImageAsset> DecodeTexture(std::span<const std::byte> bytes,
         FlipRows(*image);
     }
     if (image && !IsPng(bytes)) {
-        image->mipLevels = GameMipLevels(*image, definition);
+        image->enhancedMipLevels = GameMipLevels(*image, definition);
     }
     return image;
 }
@@ -148,7 +156,7 @@ void ApplyColorKey(ImageAsset& image, ColorKey key) {
     std::vector<bool> keyed(pixelCount);
     ColourSum unkeyed;
     for (std::size_t i = 0; i < pixelCount; ++i) {
-        const std::span<std::byte> pixel = PixelAt(image, i);
+        const std::span<std::byte> pixel = PixelAt(image.rgba, i);
         keyed[i] = std::ranges::equal(pixel.first(kAlphaOffset), keyBytes);
         if (keyed[i]) {
             pixel[kAlphaOffset] = std::byte{0};
@@ -157,13 +165,14 @@ void ApplyColorKey(ImageAsset& image, ColorKey key) {
         }
     }
     const std::optional<Rgb> mean = unkeyed.Mean();
-    if (!mean) {
+    if (!mean || std::ranges::find(keyed, true) == keyed.end()) {
         return;
     }
+    image.enhancedRgba = image.rgba;
     for (std::size_t i = 0; i < pixelCount; ++i) {
         if (keyed[i]) {
             std::ranges::copy(NeighbourMean(image, keyed, i).value_or(*mean),
-                              PixelAt(image, i).begin());
+                              PixelAt(image.enhancedRgba, i).begin());
         }
     }
 }

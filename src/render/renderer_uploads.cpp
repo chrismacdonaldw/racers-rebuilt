@@ -57,8 +57,26 @@ Result<TextureId> Renderer::UploadTexture(const assets::ImageAsset& image) {
     if (Result<void> valid = CheckRgba(image); !valid) {
         return std::unexpected(std::move(valid.error()));
     }
+    Result<GpuTexture> original = CreateTexture(image, image.rgba, image.mipLevels);
+    if (!original || !assets::HasEnhancedLook(image)) {
+        return original.transform([&](GpuTexture& texture) {
+            return textures_.Add({.original = std::move(texture), .enhanced = {}});
+        });
+    }
+    const std::span<const std::byte> enhanced =
+        image.enhancedRgba.empty() ? image.rgba : image.enhancedRgba;
+    return CreateTexture(image, enhanced, std::max(image.mipLevels, image.enhancedMipLevels))
+        .transform([&](GpuTexture&& texture) {
+            return textures_.Add(
+                {.original = std::move(*original), .enhanced = std::move(texture)});
+        });
+}
+
+Result<GpuTexture> Renderer::CreateTexture(const assets::ImageAsset& image,
+                                           std::span<const std::byte> pixels,
+                                           std::uint32_t mipLevels) {
     const std::uint32_t levels =
-        std::clamp(image.mipLevels, 1U, assets::FullMipLevels(image.widthPx, image.heightPx));
+        std::clamp(mipLevels, 1U, assets::FullMipLevels(image.widthPx, image.heightPx));
     const SDL_GPUTextureUsageFlags usage =
         levels > 1 ? SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET
                    : SDL_GPU_TEXTUREUSAGE_SAMPLER;
@@ -73,11 +91,11 @@ Result<TextureId> Renderer::UploadTexture(const assets::ImageAsset& image) {
     if (texture.Get() == nullptr) {
         return GpuFailure("can't create texture");
     }
-    Result<void> uploaded = CopyToTexture(texture.Get(), image, false);
+    Result<void> uploaded = CopyToTexture(texture.Get(), image, pixels, false);
     if (uploaded && levels > 1) {
         uploaded = GenerateMips(texture.Get());
     }
-    return uploaded.transform([&] { return textures_.Add(std::move(texture)); });
+    return uploaded.transform([&] { return std::move(texture); });
 }
 
 Result<void> Renderer::UpdateTexture(TextureId texture, const assets::ImageAsset& image) {
@@ -87,7 +105,7 @@ Result<void> Renderer::UpdateTexture(TextureId texture, const assets::ImageAsset
     if (!textures_.Contains(texture)) {
         return Fail(ErrorCode::InvalidData, "can't update a texture that doesn't exist");
     }
-    return CopyToTexture(textures_.Get(texture).Get(), image, true);
+    return CopyToTexture(textures_.Get(texture).original.Get(), image, image.rgba, true);
 }
 
 Result<void> Renderer::CheckRgba(const assets::ImageAsset& image) {
@@ -101,8 +119,8 @@ Result<void> Renderer::CheckRgba(const assets::ImageAsset& image) {
 }
 
 Result<void> Renderer::CopyToTexture(SDL_GPUTexture* texture, const assets::ImageAsset& image,
-                                     bool cycles) {
-    const std::array<std::span<const std::byte>, 1> parts{image.rgba};
+                                     std::span<const std::byte> pixels, bool cycles) {
+    const std::array<std::span<const std::byte>, 1> parts{pixels};
     Result<GpuTransferBuffer> staged = Stage(parts);
     if (!staged) {
         return std::unexpected(std::move(staged.error()));

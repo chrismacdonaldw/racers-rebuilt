@@ -51,6 +51,7 @@ struct TextureDefinition {
 [[nodiscard]] Result<ImageAsset> DecodeTexture(std::span<const std::byte> bytes,
                                                const TextureDefinition& definition);
 
+/// Keyed pixels turn transparent; `enhancedRgba` also takes their neighbours' colour.
 void ApplyColorKey(ImageAsset& image, ColorKey key);
 
 }
