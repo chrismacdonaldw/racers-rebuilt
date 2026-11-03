@@ -120,9 +120,10 @@ void SdlGpuBackend::DrawBatches(SDL_GPURenderPass* pass, const StreamBuffer& str
             SDL_BindGPUGraphicsPipeline(pass, pipeline);
             bound = pipeline;
         }
+        const TextureFilter filter =
+            settings_.isSmoothingTextures ? TextureFilter::Linear : batch.sampling.filter;
         const SDL_GPUTextureSamplerBinding texture{
-            .texture = Shown(batch.texture),
-            .sampler = Sampler(TextureFilter::Linear, TextureAddress::Clamp)};
+            .texture = Shown(batch.texture), .sampler = Sampler(filter, batch.sampling.address)};
         SDL_BindGPUFragmentSamplers(pass, 0, &texture, 1);
         SDL_DrawGPUIndexedPrimitives(pass, batch.spriteCount * kIndicesPerSprite, 1,
                                      batch.firstSprite * kIndicesPerSprite, 0, 0);

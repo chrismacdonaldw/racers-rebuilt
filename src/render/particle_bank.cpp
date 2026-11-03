@@ -226,7 +226,8 @@ void ParticleBank::AppendSlot(const Slot& slot, const Transform& camera,
              .corners = {at + top - side, at + top + side, at - top - side, at - top + side},
              .uv = kParticleUv,
              .tint = look->tint,
-             .blend = look->blend});
+             .blend = look->blend,
+             .sampling = look->sampling});
     }
 }
 

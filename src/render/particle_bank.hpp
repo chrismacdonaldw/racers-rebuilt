@@ -25,6 +25,7 @@ struct ParticleLook {
     TextureId texture = kWhiteTexture;
     Color tint;
     BlendMode blend = BlendMode::Alpha;
+    TextureSampling sampling;
 };
 
 /// Emitters and `animation` are in world space. A look that is absent hides its particles.

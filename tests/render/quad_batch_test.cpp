@@ -38,6 +38,22 @@ TEST_CASE("quads batch like sprites and keep their corners in order") {
     CHECK(batches[1].blend == BlendMode::Additive);
 }
 
+TEST_CASE("quads sampled differently start a new batch") {
+    constexpr TextureSampling kBlocky{.filter = TextureFilter::Point,
+                                      .address = TextureAddress::Repeat};
+    const std::vector<QuadDraw> quads{
+        {.texture = kSmoke}, {.texture = kSmoke, .sampling = kBlocky}, {.texture = kSmoke}};
+    std::vector<QuadVertex> vertices;
+    std::vector<SpriteBatch> batches;
+
+    BatchQuads(quads, vertices, batches);
+
+    REQUIRE(batches.size() == 3);
+    CHECK(batches[0].sampling == TextureSampling{});
+    CHECK(batches[1].sampling == kBlocky);
+    CHECK(batches[2].firstSprite == 2);
+}
+
 TEST_CASE("a quad's corner tints scale its tint at each corner") {
     const std::vector<QuadDraw> quads{
         {.tint = {.r = 0.5F},

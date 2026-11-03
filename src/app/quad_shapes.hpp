@@ -13,10 +13,13 @@ struct QuadLook {
     render::TextureId texture = render::kWhiteTexture;
     render::Color tint;
     render::BlendMode blend = render::BlendMode::Alpha;
+    render::TextureSampling sampling;
 };
 
 /// Quads never write depth, so an opaque material blends by its texture's alpha instead.
 [[nodiscard]] QuadLook LookOf(const render::Material& material);
+
+[[nodiscard]] render::TextureSampling SamplingOf(const render::Material& material);
 
 /// In engine space, `width` along the camera's right axis and `height` along its up axis.
 void AppendBillboard(const QuadLook& look, const Vector3& centre, float width, float height,

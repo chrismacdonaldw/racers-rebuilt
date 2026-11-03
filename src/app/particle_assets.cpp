@@ -6,6 +6,7 @@
 #include <span>
 #include <utility>
 
+#include "app/quad_shapes.hpp"
 #include "app/track_model.hpp"
 #include "app/track_space.hpp"
 #include "assets/game_path.hpp"
@@ -40,8 +41,9 @@ std::optional<render::ParticleLook> LookOf(std::string_view name,
     return render::ParticleLook{
         .texture = material.texture,
         .tint = material.modulates ? material.tint : render::Color{.a = material.tint.a},
-        .blend = material.blend == render::BlendMode::Opaque ? render::BlendMode::Alpha
-                                                             : material.blend};
+        .blend =
+            material.blend == render::BlendMode::Opaque ? render::BlendMode::Alpha : material.blend,
+        .sampling = SamplingOf(material)};
 }
 
 std::string SharedFiles(std::span<const assets::VfsEntry> entries, std::string_view track) {

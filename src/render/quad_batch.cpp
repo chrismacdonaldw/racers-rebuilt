@@ -26,7 +26,7 @@ void BatchQuads(std::span<const QuadDraw> quads, std::vector<QuadVertex>& vertic
                                           .u = uvRight,
                                           .v = uvBottom,
                                           .color = quad.tint * quad.cornerTints[3]}});
-        AddToBatches(batches, quad.texture, quad.blend);
+        AddToBatches(batches, quad.texture, quad.blend, quad.sampling);
     }
 }
 

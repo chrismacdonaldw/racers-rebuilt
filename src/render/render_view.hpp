@@ -26,6 +26,13 @@ enum class BlendMode : std::uint8_t { Opaque, Alpha, Additive };
 enum class TextureFilter : std::uint8_t { Linear, Point };
 enum class TextureAddress : std::uint8_t { Repeat, Clamp };
 
+struct TextureSampling {
+    TextureFilter filter = TextureFilter::Linear;
+    TextureAddress address = TextureAddress::Clamp;
+
+    friend bool operator==(const TextureSampling&, const TextureSampling&) = default;
+};
+
 /// Flat takes the whole triangle's normal and vertex color from its first vertex.
 enum class Shading : std::uint8_t { Gouraud, Flat };
 
@@ -145,6 +152,7 @@ struct QuadDraw {
     Color tint;
     std::array<Color, 4> cornerTints{};
     BlendMode blend = BlendMode::Alpha;
+    TextureSampling sampling;
 };
 
 /// In fractions of the window's width and height, from its top left, or of the UI canvas's.
