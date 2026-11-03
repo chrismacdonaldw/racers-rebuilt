@@ -5,14 +5,18 @@
 
 namespace rr::app {
 
-Extensions LoadExtensions(const std::filesystem::path& modsFolder) {
-    Extensions extensions{.mods = mods::ModList::Discover(modsFolder), .enhancements = {}};
+Extensions LoadExtensions(const std::filesystem::path& modsFolder,
+                          const std::filesystem::path& overridesFolder) {
+    Extensions extensions{.mods = mods::ModList::Discover(modsFolder),
+                          .overrides = mods::OverrideFolder(overridesFolder),
+                          .enhancements = {}};
     extensions.enhancements.push_back(std::make_unique<FreeCamera>());
     return extensions;
 }
 
 void DeclareExtensionSettings(const Extensions& extensions, settings::Registry& registry) {
     extensions.mods.DeclareSettings(registry);
+    registry.Declare(mods::kOverridesSetting);
     for (const std::unique_ptr<mods::Enhancement>& enhancement : extensions.enhancements) {
         enhancement->DeclareSettings(registry);
     }

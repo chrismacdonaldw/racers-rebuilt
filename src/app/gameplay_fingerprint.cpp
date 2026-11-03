@@ -9,10 +9,14 @@ namespace rr::app {
 
 std::vector<std::string> GameplayFingerprint(const settings::Registry& settings,
                                              const mods::ModList& mods,
+                                             std::optional<std::uint64_t> overridesHash,
                                              const PlayerRacers& players) {
     std::vector<std::string> entries;
     for (const mods::Mod* mod : mods.Enabled(settings)) {
         entries.push_back(std::format("mod:{}@{}", mod->Manifest().id, mod->Manifest().version));
+    }
+    if (overridesHash) {
+        entries.push_back(std::format("overrides:{:016x}", *overridesHash));
     }
     for (const auto& [key, racer] :
          {std::pair{"racer", &players.first}, std::pair{"racer2", &players.second}}) {

@@ -89,9 +89,10 @@ To keep everything next to the exe instead, create an empty file named `portable
   game/
   music/
   mods/
+  overrides/
 ```
 
-Create `music/` and `mods/` when you first need them.
+Create `music/`, `mods/` and `overrides/` when you first need them.
 
 ## Configuration
 
@@ -140,6 +141,7 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `race.opponents` | `5` | `0` to `5`. Computer racers in a single race, from the options screen. Applies from the next race. |
 | `race.versus_laps` | `3` | `1` to `5`. Laps in a versus race, from the options screen. |
 | `mods.<id>.enabled` | The mod's `enabled` value | `true`, `false` |
+| `mods.overrides` | `true` | `true`, `false`. Loads `<data>/overrides/`. Applies on the next start. |
 | `input.keys.<action>` | See below | The first keyboard set (arrows). Comma-separated SDL key names, such as `Up,W` or `Left Shift` |
 | `input.keys2.<action>` | See below | The second keyboard set (WASD), in the same form |
 | `input.keys3.<action>` | See below | The third keyboard set (keypad), in the same form |
@@ -257,6 +259,14 @@ enabled = true
 | `enabled` | No | Default `true`. Sets the starting value of `mods.<id>.enabled`. |
 
 Turning a mod on or off applies on the next start. A mod with a broken `mod.toml` is skipped with a warning in the log.
+
+### Overrides
+
+To replace a few files without writing a mod, put them in `<data>/overrides/` at their paths inside `LEGO.JAM`, e.g. `<data>/overrides/GAMEDATA/COMMON/RRJMW.GDB`.
+
+- Overrides win over every mod. Path case doesn't matter.
+- **Loose file overrides** in the **Mods** menu (`mods.overrides`) turns them off. It applies on the next start.
+- Replays record which files are overridden and warn when played back with different ones.
 
 ## Troubleshooting
 
