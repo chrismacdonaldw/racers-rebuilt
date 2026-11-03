@@ -54,12 +54,13 @@ float LockFor(float radius, float handling) {
 
 }
 
-RouteDriver::RouteDriver(const assets::RaceRoute& route)
-    : nearest_(route), reference_(route), ahead_(route) {}
+RouteDriver::RouteDriver(const assets::RaceRoute& route, std::optional<float> pace)
+    : nearest_(route), reference_(route), ahead_(route), pace_(pace) {}
 
 RacerControls RouteDriver::Drive(const Racer& racer) {
     const BodyMotion& motion = racer.Body().motion;
     Follow(motion.position);
+    const bool isThrottleHeld = IsBelowPace(motion);
     const Transform reference = reference_.Pose();
     const Vector3 tangent = FlatForward(reference.rotation);
     const Vector3 target = Flat(reference.position) + (tangent * kCorrectionDistance);
@@ -67,7 +68,7 @@ RacerControls RouteDriver::Drive(const Racer& racer) {
     const float curvature = CurvatureToward(reference.position, tangent, ahead_.Pose().position) +
                             CurvatureToward(motion.position, forward, target);
     if (std::abs(curvature) < kMinCurvature) {
-        return {.isThrottleHeld = true};
+        return {.isThrottleHeld = isThrottleHeld};
     }
     const float radius = 1.0F / std::abs(curvature);
     const float limit = GripLimit(racer.Body());
@@ -75,9 +76,19 @@ RacerControls RouteDriver::Drive(const Racer& racer) {
     const float gripLock = LockFor(GripTurnRadius(radius, limit), handling);
     const bool isDrifting = gripLock > (racer.Driver().isDrifting ? kDriftReleaseLock : 1.0F);
     const float lock = isDrifting ? LockFor(DriftTurnRadius(radius, limit), handling) : gripLock;
-    return {.isThrottleHeld = true,
+    return {.isThrottleHeld = isThrottleHeld,
             .isDriftHeld = isDrifting,
             .steerLeftAxis = std::copysign(std::min(lock, 1.0F), curvature)};
+}
+
+bool RouteDriver::IsBelowPace(const BodyMotion& motion) const {
+    const auto leadMs = static_cast<float>((aheadLead_ - referenceLead_).count());
+    if (!pace_ || leadMs <= 0.0F) {
+        return true;
+    }
+    const float routeSpeed =
+        Length(Flat(ahead_.Pose().position - reference_.Pose().position)) / leadMs;
+    return Dot(motion.velocity, motion.basis.forward) < *pace_ * routeSpeed;
 }
 
 bool RouteDriver::IsStalled(Milliseconds elapsed) {

@@ -2,6 +2,7 @@
 
 #include <chrono>
 
+#include "app/race_scene_name.hpp"
 #include "settings/registry.hpp"
 #include "settings/setting_spec.hpp"
 #include "sim/race/race_setup.hpp"
@@ -29,6 +30,13 @@ inline constexpr settings::SettingSpec<bool> kPhysicsAi{
     .label = "Computer racers drive with the car physics",
     .category = "Enhancements/Gameplay"};
 
+inline constexpr settings::SettingSpec<int> kAiPace{
+    .key = "race.ai_pace",
+    .defaultValue = kDefaultAiPace,
+    .range = settings::SettingRange<int>{.min = kMinAiPace, .max = kMaxAiPace},
+    .label = "Physics racers' pace (% of the original)",
+    .category = "Enhancements/Gameplay"};
+
 inline constexpr settings::SettingSpec<int> kOpponents{
     .key = "race.opponents",
     .defaultValue = 5,
@@ -47,6 +55,7 @@ inline void DeclareRaceSettings(settings::Registry& registry) {
     registry.Declare(kRespawn);
     registry.Declare(kRespawnSeconds);
     registry.Declare(kPhysicsAi);
+    registry.Declare(kAiPace);
     registry.Declare(kOpponents);
     registry.Declare(kVersusLaps);
 }
@@ -58,6 +67,13 @@ inline void DeclareRaceSettings(settings::Registry& registry) {
 
 [[nodiscard]] inline sim::AiDriving AiDrivingFrom(const settings::Registry& registry) {
     return registry.Get(kPhysicsAi) ? sim::AiDriving::Physics : sim::AiDriving::Route;
+}
+
+/// Only the respawn and computer racer fields are set.
+[[nodiscard]] inline RaceSceneSetup RaceRulesFrom(const settings::Registry& registry) {
+    return {.respawn = RespawnRuleFrom(registry),
+            .aiDriving = AiDrivingFrom(registry),
+            .aiPace = registry.Get(kAiPace)};
 }
 
 }

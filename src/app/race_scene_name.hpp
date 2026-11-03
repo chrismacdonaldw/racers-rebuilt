@@ -17,6 +17,9 @@ namespace rr::app {
 
 inline constexpr int kDefaultLapCount = 3;
 inline constexpr std::size_t kDefaultOpponentCount = 5;
+inline constexpr int kDefaultAiPace = 100;
+inline constexpr int kMinAiPace = 50;
+inline constexpr int kMaxAiPace = 150;
 
 /// Players drive grid slots `racer` then `secondRacer`, two alone. Empty `circuit` means home.
 /// `playerRacer` and `secondPlayerRacer` resolve `player` and `secondPlayer`, and aren't named.
@@ -27,6 +30,7 @@ struct RaceSceneSetup {
     sim::RespawnRule respawn;
     std::size_t racer = 0;
     sim::AiDriving aiDriving = sim::AiDriving::Route;
+    int aiPace = kDefaultAiPace;
     bool isMirrored = false;
     bool isTestDrive = false;
     bool isDemo = false;

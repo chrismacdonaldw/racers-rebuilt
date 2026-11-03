@@ -37,6 +37,7 @@ struct RaceSetup {
     int lapCount = 3;
     RespawnRule respawn;
     AiDriving aiDriving = AiDriving::Route;
+    float aiPace = 1.0F;
     EffectFactories effects;
     Cheats cheats;
     bool isTestDrive = false;
