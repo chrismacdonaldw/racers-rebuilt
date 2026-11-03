@@ -12,6 +12,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/binding_categories.hpp"
 #include "app/device_assignment.hpp"
 #include "settings/registry.hpp"
 #include "settings/setting_spec.hpp"
@@ -33,10 +34,10 @@ template <typename Action>
                                                    std::string_view buttonsKey,
                                                    std::string_view keys,
                                                    std::string_view buttons) {
-    return {.action = action,
-            .keys = {.key = keysKey, .defaultValue = keys, .label = name, .category = "Keyboard"},
-            .buttons = {
-                .key = buttonsKey, .defaultValue = buttons, .label = name, .category = "Gamepad"}};
+    return {
+        .action = action,
+        .keys = {.key = keysKey, .defaultValue = keys, .label = name, .category = kKeys1},
+        .buttons = {.key = buttonsKey, .defaultValue = buttons, .label = name, .category = kPad1}};
 }
 
 inline constexpr std::array kMenuBindings{

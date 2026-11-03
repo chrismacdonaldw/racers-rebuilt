@@ -4,6 +4,7 @@
 #include <span>
 #include <string_view>
 
+#include "app/binding_categories.hpp"
 #include "app/device_assignment.hpp"
 #include "settings/registry.hpp"
 #include "settings/setting_spec.hpp"
@@ -24,8 +25,6 @@ struct RaceBinding {
             .inputs = {.key = key, .defaultValue = inputs, .label = label, .category = category}};
 }
 
-inline constexpr std::string_view kKeys1 = "Keyboard";
-
 inline constexpr std::array kKeys1Bindings{
     RaceBindingFor(kKeys1, sim::Action::Accelerate, "Accelerate", "input.keys.accelerate", "Up"),
     RaceBindingFor(kKeys1, sim::Action::Brake, "Brake", "input.keys.brake", "Down"),
@@ -44,8 +43,6 @@ inline constexpr std::array kKeys1Bindings{
                    "Right Alt"),
 };
 
-inline constexpr std::string_view kKeys2 = "Keyboard 2";
-
 inline constexpr std::array kKeys2Bindings{
     RaceBindingFor(kKeys2, sim::Action::Accelerate, "Accelerate", "input.keys2.accelerate", "W"),
     RaceBindingFor(kKeys2, sim::Action::Brake, "Brake", "input.keys2.brake", "X"),
@@ -61,8 +58,6 @@ inline constexpr std::array kKeys2Bindings{
                    "input.keys2.change_camera", "Q"),
     RaceBindingFor(kKeys2, sim::Action::LookBack, "Look backwards", "input.keys2.look_back", "Z"),
 };
-
-inline constexpr std::string_view kKeys3 = "Keyboard 3";
 
 inline constexpr std::array kKeys3Bindings{
     RaceBindingFor(kKeys3, sim::Action::Accelerate, "Accelerate", "input.keys3.accelerate",
@@ -84,8 +79,6 @@ inline constexpr std::array kKeys3Bindings{
                    "Keypad 9"),
 };
 
-inline constexpr std::string_view kPad1 = "Gamepad";
-
 inline constexpr std::array kPad1Bindings{
     RaceBindingFor(kPad1, sim::Action::Accelerate, "Accelerate", "input.buttons.accelerate",
                    "a,righttrigger"),
@@ -105,8 +98,6 @@ inline constexpr std::array kPad1Bindings{
     RaceBindingFor(kPad1, sim::Action::LookBack, "Look backwards", "input.buttons.look_back",
                    "rightstick"),
 };
-
-inline constexpr std::string_view kPad2 = "Gamepad 2";
 
 inline constexpr std::array kPad2Bindings{
     RaceBindingFor(kPad2, sim::Action::Accelerate, "Accelerate", "input.pad2.buttons.accelerate",
@@ -137,18 +128,18 @@ inline constexpr std::array<settings::SettingSpec<std::string_view>, sim::kMaxPl
         {.key = "input.p1.device",
          .defaultValue = "pad1",
          .label = "Player 1 device",
-         .category = "Controls"},
+         .category = kBindingsCategory},
         {.key = "input.p2.device",
          .defaultValue = "pad2",
          .label = "Player 2 device",
-         .category = "Controls"},
+         .category = kBindingsCategory},
     }};
 
 inline constexpr settings::SettingSpec<bool> kAnyDeviceSetting{
     .key = "input.p1.any_device",
     .defaultValue = false,
     .label = "Any device drives player 1",
-    .category = "Controls"};
+    .category = kBindingsCategory};
 
 /// A device name that isn't a set leaves that player on their default.
 [[nodiscard]] PlayerSets ChosenPlayerSets(const settings::Registry& registry);
