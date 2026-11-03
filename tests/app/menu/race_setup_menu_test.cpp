@@ -3,14 +3,21 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include <initializer_list>
+#include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include "app/menu/menu_scenes.hpp"
 #include "assets/archive_survey.hpp"
+#include "assets/folder_layer.hpp"
+#include "temp_folder.hpp"
 
 namespace rr::app {
 namespace {
@@ -54,6 +61,14 @@ TEST_CASE("left and right change the course only while it has focus") {
     static_cast<void>(Press(menu, {MenuAction::Up, MenuAction::Right}));
     CHECK(menu.Course().track == "RACEC0R0");
 }
+TEST_CASE("a track outside every circuit races on its own") {
+    RaceSetupMenu menu(
+        {{.track = "MODTRACK", .racers = {{.code = "a"}}, .previews = {std::nullopt}}});
+
+    CHECK(Press(menu, {MenuAction::Down, MenuAction::Confirm}) ==
+          std::string("menu:pick_racer>race:MODTRACK:respawn=3000:racer=0"));
+}
+
 TEST_CASE("back leaves for the main menu from any row") {
     RaceSetupMenu menu(Tracks());
 
@@ -197,6 +212,33 @@ TEST_CASE("single race takes a track's grid from the circuit it's listed under")
     CHECK(tracks->front().track == "RACEC0R1");
     CHECK(tracks->front().circuit == "c0");
     CHECK(tracks->front().racers.at(1).code == "CR");
+}
+
+void AddModTrack(assets::Vfs& vfs, const std::filesystem::path& root) {
+    const std::filesystem::path folder = root / "GAMEDATA" / "MODTRACK";
+    std::filesystem::create_directories(folder);
+    for (const std::string_view file : {"STARTPOS.SPB", "RACE.CPB"}) {
+        std::ofstream(folder / file).put('\0');
+    }
+    Result<assets::FolderLayer> layer = assets::FolderLayer::Scan(root);
+    REQUIRE(layer.has_value());
+    vfs.Mount(std::make_unique<assets::FolderLayer>(std::move(*layer)));
+}
+
+TEST_CASE("single race lists tracks only mods add last, with the first circuit's grid") {
+    std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const test::TempFolder mod;
+    AddModTrack(*vfs, mod.Path());
+
+    const Result<std::vector<CourseChoice>> tracks = LoadTrackChoices(*vfs);
+
+    REQUIRE(tracks.has_value());
+    CHECK(tracks->size() == 14);
+    CHECK(tracks->back().track + tracks->back().circuit == "MODTRACK");
+    CHECK(tracks->back().racers.at(1).code == "CR");
 }
 
 TEST_CASE("time trials offer the races of the first three circuits, locked with them") {

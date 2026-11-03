@@ -34,7 +34,7 @@ struct CourseChoice {
     bool isLocked = false;
 };
 
-/// Unmirrored circuit races in circuit order, each with its circuit's grid.
+/// Unmirrored circuit races in circuit order with their circuit's grid, then tracks only mods add.
 [[nodiscard]] Result<std::vector<CourseChoice>> LoadTrackChoices(const assets::Vfs& vfs);
 
 /// The unmirrored races of the first three circuits, locked with their circuit.

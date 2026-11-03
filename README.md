@@ -265,7 +265,7 @@ Turning a mod on or off applies on the next start. Once a setting in **Mods** ch
 
 ### Tracks
 
-A mod adds a race track with a new folder in `files/GAMEDATA/`. Any folder there with a `STARTPOS.SPB` and a `RACE.CPB` is a track. It shows in the overlay's **Scenes** menu, and `--race <folder>` starts a race on it.
+A mod adds a race track with a new folder in `files/GAMEDATA/`. Any folder there with a `STARTPOS.SPB` and a `RACE.CPB` is a track. It shows at the end of the single race and versus track lists under its folder name, in the overlay's **Scenes** menu, and `--race <folder>` starts a race on it.
 
 Starting from a copy of a retail folder such as `RACEC0R0`, rename the files named after it:
 
