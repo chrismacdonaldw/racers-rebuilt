@@ -172,6 +172,23 @@ TEST_CASE("the RACEC2R0 cloud steam keeps its texture scroll") {
     CHECK(steam->textureScroll == assets::TextureScroll{.uPerSecond = 0.0F, .vPerSecond = -0.5F});
 }
 
+TEST_CASE("only the first place trophy is environment mapped on its stand") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const std::vector<std::string> worlds{"1STPLACE"};
+    const Result<TrackEntitySources> sources = LoadWorldEntities(*vfs, "MENUDATA/C_AWARD1", worlds);
+    REQUIRE(sources.has_value());
+    std::vector<std::string> mapped;
+    for (const TrackEntity& entity : sources->entities) {
+        if (entity.isEnvironmentMapped) {
+            mapped.push_back(entity.name);
+        }
+    }
+    CHECK(mapped == std::vector<std::string>{"gold"});
+}
+
 struct HammerSwing {
     Vector3 pivot;
     Vector3 rest;

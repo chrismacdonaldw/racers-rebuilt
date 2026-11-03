@@ -97,7 +97,7 @@ TEST_CASE("model entities read placement, levels of detail and decoration") {
               {.animation = 5, .track = 6, .material = 7, .materialTable = 8}});
     CHECK(entity.textureScroll == TextureScroll{.uPerSecond = 3.0F, .vPerSecond = 4.0F});
     CHECK(entity.hasFlag42);
-    CHECK(entity.hasFlag4C);
+    CHECK(entity.isEnvironmentMapped);
 }
 
 TEST_CASE("an entity without fields keeps the defaults") {

@@ -1,12 +1,27 @@
 #include "app/track_entity_draws.hpp"
 
 #include <cmath>
+#include <optional>
 
+#include "app/environment_map.hpp"
 #include "app/texture_scroll.hpp"
 #include "app/track_space.hpp"
 #include "assets/game_path.hpp"
 
 namespace rr::app {
+namespace {
+
+std::optional<render::UvOffset> ReflectionOf(const sim::TrackEntity& entity,
+                                             std::span<const Transform> poses) {
+    if (!entity.isEnvironmentMapped || entity.textureScroll) {
+        return std::nullopt;
+    }
+    const Quaternion root = poses.empty() ? entity.placement.rotation
+                                          : entity.placement.rotation * poses.front().rotation;
+    return EnvironmentOffset(Rotate(root, {.x = 1.0F}), Rotate(root, {.z = 1.0F}));
+}
+
+}
 
 TrackEntityDraws::TrackEntityDraws(const assets::NameMap<JointedModel>& models,
                                    const sim::TrackEntitySources& sources)
@@ -35,13 +50,18 @@ void TrackEntityDraws::Update(std::span<const sim::EntityClock> clocks) {
         const sim::EntityClock clock = entity < clocks.size() ? clocks[entity] : sim::EntityClock{};
         std::vector<Transform>& poses = poses_[entity];
         sim::NodePoses(*sources_, entity, clock, poses);
+        const sim::TrackEntity& source = sources_->entities[entity];
+        const std::optional<render::UvOffset> reflection = ReflectionOf(source, poses);
         for (Transform& pose : poses) {
             pose = TransformToEngine(pose);
         }
-        const Transform placement = TransformToEngine(sources_->entities[entity].placement);
+        const Transform placement = TransformToEngine(source.placement);
         for (std::size_t i = span.first; i < span.first + span.count; ++i) {
             draws_[i].transform = placement;
             draws_[i].joints = poses;
+            if (reflection) {
+                draws_[i].material.uvOffset = *reflection;
+            }
         }
     }
 }

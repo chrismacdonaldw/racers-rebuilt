@@ -65,7 +65,7 @@ struct WorldEntity {
     std::optional<NameOrIndex> startPart;
     std::int32_t boundingVolume = kNoIndex;
     bool hasFlag42 = false;
-    bool hasFlag4C = false;
+    bool isEnvironmentMapped = false;
 };
 
 struct SpriteMaterial {
