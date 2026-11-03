@@ -43,6 +43,7 @@ struct RaceSetup {
     EffectFactories effects;
     Cheats cheats;
     assets::GameVersion version = assets::GameVersion::Release1999;
+    bool lagsInput = false;
     bool isTestDrive = false;
     bool isDemo = false;
 };

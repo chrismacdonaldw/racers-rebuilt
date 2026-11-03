@@ -26,6 +26,11 @@ struct SettingRange {
     T max;
 };
 
+struct SettingRequirement {
+    std::string_view key;
+    std::string_view choice;
+};
+
 /// `key` is a dotted TOML path. Out-of-range values are clamped. A `/` in `category` nests menus.
 template <SettingType T>
 struct SettingSpec {
@@ -36,6 +41,8 @@ struct SettingSpec {
     std::string_view category;
     bool changesGameplay = false;
     std::span<const std::string_view> choices;
+    std::string_view tooltip;
+    std::optional<SettingRequirement> requirement;
 };
 
 template <SettingType T>

@@ -260,6 +260,36 @@ TEST_CASE("the session's seeded random picks each computer racer's route") {
     CHECK(session.Racers()[1].Body().motion.position.y == expected);
 }
 
+Vector3 PlayerAfterGo(assets::GameVersion version, bool lagsInput, const RacerControls& first,
+                      const RacerControls& second) {
+    const Fixture fixture;
+    RaceSetup setup = TwoRacers();
+    setup.version = version;
+    setup.lagsInput = lagsInput;
+    RaceSession session = fixture.Start(setup);
+    while (session.Clock().Phase() != RacePhase::Racing) {
+        Run(session, 1, {});
+    }
+    Run(session, 1, first);
+    Run(session, 1, second);
+    return session.Racers()[0].Body().motion.position;
+}
+
+TEST_CASE("2001 input lag steps each tick on the controls from the tick before") {
+    constexpr auto kRerelease = assets::GameVersion::Release2001;
+    const Vector3 lagged = PlayerAfterGo(kRerelease, true, kThrottle, {});
+
+    CHECK(lagged == PlayerAfterGo(kRerelease, false, {}, kThrottle));
+    CHECK(lagged != PlayerAfterGo(kRerelease, false, kThrottle, {}));
+}
+
+TEST_CASE("the 1999 rules ignore the input lag setting") {
+    constexpr auto kOriginal = assets::GameVersion::Release1999;
+
+    CHECK(PlayerAfterGo(kOriginal, true, kThrottle, {}) ==
+          PlayerAfterGo(kOriginal, false, kThrottle, {}));
+}
+
 TEST_CASE("after 15 s the rubber band slows a computer racer leading the player") {
     const Fixture fixture;
     RaceSession session = fixture.Start(TwoRacers());

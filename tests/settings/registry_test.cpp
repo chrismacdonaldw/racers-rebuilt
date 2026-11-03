@@ -119,6 +119,23 @@ TEST_CASE("declarations keep their label, category and range") {
           Registry::Range{SettingValue{std::int64_t{30}}, SettingValue{std::int64_t{360}}});
 }
 
+TEST_CASE(
+    "a setting with a requirement is available only while the other setting holds its choice") {
+    constexpr SettingSpec<bool> kLag{
+        .key = "game.input_lag_2001",
+        .tooltip = "Only in 2001 mode.",
+        .requirement = SettingRequirement{.key = "game.version", .choice = "2001"}};
+    Registry registry = DeclaredRegistry();
+    registry.Declare(kLag);
+
+    CHECK_FALSE(registry.IsAvailable(kLag.key));
+    CHECK(registry.IsAvailable(kVsync.key));
+    CHECK(registry.AllDeclarations().find(kLag.key)->second.tooltip == "Only in 2001 mode.");
+
+    registry.Set(kVersion, "2001");
+    CHECK(registry.IsAvailable(kLag.key));
+}
+
 TEST_CASE("observers hear about changes only") {
     Registry registry = DeclaredRegistry();
     std::vector<std::string> changed;

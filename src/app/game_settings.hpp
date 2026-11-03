@@ -24,6 +24,17 @@ inline constexpr settings::SettingSpec<std::string_view> kGameVersion{
     .changesGameplay = true,
     .choices = assets::kGameVersionNames};
 
+inline constexpr settings::SettingSpec<bool> kInputLag2001{
+    .key = "game.input_lag_2001",
+    .defaultValue = false,
+    .label = "2001 input lag",
+    .category = "Game",
+    .changesGameplay = true,
+    .tooltip =
+        "The 2001 release reads the controls after each frame's step, so every frame drives "
+        "on the controls from the frame before. Only in 2001 mode.",
+    .requirement = settings::SettingRequirement{.key = kGameVersion.key, .choice = "2001"}};
+
 [[nodiscard]] inline assets::GameVersion SelectedVersion(const settings::Registry& registry) {
     return assets::ParseGameVersion(registry.Get(kGameVersion))
         .value_or(assets::GameVersion::Release1999);
@@ -56,6 +67,7 @@ inline void DeclareGameSettings(settings::Registry& registry) {
     registry.Declare(kGamePath);
     registry.Declare(kGamePath2001);
     registry.Declare(kGameVersion);
+    registry.Declare(kInputLag2001);
     registry.Declare(kGameLanguage);
     registry.Declare(kIntroVideosSetting);
 }

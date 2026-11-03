@@ -135,6 +135,8 @@ private:
     std::vector<bool> isPlayer_;
     bool isDemo_ = false;
     const VersionRules* rules_ = nullptr;
+    bool lagsInput_ = false;
+    std::vector<RacerControls> lastControls_;
     std::vector<Racer> racers_;
     std::vector<std::optional<RouteDriver>> drivers_;
     std::vector<RespawnWatch> respawns_;

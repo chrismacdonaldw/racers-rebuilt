@@ -123,6 +123,17 @@ Result<void> Registry::AssignText(std::string_view key, std::string_view text) {
     return Assign(key, std::move(*parsed));
 }
 
+bool Registry::IsAvailable(std::string_view key) const {
+    const auto declaration = declarations_.find(key);
+    if (declaration == declarations_.end() || !declaration->second.requirement) {
+        return true;
+    }
+    const auto& [required, choice] = *declaration->second.requirement;
+    const auto value = values_.find(required);
+    const auto* text = value == values_.end() ? nullptr : std::get_if<std::string>(&value->second);
+    return text != nullptr && *text == choice;
+}
+
 void Registry::Observe(Observer observer) {
     observers_.push_back(std::move(observer));
 }
