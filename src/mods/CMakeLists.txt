@@ -1,5 +1,6 @@
 rr_add_module(mods
     SOURCES
+        hook_registry.cpp
         mod_list.cpp
         mod_manifest.cpp
         override_folder.cpp

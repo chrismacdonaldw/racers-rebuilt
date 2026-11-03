@@ -22,8 +22,9 @@ void DeclareExtensionSettings(const Extensions& extensions, settings::Registry& 
     }
 }
 
-void AttachEnhancements(const Extensions& extensions, mods::HookRegistry& hooks,
+void AttachEnhancements(const Extensions& extensions, mods::HookRegistry& hooks, assets::Vfs& vfs,
                         const settings::Registry& settings) {
+    mods::ResolveThroughHooks(vfs, hooks);
     for (const std::unique_ptr<mods::Enhancement>& enhancement : extensions.enhancements) {
         enhancement->Attach(hooks, settings);
         log::Info("enhancement: {}{}", enhancement->Name(),

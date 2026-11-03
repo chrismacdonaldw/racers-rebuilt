@@ -132,6 +132,7 @@ Result<void> Application::Run() {
     seed_ = replay->Seed();
     MenuPointer pointer(window_.Handle(), renderer_, LoadMenuCursor(renderer_, vfs_));
     renderer_.PinTextures();
+    AttachEnhancements(extensions_, frameLoop_.Hooks(), vfs_, settings_);
     Result<std::unique_ptr<overlay::Overlay>> menu =
         overlay::Overlay::Create(window_, renderer_, EnhancementPresets());
     Result<void> opened = menu.and_then([&](const auto&) { return OpenScene(scene_); });
@@ -152,7 +153,6 @@ Result<void> Application::Run() {
     audio::MusicPlayer music =
         CreateMusicPlayer(mixer_, vfs_, settingsFile_.parent_path() / kMusicFolderName,
                           extensions_.mods.Enabled(settings_));
-    AttachEnhancements(extensions_, frameLoop_.Hooks(), settings_);
     frameLoop_.Hooks().Subscribe<mods::SceneEntered>([this, &bindings](const mods::SceneEntered&) {
         bindings.SetPlayerCount(frameLoop_.Scenes().Top()->PlayerCount(), frameLoop_.Input());
     });

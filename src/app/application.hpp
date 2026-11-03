@@ -42,6 +42,13 @@ class Application {
 public:
     [[nodiscard]] static Result<Application> Create(GameBoot boot);
 
+    Application(const Application&) = delete;
+    Application& operator=(const Application&) = delete;
+    // NOLINTNEXTLINE(bugprone-exception-escape)
+    Application(Application&&) = default;
+    Application& operator=(Application&&) = delete;
+    ~Application() { vfs_.SetResolver({}); }
+
     [[nodiscard]] Result<void> Run();
 
 private:
