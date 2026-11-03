@@ -24,6 +24,11 @@ struct MaterialSources {
     const assets::NameMap<render::Material>* materials = nullptr;
 };
 
+/// Nothing when the world's animation, that track or one of its key materials is missing.
+[[nodiscard]] std::optional<PlayedTrack> ResolveTrack(const assets::WorldAsset& world,
+                                                      std::size_t animation, std::size_t track,
+                                                      const MaterialSources& sources);
+
 /// Loops the `MAB` tracks world entities bind to their material slots, unless a hazard drives them.
 class TrackMaterialAnims {
 public:

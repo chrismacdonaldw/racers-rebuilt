@@ -363,6 +363,7 @@ Result<TrackAssets> TrackLoader::LoadWorldFiles(const NameResolver& resolver,
     for (std::size_t i = 0; i < worlds->size(); ++i) {
         AssetCache<WorldAsset>::Handle& world = (*worlds)[i];
         InsertAllUpper(names.models, world->models);
+        InsertAllUpper(names.models, world->materialTables);
         InsertAllUpper(names.materialLibraries, world->materialLibraries);
         InsertAllUpper(names.textureDatabases, world->textureLists);
         InsertAllUpper(names.materialAnimations, world->materialAnimations);

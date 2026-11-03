@@ -135,6 +135,18 @@ TEST_CASE_FIXTURE(TrackFixture, "a track loads the material animations its world
     CHECK(track->materialAnimations.at("LIGHTS")->keys.front().material == "glass");
 }
 
+TEST_CASE_FIXTURE(TrackFixture, "a track loads the material tables its worlds name") {
+    Write("gamedata/racex/world.wdb",
+          Join({NameList(0x27, "tex"), NameList(0x28, "mat"), NameList(0x2B, "sprite")}));
+    Write("gamedata/racex/sprite.gdb", NameList(0x27, "welder"));
+
+    const Result<TrackAssets> track = Load();
+
+    REQUIRE(track.has_value());
+    REQUIRE(track->models.contains("SPRITE"));
+    CHECK(track->models.at("SPRITE")->materials == std::vector<std::string>{"welder"});
+}
+
 TEST_CASE_FIXTURE(TrackFixture, "loading a track again reuses the cached files") {
     const Result<TrackAssets> first = Load();
     const Result<TrackAssets> second = loader_.Load("GAMEDATA/RACEX");
