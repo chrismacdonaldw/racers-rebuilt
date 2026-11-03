@@ -91,6 +91,11 @@ bool IsHoldingLastFrame(const assets::AnimationAsset& animations, const PartCloc
     return !clock.loops && clock.frame >= LastFrame(animations.parts[clock.part]);
 }
 
+float OnceLengthMs(const assets::AnimationPart& part) {
+    const auto rate = static_cast<float>(part.framesPerSecond);
+    return rate > 0.0F ? LastFrame(part) * kMsPerSecond / rate : 0.0F;
+}
+
 void SampleNode(const assets::AnimationAsset& animations, const PartClock& clock, std::size_t node,
                 Transform& local) {
     const assets::AnimationPart& part = animations.parts[clock.part];

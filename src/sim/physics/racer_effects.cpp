@@ -196,19 +196,27 @@ void Racer::React(VoiceReaction reaction) {
     }
 }
 
-void Racer::WatchForSuddenStop() {
+void Racer::WatchForSuddenStop(Milliseconds elapsed) {
     const float speed = body_.derived.forwardSpeed;
-    if (watchedSpeed_ > kSuddenStopFromSpeed && speed < kStoppedSpeed) {
+    suddenStopLeft_ = std::max(Milliseconds{0}, suddenStopLeft_ - elapsed);
+    if (suddenStopLeft_ == Milliseconds{0} && watchedSpeed_ > kSuddenStopFromSpeed &&
+        speed < kStoppedSpeed) {
         ++status_.suddenStops;
         React(VoiceReaction::Negative);
         watchedSpeed_ = 0.0F;
+        suddenStopLeft_ = suddenStopLength_;
         return;
     }
     watchedSpeed_ = speed;
 }
 
+void Racer::SetSuddenStopLength(Milliseconds length) {
+    suddenStopLength_ = std::max(Milliseconds{0}, length);
+}
+
 void Racer::ReactToHit() {
     ++status_.hitReactions;
+    suddenStopLeft_ = Milliseconds{0};
 }
 
 bool Racer::BeginWarp() {

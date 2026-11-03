@@ -137,8 +137,11 @@ public:
     /// Only the first reaction since the last `Tick` counts.
     void React(VoiceReaction reaction);
 
-    /// Call after each `Tick` until the racer finishes. A sudden stop groans and counts.
-    void WatchForSuddenStop();
+    /// Call after each `Tick` until the racer finishes. A stop while the last one plays is lost.
+    void WatchForSuddenStop(Milliseconds elapsed);
+
+    /// A hit cuts the stop short. None by default.
+    void SetSuddenStopLength(Milliseconds length);
 
     /// Fails while the racer is a ghost or already warping. Ends any magnet hold.
     [[nodiscard]] bool BeginWarp();
@@ -237,6 +240,8 @@ private:
     bool wasBrakeHeld_ = false;
     std::uint32_t turboCount_ = 0;
     float watchedSpeed_ = 0.0F;
+    Milliseconds suddenStopLength_{0};
+    Milliseconds suddenStopLeft_{0};
 };
 
 }

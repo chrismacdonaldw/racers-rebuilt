@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 
 #include <cmath>
+#include <cstdint>
 #include <numbers>
 
 #include "plane_world.hpp"
@@ -30,7 +31,7 @@ void Drive(Racer& racer, const RacerControls& controls, int durationMs,
 void DriveWatchingForStops(Racer& racer, int durationMs, const CollisionQuery& world) {
     for (int elapsed = 0; elapsed < durationMs; elapsed += kTickMs) {
         Drive(racer, {.isThrottleHeld = true}, kTickMs, world);
-        racer.WatchForSuddenStop();
+        racer.WatchForSuddenStop(kTick);
     }
 }
 
@@ -217,11 +218,50 @@ TEST_CASE("a sudden stop counts once and the count survives a respawn") {
     CHECK(racer.Status().suddenStops == 0);
 
     racer.Place({.position = {.z = 0.2F}});
-    racer.WatchForSuddenStop();
-    racer.WatchForSuddenStop();
+    racer.WatchForSuddenStop(kTick);
+    racer.WatchForSuddenStop(kTick);
     CHECK(racer.Status().suddenStops == 1);
 
     racer.Place({.position = {.z = 0.2F}});
+    CHECK(racer.Status().suddenStops == 1);
+}
+
+TEST_CASE("a stop while the last one plays is lost, unless a hit cut it short") {
+    const test::PlaneWorld world = test::FlatGround();
+    Racer racer = RacerOnGround();
+    racer.SetSuddenStopLength(Milliseconds{300});
+    const auto stopAfter = [&](Milliseconds watched) {
+        Drive(racer, {.isThrottleHeld = true}, 1000, world);
+        racer.WatchForSuddenStop(watched);
+        racer.Place({.position = {.z = 0.2F}});
+        racer.WatchForSuddenStop(kTick);
+        return racer.Status().suddenStops;
+    };
+
+    const std::uint32_t first = stopAfter(kTick);
+    const std::uint32_t playing = stopAfter(kTick);
+    racer.ReactToHit();
+    const std::uint32_t afterHit = stopAfter(kTick);
+    const std::uint32_t afterPlay = stopAfter(Milliseconds{300});
+
+    CHECK(first == 1);
+    CHECK(playing == 1);
+    CHECK(afterHit == 2);
+    CHECK(afterPlay == 3);
+}
+
+TEST_CASE("a stop that never ends from a modded animation loses every later stop") {
+    const test::PlaneWorld world = test::FlatGround();
+    Racer racer = RacerOnGround();
+    racer.SetSuddenStopLength(Milliseconds::max());
+    DriveWatchingForStops(racer, 1000, world);
+    racer.Place({.position = {.z = 0.2F}});
+    racer.WatchForSuddenStop(kTick);
+
+    DriveWatchingForStops(racer, 1000, world);
+    racer.Place({.position = {.z = 0.2F}});
+    racer.WatchForSuddenStop(Milliseconds{40});
+
     CHECK(racer.Status().suddenStops == 1);
 }
 
