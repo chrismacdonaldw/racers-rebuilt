@@ -65,7 +65,7 @@ private:
     void Apply(const TrackEvent& event, TrackEvents& events, TrackEntities& entities);
     void Rephase(const assets::EventTrigger& trigger, ResourcePhase from, ResourcePhase to,
                  TrackEvents& events);
-    void FireSubEvent(assets::EventId id, EventEdge edge, TrackEvents& events);
+    void FireSubEvent(const TrackEvent& event, TrackEvents& events);
     void Force(assets::EventId id);
 
     void StartPart(std::size_t i, TrackEntities& entities);

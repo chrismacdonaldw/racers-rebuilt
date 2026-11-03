@@ -14,12 +14,13 @@ namespace rr::sim {
 
 enum class EventEdge : std::uint8_t { Start, End };
 
-/// Racer-path events name their `racer`. Position-path events may carry a `position`.
+/// Racer-path events name their `racer`. A paired event was fired in one pass with an end.
 struct TrackEvent {
     assets::EventId id = assets::kNoEvent;
     EventEdge edge = EventEdge::Start;
     std::optional<Vector3> position;
     std::optional<std::uint8_t> racer;
+    bool isPaired = false;
 
     friend bool operator==(const TrackEvent&, const TrackEvent&) = default;
 };

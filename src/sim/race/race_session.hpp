@@ -27,6 +27,7 @@
 #include "sim/physics/racer_contacts.hpp"
 #include "sim/physics/racer_controls.hpp"
 #include "sim/physics/version_rules.hpp"
+#include "sim/powerup/aim_targets.hpp"
 #include "sim/powerup/brick_field.hpp"
 #include "sim/powerup/explosions.hpp"
 #include "sim/powerup/powerup_inventory.hpp"
@@ -93,6 +94,7 @@ public:
     [[nodiscard]] const RacerTints& Tints() const { return tints_; }
     [[nodiscard]] bool IsMirrored() const { return course_.isMirrored; }
     [[nodiscard]] std::span<const AiTaunter> Taunters() const { return taunts_; }
+    [[nodiscard]] const AimTargets& Targets() const { return targets_; }
     [[nodiscard]] const std::optional<RouteDriver>& DriverOf(std::size_t racer) const {
         return drivers_.at(racer);
     }
@@ -116,6 +118,7 @@ private:
                                     const RacerControls& controls);
     void Taunt(std::size_t racer);
     void StartRacing();
+    void AdvanceClock(Milliseconds elapsed);
     void StartBoosts();
     void ResolveContacts();
     void PaceRoutes(Milliseconds elapsed);
@@ -155,6 +158,7 @@ private:
     Hazards hazards_;
     EventResources resources_;
     RacerTints tints_;
+    AimTargets targets_;
     std::vector<TriggerRacer> triggerRacers_;
     std::vector<std::optional<std::size_t>> sphereWorlds_;
     std::vector<TriggerWorlds> switchedWorlds_;

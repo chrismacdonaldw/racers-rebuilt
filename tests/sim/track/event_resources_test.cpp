@@ -88,7 +88,8 @@ public:
     }
 
     [[nodiscard]] bool Saw(assets::EventId id, EventEdge edge) const {
-        return std::ranges::contains(history, TrackEvent{.id = id, .edge = edge});
+        return std::ranges::any_of(
+            history, [&](const TrackEvent& event) { return event.id == id && event.edge == edge; });
     }
 
     [[nodiscard]] std::optional<std::size_t> Part() const { return entities.CurrentPart(0); }
@@ -113,6 +114,10 @@ TrackEvent Start(assets::EventId id) {
 TrackEvent End(assets::EventId id) {
     return {.id = id, .edge = EventEdge::End};
 }
+TrackEvent Paired(TrackEvent event) {
+    event.isPaired = true;
+    return event;
+}
 
 assets::PartAnimationResource DoorAnimation() {
     return {.trigger = On(5, {.start = 50, .active = 51, .end = 52}),
@@ -132,7 +137,7 @@ TEST_CASE("a part animation plays its start part, then loops its active part") {
 
     CHECK(rig.Part() == 2);
     CHECK(rig.resources.PartAnimations()[0] == ResourcePhase::Active);
-    CHECK(rig.history == std::vector{Start(5), Start(50), Start(51), End(50)});
+    CHECK(rig.history == std::vector{Start(5), Start(50), Paired(Start(51)), Paired(End(50))});
     CHECK(rig.entities.NodeWorld(0, 0).position.z == doctest::Approx(10.0F));
 }
 
@@ -147,7 +152,8 @@ TEST_CASE("an ended part animation re-enters its active phase, then plays its en
 
     CHECK(rig.Part() == 0);
     CHECK(rig.resources.PartAnimations()[0] == ResourcePhase::Idle);
-    CHECK(rig.history == std::vector{End(5), Start(51), Start(52), End(51), End(52)});
+    CHECK(rig.history ==
+          std::vector{End(5), Start(51), Paired(Start(52)), Paired(End(51)), End(52)});
     CHECK(rig.entities.NodeWorld(0, 0).position.z == doctest::Approx(0.0F));
 }
 

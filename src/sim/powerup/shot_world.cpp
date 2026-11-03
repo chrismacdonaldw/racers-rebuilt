@@ -28,7 +28,8 @@ std::optional<SegmentHit> ShotWorld::CastSegment(std::size_t world, const Vector
     }
     const std::optional<std::int32_t> event = surfaces_->Entry(*entry).projectileEvent;
     if (event && events_ != nullptr) {
-        events_->FireStartAndEnd(*event, hit.point);
+        events_->Fire({.id = *event, .edge = EventEdge::Start, .position = hit.point});
+        events_->Fire({.id = *event, .edge = EventEdge::End, .position = hit.point});
     }
     hit.isSolid = !surfaces_->LetsShotsThrough(*entry);
     return hit;

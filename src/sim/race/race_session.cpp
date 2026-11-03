@@ -143,6 +143,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       resources_(EventSourcesFor(course).table, EntitySourcesFor(course), course.collision,
                  EventSourcesFor(course).sky),
       tints_(EventSourcesFor(course).table, setup.racers.size()),
+      targets_(course.targets),
       triggerRacers_(setup.racers.size()),
       sphereWorlds_(SphereWorldsFor(course)),
       switchedWorlds_(setup.racers.size()),
@@ -223,15 +224,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     sounds_.HearWeapons(weapons_.Events());
     progress_.Rank(*course_.checkpoints, positions_);
     ReactToPlaces();
-    const RaceClock before = clock_;
-    clock_.Advance(elapsed, HasPlayerFinished());
-    sounds_.HearClock(before, clock_, isPlayer_);
-    if (before.Phase() == RacePhase::Countdown && clock_.Phase() == RacePhase::Racing) {
-        StartRacing();
-    }
-    if (before.Phase() == RacePhase::Finished && clock_.Phase() == RacePhase::Results) {
-        progress_.FinishRemaining();
-    }
+    AdvanceClock(elapsed);
     for (Racer& racer : racers_) {
         racer.UpdateTimers(elapsed);
     }
@@ -243,6 +236,19 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     resources_.Dispatch(triggers_, entities_);
     tints_.Apply(triggers_.Events());
     progress_.EnterZones(triggers_.Events(), EventSourcesFor(course_).table.lapZones);
+    targets_.Hear(triggers_.Events());
+}
+
+void RaceSession::AdvanceClock(Milliseconds elapsed) {
+    const RaceClock before = clock_;
+    clock_.Advance(elapsed, HasPlayerFinished());
+    sounds_.HearClock(before, clock_, isPlayer_);
+    if (before.Phase() == RacePhase::Countdown && clock_.Phase() == RacePhase::Racing) {
+        StartRacing();
+    }
+    if (before.Phase() == RacePhase::Finished && clock_.Phase() == RacePhase::Results) {
+        progress_.FinishRemaining();
+    }
 }
 
 RacerControls RaceSession::ControlsOf(std::size_t racer, std::span<const RacerControls> controls) {
@@ -441,7 +447,7 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     if (clock_.IsRunning() && WantsPowerup(racer, elapsed, controls)) {
         PowerupContext effects = EffectContext();
         if (isPlayer_[racer]) {
-            effects.targets = course_.targets;
+            effects.targets = targets_.Left();
         }
         const std::optional<assets::BrickColour> colour = inventories_[racer].Colour();
         if ((colour == assets::BrickColour::Yellow || colour == assets::BrickColour::Blue) &&
