@@ -20,7 +20,12 @@ QuadLook LookOf(const render::Material& material) {
     return {.texture = material.texture,
             .tint = material.tint,
             .blend = material.blend == render::BlendMode::Opaque ? render::BlendMode::Alpha
-                                                                 : material.blend};
+                                                                 : material.blend,
+            .sampling = SamplingOf(material)};
+}
+
+render::TextureSampling SamplingOf(const render::Material& material) {
+    return {.filter = material.filter, .address = material.address};
 }
 
 void AppendBillboard(const QuadLook& look, const Vector3& centre, float width, float height,
@@ -31,7 +36,8 @@ void AppendBillboard(const QuadLook& look, const Vector3& centre, float width, f
                    .corners = {centre + top - side, centre + top + side, centre - top - side,
                                centre - top + side},
                    .tint = look.tint,
-                   .blend = look.blend});
+                   .blend = look.blend,
+                   .sampling = look.sampling});
 }
 
 void AppendGroundQuad(const QuadLook& look, const Vector3& centre, const Vector3& normal,
@@ -42,7 +48,8 @@ void AppendGroundQuad(const QuadLook& look, const Vector3& centre, const Vector3
                    .corners = {lifted + top - right, lifted + top + right, lifted - top - right,
                                lifted - top + right},
                    .tint = look.tint,
-                   .blend = look.blend});
+                   .blend = look.blend,
+                   .sampling = look.sampling});
 }
 
 void AppendDecal(const QuadLook& look, const Vector3& centre, float size,
@@ -65,7 +72,8 @@ void AppendRibbon(const QuadLook& look, std::span<const RibbonPoint> points, flo
                                    to.position + side},
                        .tint = look.tint,
                        .cornerTints = {from.tint, to.tint, from.tint, to.tint},
-                       .blend = look.blend});
+                       .blend = look.blend,
+                       .sampling = look.sampling});
     }
 }
 

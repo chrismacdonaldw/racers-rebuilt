@@ -5,10 +5,10 @@
 #include <optional>
 #include <vector>
 
+#include "app/ground_decal.hpp"
 #include "app/quad_shapes.hpp"
 #include "core/vector3.hpp"
 #include "render/render_view.hpp"
-#include "sim/physics/collision_query.hpp"
 
 namespace rr::app {
 
@@ -32,7 +32,7 @@ public:
     void Release(float fadeMs);
     void Fade(float elapsedMs);
 
-    void Append(const sim::CollisionQuery& ground, std::vector<render::QuadDraw>& out) const;
+    void Append(GroundDecals& ground, std::vector<render::QuadDraw>& out) const;
 
 private:
     static constexpr std::size_t kSettledCount = 3;

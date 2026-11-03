@@ -9,7 +9,6 @@
 #include "assets/chassis_database.hpp"
 #include "assets/track_loader.hpp"
 #include "render/render_view.hpp"
-#include "sim/physics/collision_query.hpp"
 #include "sim/render_snapshot.hpp"
 
 namespace rr::app {
@@ -24,7 +23,7 @@ public:
     /// `pose` is in engine space.
     void Update(const sim::EntitySnapshot& pose, const sim::RacerSnapshot& racer, float elapsedMs);
 
-    void Append(const sim::CollisionQuery& ground, std::vector<render::QuadDraw>& out) const;
+    void Append(GroundDecals& ground, std::vector<render::QuadDraw>& out) const;
 
     [[nodiscard]] std::optional<SkidWheels> Skidding() const;
 

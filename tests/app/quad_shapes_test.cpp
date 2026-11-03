@@ -69,5 +69,20 @@ TEST_CASE("an opaque material blends by its texture's alpha as a quad") {
     CHECK(LookOf({.blend = render::BlendMode::Additive}).blend == render::BlendMode::Additive);
 }
 
+TEST_CASE("a material's filter and address reach the quads drawn with it") {
+    const QuadLook look =
+        LookOf({.filter = render::TextureFilter::Point, .address = render::TextureAddress::Repeat});
+    std::vector<render::QuadDraw> quads;
+
+    AppendBillboard(look, {}, 1.0F, 1.0F, {}, quads);
+    AppendDecal(look, {}, 1.0F, quads);
+
+    REQUIRE(quads.size() == 2);
+    for (const render::QuadDraw& quad : quads) {
+        CHECK(quad.sampling.filter == render::TextureFilter::Point);
+        CHECK(quad.sampling.address == render::TextureAddress::Repeat);
+    }
+}
+
 }
 }

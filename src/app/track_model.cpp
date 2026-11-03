@@ -120,10 +120,40 @@ NameMap<render::Material> ToRenderMaterials(const NameMap<assets::MaterialAsset>
     return converted;
 }
 
+bool ReceivesDecals(const NameMap<assets::MaterialAsset>& materials,
+                    const assets::GeometryAsset& geometry, const assets::GeometryRange& range) {
+    if (range.material >= geometry.materials.size()) {
+        return false;
+    }
+    const auto material = materials.find(assets::ToUpperAscii(geometry.materials[range.material]));
+    return material != materials.end() && material->second.receivesDecals;
+}
+
+void AppendDecalTriangles(const UploadedModel& model,
+                          const NameMap<assets::MaterialAsset>& materials,
+                          const Transform& transform, std::vector<DecalTriangle>& out) {
+    const assets::GeometryAsset& geometry = *model.geometry;
+    const auto corner = [&](std::uint32_t index) {
+        return Apply(transform,
+                     ToEngine(geometry.vertices.at(geometry.indices.at(index)).position));
+    };
+    for (const assets::GeometryRange& range : geometry.ranges) {
+        if (!ReceivesDecals(materials, geometry, range)) {
+            continue;
+        }
+        for (std::uint32_t index = range.firstIndex;
+             index + 2 < range.firstIndex + range.indexCount; index += 3) {
+            out.push_back({corner(index), corner(index + 1), corner(index + 2)});
+        }
+    }
+}
+
 class TrackBuilder {
 public:
-    TrackBuilder(const NameMap<UploadedModel>& models, NameMap<render::Material> materials)
-        : models_(&models), materials_(std::move(materials)) {}
+    TrackBuilder(const NameMap<UploadedModel>& models,
+                 const NameMap<assets::MaterialAsset>& assetMaterials,
+                 NameMap<render::Material> materials)
+        : models_(&models), assetMaterials_(&assetMaterials), materials_(std::move(materials)) {}
 
     void Place(const assets::WorldAsset& world, const assets::WorldEntity& entity, bool isSurface) {
         const auto model = ModelOf(world, entity);
@@ -139,6 +169,9 @@ public:
         named_.push_back(
             {.entity = entity.name, .span = {.first = first, .count = draws_.size() - first}});
         AddBounds(model->second, transform, isSurface ? surface_ : everything_);
+        if (isSurface) {
+            AppendDecalTriangles(model->second, *assetMaterials_, transform, decalTriangles_);
+        }
     }
 
     void Keep(const assets::WorldAsset& world, const assets::WorldEntity& entity) {
@@ -162,7 +195,8 @@ public:
                 .entityDraws = std::move(named_),
                 .animatedModels = std::move(animated_),
                 .materials = std::move(materials_),
-                .bounds = surface_.isEmpty ? everything_ : surface_};
+                .bounds = surface_.isEmpty ? everything_ : surface_,
+                .decalSurface = DecalSurface(std::move(decalTriangles_))};
     }
 
 private:
@@ -183,6 +217,7 @@ private:
     }
 
     const NameMap<UploadedModel>* models_;
+    const NameMap<assets::MaterialAsset>* assetMaterials_;
     NameMap<render::Material> materials_;
     std::vector<render::MeshDraw> draws_;
     std::vector<std::uint32_t> slots_;
@@ -190,6 +225,7 @@ private:
     NameMap<JointedModel> animated_;
     Bounds surface_;
     Bounds everything_;
+    std::vector<DecalTriangle> decalTriangles_;
 };
 
 }
@@ -239,7 +275,7 @@ Result<TrackModel> UploadTrack(render::Renderer& renderer, const assets::TrackAs
     if (!models) {
         return std::unexpected(std::move(models.error()));
     }
-    TrackBuilder builder(*models, ToRenderMaterials(track.materials, *textures));
+    TrackBuilder builder(*models, track.materials, ToRenderMaterials(track.materials, *textures));
     for (const assets::AssetCache<assets::WorldAsset>::Handle& world : track.worlds) {
         for (const assets::WorldEntity& entity : world->modelEntities) {
             builder.Place(*world, entity, false);

@@ -22,11 +22,13 @@ inline constexpr std::uint32_t kIndicesPerSprite = 6;
 struct SpriteBatch {
     TextureId texture{};
     BlendMode blend = BlendMode::Alpha;
+    TextureSampling sampling;
     std::uint32_t firstSprite = 0;
     std::uint32_t spriteCount = 0;
 };
 
-void AddToBatches(std::vector<SpriteBatch>& batches, TextureId texture, BlendMode blend);
+void AddToBatches(std::vector<SpriteBatch>& batches, TextureId texture, BlendMode blend,
+                  TextureSampling sampling = {});
 
 /// Overwrites both outputs. `edgeShift` is how far, in UI units, anchored sprites move out.
 void BatchSprites(std::span<const SpriteDraw> sprites, float edgeShift,

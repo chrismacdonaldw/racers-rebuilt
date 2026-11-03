@@ -3,9 +3,10 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <ranges>
 #include <vector>
 
-#include "../../sim/physics/plane_world.hpp"
+#include "../decal_ground.hpp"
 #include "app/track_space.hpp"
 
 namespace rr::app {
@@ -38,8 +39,10 @@ public:
     }
 
     [[nodiscard]] std::vector<render::QuadDraw> Marks() const {
+        const DecalSurface surface = test::FlatDecalGround();
+        GroundDecals ground(surface);
         std::vector<render::QuadDraw> quads;
-        marks_.Append(test::FlatGround(), quads);
+        marks_.Append(ground, quads);
         return quads;
     }
 
@@ -59,7 +62,11 @@ Vector3 Centre(const render::QuadDraw& quad) {
 }
 
 float Width(const render::QuadDraw& quad) {
-    return Length(ToGame(quad.corners[1]) - ToGame(quad.corners[0]));
+    const auto [narrowest, widest] =
+        std::ranges::minmax(quad.corners | std::views::transform([](const Vector3& corner) {
+                                return ToGame(corner).y;
+                            }));
+    return (widest - narrowest) * 0.99F;
 }
 
 bool AllUse(const std::vector<render::QuadDraw>& marks, render::TextureId texture) {
@@ -89,8 +96,8 @@ TEST_CASE("a drifting car marks the wheels on the side it slides toward") {
     REQUIRE(marks.size() == 2);
     CHECK(AllUse(marks, kSkidTexture));
     CHECK(AllWithin(marks, -10.0F, 10.0F, -1.91F, -1.89F));
-    CHECK(Width(marks[0]) == doctest::Approx(0.3F));
-    CHECK(Width(marks[1]) == doctest::Approx(0.5F));
+    CHECK(Width(marks[0]) == doctest::Approx(0.3F).epsilon(test::kClipEpsilon));
+    CHECK(Width(marks[1]) == doctest::Approx(0.5F).epsilon(test::kClipEpsilon));
 }
 
 TEST_CASE("a strong turbo marks the rear wheels in its own material, which fade when it ends") {

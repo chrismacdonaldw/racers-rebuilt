@@ -46,7 +46,7 @@ TEST_CASE("material fields set every property") {
     CHECK(material.transparency == std::uint8_t{200});
     CHECK(material.rotatesVertices);
     CHECK(material.address == TextureAddress::Clamp);
-    CHECK(material.hasFlag4A);
+    CHECK(material.receivesDecals);
     CHECK(material.hasFlag4B);
     CHECK(material.hasFlag4C);
 }

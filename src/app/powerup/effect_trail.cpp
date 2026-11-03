@@ -64,7 +64,8 @@ void EffectTrail::Append(const QuadLook& look, const TrailStyle& style,
             out.push_back({.texture = look.texture,
                            .corners = {from[edge], to[edge], from[next], to[next]},
                            .tint = tint,
-                           .blend = look.blend});
+                           .blend = look.blend,
+                           .sampling = look.sampling});
         }
     }
 }

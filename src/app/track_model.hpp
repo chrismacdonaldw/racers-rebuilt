@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/decal_surface.hpp"
 #include "app/track_space.hpp"
 #include "assets/track_loader.hpp"
 #include "core/result.hpp"
@@ -42,6 +43,7 @@ struct TrackModel {
     assets::NameMap<render::Material> materials;
     Bounds bounds;
     assets::NameMap<render::TextureId> textures;
+    DecalSurface decalSurface;
 };
 
 [[nodiscard]] Result<assets::NameMap<render::TextureId>> UploadTextures(

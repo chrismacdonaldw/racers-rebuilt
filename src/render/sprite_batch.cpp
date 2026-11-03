@@ -22,14 +22,20 @@ namespace {
 
 }
 
-void AddToBatches(std::vector<SpriteBatch>& batches, TextureId texture, BlendMode blend) {
-    if (!batches.empty() && batches.back().texture == texture && batches.back().blend == blend) {
+void AddToBatches(std::vector<SpriteBatch>& batches, TextureId texture, BlendMode blend,
+                  TextureSampling sampling) {
+    if (!batches.empty() && batches.back().texture == texture && batches.back().blend == blend &&
+        batches.back().sampling == sampling) {
         ++batches.back().spriteCount;
         return;
     }
     const std::uint32_t first =
         batches.empty() ? 0 : batches.back().firstSprite + batches.back().spriteCount;
-    batches.push_back({.texture = texture, .blend = blend, .firstSprite = first, .spriteCount = 1});
+    batches.push_back({.texture = texture,
+                       .blend = blend,
+                       .sampling = sampling,
+                       .firstSprite = first,
+                       .spriteCount = 1});
 }
 
 void BatchSprites(std::span<const SpriteDraw> sprites, float edgeShift,

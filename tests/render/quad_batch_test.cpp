@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <vector>
 
 namespace rr::render {
@@ -36,6 +37,41 @@ TEST_CASE("quads batch like sprites and keep their corners in order") {
     CHECK(batches[0].spriteCount == 2);
     CHECK(batches[1].firstSprite == 2);
     CHECK(batches[1].blend == BlendMode::Additive);
+}
+
+TEST_CASE("corner uvs replace a quad's uv rectangle") {
+    const std::vector<QuadDraw> quads{
+        {.texture = kSmoke,
+         .uv = {.x = 0.25F, .y = 0.5F, .width = 0.5F, .height = 0.25F},
+         .cornerUvs = std::array<TexturePoint, 4>{{{.u = 0.1F, .v = 0.2F},
+                                                   {.u = 0.3F, .v = 0.4F},
+                                                   {.u = 0.5F, .v = 0.6F},
+                                                   {.u = 0.7F, .v = 0.8F}}}}};
+    std::vector<QuadVertex> vertices;
+    std::vector<SpriteBatch> batches;
+
+    BatchQuads(quads, vertices, batches);
+
+    REQUIRE(vertices.size() == kVerticesPerSprite);
+    CHECK(vertices[0].u == doctest::Approx(0.1F));
+    CHECK(vertices[2].v == doctest::Approx(0.6F));
+    CHECK(vertices[3].u == doctest::Approx(0.7F));
+}
+
+TEST_CASE("quads sampled differently start a new batch") {
+    constexpr TextureSampling kBlocky{.filter = TextureFilter::Point,
+                                      .address = TextureAddress::Repeat};
+    const std::vector<QuadDraw> quads{
+        {.texture = kSmoke}, {.texture = kSmoke, .sampling = kBlocky}, {.texture = kSmoke}};
+    std::vector<QuadVertex> vertices;
+    std::vector<SpriteBatch> batches;
+
+    BatchQuads(quads, vertices, batches);
+
+    REQUIRE(batches.size() == 3);
+    CHECK(batches[0].sampling == TextureSampling{});
+    CHECK(batches[1].sampling == kBlocky);
+    CHECK(batches[2].firstSprite == 2);
 }
 
 TEST_CASE("a quad's corner tints scale its tint at each corner") {

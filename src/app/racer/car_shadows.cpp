@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <format>
 
-#include "app/ground_decal.hpp"
 #include "app/track_space.hpp"
 #include "core/quaternion.hpp"
 
@@ -31,8 +30,7 @@ CarShadows::CarShadows(const assets::NameMap<render::Material>& materials,
 
 void CarShadows::Append(std::span<const sim::EntitySnapshot> poses,
                         std::span<const sim::RacerSnapshot> racers, std::span<const CarLook> looks,
-                        const sim::CollisionQuery& ground,
-                        std::vector<render::QuadDraw>& out) const {
+                        GroundDecals& ground, std::vector<render::QuadDraw>& out) const {
     for (std::size_t slot = 0; slot < shadows_.size(); ++slot) {
         const std::optional<Shadow>& shadow = shadows_[slot];
         if (!shadow || racers[slot].isGhost) {
@@ -40,12 +38,12 @@ void CarShadows::Append(std::span<const sim::EntitySnapshot> poses,
         }
         const Transform car = TransformToGame(poses[slot].transform);
         const float scale = looks[slot].scale;
-        AppendGroundDecal(shadow->look, ground,
-                          {.centre = car.position,
-                           .forward = Rotate(car.rotation, kGameForward),
-                           .length = shadow->length * scale,
-                           .width = shadow->width * scale},
-                          out);
+        ground.Append(shadow->look,
+                      {.centre = car.position,
+                       .forward = Rotate(car.rotation, kGameForward),
+                       .length = shadow->length * scale,
+                       .width = shadow->width * scale},
+                      out);
     }
 }
 
