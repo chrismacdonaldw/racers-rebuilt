@@ -1,6 +1,7 @@
 #include "sim/physics/racer.hpp"
 
 #include <cmath>
+#include <optional>
 #include <utility>
 
 #include "core/assert.hpp"
@@ -10,6 +11,7 @@
 #include "sim/physics/drive_controller.hpp"
 #include "sim/physics/facing.hpp"
 #include "sim/physics/rigid_body.hpp"
+#include "sim/physics/wall_sweep.hpp"
 
 namespace rr::sim {
 namespace {
@@ -54,9 +56,7 @@ void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const Coll
     events_ = {};
     if (route_) {
         if (!startBoost_.State().isHeldAtStart) {
-            route_->Tick(elapsed);
-            TakeRoutePose(*route_);
-            UpdateTurbo(static_cast<int>(elapsed.count()));
+            TickRoute(*route_, elapsed, world);
         }
         return;
     }
@@ -201,6 +201,21 @@ Transform Racer::Pose() const {
     const Vector3 up = Rotate(FromAxisAngle(basis.forward, bank), basis.up);
     return {.position = body_.motion.position,
             .rotation = ToQuaternion(OrthonormalBasis(basis.forward, up))};
+}
+
+void Racer::TickRoute(AiRacer& route, Milliseconds elapsed, const CollisionQuery& world) {
+    const auto dtMs = static_cast<int>(elapsed.count());
+    route.Save();
+    route.Tick(elapsed);
+    TakeRoutePose(route);
+    if (const std::optional<WallHit> hit =
+            SweepBodyPoints(body_, constants_, world, &events_.touches)) {
+        route.Restore();
+        route.Tick(Milliseconds{RetryStepMs(dtMs, hit->fraction)});
+        TakeRoutePose(route);
+        route.BackOff();
+    }
+    UpdateTurbo(dtMs);
 }
 
 void Racer::TakeRoutePose(const AiRacer& route) {

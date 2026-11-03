@@ -21,6 +21,9 @@ struct WallHit {
                                                      const CollisionQuery& query,
                                                      SurfaceTouches* touches = nullptr);
 
+/// The milliseconds of a `stepMs` step to rerun after a wall hit at `fraction` of it.
+[[nodiscard]] int RetryStepMs(int stepMs, float fraction);
+
 void ApplyWallResponse(BodyState& body, const BodyConstants& constants, const Vector3& normal);
 
 }

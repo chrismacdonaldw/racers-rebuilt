@@ -399,7 +399,8 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     Racer& car = racers_[racer];
     const Vector3 from = positions_[racer];
     car.RollCurse(elapsed, random_);
-    car.Tick(elapsed, controls, WorldsOf(racer));
+    const RacerWorldView worlds = WorldsOf(racer);
+    car.Tick(elapsed, controls, car.Route() ? worlds.WithoutBase() : worlds);
     if (progress_.OfRacer(racer).laps.CompletedLaps() < progress_.LapCount()) {
         car.WatchForSuddenStop();
     }

@@ -44,6 +44,12 @@ RacerWorldView::RacerWorldView(const CollisionQuery& base, const TrackCollision*
     }
 }
 
+RacerWorldView RacerWorldView::WithoutBase() const {
+    RacerWorldView extras = *this;
+    extras.hasBase_ = false;
+    return extras;
+}
+
 std::optional<SegmentHit> RacerWorldView::CastSegment(std::size_t world, const Vector3& from,
                                                       const Vector3& to) const {
     RR_ASSERT(world < WorldCount());

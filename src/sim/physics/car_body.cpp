@@ -17,7 +17,6 @@ namespace {
 
 constexpr float kMinTurnRadius = 40.0F;
 constexpr float kMaxTurnRadius = 4096.0F;
-constexpr int kWallRetryMarginMs = 5;
 constexpr int kMaxWallPasses = 4;
 
 bool CountDown(int& timerMs, int dtMs) {
@@ -76,11 +75,6 @@ void RunPass(BodyState& body, const BodyConstants& constants, int dtMs,
     UpdateFacing(body, constants.rules.facingRatePerMs, dtMs);
     UpdateDerivedMotion(body);
     UpdateWheelSurfaces(body.motion, constants.ignoresSurfaces);
-}
-
-int RetryStepMs(int stepMs, float fraction) {
-    const int reachedMs = static_cast<int>(std::floor(static_cast<float>(stepMs) * fraction));
-    return std::max(reachedMs - kWallRetryMarginMs, 0);
 }
 
 void RespondToWall(BodyState& body, const BodyConstants& constants, const Vector3& normal) {

@@ -2,7 +2,9 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cmath>
+#include <optional>
 
 #include "../ai/straight_route.hpp"
 #include "plane_world.hpp"
@@ -135,6 +137,43 @@ TEST_CASE("a racer on a route waits at its start until go") {
     racer.Go();
     Drive(racer, {}, 600, world);
     CHECK(racer.Body().motion.position.x == doctest::Approx(6.0F));
+}
+
+test::PlaneWorld WallAcross(float x, bool isSolid) {
+    return test::PlaneWorld({test::TestPlane{
+        .normal = {.x = -1.0F}, .offset = -x, .surface = {.touchEvent = 101}, .isSolid = isSolid}});
+}
+
+TEST_CASE("a racer on a route touches the faces it drives through") {
+    const test::PlaneWorld world = WallAcross(-15.0F, false);
+    Racer racer(kNeutralChassis, {}, {});
+    racer.FollowRoute(test::StraightRoute({.x = -20.0F, .z = 0.2F}));
+    int touches = 0;
+
+    for (int tick = 0; tick < 100; ++tick) {
+        racer.Tick(kTick, {}, world);
+        touches += static_cast<int>(racer.Events().touches.Touches().size());
+    }
+
+    CHECK(touches > 0);
+    CHECK(racer.Body().motion.position.x > -15.0F);
+}
+
+TEST_CASE("a racer on a route stops at a solid face and backs off") {
+    const test::PlaneWorld world = WallAcross(-15.0F, true);
+    Racer racer(kNeutralChassis, {}, {});
+    racer.FollowRoute(test::StraightRoute({.x = -20.0F, .z = 0.2F}));
+    float slowest = 1.0F;
+
+    for (int tick = 0; tick < 200; ++tick) {
+        racer.Tick(kTick, {}, world);
+        if (const std::optional<AiRacer>& route = racer.Route()) {
+            slowest = std::min(slowest, route->PlaybackSpeed());
+        }
+    }
+
+    CHECK(racer.Body().motion.position.x < -15.0F);
+    CHECK(slowest == doctest::Approx(-0.1F));
 }
 
 TEST_CASE("only a racer on a route takes a route speed") {
