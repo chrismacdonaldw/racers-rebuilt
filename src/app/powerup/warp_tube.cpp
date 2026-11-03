@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "app/chase_camera.hpp"
+#include "app/texture_scroll.hpp"
 #include "app/track_space.hpp"
 #include "core/log.hpp"
 #include "sim/animation/part_clock.hpp"
@@ -19,11 +20,6 @@ namespace {
 constexpr std::string_view kTubeWorld = "TURBO3.WDB";
 constexpr float kFlightMs = 1500.0F;
 constexpr float kFovSwellDegrees = 45.0F;
-constexpr float kMsPerSecond = 1000.0F;
-
-float Wrapped(float offset) {
-    return offset - std::floor(offset);
-}
 
 }
 
@@ -66,9 +62,7 @@ void WarpTube::Place(Part& part, float flownMs) {
     sim::AdvanceClock(jointed.animations, clock, flownMs);
     sim::SamplePart(jointed.animations, clock, part.pose.Locals());
     const std::span<const Transform> nodes = part.pose.Solve();
-    const float seconds = flownMs / kMsPerSecond;
-    const render::UvOffset scrolled{.u = Wrapped(part.scroll.uPerSecond * seconds),
-                                    .v = Wrapped(part.scroll.vPerSecond * seconds)};
+    const render::UvOffset scrolled = ScrolledBy(part.scroll, flownMs);
     const ModelDraws& model = part.model->draws;
     for (std::size_t i = 0; i < model.draws.size(); ++i) {
         render::MeshDraw draw = model.draws[i];

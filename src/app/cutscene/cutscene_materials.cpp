@@ -160,7 +160,9 @@ void CutsceneMaterials::Apply(std::size_t model, std::span<render::MeshDraw> dra
         }
         for (std::size_t i = 0; i < draws.size(); ++i) {
             if (slots[i] == shown.target.slot) {
+                const render::UvOffset scroll = draws[i].material.uvOffset;
                 draws[i].material = shown.material;
+                draws[i].material.uvOffset = scroll;
             }
         }
     }

@@ -108,6 +108,21 @@ TEST_CASE("models without an entity, and other tables, change nothing") {
     CHECK(Shown(materials, 1) == std::array{kUntouched, kUntouched});
 }
 
+TEST_CASE("a shown material keeps the draw's texture scroll") {
+    const assets::CutsceneFrame frame{.models = {Bound(1)}};
+    const std::array models{ModelBinding{.staticDraws = DrawSpan{.first = 0, .count = 2}}};
+    CutsceneMaterials materials = Create(frame, models);
+    materials.Begin(0);
+    materials.Advance(Milliseconds{10});
+
+    std::array<render::MeshDraw, 2> draws{};
+    draws[1].material.uvOffset = {.u = 0.25F, .v = 0.5F};
+    materials.Apply(0, draws, kSlots);
+
+    CHECK(draws[1].material.tint.r == kRed);
+    CHECK(draws[1].material.uvOffset == render::UvOffset{.u = 0.25F, .v = 0.5F});
+}
+
 TEST_CASE("a binding past its lists or showing a missing material fails") {
     const std::array models{ModelBinding{.jointed = 0}};
     assets::CutsceneFrame frame{.models = {Bound(0)}};

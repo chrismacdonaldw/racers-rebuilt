@@ -13,6 +13,7 @@
 #include "app/cutscene/cutscene_resources.hpp"
 #include "app/cutscene/cutscene_sounds.hpp"
 #include "app/cutscene/cutscene_tints.hpp"
+#include "app/texture_scroll.hpp"
 #include "assets/game_path.hpp"
 #include "core/log.hpp"
 #include "render/ui_layout.hpp"
@@ -393,11 +394,14 @@ Result<void> CutsceneView::Replay(std::size_t frame) {
 
 void CutsceneView::Advance(Milliseconds elapsed) {
     parts_.effectPlayer.Advance(parts_.player.Advance(elapsed), elapsed);
+    scrollMs_ += static_cast<float>(elapsed.count());
 }
 
 render::RenderView CutsceneView::Render(std::span<const sim::EntityClock> clocks,
                                         std::vector<render::SpriteDraw>& sprites) {
     parts_.jointed.Update(clocks);
+    parts_.jointed.Scroll(scrollMs_);
+    ScrollDraws(parts_.model->scrolledDraws, scrollMs_, parts_.model->draws);
     const render::Camera camera = parts_.player.ViewCamera(clocks).value_or(render::Camera{});
     draws_.clear();
     parts_.player.AppendDraws(

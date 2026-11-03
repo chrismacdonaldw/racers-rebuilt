@@ -191,6 +191,7 @@ private:
         placed.scale = bounds->scale * entity.scale;
         placed.radius = bounds->radius * entity.scale;
         placed.drawRangeSquared = assets::DrawRangeSquared(entity);
+        placed.textureScroll = entity.textureScroll;
         sources_.entities.push_back(std::move(placed));
         return {};
     }

@@ -45,5 +45,22 @@ TEST_CASE("an entity's draws are placed at the entity and skinned by every node"
     }
 }
 
+TEST_CASE("an entity with a texture scroll offsets its own draws") {
+    sim::TrackEntitySources sources = Arm();
+    sources.entities[0].textureScroll = assets::TextureScroll{.vPerSecond = -0.5F};
+    sources.entities.push_back({.name = "still", .model = "arm"});
+    const assets::NameMap<JointedModel> models{
+        {"ARM", {.draws = std::vector<render::MeshDraw>(2), .joints = {0, 1}, .slots = {0, 0}}}};
+    TrackEntityDraws draws(models, sources);
+
+    draws.Scroll(1024.0F);
+
+    REQUIRE(draws.Draws().size() == 4);
+    CHECK(draws.Draws()[0].material.uvOffset == render::UvOffset{.v = 0.5F});
+    CHECK(draws.Draws()[1].material.uvOffset == render::UvOffset{.v = 0.5F});
+    CHECK(draws.Draws()[2].material.uvOffset == render::UvOffset{});
+    CHECK(draws.Draws()[3].material.uvOffset == render::UvOffset{});
+}
+
 }
 }

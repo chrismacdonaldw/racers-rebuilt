@@ -11,6 +11,7 @@
 #include "assets/animation_database.hpp"
 #include "assets/skeleton_database.hpp"
 #include "assets/vfs.hpp"
+#include "assets/world_database.hpp"
 #include "core/result.hpp"
 #include "core/transform.hpp"
 
@@ -27,6 +28,7 @@ struct TrackEntity {
     float scale = 1.0F;
     float radius = 0.0F;
     float drawRangeSquared = std::numeric_limits<float>::infinity();
+    std::optional<assets::TextureScroll> textureScroll;
 };
 
 /// `placement` is in game space.

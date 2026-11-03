@@ -81,7 +81,7 @@ TEST_CASE("the sky world follows the camera and scrolls with the race time") {
     REQUIRE(draws.size() == 3);
     CHECK(draws[2].mesh == kPlanet);
     CHECK(draws[2].transform.position == Vector3{.x = 5.0F, .y = 50.0F, .z = -3.0F});
-    CHECK(draws[2].material.uvOffset.u == doctest::Approx(0.25F));
+    CHECK(draws[2].material.uvOffset.u == doctest::Approx(0.244140625F));
 }
 
 TEST_CASE("a hidden sky world leaves the dome, and a hidden dome leaves nothing") {

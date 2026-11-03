@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "app/texture_scroll.hpp"
 #include "app/track_space.hpp"
 #include "assets/game_path.hpp"
 
@@ -17,6 +18,9 @@ TrackEntityDraws::TrackEntityDraws(const assets::NameMap<JointedModel>& models,
         }
         const JointedModel& jointed = model->second;
         spans_[entity] = {.first = draws_.size(), .count = jointed.draws.size()};
+        if (const auto& scroll = sources.entities[entity].textureScroll) {
+            scrolled_.push_back({.draws = spans_[entity], .scroll = *scroll});
+        }
         draws_.insert(draws_.end(), jointed.draws.begin(), jointed.draws.end());
         slots_.insert(slots_.end(), jointed.slots.begin(), jointed.slots.end());
     }
@@ -40,6 +44,10 @@ void TrackEntityDraws::Update(std::span<const sim::EntityClock> clocks) {
             draws_[i].joints = poses;
         }
     }
+}
+
+void TrackEntityDraws::Scroll(float elapsedMs) {
+    ScrollDraws(scrolled_, elapsedMs, draws_);
 }
 
 void TrackEntityDraws::AddFarModels(std::size_t firstDraw, FarModels& out) const {

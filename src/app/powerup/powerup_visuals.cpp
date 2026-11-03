@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "app/powerup/warp_start.hpp"
+#include "app/texture_scroll.hpp"
 #include "app/track_space.hpp"
 #include "sim/physics/turbo.hpp"
 #include "sim/powerup/curse_effect.hpp"

@@ -57,8 +57,8 @@ TEST_CASE("the warp tube draws at its placement, animated and scrolled by the ti
     REQUIRE(tube.Draws().size() == 1);
     const render::MeshDraw& draw = tube.Draws()[0];
     CheckNear(TransformToGame(draw.transform).position, kPlaced + Vector3{.z = 1.0F});
-    CHECK(draw.material.uvOffset.u == doctest::Approx(0.9F));
-    CHECK(draw.material.uvOffset.v == doctest::Approx(0.5F));
+    CHECK(draw.material.uvOffset.u == doctest::Approx(0.90081787109375F));
+    CHECK(draw.material.uvOffset.v == doctest::Approx(0.49896240234375F));
 }
 
 TEST_CASE("the warping car moves from its pose to the tube's origin, facing game +X") {
