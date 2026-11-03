@@ -1,6 +1,7 @@
 #include "app/racer/racer_grid.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <format>
 #include <limits>
 #include <optional>
@@ -183,7 +184,8 @@ std::int32_t RacerGrid::Voice(std::size_t slot) const {
 }
 
 float RacerGrid::EnginePitch(std::size_t slot) const {
-    return slots_.at(slot).assets->files.chassis.enginePitchScale;
+    const float pitch = slots_.at(slot).assets->files.chassis.enginePitchScale;
+    return std::isfinite(pitch) && pitch > 0.0F ? pitch : 1.0F;
 }
 
 void RacerGrid::Update(std::span<const sim::EntitySnapshot> poses,
