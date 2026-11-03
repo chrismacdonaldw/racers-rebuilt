@@ -124,7 +124,7 @@ Result<void> Application::Run() {
     Result<ReplaySession> replay =
         ReplaySession::Start(recordFile_, replayFile_, scene_, [this](std::string_view scene) {
             return GameplayFingerprint(
-                settings_, extensions_.mods,
+                settings_, extensions_.mods, extensions_.overrides.Hash(),
                 {.first = FindPlayerRacer(vfs_, RacersFile(), ScenePlayer(scene)),
                  .second = FindPlayerRacer(vfs_, RacersFile(), SceneSecondPlayer(scene))});
         });

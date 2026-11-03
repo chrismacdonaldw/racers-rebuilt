@@ -2,6 +2,7 @@ rr_add_module(mods
     SOURCES
         mod_list.cpp
         mod_manifest.cpp
+        override_folder.cpp
     DEPENDS
         rr::assets
         rr::core

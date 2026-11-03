@@ -26,6 +26,7 @@ namespace {
 
 constexpr std::string_view kSettingsFileName = "settings.toml";
 constexpr std::string_view kModsFolderName = "mods";
+constexpr std::string_view kOverridesFolderName = "overrides";
 constexpr std::string_view kExtractedFolderName = "game";
 
 void OpenLogFile(const std::filesystem::path& dataFolder) {
@@ -105,7 +106,7 @@ Result<GameInstall> ResolveGameFiles(const settings::CommandLine& commandLine,
     });
 }
 
-Result<assets::Vfs> MountGameFiles(GameInstall install, const mods::ModList& mods,
+Result<assets::Vfs> MountGameFiles(GameInstall install, Extensions& extensions,
                                    const settings::Registry& registry) {
     Result<assets::FolderLayer> looseFiles =
         assets::FolderLayer::Scan(install.folder, assets::ScanDepth::TopLevelFiles);
@@ -115,7 +116,9 @@ Result<assets::Vfs> MountGameFiles(GameInstall install, const mods::ModList& mod
     assets::Vfs vfs;
     vfs.Mount(std::make_unique<assets::FolderLayer>(std::move(*looseFiles)));
     vfs.Mount(std::make_unique<assets::JamArchive>(std::move(install.jam)));
+    const mods::ModList& mods = extensions.mods;
     mods.MountEnabled(vfs, registry);
+    extensions.overrides.Mount(vfs, registry);
     log::Info("{} mods, {} enabled", mods.All().size(), mods.Enabled(registry).size());
     return vfs;
 }
@@ -133,7 +136,8 @@ Result<GameBoot> BootGame(std::span<const std::string_view> args) {
     OpenLogFile(*dataFolder);
     log::Info("racers-rebuilt {} starting, data folder {}", RR_VERSION, Utf8FromPath(*dataFolder));
     std::filesystem::path settingsFile = *dataFolder / kSettingsFileName;
-    Extensions extensions = LoadExtensions(*dataFolder / kModsFolderName);
+    Extensions extensions =
+        LoadExtensions(*dataFolder / kModsFolderName, *dataFolder / kOverridesFolderName);
     Result<settings::Registry> registry =
         LoadStartupSettings(settingsFile, commandLine->overrides, extensions);
     if (!registry) {
@@ -145,7 +149,7 @@ Result<GameBoot> BootGame(std::span<const std::string_view> args) {
     Result<assets::Vfs> vfs = sdl.and_then([&](const auto&) {
         return ResolveGameFiles(*commandLine, *registry, settingsFile, *dataFolder)
             .and_then([&](GameInstall install) {
-                return MountGameFiles(std::move(install), extensions.mods, *registry);
+                return MountGameFiles(std::move(install), extensions, *registry);
             });
     });
     if (!vfs) {
