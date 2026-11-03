@@ -1,6 +1,7 @@
 rr_add_module(assets
     SOURCES
         animation_database.cpp
+        avi_file.cpp
         bmp_image.cpp
         brick_layout.cpp
         byte_reader.cpp

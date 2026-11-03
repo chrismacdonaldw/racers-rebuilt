@@ -130,6 +130,7 @@ add_executable(racers-rebuilt-tests
     app/trigger_spheres_test.cpp
     app/video_settings_test.cpp
     assets/animation_database_test.cpp
+    assets/avi_file_test.cpp
     assets/asset_cache_test.cpp
     assets/bmp_image_test.cpp
     assets/brick_layout_test.cpp
@@ -341,6 +342,7 @@ add_executable(racers-rebuilt-tests
     sim/track/track_events_test.cpp
     sim/track/track_timers_test.cpp
     sim/track/trigger_lists_test.cpp
+    video/video_decoder_test.cpp
 )
 set_source_files_properties(main.cpp PROPERTIES
     COMPILE_DEFINITIONS DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
@@ -359,6 +361,7 @@ target_link_libraries(racers-rebuilt-tests PRIVATE
     rr::render
     rr::settings
     rr::sim
+    rr::video
     rr::compile_options
     doctest::doctest
     imgui::imgui

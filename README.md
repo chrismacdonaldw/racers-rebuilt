@@ -326,6 +326,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md#building). Builds need Visual Studio 2022,
 - [SDL3](https://www.libsdl.org/) for the window, input, file dialogs and GPU API
 - [miniaudio](https://miniaud.io/) for audio output, mixing and decoding
 - [stb_vorbis](https://github.com/nothings/stb) for OGG Vorbis decoding
+- [FFmpeg](https://ffmpeg.org/) for the intro videos' Indeo 5 decoder, built from source under the [LGPL-2.1-or-later](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html) with only that decoder enabled
 - [Dear ImGui](https://github.com/ocornut/imgui) for the overlay
 - [toml++](https://github.com/marzer/tomlplusplus) for settings and mod manifests
 - [glm](https://github.com/g-truc/glm) for rendering math

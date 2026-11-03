@@ -1,0 +1,8 @@
+{
+  "name": "ffmpeg-indeo5",
+  "version": "9.0.2",
+  "description": "FFmpeg's libavcodec and libavutil, built with the Indeo 5 video decoder only.",
+  "homepage": "https://ffmpeg.org",
+  "license": "LGPL-2.1-or-later",
+  "supports": "windows & x64 & !uwp"
+}
