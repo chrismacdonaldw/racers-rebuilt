@@ -92,6 +92,20 @@ TEST_CASE("engine pitch follows speed and airtime, up to 1") {
     CHECK(OpponentEnginePitch(0.34F, 51, 1.0F) == doctest::Approx(1.2F));
 }
 
+TEST_CASE("a chassis's engine pitch scales idle, drive and coast") {
+    EngineSound engine;
+    engine.Start();
+    constexpr float kPitch = 0.84F;
+
+    CHECK(Pitch(Run(engine, {.pitchScale = kPitch}, 25), EngineLoop::Idle) ==
+          doctest::Approx(kPitch));
+    CHECK(Pitch(engine.Update({.thrust = 1.0F, .speed = 0.17F, .pitchScale = kPitch}, kTick),
+                EngineLoop::Drive) == doctest::Approx(0.82F));
+    CHECK(Pitch(engine.Update({.speed = 0.17F, .pitchScale = kPitch}, kTick), EngineLoop::Coast) ==
+          doctest::Approx(0.904F));
+    CHECK(OpponentEnginePitch(0.17F, 0, kPitch) == doctest::Approx(0.82F));
+}
+
 TEST_CASE("a finished racer's engine settles at half volume") {
     EngineSound engine;
     engine.Start();

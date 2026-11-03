@@ -23,6 +23,7 @@ constexpr std::size_t kFramesPerTick = 265;
 constexpr Milliseconds kTick{12};
 constexpr int kTicksPastGo = 600;
 constexpr std::int32_t kSurfaceSound = 3000;
+constexpr std::array kEnginePitches{0.84F, 0.96F};
 constexpr std::array<std::uint8_t, 256> kPayload = [] {
     std::array<std::uint8_t, 256> payload{};
     payload.fill(0x77);
@@ -61,7 +62,7 @@ public:
             RaceSoundSet{.effects = std::span(sounds_).first(kEffectCount),
                          .ambient = std::span(sounds_).last(1),
                          .music = {"start", "royal", "lose", "win"}},
-            RaceAudioSetup{.racerCount = kGridSize, .seed = 3});
+            RaceAudioSetup{.racerCount = kGridSize, .seed = 3, .enginePitches = kEnginePitches});
     }
 
     void StopLoopsAndRender() {

@@ -81,8 +81,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
         return std::unexpected(std::move(session.error()));
     }
     GhostTrail ghostTrail(model->draws, model->entityDraws, raceTrack->entities);
-    const std::vector<std::int32_t> voices =
-        PerSlot(*racers, session->Racers().size(), &RacerGrid::Voice);
+    const RacerSounds racerSounds = RacerSoundsOf(*racers, session->Racers().size());
     return std::unique_ptr<RaceScene>(new RaceScene(
         {.renderer = &renderer,
          .vfs = &vfs,
@@ -109,7 +108,8 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
          .scrolledDraws = std::move(model->scrolledDraws),
          .world = std::move(world),
          .session = std::move(*session),
-         .audio = LoadRaceAudio(outputs, vfs, setup.track, AudioSetup(setup, race, voices, seed)),
+         .audio =
+             LoadRaceAudio(outputs, vfs, setup.track, AudioSetup(setup, race, racerSounds, seed)),
          .particles =
              LoadRaceParticles(renderer, vfs, loader, setup.track, race.collision.surfaces),
          .map = LoadTrackMap(vfs, setup.track, setup.isMirrored, model->textures),

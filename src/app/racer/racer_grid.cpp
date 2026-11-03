@@ -182,6 +182,10 @@ std::int32_t RacerGrid::Voice(std::size_t slot) const {
     return racer.build ? BuiltCarVoice(slot) : DriverVoice(racer.files.driver.voiceBank);
 }
 
+float RacerGrid::EnginePitch(std::size_t slot) const {
+    return slots_.at(slot).assets->files.chassis.enginePitchScale;
+}
+
 void RacerGrid::Update(std::span<const sim::EntitySnapshot> poses,
                        std::span<const sim::RacerSnapshot> motion, std::span<const CarLook> looks,
                        float elapsedMs) {

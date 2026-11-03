@@ -81,16 +81,22 @@ std::vector<PowerupQuads> PlayerPowerupQuads(const assets::NameMap<render::Mater
     return quads;
 }
 
+RacerSounds RacerSoundsOf(const RacerGrid& racers, std::size_t slots) {
+    return {.voices = PerSlot(racers, slots, &RacerGrid::Voice),
+            .enginePitches = PerSlot(racers, slots, &RacerGrid::EnginePitch)};
+}
+
 RaceAudioSetup AudioSetup(const RaceSceneSetup& setup, const sim::RaceTrack& raceTrack,
-                          std::span<const std::int32_t> voices, std::uint64_t seed) {
+                          const RacerSounds& racers, std::uint64_t seed) {
     const auto faceOf = [](const settings::Racer& racer) { return racer.look.face; };
     const std::optional<std::uint8_t> secondFace =
         setup.players > 1 ? setup.secondPlayerRacer.transform(faceOf) : std::nullopt;
-    return {.racerCount = voices.size(),
+    return {.racerCount = racers.voices.size(),
             .player = kPlayerSlot,
             .seed = seed,
             .ambience = raceTrack.events.table.sounds,
-            .voices = voices,
+            .voices = racers.voices,
+            .enginePitches = racers.enginePitches,
             .voiceChoice = {.builtFace = setup.playerRacer.transform(faceOf),
                             .secondBuiltFace = secondFace,
                             .isTimeTrial = setup.isTimeTrial}};
