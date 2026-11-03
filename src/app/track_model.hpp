@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "app/decal_surface.hpp"
+#include "app/track_material_anims.hpp"
 #include "app/track_space.hpp"
 #include "app/track_sprites.hpp"
 #include "assets/track_loader.hpp"
@@ -62,6 +63,7 @@ struct TrackModel {
     std::vector<NamedDraws> entityDraws;
     std::vector<FarModel> farModels;
     std::vector<ScrolledDraws> scrolledDraws;
+    TrackMaterialAnims materialAnims;
     assets::NameMap<JointedModel> animatedModels;
     std::vector<SkyModel> skyModels;
     TrackSprites sprites;

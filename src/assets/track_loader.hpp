@@ -11,6 +11,7 @@
 #include "assets/geometry_asset.hpp"
 #include "assets/image_asset.hpp"
 #include "assets/loader_pool.hpp"
+#include "assets/material_animation.hpp"
 #include "assets/material_library.hpp"
 #include "assets/model_files.hpp"
 #include "assets/texture_database.hpp"
@@ -38,6 +39,7 @@ struct TrackAssets {
     NameMap<AssetCache<GeometryAsset>::Handle> models;
     NameMap<MaterialAsset> materials;
     NameMap<AssetCache<ImageAsset>::Handle> textures;
+    NameMap<AssetCache<MaterialAnimationAsset>::Handle> materialAnimations;
     std::vector<std::string> missingTextures;
 };
 
@@ -84,6 +86,7 @@ private:
     AssetCache<std::vector<MaterialAsset>> materialLibraries_;
     AssetCache<std::vector<TextureDefinition>> textureDatabases_;
     AssetCache<ImageAsset> images_;
+    AssetCache<MaterialAnimationAsset> materialAnimations_;
 };
 
 }

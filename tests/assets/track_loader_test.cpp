@@ -120,6 +120,21 @@ TEST_CASE_FIXTURE(TrackFixture, "a track loads its worlds and what they name") {
     CHECK(track->textures.at("WOOD")->widthPx == 1);
 }
 
+TEST_CASE_FIXTURE(TrackFixture, "a track loads the material animations its worlds name") {
+    Write("gamedata/racex/world.wdb",
+          Join({NameList(0x27, "tex"), NameList(0x28, "mat"), NameList(0x3D, "lights")}));
+    Write("gamedata/racex/lights.mab",
+          Join({Bytes({0x27}), ListHeader(1), Text("glass"), Ints({0}), Bytes({0x06, 0x28}),
+                ListHeader(1), Bytes({0x28, 0x05, 0x27}), Ints({0, 1}), Bytes({0x29}), Ints({1}),
+                Bytes({0x2A}), Ints({30}), Bytes({0x06, 0x06})}));
+
+    const Result<TrackAssets> track = Load();
+
+    REQUIRE(track.has_value());
+    REQUIRE(track->materialAnimations.contains("LIGHTS"));
+    CHECK(track->materialAnimations.at("LIGHTS")->keys.front().material == "glass");
+}
+
 TEST_CASE_FIXTURE(TrackFixture, "loading a track again reuses the cached files") {
     const Result<TrackAssets> first = Load();
     const Result<TrackAssets> second = loader_.Load("GAMEDATA/RACEX");

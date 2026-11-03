@@ -225,6 +225,7 @@ rr_add_module(app
         time_trial/trial_records.cpp
         track_entity_draws.cpp
         track_map.cpp
+        track_material_anims.cpp
         sky_backdrop.cpp
         track_model.cpp
         track_space.cpp

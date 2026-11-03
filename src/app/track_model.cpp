@@ -151,10 +151,12 @@ void AppendDecalTriangles(const UploadedModel& model,
 
 class TrackBuilder {
 public:
-    TrackBuilder(const NameMap<UploadedModel>& models,
-                 const NameMap<assets::MaterialAsset>& assetMaterials,
+    TrackBuilder(const NameMap<UploadedModel>& models, const assets::TrackAssets& track,
                  NameMap<render::Material> materials)
-        : models_(&models), assetMaterials_(&assetMaterials), materials_(std::move(materials)) {}
+        : models_(&models),
+          assetMaterials_(&track.materials),
+          animations_(&track.materialAnimations),
+          materials_(std::move(materials)) {}
 
     void Place(const assets::WorldAsset& world, const assets::WorldEntity& entity, bool isSurface) {
         const auto model = ModelOf(world, entity);
@@ -169,6 +171,7 @@ public:
         }
         const DrawSpan span{.first = first, .count = draws_.size() - first};
         named_.push_back({.entity = entity.name, .span = span});
+        materialAnims_.Bind(world, entity, std::span(slots_).subspan(first), first, Sources());
         if (const float range = assets::DrawRangeSquared(entity); std::isfinite(range)) {
             farModels_.push_back(
                 {.position = transform.position, .draws = span, .rangeSquared = range});
@@ -200,6 +203,7 @@ public:
         }
         AddBounds(model->second, PlacementToEngine(entity.position, entity.forward, entity.up),
                   everything_);
+        materialAnims_.Bind(world, entity, {}, 0, Sources());
         if (!animated_.contains(model->first)) {
             animated_.emplace(model->first, ToJointed(model->second, materials_));
         }
@@ -214,6 +218,7 @@ public:
                 .entityDraws = std::move(named_),
                 .farModels = std::move(farModels_),
                 .scrolledDraws = std::move(scrolled_),
+                .materialAnims = std::move(materialAnims_),
                 .animatedModels = std::move(animated_),
                 .skyModels = std::move(sky_),
                 .materials = std::move(materials_),
@@ -232,6 +237,10 @@ private:
         return models_->find(assets::ToUpperAscii(name));
     }
 
+    [[nodiscard]] MaterialSources Sources() const {
+        return {.animations = animations_, .materials = &materials_};
+    }
+
     static void AddBounds(const UploadedModel& model, const Transform& transform, Bounds& bounds) {
         for (const assets::GeometryVertex& vertex : model.geometry->vertices) {
             bounds.Add(Apply(transform, ToEngine(vertex.position)));
@@ -240,12 +249,14 @@ private:
 
     const NameMap<UploadedModel>* models_;
     const NameMap<assets::MaterialAsset>* assetMaterials_;
+    const NameMap<assets::AssetCache<assets::MaterialAnimationAsset>::Handle>* animations_;
     NameMap<render::Material> materials_;
     std::vector<render::MeshDraw> draws_;
     std::vector<std::uint32_t> slots_;
     std::vector<NamedDraws> named_;
     std::vector<FarModel> farModels_;
     std::vector<ScrolledDraws> scrolled_;
+    TrackMaterialAnims materialAnims_;
     NameMap<JointedModel> animated_;
     std::vector<SkyModel> sky_;
     Bounds surface_;
@@ -300,7 +311,7 @@ Result<TrackModel> UploadTrack(render::Renderer& renderer, const assets::TrackAs
     if (!models) {
         return std::unexpected(std::move(models.error()));
     }
-    TrackBuilder builder(*models, track.materials, ToRenderMaterials(track.materials, *textures));
+    TrackBuilder builder(*models, track, ToRenderMaterials(track.materials, *textures));
     for (const assets::AssetCache<assets::WorldAsset>::Handle& world : track.worlds) {
         for (const assets::WorldEntity& entity : world->modelEntities) {
             builder.Place(*world, entity, false);

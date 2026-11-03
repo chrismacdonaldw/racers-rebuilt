@@ -104,6 +104,7 @@ private:
         TrackEntityDraws entityDraws;
         FarModels farModels;
         TrackSprites sprites;
+        TrackMaterialAnims materialAnims;
         HiddenModels hiddenModels;
         GhostTrail ghostTrail;
         WaterScroll waterScroll;
