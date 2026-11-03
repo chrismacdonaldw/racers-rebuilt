@@ -129,6 +129,7 @@ private:
 
     RaceCourse course_;
     RespawnRule respawn_;
+    Cheats cheats_;
     std::vector<bool> isPlayer_;
     std::vector<Racer> racers_;
     std::vector<std::optional<RouteDriver>> drivers_;

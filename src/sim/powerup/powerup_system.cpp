@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "core/assert.hpp"
+#include "sim/powerup/powerup_cheats.hpp"
 
 namespace rr::sim {
 namespace {
@@ -28,7 +29,9 @@ std::optional<EffectEntities> Claim(const EffectEntities& used, std::size_t coun
 
 }
 
-PowerupSystem::PowerupSystem(const EffectFactories& factories, std::size_t usesPerTick) {
+PowerupSystem::PowerupSystem(const EffectFactories& factories, std::size_t usesPerTick,
+                             Cheats cheats)
+    : cheats_(cheats) {
     for (std::size_t kind = 0; kind < kPowerupKindCount; ++kind) {
         poolStarts_.at(kind) = slots_.size();
         if (!factories.at(kind)) {
@@ -59,8 +62,11 @@ void PowerupSystem::Use(std::size_t racer, PowerupInventory& inventory, BrickFie
     const PowerupUse use{.racer = taunt.racer,
                          .colour = *inventory.Colour(),
                          .level = static_cast<std::uint8_t>(inventory.WhiteCount())};
-    AddEvent(PowerupEventKind::Used, use);
-    Fire(use, context);
+    const std::optional<PowerupUse> fired = CheatUse(cheats_, use);
+    AddEvent(PowerupEventKind::Used, fired.value_or(use));
+    if (fired) {
+        Fire(*fired, context);
+    }
     bricks.Spend(inventory);
 }
 

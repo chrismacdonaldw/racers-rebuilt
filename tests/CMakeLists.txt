@@ -299,6 +299,7 @@ add_executable(racers-rebuilt-tests
     sim/powerup/magnet_effect_test.cpp
     sim/powerup/missile_effect_test.cpp
     sim/powerup/oil_slick_effect_test.cpp
+    sim/powerup/powerup_cheats_test.cpp
     sim/powerup/powerup_inventory_test.cpp
     sim/powerup/powerup_system_test.cpp
     sim/powerup/turbo_effect_test.cpp
@@ -306,6 +307,7 @@ add_executable(racers-rebuilt-tests
     sim/powerup/shield_effect_test.cpp
     sim/powerup/shot_world_test.cpp
     sim/race/ai_race_test.cpp
+    sim/race/cheats_test.cpp
     sim/race/checkpoint_graph_test.cpp
     sim/race/circuit_run_test.cpp
     sim/race/lap_tracker_test.cpp

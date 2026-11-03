@@ -8,6 +8,7 @@
 #include "app/racer/racer_ref.hpp"
 #include "core/result.hpp"
 #include "settings/racers.hpp"
+#include "sim/race/cheats.hpp"
 #include "sim/race/circuit_run.hpp"
 #include "sim/race/race_setup.hpp"
 #include "sim/race/respawn.hpp"
@@ -38,6 +39,7 @@ struct RaceSceneSetup {
     std::optional<settings::Racer> playerRacer;
     RacerRef secondPlayer;
     std::optional<settings::Racer> secondPlayerRacer;
+    sim::Cheats cheats;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
 };

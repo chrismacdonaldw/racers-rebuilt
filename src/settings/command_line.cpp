@@ -26,6 +26,7 @@ constexpr std::array kTextFlags{
     TextFlag{.flag = "--cutscene", .field = &CommandLine::cutscene},
     TextFlag{.flag = "--show-car", .field = &CommandLine::shownCar},
     TextFlag{.flag = "--racer", .field = &CommandLine::racer},
+    TextFlag{.flag = "--cheats", .field = &CommandLine::cheats},
     TextFlag{.flag = "--record", .field = &CommandLine::recordFile},
     TextFlag{.flag = "--replay", .field = &CommandLine::replayFile},
     TextFlag{.flag = "--import-save", .field = &CommandLine::importSaveFile},

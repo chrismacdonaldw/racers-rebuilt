@@ -191,5 +191,18 @@ TEST_CASE("bricks spin together by 0.004 rad per ms") {
     CHECK(field.Bricks().SpinRadians() == doctest::Approx(4.0F));
 }
 
+TEST_CASE("a brick cheat colour replaces every coloured brick's own") {
+    const assets::BrickLayout layout{
+        .coloured = {{.colour = BrickColour::Blue}, {.colour = BrickColour::Green}}};
+
+    const BrickField field(layout, BrickColour::Yellow);
+
+    for (const ColourBrick& brick : field.Coloured()) {
+        CHECK(brick.colour == BrickColour::Yellow);
+        CHECK(brick.homeColour == BrickColour::Yellow);
+        CHECK(brick.nextColour == BrickColour::Yellow);
+    }
+}
+
 }
 }

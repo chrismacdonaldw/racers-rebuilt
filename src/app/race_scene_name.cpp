@@ -35,6 +35,7 @@ constexpr std::string_view kRaceKey = "race";
 constexpr std::string_view kPointsKey = "points";
 constexpr std::string_view kPlayerKey = "player";
 constexpr std::string_view kSecondPlayerKey = "player2";
+constexpr std::string_view kCheatsKey = "cheats";
 constexpr std::string_view kHexDigits = "0123456789ABCDEF";
 constexpr int kHexBase = 16;
 constexpr char kHashMark = '@';
@@ -192,6 +193,10 @@ bool ReadRaceField(Field field, RaceSceneSetup& setup) {
         setup.opponents = ParseNumber<std::size_t>(field.value).value_or(assets::kGridSlots);
         return setup.opponents < assets::kGridSlots;
     }
+    if (field.key == kCheatsKey) {
+        setup.cheats = sim::ParseCheatPlates(field.value).value_or(sim::Cheats{});
+        return !setup.cheats.IsEmpty();
+    }
     return false;
 }
 
@@ -298,6 +303,9 @@ std::string RaceSceneName(const RaceSceneSetup& setup) {
     }
     if (setup.opponents != kDefaultOpponentCount) {
         name += std::format(":{}={}", kOpponentsKey, setup.opponents);
+    }
+    if (!setup.cheats.IsEmpty()) {
+        name += std::format(":{}={}", kCheatsKey, sim::CheatPlates(setup.cheats));
     }
     return name + AiField(setup);
 }

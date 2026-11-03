@@ -155,6 +155,17 @@ TEST_CASE("a single race scene name records fewer opponents than a full grid") {
     CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:opponents=6"));
 }
 
+TEST_CASE("a race scene name carries its cheats, which circuits and time trials refuse") {
+    const RaceSceneSetup race{.track = "RACEC0R0", .cheats = *sim::ParseCheatPlates("MXPMX,NWHLS")};
+
+    CHECK(RaceSceneName(race) == "race:RACEC0R0:respawn=3000:racer=0:cheats=MXPMX,NWHLS");
+    CHECK(ParseRaceScene(RaceSceneName(race)) == race);
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:cheats="));
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:cheats=MXPMX,NOPE"));
+    CHECK_FALSE(ParseTrialScene("trial:RACEC0R0:respawn=3000:racer=0:cheats=MXPMX"));
+    CHECK_FALSE(ParseCircuitScene("circuit:c0:respawn=off:cheats=MXPMX"));
+}
+
 TEST_CASE("a lone player races the opponents the grid holds, and two players race alone") {
     constexpr std::size_t kGridSize = 6;
 
