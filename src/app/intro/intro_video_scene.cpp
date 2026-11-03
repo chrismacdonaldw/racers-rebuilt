@@ -2,8 +2,11 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <cstring>
+#include <span>
 #include <utility>
+#include <vector>
 
 #include "app/frame_loop.hpp"
 #include "app/intro/intro_videos.hpp"
@@ -68,6 +71,7 @@ void IntroVideoScene::Enter() {
     if (!played) {
         log::Warn("{}: {}", kIntroVideos.at(video_).file, played.error().message);
     }
+    hasSoundtrack_ = played.has_value() && mixer_->HasDevice();
 }
 
 void IntroVideoScene::Exit() {
@@ -85,53 +89,61 @@ void IntroVideoScene::HandleEvent(const SDL_Event& event) {
 }
 
 void IntroVideoScene::Tick([[maybe_unused]] const sim::InputFrame& input) {
-    if (next_) {
-        return;
-    }
     elapsed_ += std::chrono::duration_cast<Microseconds>(kSimTick);
-    const std::size_t shown = playback_ ? assets::FrameAt(playback_->avi.video, elapsed_) : 0;
-    if (isSkipAsked_ || !playback_ || shown >= playback_->avi.video.frames.size()) {
+    if (!next_ && (isSkipAsked_ || !playback_)) {
         next_ = SceneAfterIntroVideo(video_);
-        return;
-    }
-    DecodeUpTo(*playback_, shown);
-}
-
-void IntroVideoScene::DecodeUpTo(Playback& playback, std::size_t frame) {
-    for (; decoded_ <= frame; ++decoded_) {
-        const Result<void> decoded = playback.decoder.Decode(playback.avi.video.frames[decoded_]);
-        if (!decoded) {
-            log::Warn("{} frame {}: {}", kIntroVideos.at(video_).file, decoded_,
-                      decoded.error().message);
-        }
-        isPictureNew_ = true;
     }
 }
 
 void IntroVideoScene::Snapshot(sim::RenderSnapshot& out) const {
     out = {};
-    out.simStateHash = decoded_;
+    out.simStateHash = static_cast<std::uint64_t>(elapsed_.count());
 }
 
 void IntroVideoScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpolated) {
     sprites_.clear();
     if (playback_) {
-        if (std::exchange(isPictureNew_, false)) {
-            const std::span<const std::uint8_t> picture = playback_->decoder.Picture();
-            std::memcpy(playback_->picture.rgba.data(), picture.data(),
-                        std::min(picture.size(), playback_->picture.rgba.size()));
-            const Result<void> updated =
-                renderer_->UpdateTexture(playback_->texture, playback_->picture);
-            if (!updated) {
-                log::Error("{}", updated.error().message);
-            }
-        }
-        sprites_.push_back({.texture = playback_->texture,
+        Playback& playback = *playback_;
+        ShowCurrentFrame(playback);
+        sprites_.push_back({.texture = playback.texture,
                             .bounds = {.width = render::kUiWidth, .height = render::kUiHeight}});
     }
     const Result<void> drawn = renderer_->Draw({.sprites = sprites_});
     if (!drawn) {
         log::Error("{}", drawn.error().message);
+    }
+}
+
+std::optional<Microseconds> IntroVideoScene::PlayedTime() {
+    return hasSoundtrack_ ? clock_.Now(elapsed_, mixer_->MusicTime()) : elapsed_;
+}
+
+void IntroVideoScene::ShowCurrentFrame(Playback& playback) {
+    const std::vector<std::span<const std::byte>>& frames = playback.avi.video.frames;
+    const std::optional<Microseconds> played = PlayedTime();
+    const std::size_t shown = played ? assets::FrameAt(playback.avi.video, *played) : frames.size();
+    if (shown >= frames.size()) {
+        if (!next_) {
+            next_ = SceneAfterIntroVideo(video_);
+        }
+        return;
+    }
+    if (decoded_ > shown) {
+        return;
+    }
+    for (; decoded_ <= shown; ++decoded_) {
+        const Result<void> decoded = playback.decoder.Decode(frames[decoded_]);
+        if (!decoded) {
+            log::Warn("{} frame {}: {}", kIntroVideos.at(video_).file, decoded_,
+                      decoded.error().message);
+        }
+    }
+    const std::span<const std::uint8_t> picture = playback.decoder.Picture();
+    std::memcpy(playback.picture.rgba.data(), picture.data(),
+                std::min(picture.size(), playback.picture.rgba.size()));
+    const Result<void> updated = renderer_->UpdateTexture(playback.texture, playback.picture);
+    if (!updated) {
+        log::Error("{}", updated.error().message);
     }
 }
 

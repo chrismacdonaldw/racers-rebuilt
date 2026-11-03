@@ -68,6 +68,12 @@ void Voice::FadeOut(Milliseconds fade) {
     }
 }
 
+Milliseconds Voice::PlayedTime() const {
+    return hasSound_
+               ? Milliseconds{static_cast<std::int64_t>(ma_sound_get_time_in_milliseconds(&sound_))}
+               : Milliseconds{0};
+}
+
 bool Voice::IsPlaying() const {
     return hasSound_ && ma_sound_is_playing(&sound_) == MA_TRUE &&
            ma_sound_at_end(&sound_) == MA_FALSE;

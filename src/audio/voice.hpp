@@ -35,6 +35,7 @@ public:
     void FadeOut(Milliseconds fade);
 
     [[nodiscard]] bool IsPlaying() const;
+    [[nodiscard]] Milliseconds PlayedTime() const;
 
 private:
     void Apply();

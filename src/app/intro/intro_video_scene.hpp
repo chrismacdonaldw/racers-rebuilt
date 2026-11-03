@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "app/intro/soundtrack_clock.hpp"
 #include "app/scene.hpp"
 #include "assets/avi_file.hpp"
 #include "assets/image_asset.hpp"
@@ -47,7 +48,8 @@ private:
     IntroVideoScene(render::Renderer& renderer, audio::Mixer& mixer,
                     std::optional<Playback> playback, std::size_t video);
 
-    void DecodeUpTo(Playback& playback, std::size_t frame);
+    [[nodiscard]] std::optional<Microseconds> PlayedTime();
+    void ShowCurrentFrame(Playback& playback);
 
     render::Renderer* renderer_;
     audio::Mixer* mixer_;
@@ -55,7 +57,8 @@ private:
     std::size_t video_;
     Microseconds elapsed_{0};
     std::size_t decoded_ = 0;
-    bool isPictureNew_ = false;
+    bool hasSoundtrack_ = false;
+    SoundtrackClock clock_;
     bool isSkipAsked_ = false;
     std::optional<std::string> next_;
     std::vector<render::SpriteDraw> sprites_;
