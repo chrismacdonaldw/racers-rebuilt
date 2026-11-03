@@ -19,6 +19,10 @@ struct LineVertex {
 [[nodiscard]] Result<GpuPipeline> CreateMeshPipeline(SDL_GPUDevice* device,
                                                      SDL_GPUTextureFormat colorFormat,
                                                      BlendMode blend);
+/// A rigid mesh pipeline that neither tests nor writes depth.
+[[nodiscard]] Result<GpuPipeline> CreateBackdropPipeline(SDL_GPUDevice* device,
+                                                         SDL_GPUTextureFormat colorFormat,
+                                                         BlendMode blend);
 /// Takes each vertex's `joint` as an index into a joint pose array in vertex uniform slot 1.
 [[nodiscard]] Result<GpuPipeline> CreateSkinnedMeshPipeline(SDL_GPUDevice* device,
                                                             SDL_GPUTextureFormat colorFormat,

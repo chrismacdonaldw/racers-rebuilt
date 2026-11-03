@@ -114,6 +114,7 @@ rr_add_module(sim
         time_trial/ghost_recorder.cpp
         time_trial/time_trial_ghosts.cpp
         track/event_resources.cpp
+        track/race_sky.cpp
         track/racer_tints.cpp
         track/model_switches.cpp
         track/surface_events.cpp

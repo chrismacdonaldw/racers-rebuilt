@@ -29,10 +29,12 @@ namespace rr::assets {
 template <typename T>
 using NameMap = std::map<std::string, T, std::less<>>;
 
-/// Maps are keyed by uppercase name, as the worlds, models and materials refer to them.
+/// Maps are keyed by uppercase name, as the worlds, models and materials refer to them. The sky
+/// world, `BACKGRD.WDB`, is kept out of `worlds`, and is null when not loaded.
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct TrackAssets {
     std::vector<AssetCache<WorldAsset>::Handle> worlds;
+    AssetCache<WorldAsset>::Handle skyWorld;
     NameMap<AssetCache<GeometryAsset>::Handle> models;
     NameMap<MaterialAsset> materials;
     NameMap<AssetCache<ImageAsset>::Handle> textures;

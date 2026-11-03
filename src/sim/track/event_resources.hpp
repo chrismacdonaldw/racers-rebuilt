@@ -10,6 +10,7 @@
 #include "core/duration.hpp"
 #include "sim/collision/collision_world.hpp"
 #include "sim/collision/track_collision.hpp"
+#include "sim/track/race_sky.hpp"
 #include "sim/track/track_entities.hpp"
 #include "sim/track/track_events.hpp"
 
@@ -25,11 +26,11 @@ struct TimerState {
     friend bool operator==(const TimerState&, const TimerState&) = default;
 };
 
-/// `table`, `entities` and `collision` must outlive it.
+/// `table`, `entities`, `collision` and `sky` must outlive it.
 class EventResources {
 public:
     EventResources(const assets::EventTableAsset& table, const TrackEntitySources& entities,
-                   const TrackCollision* collision);
+                   const TrackCollision* collision, const assets::SkyFile& sky);
 
     [[nodiscard]] static std::size_t MostFiredPerTick(const assets::EventTableAsset& table);
 
@@ -47,6 +48,8 @@ public:
     [[nodiscard]] std::span<const TimerState> Timers() const { return timers_; }
     [[nodiscard]] std::span<const ResourcePhase> NodeTransforms() const { return nodes_; }
     [[nodiscard]] std::span<const ResourcePhase> ModelDistances() const { return distances_; }
+    [[nodiscard]] std::span<const ResourcePhase> SkyStates() const { return skyStates_; }
+    [[nodiscard]] const RaceSky& Sky() const { return sky_; }
 
     /// Indexed by collision world. A world moved by a node transform stays where it was left.
     [[nodiscard]] std::span<const std::optional<Placement>> MovedWorlds() const { return moved_; }
@@ -73,6 +76,9 @@ private:
     void EndTimer(std::size_t i, TrackEvents& events);
     void UpdateTimer(std::size_t i, Milliseconds elapsed, TrackEvents& events);
 
+    void StartSky(std::size_t i);
+    void EndSky(std::size_t i, TrackEvents& events);
+
     void StartNode(std::size_t i, TrackEvents& events);
     void EndNode(std::size_t i, TrackEvents& events);
     void UpdateNode(std::size_t i, TrackEvents& events, const TrackEntities& entities);
@@ -84,6 +90,8 @@ private:
     std::vector<TimerState> timers_;
     std::vector<ResourcePhase> nodes_;
     std::vector<ResourcePhase> distances_;
+    std::vector<ResourcePhase> skyStates_;
+    RaceSky sky_;
     std::vector<std::optional<Placement>> moved_;
     std::size_t dispatched_ = 0;
     std::size_t subEventBudget_;

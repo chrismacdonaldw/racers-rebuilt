@@ -57,6 +57,7 @@ rr_add_module(assets
         race_voices.cpp
         racer_catalog.cpp
         skeleton_database.cpp
+        sky_file.cpp
         sound_list.cpp
         stored_rotation.cpp
         start_grid.cpp

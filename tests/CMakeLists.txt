@@ -145,6 +145,7 @@ add_executable(racers-rebuilt-tests
     app/replay_session_test.cpp
     app/save_import_test.cpp
     app/scene_stack_test.cpp
+    app/sky_backdrop_test.cpp
     app/sound_banks_test.cpp
     app/startup_settings_test.cpp
     app/startup_timer_test.cpp
@@ -179,6 +180,7 @@ add_executable(racers-rebuilt-tests
     assets/driver_parts_test.cpp
     assets/emitter_library_test.cpp
     assets/event_table_test.cpp
+    assets/sky_file_test.cpp
     assets/font_list_test.cpp
     assets/game_path_test.cpp
     assets/geometry_database_test.cpp
@@ -377,6 +379,7 @@ add_executable(racers-rebuilt-tests
     sim/time_trial/ghost_playback_test.cpp
     sim/time_trial/time_trial_ghosts_test.cpp
     sim/track/event_resources_test.cpp
+    sim/track/race_sky_test.cpp
     sim/track/racer_tints_test.cpp
     sim/track/surface_events_test.cpp
     sim/track/track_entities_test.cpp

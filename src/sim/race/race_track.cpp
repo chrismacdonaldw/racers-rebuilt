@@ -12,6 +12,7 @@
 #include "assets/game_path.hpp"
 #include "assets/hazard_list.hpp"
 #include "assets/mirror.hpp"
+#include "assets/sky_file.hpp"
 #include "assets/start_grid.hpp"
 #include "assets/target_points.hpp"
 #include "assets/track_triggers.hpp"
@@ -23,6 +24,7 @@ constexpr std::string_view kRacerTriggers = "MAINTRIG.TRB";
 constexpr std::string_view kRenamedRacerTriggers = "NEWTRIG.TRB";
 constexpr std::string_view kEventTable = "EVENT.EVB";
 constexpr std::string_view kCheckpoints = "RACE.CPB";
+constexpr std::string_view kSky = "BACKGRND.SKB";
 
 template <typename Parse>
 auto ReadParsed(const assets::Vfs& vfs, std::string_view track, std::string_view file,
@@ -76,6 +78,16 @@ Result<assets::EventTableAsset> LoadEventTable(const assets::Vfs& vfs, std::stri
         });
 }
 
+Result<assets::SkyFile> LoadSky(const assets::Vfs& vfs, std::string_view track) {
+    return vfs.List(std::format("GAMEDATA/{}", track))
+        .and_then([&](const std::vector<assets::VfsEntry>& folder) -> Result<assets::SkyFile> {
+            if (!assets::HasFile(folder, kSky)) {
+                return assets::SkyFile{};
+            }
+            return ReadParsed(vfs, track, kSky, assets::ParseSkyFile);
+        });
+}
+
 Result<TrackEventSources> LoadEventSources(const assets::Vfs& vfs, std::string_view track,
                                            bool isMirrored) {
     Result<std::vector<assets::TriggerSphere>> racer =
@@ -99,13 +111,16 @@ Result<TrackEventSources> LoadEventSources(const assets::Vfs& vfs, std::string_v
         timers.and_then([&](const std::vector<assets::TrackTimer>&) {
             return LoadEventTable(vfs, track, isMirrored);
         });
-    if (!table) {
-        return std::unexpected(std::move(table.error()));
+    Result<assets::SkyFile> sky =
+        table.and_then([&](const assets::EventTableAsset&) { return LoadSky(vfs, track); });
+    if (!sky) {
+        return std::unexpected(std::move(sky.error()));
     }
     return TrackEventSources{.racerSpheres = std::move(*racer),
                              .environmentSpheres = std::move(*environment),
                              .timers = std::move(*timers),
-                             .table = std::move(*table)};
+                             .table = std::move(*table),
+                             .sky = std::move(*sky)};
 }
 
 float LowestPoint(const CollisionWorld& world) {

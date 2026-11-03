@@ -174,6 +174,17 @@ public:
         }
     }
 
+    void PlaceSky(const assets::WorldAsset& world, const assets::WorldEntity& entity) {
+        const auto model = ModelOf(world, entity);
+        if (model == models_->end()) {
+            return;
+        }
+        SkyModel& sky = sky_.emplace_back();
+        sky.scroll = entity.textureScroll.value_or(assets::TextureScroll{});
+        AppendDraws(sky.draws, model->second, materials_,
+                    {.rotation = PlacementToEngine({}, entity.forward, entity.up).rotation});
+    }
+
     void Keep(const assets::WorldAsset& world, const assets::WorldEntity& entity) {
         const auto model = ModelOf(world, entity);
         if (model == models_->end()) {
@@ -194,6 +205,7 @@ public:
                 .drawSlots = std::move(slots_),
                 .entityDraws = std::move(named_),
                 .animatedModels = std::move(animated_),
+                .skyModels = std::move(sky_),
                 .materials = std::move(materials_),
                 .bounds = surface_.isEmpty ? everything_ : surface_,
                 .decalSurface = DecalSurface(std::move(decalTriangles_))};
@@ -223,6 +235,7 @@ private:
     std::vector<std::uint32_t> slots_;
     std::vector<NamedDraws> named_;
     NameMap<JointedModel> animated_;
+    std::vector<SkyModel> sky_;
     Bounds surface_;
     Bounds everything_;
     std::vector<DecalTriangle> decalTriangles_;
@@ -285,6 +298,11 @@ Result<TrackModel> UploadTrack(render::Renderer& renderer, const assets::TrackAs
         }
         for (const assets::WorldEntity& entity : world->collidableEntities) {
             builder.Place(*world, entity, true);
+        }
+    }
+    if (track.skyWorld != nullptr) {
+        for (const assets::WorldEntity& entity : track.skyWorld->modelEntities) {
+            builder.PlaceSky(*track.skyWorld, entity);
         }
     }
     TrackModel model = std::move(builder).Finish();

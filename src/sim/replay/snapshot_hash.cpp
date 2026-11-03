@@ -314,6 +314,7 @@ public:
         }
         addAll(resources.NodeTransforms());
         addAll(resources.ModelDistances());
+        addAll(resources.SkyStates());
         for (const std::optional<Placement>& moved : resources.MovedWorlds()) {
             if (moved) {
                 Add(moved->position, moved->basis.forward, moved->basis.up);

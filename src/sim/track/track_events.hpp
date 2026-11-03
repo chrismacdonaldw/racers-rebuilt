@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "assets/event_table.hpp"
+#include "assets/sky_file.hpp"
 #include "assets/track_triggers.hpp"
 #include "core/duration.hpp"
 #include "core/vector3.hpp"
@@ -21,6 +22,7 @@ struct TrackEventSources {
     std::vector<assets::TriggerSphere> environmentSpheres;
     std::vector<assets::TrackTimer> timers;
     assets::EventTableAsset table;
+    assets::SkyFile sky;
 };
 
 class TrackEvents {

@@ -30,6 +30,7 @@ struct PipelineSpec {
     SDL_GPUPrimitiveType primitive = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
     SDL_GPUColorTargetBlendState blend{};
     bool writesDepth = true;
+    bool testsDepth = true;
     bool hasDepth = true;
 };
 
@@ -146,7 +147,7 @@ Result<GpuPipeline> CreatePipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat c
                              .front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE,
                              .enable_depth_clip = true},
         .depth_stencil_state = {.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL,
-                                .enable_depth_test = spec.hasDepth,
+                                .enable_depth_test = spec.hasDepth && spec.testsDepth,
                                 .enable_depth_write = spec.writesDepth},
         .target_info = {.color_target_descriptions = &colorTarget,
                         .num_color_targets = 1,
@@ -183,6 +184,16 @@ Result<GpuPipeline> CreateMeshPipeline(SDL_GPUDevice* device, SDL_GPUTextureForm
         device, colorFormat,
         MeshPipelineSpec({.code = shaders::kMeshVertex, .stage = SDL_GPU_SHADERSTAGE_VERTEX},
                          std::span(kMeshAttributes).first(kRigidAttributeCount), blend));
+}
+
+Result<GpuPipeline> CreateBackdropPipeline(SDL_GPUDevice* device, SDL_GPUTextureFormat colorFormat,
+                                           BlendMode blend) {
+    PipelineSpec spec =
+        MeshPipelineSpec({.code = shaders::kMeshVertex, .stage = SDL_GPU_SHADERSTAGE_VERTEX},
+                         std::span(kMeshAttributes).first(kRigidAttributeCount), blend);
+    spec.writesDepth = false;
+    spec.testsDepth = false;
+    return CreatePipeline(device, colorFormat, spec);
 }
 
 Result<GpuPipeline> CreateSkinnedMeshPipeline(SDL_GPUDevice* device,

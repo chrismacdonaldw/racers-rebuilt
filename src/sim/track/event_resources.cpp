@@ -111,12 +111,15 @@ std::optional<std::size_t> NodeEntity(const assets::NodeTransformResource& resou
 }
 
 EventResources::EventResources(const assets::EventTableAsset& table,
-                               const TrackEntitySources& entities, const TrackCollision* collision)
+                               const TrackEntitySources& entities, const TrackCollision* collision,
+                               const assets::SkyFile& sky)
     : table_(&table),
       parts_(table.partAnimations.size()),
       timers_(table.timers.size()),
       nodes_(table.nodeTransforms.size()),
       distances_(table.modelDistances.size()),
+      skyStates_(table.skyStates.size()),
+      sky_(sky),
       subEventBudget_(MostFiredPerTick(table)) {
     for (const assets::PartAnimationResource& resource : table.partAnimations) {
         partEntities_.push_back(PartEntity(resource, entities));
@@ -138,8 +141,8 @@ std::size_t EventResources::MostFiredPerTick(const assets::EventTableAsset& tabl
         return static_cast<std::size_t>(std::ranges::count_if(
             resources, [](const auto& resource) { return HasSubEvents(resource.trigger); }));
     };
-    return kMostSubEventsPerResource *
-           (count(table.partAnimations) + count(table.timers) + count(table.nodeTransforms));
+    return kMostSubEventsPerResource * (count(table.partAnimations) + count(table.timers) +
+                                        count(table.nodeTransforms) + count(table.skyStates));
 }
 
 void EventResources::Rephase(const assets::EventTrigger& trigger, ResourcePhase from,
@@ -192,6 +195,11 @@ void EventResources::Apply(const TrackEvent& event, TrackEvents& events, TrackEn
                 [&] { EndPart(i, entities); });
         }
     }
+    for (std::size_t i = 0; i < skyStates_.size(); ++i) {
+        visit(
+            table_->skyStates[i].trigger, skyStates_[i], [&] { StartSky(i); },
+            [&] { EndSky(i, events); });
+    }
     for (std::size_t i = 0; i < timers_.size(); ++i) {
         visit(
             table_->timers[i].trigger, timers_[i].phase, [&] { StartTimer(i, events); },
@@ -231,6 +239,7 @@ void EventResources::Force(assets::EventId id) {
     force(table_->nodeTransforms, [this](std::size_t i) -> ResourcePhase& { return nodes_[i]; });
     force(table_->modelDistances,
           [this](std::size_t i) -> ResourcePhase& { return distances_[i]; });
+    force(table_->skyStates, [this](std::size_t i) -> ResourcePhase& { return skyStates_[i]; });
 }
 
 void EventResources::Update(Milliseconds elapsed, TrackEvents& events, TrackEntities& entities) {
@@ -250,6 +259,12 @@ void EventResources::Update(Milliseconds elapsed, TrackEvents& events, TrackEnti
             phase = ResourcePhase::Idle;
         }
     }
+    for (std::size_t i = 0; i < skyStates_.size(); ++i) {
+        if (skyStates_[i] == ResourcePhase::EndPending) {
+            EndSky(i, events);
+        }
+    }
+    sky_.Tick(elapsed);
 }
 
 bool EventResources::IsModelHidden(std::size_t distance) const {
@@ -348,6 +363,16 @@ void EventResources::UpdateTimer(std::size_t i, Milliseconds elapsed, TrackEvent
     if (timer.left == Milliseconds{0}) {
         EndTimer(i, events);
     }
+}
+
+void EventResources::StartSky(std::size_t i) {
+    sky_.Apply(table_->skyStates[i]);
+    skyStates_[i] = ResourcePhase::EndPending;
+}
+
+void EventResources::EndSky(std::size_t i, TrackEvents& events) {
+    Rephase(table_->skyStates[i].trigger, skyStates_[i], ResourcePhase::Active, events);
+    skyStates_[i] = ResourcePhase::Idle;
 }
 
 void EventResources::StartNode(std::size_t i, TrackEvents& events) {
