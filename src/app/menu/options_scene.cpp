@@ -44,10 +44,9 @@ std::size_t TitleLine(OptionsPage page) {
     return kOptionsLine;
 }
 
-std::u16string DriverName(render::Renderer& renderer) {
-    const char* driver = SDL_GetGPUDeviceDriver(renderer.Device());
+std::u16string DriverName(const render::Renderer& renderer) {
     std::u16string name;
-    for (const char letter : std::string_view(driver != nullptr ? driver : "")) {
+    for (const char letter : renderer.DriverName()) {
         name.push_back(static_cast<char16_t>(std::toupper(static_cast<unsigned char>(letter))));
     }
     return name;
