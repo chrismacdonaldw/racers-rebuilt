@@ -125,8 +125,9 @@ Result<Application> Application::Create(GameBoot boot) {
 
 Result<void> Application::Run() {
     Result<ReplaySession> replay =
-        ReplaySession::Start(recordFile_, replayFile_, scene_,
-                             GameplayFingerprint(settings_, extensions_.mods, ScenePlayerRacer()));
+        ReplaySession::Start(recordFile_, replayFile_, scene_, [this](std::string_view scene) {
+            return GameplayFingerprint(settings_, extensions_.mods, PlayerRacerOf(scene));
+        });
     if (!replay) {
         return std::unexpected(std::move(replay.error()));
     }
@@ -375,8 +376,8 @@ std::filesystem::path Application::RacersFile() const {
     return settingsFile_.parent_path() / kRacersFileName;
 }
 
-std::optional<settings::Racer> Application::ScenePlayerRacer() const {
-    const std::string player = scene_ ? ScenePlayer(*scene_) : std::string();
+std::optional<settings::Racer> Application::PlayerRacerOf(std::string_view scene) const {
+    const std::string player = ScenePlayer(scene);
     if (player.empty()) {
         return std::nullopt;
     }
