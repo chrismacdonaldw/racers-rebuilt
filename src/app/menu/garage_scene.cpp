@@ -56,7 +56,8 @@ std::optional<DialogLook> LoadDialog(render::Renderer& renderer, const assets::V
 
 Result<std::unique_ptr<GarageScene>> GarageScene::Create(render::Renderer& renderer,
                                                          const assets::Vfs& vfs, MenuSounds sounds,
-                                                         std::filesystem::path racersFile) {
+                                                         std::filesystem::path racersFile,
+                                                         std::size_t racer) {
     Result<MenuFiles> files = ReadMenuFiles(vfs, kGarageScreen);
     Result<GarageLook> look = files.and_then(
         [&](const MenuFiles& loaded) { return LoadGarageLook(renderer, vfs, loaded); });
@@ -69,7 +70,8 @@ Result<std::unique_ptr<GarageScene>> GarageScene::Create(render::Renderer& rende
     }
     Racers racers{.file = std::move(racersFile),
                   .isLoaded = store.has_value(),
-                  .store = std::move(store).value_or(settings::RacerStore{})};
+                  .store = std::move(store).value_or(settings::RacerStore{}),
+                  .shown = racer};
     Views views{.stand = LoadStand(renderer, vfs, *files), .dialog = LoadDialog(renderer, vfs)};
     return std::unique_ptr<GarageScene>(new GarageScene(renderer, vfs, sounds, std::move(*look),
                                                         std::move(views), std::move(racers)));
@@ -146,6 +148,7 @@ GarageScene::GarageScene(render::Renderer& renderer, const assets::Vfs& vfs, Men
     for (const settings::Racer& racer : racers_.store.racers) {
         names_.push_back(Utf16FromUtf8(racer.name));
     }
+    menu_.Refresh(racers_.store.racers.size(), racers_.shown, GarageButton::New);
     ShowRacer();
 }
 
@@ -167,6 +170,8 @@ void GarageScene::Handle(GarageRequest request) {
             TestDrive();
             break;
         case GarageRequest::Driver:
+            opened_ = RacerScene(kEditDriverScene, menu_.Racer());
+            break;
         case GarageRequest::Licence:
         case GarageRequest::Car:
             log::Info("garage: that editor isn't built yet");

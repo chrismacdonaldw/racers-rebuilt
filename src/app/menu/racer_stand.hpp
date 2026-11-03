@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "app/menu/menu_files.hpp"
-#include "app/menu/menu_frame.hpp"
 #include "app/menu/stand_racer.hpp"
 #include "app/menu/stand_scene.hpp"
 #include "app/track_entity_draws.hpp"
@@ -72,12 +71,6 @@ private:
         std::unique_ptr<assets::TrackLoader> loader;
     };
 
-    struct Framing {
-        MenuFrameLook look;
-        render::Rect frame;
-        render::Rect interior;
-    };
-
     // NOLINTNEXTLINE(bugprone-exception-escape)
     struct Built {
         assets::DriverLook look;
@@ -88,24 +81,21 @@ private:
         std::size_t skeleton = 0;
     };
 
-    [[nodiscard]] static Result<Framing> LoadFraming(render::Renderer& renderer,
-                                                     const assets::Vfs& vfs, const MenuFiles& files,
-                                                     std::string_view screen);
-
     RacerStand(const assets::Vfs& vfs, render::Renderer& renderer, Loading loading,
-               std::unique_ptr<StandScene> scene, TrackModel model, const Framing& framing);
+               std::unique_ptr<StandScene> scene, TrackModel model, const StandFraming& framing);
 
     [[nodiscard]] const Built& Build(const settings::Racer& racer);
     [[nodiscard]] Result<StandRacer> BuildParts(const settings::Racer& racer) const;
     void PlayIdle();
-    void AppendCar(std::span<const sim::EntityClock> clocks, const JointedModel& car);
+    void AppendCar(std::span<const sim::EntityClock> clocks, std::size_t turntable,
+                   const JointedModel& car);
 
     const assets::Vfs* vfs_;
     render::Renderer* renderer_;
     Loading loading_;
     std::unique_ptr<StandScene> scene_;
     TrackModel model_;
-    Framing framing_;
+    StandFraming framing_;
     sim::TrackEntities entities_;
     TrackEntityDraws jointed_;
     std::vector<Built> built_;
