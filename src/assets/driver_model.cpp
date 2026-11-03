@@ -33,7 +33,14 @@ struct ChosenParts {
     const std::string* headPart = nullptr;
 };
 
-Result<ChosenParts> ChooseParts(const DriverPartCatalog& catalog, const DriverLook& look) {
+void FitIndex(std::uint8_t& index, std::size_t count) {
+    if (index >= count) {
+        index = 0;
+    }
+}
+
+Result<ChosenParts> ChooseParts(const DriverPartCatalog& catalog, const DriverLook& worn) {
+    const DriverLook look = FitLook(catalog, worn);
     ChosenParts chosen;
     return PartAt(catalog.faces.parts, look.face, "face")
         .and_then([&](const DriverPart* face) {
@@ -89,6 +96,14 @@ GeometryAsset MergeHead(GeometryAsset body, const GeometryAsset& head, std::uint
     return body;
 }
 
+}
+
+DriverLook FitLook(const DriverPartCatalog& catalog, DriverLook look) {
+    FitIndex(look.face, catalog.faces.parts.size());
+    FitIndex(look.hat, catalog.headParts.size());
+    FitIndex(look.torso, catalog.torsos.parts.size());
+    FitIndex(look.legs, catalog.legs.parts.size());
+    return look;
 }
 
 Result<std::string> DriverBodyName(const DriverPartCatalog& catalog, const DriverLook& look,

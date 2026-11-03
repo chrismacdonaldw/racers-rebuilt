@@ -68,6 +68,13 @@ std::vector<std::byte> OnePixelTga() {
                   0x00, 0x01, 0x00, 0x01, 0x00, 0x20, 0x08, 0x01, 0x02, 0x03, 0x04});
 }
 
+void WriteFile(const std::filesystem::path& file, std::span<const std::byte> bytes) {
+    std::filesystem::create_directories(file.parent_path());
+    std::ofstream(file, std::ios::binary)
+        .write(reinterpret_cast<const char*>(bytes.data()),
+               static_cast<std::streamsize>(bytes.size()));
+}
+
 class TrackFixture {
 public:
     TrackFixture() {
@@ -78,17 +85,15 @@ public:
     }
 
     void Write(std::string_view path, std::span<const std::byte> bytes) const {
-        const std::filesystem::path file = folder_.Path() / path;
-        std::filesystem::create_directories(file.parent_path());
-        std::ofstream(file, std::ios::binary)
-            .write(reinterpret_cast<const char*>(bytes.data()),
-                   static_cast<std::streamsize>(bytes.size()));
+        WriteFile(folder_.Path() / path, bytes);
     }
 
     void Remove(std::string_view path) const { std::filesystem::remove(folder_.Path() / path); }
 
-    Result<void> Mount() {
-        return FolderLayer::Scan(folder_.Path()).transform([&](FolderLayer layer) {
+    Result<void> Mount() { return MountFolder(folder_.Path()); }
+
+    Result<void> MountFolder(const std::filesystem::path& root) {
+        return FolderLayer::Scan(root).transform([&](FolderLayer layer) {
             vfs_.Mount(std::make_unique<FolderLayer>(std::move(layer)));
         });
     }
@@ -137,6 +142,24 @@ TEST_CASE_FIXTURE(TrackFixture, "models load the files they name without worlds"
     CHECK(loaded->materials.contains("PAINT"));
     CHECK(loaded->materials.contains("GLASS"));
     CHECK(loaded->textures.contains("WOOD"));
+}
+
+TEST_CASE_FIXTURE(TrackFixture, "a mod's material and texture tables add to the game's") {
+    const test::TempFolder mod;
+    WriteFile(mod.Path() / "gamedata/racex/mat.mdb", OneEntryLibrary("Paint"));
+    WriteFile(mod.Path() / "gamedata/racex/tex.tdb", OneEntryLibrary("stone"));
+    WriteFile(mod.Path() / "gamedata/common/stone.tga", OnePixelTga());
+
+    const Result<TrackAssets> track =
+        Mount().and_then([&] { return MountFolder(mod.Path()); }).and_then([&] {
+            return loader_.Load("gamedata/racex");
+        });
+
+    REQUIRE(track.has_value());
+    CHECK(track->materials.contains("GLASS"));
+    CHECK(track->materials.contains("PAINT"));
+    CHECK(track->textures.contains("WOOD"));
+    CHECK(track->textures.contains("STONE"));
 }
 
 TEST_CASE_FIXTURE(TrackFixture, "a mirrored load reflects its models") {

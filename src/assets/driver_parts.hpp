@@ -39,6 +39,9 @@ struct DriverPartCatalog {
 
 [[nodiscard]] Result<DriverPartCatalog> ParseDriverParts(std::span<const std::byte> bytes);
 
+/// Parts merge by name as `MergeNamed` does, a hat with its head part. The rest is the first's.
+[[nodiscard]] DriverPartCatalog MergeDriverParts(std::vector<DriverPartCatalog> catalogs);
+
 [[nodiscard]] bool IsPartUnlocked(std::int32_t unlock, const std::set<std::int32_t>& partSets,
                                   bool allRacesUnlocked);
 

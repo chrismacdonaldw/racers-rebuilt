@@ -11,6 +11,7 @@
 
 #include "assets/game_path.hpp"
 #include "assets/geometry_database.hpp"
+#include "assets/merged_table.hpp"
 #include "assets/mirror.hpp"
 
 namespace rr::assets {
@@ -29,7 +30,7 @@ template <typename T>
 using Handles = std::vector<typename AssetCache<T>::Handle>;
 
 template <typename T>
-using Parser = std::function<Result<T>(std::size_t, std::span<const std::byte>)>;
+using Loader = std::function<Result<T>(std::size_t)>;
 
 template <typename T>
 using Mirror = void (*)(T&);
@@ -41,8 +42,8 @@ struct Request {
 };
 
 template <typename T>
-Result<Handles<T>> LoadAll(const Vfs& vfs, LoaderPool& pool, AssetCache<T>& cache,
-                           std::span<const Request> requests, const Parser<T>& parse) {
+Result<Handles<T>> LoadAll(LoaderPool& pool, AssetCache<T>& cache,
+                           std::span<const Request> requests, const Loader<T>& load) {
     Handles<T> handles(requests.size());
     std::vector<std::size_t> missing;
     for (std::size_t i = 0; i < requests.size(); ++i) {
@@ -52,12 +53,7 @@ Result<Handles<T>> LoadAll(const Vfs& vfs, LoaderPool& pool, AssetCache<T>& cach
         }
     }
     std::vector<std::optional<Result<T>>> parsed(missing.size());
-    pool.ForEach(missing.size(), [&](std::size_t job) {
-        const std::size_t index = missing[job];
-        parsed[job] = vfs.Read(requests[index].path).and_then([&](const FileData& data) {
-            return parse(index, data.Bytes());
-        });
-    });
+    pool.ForEach(missing.size(), [&](std::size_t job) { parsed[job] = load(missing[job]); });
     for (std::size_t job = 0; job < missing.size(); ++job) {
         const Request& request = requests[missing[job]];
         Result<T>& result = *parsed[job];
@@ -169,38 +165,56 @@ Result<Handles<T>> LoadMirrorable(const Loading& loading, AssetCache<T>& cache,
             request.key += kMirroredKey;
         }
     }
-    return LoadAll<T>(
-        *loading.vfs, *loading.pool, cache, requests,
-        [parse, mirror, &requests](std::size_t index, std::span<const std::byte> bytes) {
-            Result<T> parsed = parse(bytes);
-            if (parsed && requests[index].isMirrored) {
-                mirror(*parsed);
-            }
-            return parsed;
+    return LoadAll<T>(*loading.pool, cache, requests, [&](std::size_t index) {
+        const Request& request = requests[index];
+        Result<T> parsed = loading.vfs->Read(request.path).and_then([parse](const FileData& data) {
+            return parse(data.Bytes());
         });
+        if (parsed && request.isMirrored) {
+            mirror(*parsed);
+        }
+        return parsed;
+    });
+}
+
+template <typename T>
+NameMap<typename AssetCache<T>::Handle> ByName(const NameSet& names, Handles<T> handles) {
+    NameMap<typename AssetCache<T>::Handle> byName;
+    auto handle = handles.begin();
+    for (const std::string& name : names) {
+        byName.emplace(name, std::move(*handle++));
+    }
+    return byName;
 }
 
 template <typename T>
 Result<NameMap<typename AssetCache<T>::Handle>> LoadByName(
     const Loading& loading, AssetCache<T>& cache, const NameSet& names, std::string_view extension,
     Result<T> (*parse)(std::span<const std::byte>), Mirror<T> mirror = nullptr) {
-    Result<Handles<T>> handles =
-        loading.resolver->ResolveAll(names, extension).and_then([&](std::vector<Request> requests) {
+    return loading.resolver->ResolveAll(names, extension)
+        .and_then([&](std::vector<Request> requests) {
             auto name = names.begin();
             for (Request& request : requests) {
                 request.isMirrored = MirrorsName(loading, *name++);
             }
             return LoadMirrorable<T>(loading, cache, std::move(requests), parse, mirror);
-        });
-    if (!handles) {
-        return std::unexpected(std::move(handles.error()));
-    }
-    NameMap<typename AssetCache<T>::Handle> byName;
-    auto handle = handles->begin();
-    for (const std::string& name : names) {
-        byName.emplace(name, std::move(*handle++));
-    }
-    return byName;
+        })
+        .transform([&](Handles<T> handles) { return ByName<T>(names, std::move(handles)); });
+}
+
+template <typename Entry>
+Result<NameMap<typename AssetCache<std::vector<Entry>>::Handle>> LoadTablesByName(
+    const Loading& loading, AssetCache<std::vector<Entry>>& cache, const NameSet& names,
+    std::string_view extension, Result<std::vector<Entry>> (*parse)(std::span<const std::byte>)) {
+    using Table = std::vector<Entry>;
+    return loading.resolver->ResolveAll(names, extension)
+        .and_then([&](const std::vector<Request>& requests) {
+            return LoadAll<Table>(*loading.pool, cache, requests, [&](std::size_t index) {
+                return ReadMergedTable(*loading.vfs, requests[index].path, parse);
+            });
+        })
+        .transform(
+            [&](Handles<Table> handles) { return ByName<Table>(names, std::move(handles)); });
 }
 
 std::string ImageKey(const std::string& path, const TextureDefinition& definition) {
@@ -218,8 +232,7 @@ std::string ImageKey(const std::string& path, const TextureDefinition& definitio
 Result<NameMap<MaterialAsset>> LoadMaterials(const Loading& loading,
                                              AssetCache<std::vector<MaterialAsset>>& cache,
                                              const NameSet& names) {
-    return LoadByName<std::vector<MaterialAsset>>(loading, cache, names, ".MDB",
-                                                  ParseMaterialLibrary)
+    return LoadTablesByName<MaterialAsset>(loading, cache, names, ".MDB", ParseMaterialLibrary)
         .transform([](const auto& libraries) {
             NameMap<MaterialAsset> materials;
             for (const auto& [name, library] : libraries) {
@@ -246,10 +259,11 @@ Result<NameMap<AssetCache<ImageAsset>::Handle>> LoadImages(
         requested.push_back(&entry);
     }
     Result<Handles<ImageAsset>> images =
-        LoadAll<ImageAsset>(*loading.vfs, *loading.pool, cache, requests,
-                            [&](std::size_t index, std::span<const std::byte> bytes) {
-                                return DecodeTexture(bytes, requested[index]->second);
-                            });
+        LoadAll<ImageAsset>(*loading.pool, cache, requests, [&](std::size_t index) {
+            return loading.vfs->Read(requests[index].path).and_then([&](const FileData& data) {
+                return DecodeTexture(data.Bytes(), requested[index]->second);
+            });
+        });
     if (!images) {
         return std::unexpected(std::move(images.error()));
     }
@@ -263,8 +277,8 @@ Result<NameMap<AssetCache<ImageAsset>::Handle>> LoadImages(
 Result<NameMap<AssetCache<ImageAsset>::Handle>> LoadTextures(
     const Loading& loading, AssetCache<std::vector<TextureDefinition>>& databaseCache,
     AssetCache<ImageAsset>& imageCache, const NameSet& names, std::vector<std::string>& missing) {
-    return LoadByName<std::vector<TextureDefinition>>(loading, databaseCache, names, ".TDB",
-                                                      ParseTextureDatabase)
+    return LoadTablesByName<TextureDefinition>(loading, databaseCache, names, ".TDB",
+                                               ParseTextureDatabase)
         .and_then([&](const auto& databases) {
             NameMap<TextureDefinition> definitions;
             for (const auto& [name, database] : databases) {

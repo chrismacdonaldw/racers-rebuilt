@@ -199,8 +199,7 @@ Result<std::unique_ptr<DriverKit>> DriverKit::Load(render::Renderer& renderer,
         LoadDriverParts(vfs)
             .and_then([&](assets::DriverPartCatalog catalog) {
                 parts.catalog = std::move(catalog);
-                return ReadParsed(vfs, std::format("{}/{}", kShapeFolder, kHeads),
-                                  assets::ParsePartLibrary);
+                return LoadHeadParts(vfs, std::format("{}/{}", kShapeFolder, kHeads));
             })
             .and_then([&](assets::PartLibrary heads) {
                 parts.heads = std::move(heads);
@@ -267,7 +266,8 @@ Result<const DriverKit::Body*> DriverKit::BodyOf(const std::string& name) {
     return bodies_.emplace(name, std::move(body)).first->second.get();
 }
 
-Result<const DriverKit::Built*> DriverKit::Build(const assets::DriverLook& look) {
+Result<const DriverKit::Built*> DriverKit::Build(const assets::DriverLook& worn) {
+    const assets::DriverLook look = assets::FitLook(catalog_, worn);
     Result<std::string> name = assets::DriverBodyName(catalog_, look, assets::DriverDetail::Menu);
     if (!name) {
         return std::unexpected(std::move(name.error()));
@@ -297,7 +297,8 @@ Result<const DriverKit::Built*> DriverKit::Build(const assets::DriverLook& look)
     return &built_.emplace(std::move(key), std::move(built)).first->second;
 }
 
-render::Material DriverKit::DressOf(const assets::DriverLook& look, Dress dress) const {
+render::Material DriverKit::DressOf(const assets::DriverLook& worn, Dress dress) const {
+    const assets::DriverLook look = assets::FitLook(catalog_, worn);
     switch (dress) {
         case Dress::Face:
             return MaterialNamed(materials_,

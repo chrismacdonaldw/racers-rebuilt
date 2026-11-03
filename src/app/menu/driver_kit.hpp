@@ -75,8 +75,8 @@ private:
     DriverKit(render::Renderer& renderer, const assets::Vfs& vfs, Parts parts);
 
     [[nodiscard]] Result<const Body*> BodyOf(const std::string& name);
-    [[nodiscard]] Result<const Built*> Build(const assets::DriverLook& look);
-    [[nodiscard]] render::Material DressOf(const assets::DriverLook& look, Dress dress) const;
+    [[nodiscard]] Result<const Built*> Build(const assets::DriverLook& worn);
+    [[nodiscard]] render::Material DressOf(const assets::DriverLook& worn, Dress dress) const;
 
     render::Renderer* renderer_;
     const assets::Vfs* vfs_;

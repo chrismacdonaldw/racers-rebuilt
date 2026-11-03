@@ -32,6 +32,9 @@ struct PartLibrary {
 
 [[nodiscard]] Result<PartLibrary> ParsePartLibrary(std::span<const std::byte> bytes);
 
+/// Pools are appended in order. Parts merge by name as `MergeNamed` does.
+[[nodiscard]] PartLibrary MergePartLibraries(std::vector<PartLibrary> libraries);
+
 /// Copies only the vertices the part uses, scaled by `scale` rather than the part's own scale.
 [[nodiscard]] Result<GeometryAsset> BuildPartGeometry(const PartLibrary& library,
                                                       std::string_view name, float scale);

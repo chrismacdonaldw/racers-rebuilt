@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <optional>
@@ -61,6 +62,27 @@ std::vector<std::byte> SmallLibrary() {
                        2),
                   Part("cap", Group("cap", 1, Ints({0, 1, 2})), 1)})),
     });
+}
+
+PartLibrary OneTriangleLibrary(std::string_view name, std::size_t vertexCount) {
+    PartLibrary library;
+    library.vertices.resize(vertexCount);
+    library.parts.push_back(
+        {.name = std::string(name), .groups = {{.material = "m", .triangles = {{0, 1, 2}}}}});
+    return library;
+}
+
+TEST_CASE("a mod's part library appends its pool and offsets its parts") {
+    const PartLibrary merged =
+        MergePartLibraries({OneTriangleLibrary("head", 4), OneTriangleLibrary("crown", 3),
+                            OneTriangleLibrary("HEAD", 3)});
+
+    CHECK(merged.vertices.size() == 10);
+    REQUIRE(merged.parts.size() == 2);
+    CHECK(merged.parts[0].groups[0].triangles[0] == std::array<std::int32_t, 3>{7, 8, 9});
+    CHECK(merged.parts[1].name == "crown");
+    CHECK(merged.parts[1].groups[0].triangles[0] == std::array<std::int32_t, 3>{4, 5, 6});
+    CHECK(BuildPartGeometry(merged, "head", 1.0F).has_value());
 }
 
 TEST_CASE("a part library reads its vertex pool and named parts") {

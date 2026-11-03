@@ -5,6 +5,8 @@
 #include <limits>
 #include <utility>
 
+#include "assets/game_path.hpp"
+#include "assets/merged_table.hpp"
 #include "assets/token_schema.hpp"
 
 namespace rr::assets {
@@ -149,6 +151,16 @@ private:
     GeometryAsset geometry_;
 };
 
+void ShiftIndices(LibraryPart& part, std::int32_t offset) {
+    for (PartGroup& group : part.groups) {
+        for (std::array<std::int32_t, 3>& triangle : group.triangles) {
+            for (std::int32_t& index : triangle) {
+                index += offset;
+            }
+        }
+    }
+}
+
 }
 
 Result<PartLibrary> ParsePartLibrary(std::span<const std::byte> bytes) {
@@ -160,9 +172,28 @@ Result<PartLibrary> ParsePartLibrary(std::span<const std::byte> bytes) {
         .transform([&] { return std::move(library); });
 }
 
+PartLibrary MergePartLibraries(std::vector<PartLibrary> libraries) {
+    PartLibrary merged;
+    std::vector<std::vector<LibraryPart>> parts;
+    parts.reserve(libraries.size());
+    for (PartLibrary& library : libraries) {
+        const auto offset = static_cast<std::int32_t>(merged.vertices.size());
+        for (LibraryPart& part : library.parts) {
+            ShiftIndices(part, offset);
+        }
+        merged.vertices.insert(merged.vertices.end(), library.vertices.begin(),
+                               library.vertices.end());
+        parts.push_back(std::move(library.parts));
+    }
+    merged.parts = MergeNamed(std::move(parts));
+    return merged;
+}
+
 Result<GeometryAsset> BuildPartGeometry(const PartLibrary& library, std::string_view name,
                                         float scale) {
-    const auto part = std::ranges::find(library.parts, name, &LibraryPart::name);
+    const std::string upper = ToUpperAscii(name);
+    const auto part = std::ranges::find_if(
+        library.parts, [&](const LibraryPart& kept) { return ToUpperAscii(kept.name) == upper; });
     if (part == library.parts.end()) {
         return Fail(ErrorCode::NotFound, std::format("the part library has no part {}", name));
     }

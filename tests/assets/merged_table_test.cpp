@@ -98,14 +98,26 @@ TEST_CASE("a table read from every layer merges them lowest first") {
           std::vector<Line>{Named("a", "game"), Named("b", "mod one"), Named("c", "mod two")});
 }
 
-TEST_CASE("a missing table or a broken layer fails") {
+TEST_CASE("a missing table or a broken lowest layer fails") {
     LayersFixture layers;
     CHECK(layers.Read().error().code == ErrorCode::NotFound);
 
-    layers.AddLayer("a=game");
     layers.AddLayer("!");
+    layers.AddLayer("a=mod");
 
     CHECK(layers.Read().error().code == ErrorCode::InvalidData);
+}
+
+TEST_CASE("a broken mod layer is skipped") {
+    LayersFixture layers;
+    layers.AddLayer("a=game");
+    layers.AddLayer("!");
+    layers.AddLayer("b=mod");
+
+    const Result<std::vector<Line>> table = layers.Read();
+
+    REQUIRE(table.has_value());
+    CHECK(*table == std::vector<Line>{Named("a", "game"), Named("b", "mod")});
 }
 
 }
