@@ -129,6 +129,7 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `video.fps_cap` | `144` | `30` to `360`, or `0` for uncapped. Applies only with VSync off. |
 | `video.resolution_scale` | `1.0` | `0.25` to `2.0`. Renders the scene at this fraction of the window size. |
 | `video.stretch_ui` | `false` | `true`, `false` |
+| `video.widescreen` | `false` | `true`, `false`. Races and cutscenes fill the window and see more to the sides, instead of the original's 4:3 frame. |
 | `audio.music_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.effects_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.voice_volume` | `1.0` | `0.0` to `1.0` |
@@ -180,7 +181,7 @@ fps_cap = 240
 music_volume = 0.6
 ```
 
-The UI keeps a centered 4:3 area unless `video.stretch_ui` is on, which stretches it to fill the window.
+The UI keeps a centered 4:3 area unless `video.stretch_ui` is on, which stretches it to fill the window. Races and cutscenes keep to the same area unless `video.widescreen` is on.
 
 Out-of-range values are clamped. Unknown keys are kept when the file is saved.
 

@@ -57,6 +57,7 @@ public:
 
     void SetUiFit(UiFit fit) { uiFit_ = fit; }
     [[nodiscard]] UiFit Fit() const { return uiFit_; }
+    void SetSceneFit(SceneFit fit) { sceneFit_ = fit; }
 
     /// Drawn over every view's sprites until replaced.
     void SetPointer(const std::optional<SpriteDraw>& pointer) { pointer_ = pointer; }
@@ -158,6 +159,7 @@ private:
     SDL_GPUTextureFormat colorFormat_ = SDL_GPU_TEXTUREFORMAT_INVALID;
     float resolutionScale_ = 1.0F;
     UiFit uiFit_ = UiFit::Centered;
+    SceneFit sceneFit_ = SceneFit::Canvas;
     GpuTexture sceneColor_;
     GpuTexture depth_;
     std::uint32_t sceneWidthPx_ = 0;

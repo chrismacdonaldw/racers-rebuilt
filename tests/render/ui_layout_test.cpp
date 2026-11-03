@@ -67,5 +67,48 @@ TEST_CASE("the UI canvas corners land on the area's corners in clip space") {
     CHECK(bottomRight.y == doctest::Approx(-1.0F));
 }
 
+constexpr Viewport kWholeWindow{};
+constexpr Viewport kLowerHalf{.y = 0.5F, .height = 0.5F};
+constexpr std::uint32_t kWideWidthPx = 1920;
+constexpr std::uint32_t kWideHeightPx = 1080;
+
+PixelRect WideArea(const Viewport& viewport, UiFit uiFit, SceneFit sceneFit) {
+    return ViewportArea(viewport, kWideWidthPx, kWideHeightPx, uiFit, sceneFit);
+}
+
+TEST_CASE("a window view keeps to the 4:3 area unless the scene fits the window") {
+    CHECK(WideArea(kWholeWindow, UiFit::Centered, SceneFit::Canvas) ==
+          PixelRect{.xPx = 240, .widthPx = 1440, .heightPx = 1080});
+    CHECK(WideArea(kLowerHalf, UiFit::Centered, SceneFit::Canvas) ==
+          PixelRect{.xPx = 240, .yPx = 540, .widthPx = 1440, .heightPx = 540});
+    CHECK(WideArea(kWholeWindow, UiFit::Centered, SceneFit::Window) ==
+          PixelRect{.widthPx = 1920, .heightPx = 1080});
+    CHECK(WideArea(kLowerHalf, UiFit::Centered, SceneFit::Window) ==
+          PixelRect{.yPx = 540, .widthPx = 1920, .heightPx = 540});
+}
+
+TEST_CASE("a view reaching past the window's left edge clips to it") {
+    const Viewport pastLeft{.x = -0.5F, .width = 1.0F};
+
+    CHECK(WideArea(pastLeft, UiFit::Centered, SceneFit::Window) ==
+          PixelRect{.widthPx = 960, .heightPx = 1080});
+}
+
+TEST_CASE("a canvas view stays on the canvas whatever the scene fit") {
+    const Viewport onCanvas = UiViewport({.x = 320.0F, .width = 320.0F, .height = 480.0F});
+
+    CHECK(WideArea(onCanvas, UiFit::Centered, SceneFit::Window) ==
+          PixelRect{.xPx = 960, .widthPx = 720, .heightPx = 1080});
+}
+
+TEST_CASE("a 4:3 window view keeps the canvas's shape, even when stretched") {
+    const PixelRect stretched = WideArea(kWholeWindow, UiFit::Stretched, SceneFit::Canvas);
+    const PixelRect wide = WideArea(kLowerHalf, UiFit::Centered, SceneFit::Window);
+
+    CHECK(ViewAspect(kWholeWindow, stretched, SceneFit::Canvas) == doctest::Approx(4.0F / 3.0F));
+    CHECK(ViewAspect(kLowerHalf, stretched, SceneFit::Canvas) == doctest::Approx(8.0F / 3.0F));
+    CHECK(ViewAspect(kLowerHalf, wide, SceneFit::Window) == doctest::Approx(1920.0F / 540.0F));
+}
+
 }
 }
