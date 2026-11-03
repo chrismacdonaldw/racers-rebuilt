@@ -66,6 +66,8 @@ rr_add_module(app
         menu/best_time_panel.cpp
         menu/attract_demo.cpp
         menu/award_scene_name.cpp
+        menu/car_edit.cpp
+        menu/car_stand.cpp
         menu/carousel_layout.cpp
         menu/carousel_view.cpp
         menu/control_bindings.cpp
@@ -75,6 +77,9 @@ rr_add_module(app
         menu/dialog_layout.cpp
         menu/driver_kit.cpp
         menu/driver_stand.cpp
+        menu/edit_car_look.cpp
+        menu/edit_car_menu.cpp
+        menu/edit_car_scene.cpp
         menu/edit_driver_look.cpp
         menu/edit_driver_menu.cpp
         menu/edit_driver_scene.cpp

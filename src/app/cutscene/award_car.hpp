@@ -1,8 +1,10 @@
 #pragma once
 
 #include <optional>
+#include <string_view>
 
 #include "app/cutscene/cutscene_play.hpp"
+#include "assets/chassis_database.hpp"
 #include "assets/geometry_asset.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
@@ -25,6 +27,9 @@ struct AwardCar {
 [[nodiscard]] Result<std::optional<AwardCar>> LoadAwardCar(const assets::Vfs& vfs,
                                                            assets::TrackLoader& loader,
                                                            const settings::Racer& racer);
+
+[[nodiscard]] Result<assets::ChassisEntry> FindMenuChassis(const assets::Vfs& vfs,
+                                                           std::string_view name);
 
 [[nodiscard]] bool HasCarBody(const assets::TrackAssets& assets);
 

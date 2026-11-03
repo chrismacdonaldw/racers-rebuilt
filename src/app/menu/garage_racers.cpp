@@ -39,6 +39,16 @@ Result<settings::Racer> NewRacer(const assets::Vfs& vfs, std::string name) {
     });
 }
 
+Result<settings::RacerStore> LoadRacerStore(const std::filesystem::path& file, std::size_t racer) {
+    return settings::LoadRacers(file).and_then(
+        [&](settings::RacerStore store) -> Result<settings::RacerStore> {
+            if (racer >= store.racers.size()) {
+                return Fail(ErrorCode::NotFound, std::format("there's no racer {}", racer));
+            }
+            return store;
+        });
+}
+
 std::size_t CopyRacer(settings::RacerStore& store, std::size_t racer) {
     settings::Racer copy = store.racers.at(racer);
     store.racers.push_back(std::move(copy));

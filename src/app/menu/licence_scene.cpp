@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "app/frame_loop.hpp"
+#include "app/menu/garage_racers.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_frame.hpp"
 #include "app/menu/menu_page.hpp"
@@ -37,16 +38,6 @@ constexpr Milliseconds kBlinkHalf{1000};
 constexpr float kCursorHeight = 4.0F;
 constexpr float kCursorRise = 6.0F;
 constexpr char16_t kLastLatin1 = 0xFF;
-
-Result<settings::RacerStore> LoadRacer(const std::filesystem::path& file, std::size_t racer) {
-    return settings::LoadRacers(file).and_then(
-        [&](settings::RacerStore store) -> Result<settings::RacerStore> {
-            if (racer >= store.racers.size()) {
-                return Fail(ErrorCode::NotFound, std::format("there's no racer {}", racer));
-            }
-            return store;
-        });
-}
 
 Result<std::vector<std::string>> CircuitNames(const assets::Vfs& vfs) {
     return assets::RaceCatalog::Load(vfs).transform([](const assets::RaceCatalog& catalog) {
@@ -101,7 +92,7 @@ Result<std::unique_ptr<LicenceScene>> LicenceScene::Create(render::Renderer& ren
                                                            MenuSounds sounds,
                                                            const std::filesystem::path& racersFile,
                                                            std::size_t racer, sim::Cheats& cheats) {
-    Result<settings::RacerStore> store = LoadRacer(racersFile, racer);
+    Result<settings::RacerStore> store = LoadRacerStore(racersFile, racer);
     Result<std::vector<std::string>> circuits =
         store.and_then([&](const settings::RacerStore&) { return CircuitNames(vfs); });
     Result<MenuFiles> menu = circuits.and_then(

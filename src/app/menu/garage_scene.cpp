@@ -176,7 +176,7 @@ void GarageScene::Handle(GarageRequest request) {
             opened_ = RacerScene(kLicenceScene, menu_.Racer());
             break;
         case GarageRequest::Car:
-            log::Info("garage: that editor isn't built yet");
+            opened_ = RacerScene(kEditCarScene, menu_.Racer());
             break;
         case GarageRequest::Leave:
             opened_ = std::string(kMainMenuScene);

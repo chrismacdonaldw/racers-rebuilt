@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <filesystem>
 #include <string>
 
 #include "assets/vfs.hpp"
@@ -11,6 +12,10 @@ namespace rr::app {
 
 /// The first part set's chassis with no pieces, until the driver and car editors exist.
 [[nodiscard]] Result<settings::Racer> NewRacer(const assets::Vfs& vfs, std::string name);
+
+/// Fails when the file has no racer `racer`.
+[[nodiscard]] Result<settings::RacerStore> LoadRacerStore(const std::filesystem::path& file,
+                                                          std::size_t racer);
 
 /// Returns the copy's index. Like the original's, the copy keeps the name and trophies.
 std::size_t CopyRacer(settings::RacerStore& store, std::size_t racer);

@@ -7,6 +7,7 @@
 
 #include "app/circuit_awards.hpp"
 #include "app/frame_loop.hpp"
+#include "app/menu/garage_racers.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_frame.hpp"
 #include "app/menu/menu_page.hpp"
@@ -48,16 +49,6 @@ std::optional<DialogLook> LoadDialog(render::Renderer& renderer, const assets::V
     return std::move(*look);
 }
 
-Result<settings::RacerStore> LoadRacer(const std::filesystem::path& file, std::size_t racer) {
-    return settings::LoadRacers(file).and_then(
-        [&](settings::RacerStore store) -> Result<settings::RacerStore> {
-            if (racer >= store.racers.size()) {
-                return Fail(ErrorCode::NotFound, std::format("there's no racer {}", racer));
-            }
-            return store;
-        });
-}
-
 }
 
 Result<std::unique_ptr<EditDriverScene>> EditDriverScene::Create(render::Renderer& renderer,
@@ -67,7 +58,7 @@ Result<std::unique_ptr<EditDriverScene>> EditDriverScene::Create(render::Rendere
                                                                  std::size_t racer) {
     assets::LoaderPool pool(kLoaderWorkers);
     assets::TrackLoader loader(vfs, pool);
-    Result<settings::RacerStore> store = LoadRacer(files.racers, racer);
+    Result<settings::RacerStore> store = LoadRacerStore(files.racers, racer);
     Result<MenuFiles> menu = store.and_then(
         [&](const settings::RacerStore&) { return ReadMenuFiles(vfs, kEditDriverScreen); });
     Result<EditDriverLook> look = menu.and_then(
