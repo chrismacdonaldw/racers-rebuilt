@@ -2,11 +2,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <format>
 #include <limits>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "app/racer/built_racer.hpp"
 #include "app/racer/racer_bounds.hpp"
@@ -16,6 +18,7 @@
 #include "assets/race_catalog.hpp"
 #include "assets/racer_catalog.hpp"
 #include "core/utf16_text.hpp"
+#include "sim/animation/part_clock.hpp"
 #include "sim/physics/racer_chassis.hpp"
 #include "sim/race/cheats.hpp"
 
@@ -168,6 +171,18 @@ const assets::SkidMarks& RacerGrid::Skids(std::size_t slot) const {
 
 sim::PowerupHabits RacerGrid::Habits(std::size_t slot) const {
     return sim::HabitsOf(slots_.at(slot).assets->files.driver);
+}
+
+Milliseconds RacerGrid::SuddenStopLength(std::size_t slot) const {
+    const std::vector<assets::AnimationPart>& parts =
+        slots_.at(slot).assets->driver.animations.parts;
+    const auto stop =
+        std::ranges::find(parts, kDriverPartNames[std::to_underlying(DriverPart::SuddenStop)],
+                          &assets::AnimationPart::name);
+    if (stop == parts.end()) {
+        return Milliseconds{0};
+    }
+    return Milliseconds{static_cast<std::int64_t>(std::ceil(sim::OnceLengthMs(*stop)))};
 }
 
 DriverName RacerGrid::Name(std::size_t slot) const {

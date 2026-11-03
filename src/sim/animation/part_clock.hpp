@@ -32,6 +32,9 @@ void RewindClock(const assets::AnimationAsset& animations, PartClock& clock, flo
 [[nodiscard]] bool IsHoldingLastFrame(const assets::AnimationAsset& animations,
                                       const PartClock& clock);
 
+/// Until a one-shot part holds its last frame.
+[[nodiscard]] float OnceLengthMs(const assets::AnimationPart& part);
+
 /// Writes the keyed channels into `local`. A channel without keys keeps its value.
 void SampleNode(const assets::AnimationAsset& animations, const PartClock& clock, std::size_t node,
                 Transform& local);

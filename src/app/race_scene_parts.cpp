@@ -54,6 +54,7 @@ sim::RaceSetup GridSetup(const assets::Vfs& vfs, const RaceSceneSetup& scene,
         setup.racers[i].build = racers.Build(i);
         setup.racers[i].localBounds = racers.LocalBounds(i);
         setup.racers[i].habits = racers.Habits(i);
+        setup.racers[i].suddenStopLength = racers.SuddenStopLength(i);
     }
     for (std::size_t player = 0; player < (scene.isDemo ? 0 : scene.players); ++player) {
         setup.racers[kPlayerSlot + player].isPlayer = true;

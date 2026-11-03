@@ -7,6 +7,7 @@
 
 #include "assets/game_version.hpp"
 #include "core/bounding_sphere.hpp"
+#include "core/duration.hpp"
 #include "sim/ai/powerup_habits.hpp"
 #include "sim/physics/chassis.hpp"
 #include "sim/powerup/powerup_effect.hpp"
@@ -23,6 +24,7 @@ struct RacerEntry {
     CarBuild build;
     BoundingSphere localBounds = kTypicalRacerBounds;
     PowerupHabits habits;
+    Milliseconds suddenStopLength{0};
     bool isPlayer = false;
 };
 

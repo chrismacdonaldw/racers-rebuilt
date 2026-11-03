@@ -164,6 +164,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
         const RacerEntry& entry = setup.racers[i];
         Racer& racer = racers_.emplace_back(entry.chassis, entry.build, course.grid[i], *rules_);
         racer.HoldAtStart();
+        racer.SetSuddenStopLength(entry.suddenStopLength);
         if (setup.cheats.Has(Cheat::IgnoreSurfaces)) {
             racer.IgnoreSurfaces();
         }
@@ -416,7 +417,7 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     const RacerWorldView worlds = WorldsOf(racer);
     car.Tick(elapsed, controls, car.Route() ? worlds.WithoutBase() : worlds);
     if (progress_.OfRacer(racer).laps.CompletedLaps() < progress_.LapCount()) {
-        car.WatchForSuddenStop();
+        car.WatchForSuddenStop(elapsed);
     }
     surfaceEvents_.Hear(static_cast<std::uint8_t>(racer), car, surfaces_, triggers_);
     const BodyMotion& motion = car.Body().motion;

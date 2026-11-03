@@ -107,6 +107,20 @@ TEST_CASE("clocks run at the part's frame rate") {
     CHECK(clock.frame == doctest::Approx(3.0F));
 }
 
+TEST_CASE("a one-shot part plays until its clock reaches the last frame") {
+    const assets::AnimationAsset animations = Slide();
+    const float length = OnceLengthMs(animations.parts[0]);
+    PartClock early{.loops = false};
+    PartClock done{.loops = false};
+
+    AdvanceClock(animations, early, length - 1.0F);
+    AdvanceClock(animations, done, length);
+
+    CHECK(length == doctest::Approx(2000.0F / 3.0F));
+    CHECK_FALSE(IsHoldingLastFrame(animations, early));
+    CHECK(IsHoldingLastFrame(animations, done));
+}
+
 TEST_CASE("rewinding a looping part wraps over its loop length, and a one-shot part holds") {
     const assets::AnimationAsset animations = Slide();
     PartClock looping{.frame = 1.0F};

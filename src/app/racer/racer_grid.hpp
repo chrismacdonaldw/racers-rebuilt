@@ -16,6 +16,7 @@
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
 #include "core/bounding_sphere.hpp"
+#include "core/duration.hpp"
 #include "core/result.hpp"
 #include "render/render_view.hpp"
 #include "render/renderer.hpp"
@@ -38,6 +39,7 @@ public:
     [[nodiscard]] sim::CarBuild Build(std::size_t slot) const;
     [[nodiscard]] const assets::SkidMarks& Skids(std::size_t slot) const;
     [[nodiscard]] sim::PowerupHabits Habits(std::size_t slot) const;
+    [[nodiscard]] Milliseconds SuddenStopLength(std::size_t slot) const;
 
     [[nodiscard]] BoundingSphere LocalBounds(std::size_t slot) const {
         return slots_.at(slot).localBounds;
