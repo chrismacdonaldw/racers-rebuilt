@@ -106,6 +106,7 @@ rr_add_module(app
         menu/garage_racers.cpp
         menu/garage_scene.cpp
         menu/held_piece_motion.cpp
+        menu/icon_strip.cpp
         menu/menu_backdrop.cpp
         menu/menu_champion.cpp
         menu/menu_files.cpp

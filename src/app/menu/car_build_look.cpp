@@ -16,7 +16,8 @@ constexpr std::string_view kSetBox = "imagebox";
 constexpr std::string_view kPieces = "pieces";
 constexpr std::string_view kCarousel = "piecesel";
 constexpr std::string_view kItemStyle = "partcont";
-constexpr std::string_view kScrollStyle = "pieceset";
+constexpr std::string_view kPieceStyle = "picker";
+constexpr std::string_view kSetStyle = "pieceset";
 constexpr std::array<std::string_view, kBuildButtons> kButtons{"procker", "crocker",  "rotbrik",
                                                                "addbrik", "undobrik", "goback"};
 constexpr StandSet kGarageSet{.folder = "MENUDATA/GARAGE", .element = "garage"};
@@ -67,8 +68,14 @@ public:
         if (!loaded) {
             return std::unexpected(std::move(loaded.error()));
         }
-        const assets::CarouselStyle* scroll = files_->FindCarouselStyle(kScrollStyle);
-        look_.scroll = Milliseconds{scroll != nullptr ? scroll->scrollMs.value_or(0) : 0};
+        if (const assets::CarouselStyle* pieces = files_->FindCarouselStyle(kPieceStyle)) {
+            look_.scroll = Milliseconds{pieces->scrollMs.value_or(0)};
+            look_.pieceSounds = pieces->sounds;
+        }
+        if (const assets::CarouselStyle* sets = files_->FindCarouselStyle(kSetStyle)) {
+            look_.setSlide = Milliseconds{sets->scrollMs.value_or(0)};
+            look_.setSounds = sets->sounds;
+        }
         return std::move(look_);
     }
 
@@ -133,6 +140,7 @@ private:
                         return BodyOf<assets::ModelCarouselElement>(*element);
                     })
                     .and_then([&](const assets::ModelCarouselElement* carousel) {
+                        look_.spinPerMs = carousel->scrollStep;
                         return LayoutCarousel(*carousel, bounds);
                     });
             })

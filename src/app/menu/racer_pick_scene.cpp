@@ -181,7 +181,8 @@ RacerPickScene::RacerPickScene(render::Renderer& renderer, const assets::Vfs& vf
           std::ranges::any_of(std::views::split(route_.next, kSceneChainMark),
                               [](const auto part) { return IsVersus(std::string_view(part)); })),
       racers_(std::move(racers)),
-      menu_(racers_.pickable.size(), route_.player == 0 ? racers_.store.selected.value_or(0) : 0) {}
+      menu_(racers_.pickable.size(),
+            route_.player == 0 ? SelectedPick(racers_.pickable, racers_.store) : 0) {}
 
 void RacerPickScene::Start() {
     const std::size_t picked = menu_.Racer();

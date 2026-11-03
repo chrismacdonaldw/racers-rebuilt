@@ -10,6 +10,7 @@
 #include "app/menu/part_carousel.hpp"
 #include "assets/menu_layout.hpp"
 #include "assets/menu_styles.hpp"
+#include "core/quaternion.hpp"
 #include "render/camera.hpp"
 #include "render/render_view.hpp"
 
@@ -27,7 +28,7 @@ public:
     /// The carousel's parts index `previews`.
     void Render(const PartCarousel& carousel, std::span<const PartPreview> previews,
                 bool isHighlighted, std::span<const MenuPicture> under,
-                std::vector<render::RenderView>& out);
+                std::vector<render::RenderView>& out, const Quaternion& itemTurn = {});
 
 private:
     struct Lit {
@@ -35,7 +36,7 @@ private:
         render::Color ambient;
     };
 
-    static void Place(const PartPreview& preview, const Vector3& position,
+    static void Place(const PartPreview& preview, const Vector3& position, const Quaternion& turn,
                       std::vector<render::MeshDraw>& out);
     [[nodiscard]] render::RenderView ViewOf(const std::vector<render::MeshDraw>& meshes,
                                             const Lit& lit) const;

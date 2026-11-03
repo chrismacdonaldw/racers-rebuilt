@@ -134,9 +134,11 @@ EditCarScene::EditCarScene(render::Renderer& renderer, const assets::Vfs& vfs, M
       racers_(std::move(edit.racers)),
       buttons_(ButtonsOf(RacerEditor::Car, racers_.racer.isNew)),
       car_(std::move(edit.car)),
+      setStrip_(look_.setSlide),
       shown_(racers_.store.racers.at(racers_.racer.index)),
       random_(kColourSeed) {
     LayOut();
+    setStrip_.Snap(car_.set, car_.sets.size());
     if (car_.built.Pieces().empty()) {
         ResetCar();
     } else {
@@ -186,6 +188,7 @@ void EditCarScene::Tick(const sim::InputFrame& input) {
     }
     turn_ =
         std::fmod(turn_ + (kTurnPerMs * static_cast<float>(kSimTick.count())), kQuaternionPeriod);
+    setStrip_.Tick(kSimTick);
     if (dialog_) {
         TickDialog(*dialog_, input);
         return;
@@ -195,7 +198,11 @@ void EditCarScene::Tick(const sim::InputFrame& input) {
         return;
     }
     const CarRow focusBefore = menu_.Focus();
-    const CarRequest request = menu_.Tick(input);
+    CarRequest request = menu_.Tick(input);
+    const bool isSet = request == CarRequest::PreviousSet || request == CarRequest::NextSet;
+    if (isSet && !setStrip_.Slide(request == CarRequest::NextSet ? 1 : -1, car_.sets.size())) {
+        request = CarRequest::None;
+    }
     Handle(request);
     PlaySounds(input, request, focusBefore);
 }
@@ -464,13 +471,7 @@ void EditCarScene::DrawControls() {
     if (menu_.IsEnabled(CarRow::PartSet)) {
         DrawSelectorArrows(look_.arrows, look_.picker, menu_.Focus() == CarRow::PartSet, sprites_);
     }
-    const UiImage& icon = look_.sets.at(car_.sets.at(car_.set));
-    const render::Rect sized = SizedAt({}, icon);
-    sprites_.push_back({.texture = icon.texture,
-                        .bounds = {.x = look_.setBox.x + ((look_.setBox.width - sized.width) / 2),
-                                   .y = look_.setBox.y + ((look_.setBox.height - sized.height) / 2),
-                                   .width = sized.width,
-                                   .height = sized.height}});
+    DrawStrip(setStrip_, look_.sets, car_.sets, look_.setBox, sprites_);
     DrawBanner(text_, look_.banner, text_.Line(kTitleLine), look_.backdrop, look_.bannerTop,
                sprites_);
     for (std::size_t button = 0; button < kCarTextButtons; ++button) {

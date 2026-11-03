@@ -61,7 +61,7 @@ private:
     void AskDelete();
     void Delete();
     void TestDrive();
-    void Changed(std::size_t racer, GarageButton focus);
+    bool Changed(std::size_t racer, GarageButton focus);
     void ShowRacer();
     void PlaySounds(const sim::InputFrame& input, GarageRequest request,
                     GarageButton focusBefore) const;

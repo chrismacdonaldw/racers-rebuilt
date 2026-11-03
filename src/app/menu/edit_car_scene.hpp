@@ -14,6 +14,7 @@
 #include "app/menu/car_stand.hpp"
 #include "app/menu/edit_car_look.hpp"
 #include "app/menu/edit_car_menu.hpp"
+#include "app/menu/icon_strip.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/menu/message_dialog.hpp"
@@ -107,6 +108,7 @@ private:
     Racers racers_;
     EditorButtons buttons_;
     Car car_;
+    IconStrip setStrip_;
     settings::Racer shown_;
     EditCarMenu menu_;
     MenuText text_;

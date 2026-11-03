@@ -11,6 +11,7 @@
 #include "app/menu/racer_edit_flow.hpp"
 #include "assets/menu_styles.hpp"
 #include "assets/vfs.hpp"
+#include "core/duration.hpp"
 #include "core/result.hpp"
 #include "render/renderer.hpp"
 
@@ -33,6 +34,7 @@ struct EditCarLook {
     std::array<UiImage, kPartSetCount> sets;
     assets::SoundIds pickerSounds{};
     assets::CarouselSounds scrollSounds{};
+    Milliseconds setSlide{0};
     std::array<MenuButtonState, assets::kControlStates> textButton;
     std::array<MenuPoint, kCarTextButtons> textPlaces;
     std::array<assets::SoundIds, kCarTextButtons> textSounds{};

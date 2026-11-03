@@ -205,8 +205,7 @@ void GarageScene::AddNew() {
     names_.push_back(Utf16FromUtf8(racer->name));
     racers_.store.racers.push_back(std::move(*racer));
     const std::size_t added = racers_.store.racers.size() - 1;
-    Changed(added, GarageButton::New);
-    if (racers_.isLoaded) {
+    if (Changed(added, GarageButton::New)) {
         opened_ = EditorSceneName(RacerEditor::Driver, {.index = added, .isNew = true});
     }
 }
@@ -244,15 +243,17 @@ void GarageScene::TestDrive() {
     opened_ = RaceSceneName(race);
 }
 
-void GarageScene::Changed(std::size_t racer, GarageButton focus) {
+bool GarageScene::Changed(std::size_t racer, GarageButton focus) {
     menu_.Refresh(racers_.store.racers.size(), racer, focus);
     ShowRacer();
     if (!racers_.isLoaded) {
-        return;
+        return false;
     }
     if (Result<void> saved = settings::SaveRacers(racers_.store, racers_.file); !saved) {
         log::Warn("{}, the garage's change isn't saved", saved.error().message);
+        return false;
     }
+    return true;
 }
 
 void GarageScene::ShowRacer() {
