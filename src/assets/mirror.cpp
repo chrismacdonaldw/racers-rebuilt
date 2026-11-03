@@ -54,6 +54,7 @@ void MirrorY(WorldAsset& world) {
     MirrorEntities(world.boundedEntities);
     for (WorldSprite& sprite : world.sprites) {
         Mirror(sprite.position);
+        Mirror(sprite.axis);
     }
 }
 

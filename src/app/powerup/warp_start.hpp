@@ -1,11 +1,13 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <optional>
 #include <span>
 
 #include "render/camera.hpp"
 #include "render/render_view.hpp"
+#include "sim/input_frame.hpp"
 #include "sim/powerup/warp_effect.hpp"
 #include "sim/render_snapshot.hpp"
 
@@ -25,5 +27,9 @@ namespace rr::app {
 
 /// Fades the whole screen to dark blue over the start's last 200 ms.
 [[nodiscard]] std::optional<render::SpriteDraw> WarpFlash(float leftMs);
+
+/// Player `i` drives racer `firstRacer + i`.
+[[nodiscard]] std::array<std::optional<render::SpriteDraw>, sim::kMaxPlayers> WarpFlashes(
+    std::span<const sim::EffectSnapshot> effects, std::size_t firstRacer, std::size_t players);
 
 }

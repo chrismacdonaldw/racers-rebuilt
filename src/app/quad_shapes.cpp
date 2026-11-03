@@ -9,10 +9,21 @@ namespace {
 
 constexpr Vector3 kCameraUp{.y = 1.0F};
 constexpr Vector3 kCameraRight{.x = 1.0F};
+constexpr Vector3 kCameraBack{.z = 1.0F};
 constexpr Vector3 kEngineUp{.y = 1.0F};
 constexpr Vector3 kEngineAcross{.x = 1.0F};
 constexpr Vector3 kEngineAlong{.z = 1.0F};
 constexpr float kDecalLift = 0.1F;
+
+render::QuadDraw Quad(const QuadLook& look, const Vector3& centre, const Vector3& top,
+                      const Vector3& right) {
+    return {.texture = look.texture,
+            .corners = {centre + top - right, centre + top + right, centre - top - right,
+                        centre - top + right},
+            .tint = look.tint,
+            .blend = look.blend,
+            .sampling = look.sampling};
+}
 
 }
 
@@ -32,24 +43,23 @@ void AppendBillboard(const QuadLook& look, const Vector3& centre, float width, f
                      const Transform& camera, std::vector<render::QuadDraw>& out) {
     const Vector3 top = Rotate(camera.rotation, kCameraUp) * (height * 0.5F);
     const Vector3 side = Rotate(camera.rotation, kCameraRight) * (width * 0.5F);
-    out.push_back({.texture = look.texture,
-                   .corners = {centre + top - side, centre + top + side, centre - top - side,
-                               centre - top + side},
-                   .tint = look.tint,
-                   .blend = look.blend,
-                   .sampling = look.sampling});
+    out.push_back(Quad(look, centre, top, side));
+}
+
+void AppendUprightBillboard(const QuadLook& look, const Vector3& centre, const Vector3& top,
+                            float width, const Transform& camera,
+                            std::vector<render::QuadDraw>& out) {
+    const Vector3 up = Normalized(top, Rotate(camera.rotation, kCameraUp));
+    const Vector3 back = Rotate(camera.rotation, kCameraBack);
+    const Vector3 facing = back - (up * Dot(back, up));
+    const Vector3 right = Normalized(Cross(up, facing), Rotate(camera.rotation, kCameraRight));
+    out.push_back(Quad(look, centre, top, right * (width * 0.5F)));
 }
 
 void AppendGroundQuad(const QuadLook& look, const Vector3& centre, const Vector3& normal,
                       const Vector3& top, const Vector3& right,
                       std::vector<render::QuadDraw>& out) {
-    const Vector3 lifted = centre + (normal * kDecalLift);
-    out.push_back({.texture = look.texture,
-                   .corners = {lifted + top - right, lifted + top + right, lifted - top - right,
-                               lifted - top + right},
-                   .tint = look.tint,
-                   .blend = look.blend,
-                   .sampling = look.sampling});
+    out.push_back(Quad(look, centre + (normal * kDecalLift), top, right));
 }
 
 void AppendDecal(const QuadLook& look, const Vector3& centre, float size,

@@ -158,6 +158,7 @@ add_executable(racers-rebuilt-tests
     app/time_trial/trial_records_test.cpp
     app/track_entity_draws_test.cpp
     app/track_space_test.cpp
+    app/track_sprites_test.cpp
     app/ui_text/text_layout_test.cpp
     app/trigger_spheres_test.cpp
     app/video_settings_test.cpp

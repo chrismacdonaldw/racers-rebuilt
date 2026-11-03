@@ -53,4 +53,17 @@ std::optional<render::SpriteDraw> WarpFlash(float leftMs) {
     return ScreenFill({.r = 0.0F, .g = 0.0F, .b = kFlashBlue, .a = 1.0F - (leftMs / kFlashMs)});
 }
 
+std::array<std::optional<render::SpriteDraw>, sim::kMaxPlayers> WarpFlashes(
+    std::span<const sim::EffectSnapshot> effects, std::size_t firstRacer, std::size_t players) {
+    std::array<std::optional<render::SpriteDraw>, sim::kMaxPlayers> flashes{};
+    for (std::size_t player = 0; player < players; ++player) {
+        const sim::EffectSnapshot* start =
+            FindWarp(effects, firstRacer + player, sim::WarpPhase::Starting);
+        if (start != nullptr) {
+            flashes.at(player) = WarpFlash(start->phaseLeftMs);
+        }
+    }
+    return flashes;
+}
+
 }
