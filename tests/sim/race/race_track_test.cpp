@@ -352,6 +352,18 @@ TEST_CASE("a race track without a TGB has no target points") {
     CHECK(track->targets.empty());
 }
 
+TEST_CASE("the test drive track loads with one grid slot and no checkpoints") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+
+    const Result<RaceTrack> track = LoadRaceTrack(*vfs, "TEST");
+    REQUIRE_MESSAGE(track.has_value(), track.error().message);
+    CHECK(track->grid.size() == 1);
+    CHECK(track->checkpoints.Checkpoints().empty());
+}
+
 struct MirroredPair {
     RaceTrack plain;
     RaceTrack mirrored;

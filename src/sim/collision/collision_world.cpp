@@ -24,6 +24,7 @@ MaterialBinding Bind(const assets::SurfaceEntry& entry, std::size_t index) {
                     .force = entry.force.value_or(defaults.force),
                     .soundId = entry.soundId,
                     .touchEvent = entry.touchEvent,
+                    .isFinish = entry.isFinish,
                     .tableEntry = index},
         .isSolid = !entry.isNonSolid};
 }

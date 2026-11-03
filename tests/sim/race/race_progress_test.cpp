@@ -85,6 +85,22 @@ TEST_CASE("unfinished racers take the remaining places in racer order") {
     CHECK(progress.OfRacer(2).finishPlace == std::optional<int>{3});
 }
 
+TEST_CASE("a finish surface finishes the race on a track without checkpoints") {
+    const Result<CheckpointGraph> graph = CheckpointGraph::Create({});
+    REQUIRE(graph.has_value());
+    RaceProgress progress(1, 3);
+    const std::array<Vector3, 1> positions{Vector3{.x = 5.0F}};
+
+    progress.Move(*graph, 0, {.to = positions[0], .facing = kAlongTravel}, kStep, true);
+    progress.Rank(*graph, positions);
+    CHECK_FALSE(progress.OfRacer(0).finishPlace.has_value());
+    progress.Move(*graph, 0, {.to = positions[0], .facing = kAlongTravel, .isAtFinish = true},
+                  kStep, true);
+
+    CHECK(progress.OfRacer(0).finishPlace == std::optional<int>{1});
+    CHECK(progress.OfRacer(0).lapTimes[0] == kStep);
+}
+
 TEST_CASE("standings put the racer furthest round first") {
     const CheckpointGraph graph = test::Ring();
     RaceProgress progress(3, 2);

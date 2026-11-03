@@ -33,6 +33,7 @@ struct PauseView {
 struct HudRacer {
     std::size_t slot = 0;
     bool isGhost = false;
+    bool hidesRaceInfo = false;
     const sim::TimeTrialGhosts* trial = nullptr;
 };
 

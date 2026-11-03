@@ -41,6 +41,7 @@ TEST_CASE("a full garage opens on EDIT RACER and can't make or copy racers") {
     CHECK_FALSE(menu.IsEnabled(GarageButton::Copy));
     CHECK(Press(menu, {MenuAction::Down}) == GarageRequest::None);
     CHECK(menu.Focus() == GarageButton::Delete);
+    CHECK(Press(menu, {MenuAction::Down, MenuAction::Confirm}) == GarageRequest::TestDrive);
 }
 
 TEST_CASE("left and right step through the racers, wrapping") {

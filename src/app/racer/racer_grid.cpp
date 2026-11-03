@@ -44,6 +44,16 @@ Result<std::vector<std::string>> PlayersFirst(std::vector<std::string> codes,
     return codes;
 }
 
+Result<std::vector<std::string>> GridOf(const assets::Vfs& vfs, const RaceSceneSetup& setup) {
+    return assets::RaceCatalog::Load(vfs).and_then([&](const assets::RaceCatalog& races) {
+        const bool offCircuit = setup.circuit.empty() && !races.HomeCircuit(setup.track);
+        if (offCircuit && !races.Circuits().empty()) {
+            return Result<std::vector<std::string>>(races.Circuits().front().grid);
+        }
+        return races.Grid(setup.track, setup.circuit);
+    });
+}
+
 const settings::Racer* OwnRacer(const RaceSceneSetup& setup, std::size_t slot) {
     if (slot == 0 && setup.playerRacer) {
         return &*setup.playerRacer;
@@ -68,10 +78,7 @@ Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs&
                                   std::size_t slots) {
     Result<assets::RacerCatalog> catalog = assets::RacerCatalog::Load(vfs);
     Result<std::vector<std::string>> codes =
-        catalog
-            .and_then([&](const assets::RacerCatalog&) {
-                return assets::LoadGrid(vfs, setup.track, setup.circuit);
-            })
+        catalog.and_then([&](const assets::RacerCatalog&) { return GridOf(vfs, setup); })
             .and_then([&](std::vector<std::string> grid) {
                 return PlayersFirst(std::move(grid), setup);
             });

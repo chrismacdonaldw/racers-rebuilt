@@ -5,6 +5,7 @@ namespace {
 
 constexpr Milliseconds kIntroTime{2000};
 constexpr Milliseconds kFinishedTime{9999};
+constexpr Milliseconds kTestDriveFinishedTime = kFinishedTime - Milliseconds{9000};
 
 }
 
@@ -20,7 +21,7 @@ void RaceClock::Advance(Milliseconds elapsed, bool hasPlayerFinished) {
             }
             break;
         case RacePhase::Countdown:
-            if (phaseTime_ >= kCountdownLength) {
+            if (isTestDrive_ || phaseTime_ >= kCountdownLength) {
                 Enter(RacePhase::Racing);
             }
             break;
@@ -30,7 +31,7 @@ void RaceClock::Advance(Milliseconds elapsed, bool hasPlayerFinished) {
             }
             break;
         case RacePhase::Finished:
-            if (phaseTime_ > kFinishedTime) {
+            if (phaseTime_ > (isTestDrive_ ? kTestDriveFinishedTime : kFinishedTime)) {
                 Enter(RacePhase::Results);
             }
             break;

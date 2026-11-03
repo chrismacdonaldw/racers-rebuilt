@@ -13,7 +13,6 @@ constexpr std::array kMainButtons{GarageButton::New,       GarageButton::Edit,
 constexpr std::array kEditButtons{GarageButton::Driver, GarageButton::Licence, GarageButton::Car,
                                   GarageButton::Back};
 constexpr std::uint64_t kButtonBase = 16;
-constexpr bool kTestTrackRaces = false;
 
 }
 
@@ -73,9 +72,8 @@ bool GarageMenu::IsEnabled(GarageButton button) const {
             return racers_ != 0 && racers_ < kGarageCapacity;
         case GarageButton::Edit:
         case GarageButton::Delete:
-            return racers_ != 0;
         case GarageButton::TestDrive:
-            return kTestTrackRaces && racers_ != 0;
+            return racers_ != 0;
         default:
             return true;
     }

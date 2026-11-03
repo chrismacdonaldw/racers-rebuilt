@@ -10,8 +10,12 @@ enum class RacePhase : std::uint8_t { Intro, Countdown, Racing, Finished, Result
 
 inline constexpr Milliseconds kCountdownLength{3000};
 
+/// A test drive races without a countdown and leaves a second after the finish.
 class RaceClock {
 public:
+    RaceClock() = default;
+    explicit RaceClock(bool isTestDrive) : isTestDrive_(isTestDrive) {}
+
     /// Racing ends when `hasPlayerFinished`. Every other phase ends when its time is up.
     void Advance(Milliseconds elapsed, bool hasPlayerFinished);
 
@@ -20,6 +24,8 @@ public:
 
     /// Time spent racing and finished.
     [[nodiscard]] Milliseconds RaceTime() const { return raceTime_; }
+
+    [[nodiscard]] bool IsTestDrive() const { return isTestDrive_; }
 
     [[nodiscard]] bool IsRunning() const {
         return phase_ == RacePhase::Racing || phase_ == RacePhase::Finished;
@@ -31,6 +37,7 @@ private:
     RacePhase phase_ = RacePhase::Intro;
     Milliseconds phaseTime_{0};
     Milliseconds raceTime_{0};
+    bool isTestDrive_ = false;
 };
 
 }

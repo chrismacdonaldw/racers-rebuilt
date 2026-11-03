@@ -34,6 +34,24 @@ TEST_CASE("held throttle reaches the chassis top speed") {
     CHECK(racer.Body().derived.speed == doctest::Approx(0.12F).epsilon(0.001));
 }
 
+TEST_CASE("a body passing a finish surface reaches the finish for that tick") {
+    constexpr float kFinishX = 10.0F;
+    const test::PlaneWorld world({test::TestPlane{}, test::TestPlane{.normal = {.x = -1.0F},
+                                                                     .offset = -kFinishX,
+                                                                     .surface = {.isFinish = true},
+                                                                     .isSolid = false}});
+    Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+    int finishes = 0;
+    for (int tick = 0; tick < 1000 && racer.Body().motion.position.x < kFinishX * 2.0F; ++tick) {
+        racer.Tick(kTick, {.isThrottleHeld = true}, world);
+        finishes += racer.Events().touches.HasReachedFinish() ? 1 : 0;
+    }
+
+    CHECK(racer.Body().motion.position.x >= kFinishX * 2.0F);
+    CHECK(finishes > 0);
+    CHECK_FALSE(racer.Events().touches.HasReachedFinish());
+}
+
 TEST_CASE("holding left turns the car counter-clockwise") {
     const test::PlaneWorld world = test::FlatGround();
     Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});

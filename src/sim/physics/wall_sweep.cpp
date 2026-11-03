@@ -23,6 +23,15 @@ float WallYawRate(float sideFacing) {
     return kWallYawRate * (((1.0F - sideFacing) / 2.0F) + 0.5F);
 }
 
+void Touch(const SegmentHit& hit, SurfaceTouches& touches) {
+    if (hit.surface.isFinish) {
+        touches.ReachFinish();
+    }
+    if (hit.surface.touchEvent) {
+        touches.Add(*hit.surface.touchEvent, hit.point);
+    }
+}
+
 bool IsBehindPlane(const SegmentHit& hit, const Vector3& overshoot) {
     const float depth = Dot(overshoot, hit.normal);
     return hit.isTrackWorld ? depth >= 0.0F : depth > 0.0F;
@@ -44,8 +53,8 @@ std::optional<WallHit> SweepBodyPoints(const BodyState& body, const BodyConstant
             const Vector3 from = body.saved.position + ToWorld(body.saved.basis, point);
             const Vector3 to = body.motion.position + ToWorld(body.motion.basis, point);
             const std::optional<SegmentHit> hit = query.CastSegment(world, from, to);
-            if (hit && hit->surface.touchEvent && touches != nullptr) {
-                touches->Add(*hit->surface.touchEvent, hit->point);
+            if (hit && touches != nullptr) {
+                Touch(*hit, *touches);
             }
             if (!hit || !hit->isSolid || (hit->isTrackWorld && !body.hasTrackCollision)) {
                 continue;

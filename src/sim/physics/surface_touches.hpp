@@ -30,13 +30,18 @@ public:
         }
     }
 
+    void ReachFinish() { hasReachedFinish_ = true; }
+
     [[nodiscard]] std::span<const SurfaceTouch> Touches() const {
         return std::span(touches_).first(count_);
     }
 
+    [[nodiscard]] bool HasReachedFinish() const { return hasReachedFinish_; }
+
 private:
     std::array<SurfaceTouch, kMaxSurfaceTouches> touches_{};
     std::size_t count_ = 0;
+    bool hasReachedFinish_ = false;
 };
 
 }

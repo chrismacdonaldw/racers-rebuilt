@@ -12,6 +12,15 @@ Milliseconds Sum(std::span<const Milliseconds> times) {
     return std::accumulate(times.begin(), times.end(), Milliseconds{0});
 }
 
+float DistanceAhead(const CheckpointGraph& graph, std::optional<std::size_t> last,
+                    const Vector3& position) {
+    if (last) {
+        return graph.DistanceToNextGate(*last, position);
+    }
+    const std::span<const assets::Checkpoint> gates = graph.Checkpoints();
+    return gates.empty() ? 0.0F : SignedDistance(gates.front(), position);
+}
+
 std::size_t CountedLaps(const RacerProgress& racer, int lapCount) {
     return static_cast<std::size_t>(std::min(racer.laps.CompletedLaps(), lapCount));
 }
@@ -34,6 +43,9 @@ void RaceProgress::Move(const CheckpointGraph& graph, std::size_t racer, const R
     if (const auto crossing = graph.FindCrossing(move.from, move.to)) {
         progress.laps.Cross(graph, *crossing);
     }
+    if (move.isAtFinish) {
+        progress.laps.ReachFinish(lapCount_);
+    }
     const int laps = progress.laps.CompletedLaps();
     if (laps > lapsBefore && laps < lapCount_) {
         progress.lapGap = GapToLeader(racer);
@@ -54,11 +66,9 @@ void RaceProgress::Rank(const CheckpointGraph& graph, std::span<const Vector3> p
     RR_ASSERT(positions.size() == racers_.size());
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         const RacerProgress& racer = racers_[i];
-        const std::optional<std::size_t> last = racer.laps.LastCheckpoint();
         standings_[i] = {
             .progress = racer.laps.Progress(graph),
-            .distanceToNextGate = last ? graph.DistanceToNextGate(*last, positions[i])
-                                       : SignedDistance(graph.Checkpoints().front(), positions[i]),
+            .distanceToNextGate = DistanceAhead(graph, racer.laps.LastCheckpoint(), positions[i]),
             .finishPlace = racer.finishPlace,
         };
     }
