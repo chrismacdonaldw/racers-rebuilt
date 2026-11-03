@@ -8,6 +8,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/cutscene/cutscene_scene.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "assets/archive_survey.hpp"
 #include "settings/racers.hpp"
@@ -148,6 +149,42 @@ TEST_CASE("only racer screens take a driver, and wincar shows its champion, not 
           "driver='KK' player='' hides textCR textBB textJT textGM textBVB");
     CHECK(Racer(*vfs, "screen:winvvcar:driver=KK") == "driver='' player='' hides");
     CHECK(Racer(*vfs, "screen:c_award2:driver=KK") == "driver='KK' player='MINE' hides");
+}
+
+std::string Cast(const Result<CutscenePlay>& play) {
+    REQUIRE(play.has_value());
+    std::string cast = std::format("driver='{}' player={} champion={} hides", play->driver,
+                                   play->playerRacer.has_value(), play->showsChampionCar);
+    for (const std::string& text : play->hiddenTexts) {
+        cast += std::format(" {}", text);
+    }
+    return cast;
+}
+
+constexpr std::string_view kChampionCR =
+    "driver='CR' player=false champion=true hides textKK textBB textJT textGM textBVB";
+
+TEST_CASE("a racer screen with nobody named casts the champion CR or the game's first racer") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    CHECK(Cast(ScreenPlay(*vfs, "screen:wincar", std::nullopt)) == kChampionCR);
+    CHECK(Cast(ScreenPlay(*vfs, "screen:c_award3", std::nullopt)) ==
+          "driver='' player=true champion=false hides");
+}
+
+TEST_CASE("the viewer casts racers into a screen's cutscene folder in any case") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const std::optional<settings::Racer> mine = settings::Racer{.name = "MINE"};
+    CHECK(Cast(ViewerPlay(*vfs, "cutscene:C_AWARD1/1STPLACE", mine)) ==
+          "driver='' player=true champion=false hides");
+    CHECK(Cast(ViewerPlay(*vfs, "cutscene:wincar/wincar", std::nullopt)) == kChampionCR);
+    CHECK(Cast(ViewerPlay(*vfs, "cutscene:CIRCUIT1/CIR1-01", mine)) ==
+          "driver='' player=false champion=false hides");
 }
 
 }
