@@ -36,6 +36,9 @@ struct TrackAssets {
     std::vector<std::string> missingTextures;
 };
 
+/// Keeps `into`'s own entry where both have a name.
+void MergeTrackAssets(TrackAssets& into, TrackAssets from);
+
 class NameResolver;
 
 /// Main thread only. `vfs` and `pool` must outlive the loader.

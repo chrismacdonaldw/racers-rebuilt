@@ -291,7 +291,7 @@ Result<std::unique_ptr<Scene>> Application::CreateWorldScene(std::string_view sc
     if (IsCutsceneScene(scene)) {
         return CutsceneScene::Create(
                    {.renderer = &renderer_, .mixer = &mixer_, .banks = &soundBanks_}, vfs_, loader,
-                   SelectedLanguage(settings_), scene)
+                   SelectedLanguage(settings_), scene, playerRacer_)
             .transform(ToScene<CutsceneScene>);
     }
     return CreateViewerScene(renderer_, vfs_, loader, scene, started);

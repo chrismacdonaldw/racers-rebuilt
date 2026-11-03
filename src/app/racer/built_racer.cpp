@@ -1,8 +1,6 @@
 #include "app/racer/built_racer.hpp"
 
-#include <algorithm>
 #include <cstdint>
-#include <iterator>
 #include <memory>
 #include <span>
 #include <string>
@@ -22,17 +20,11 @@ constexpr std::string_view kCarModel = "BUILT_CAR";
 constexpr std::string_view kDriverModel = "BUILT_DRIVER";
 constexpr std::int32_t kBuiltStat = 100;
 
-void Merge(assets::TrackAssets& into, assets::TrackAssets from) {
-    into.models.merge(from.models);
-    into.materials.merge(from.materials);
-    into.textures.merge(from.textures);
-    std::ranges::move(from.missingTextures, std::back_inserter(into.missingTextures));
-}
-
 Result<void> LoadInto(assets::TrackLoader& loader, assets::TrackAssets& into,
                       std::string_view folder, const assets::ModelFiles& files) {
     return loader.LoadModels(folder, std::span(&files, 1))
-        .transform([&](assets::TrackAssets loaded) { Merge(into, std::move(loaded)); });
+        .transform(
+            [&](assets::TrackAssets loaded) { assets::MergeTrackAssets(into, std::move(loaded)); });
 }
 
 Result<assets::TrackAssets> LoadModels(assets::TrackLoader& loader,

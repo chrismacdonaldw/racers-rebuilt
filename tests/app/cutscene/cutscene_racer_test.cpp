@@ -60,14 +60,32 @@ TEST_CASE("a hidden text loses the links that would show it") {
     CHECK(effects.links[1].kind == assets::EffectKind::Sound);
 }
 
-TEST_CASE("stand-in face materials name the driver's expressions") {
-    CHECK(FaceExpression("dflt") == 0);
-    CHECK(FaceExpression("angry") == 1);
-    CHECK(FaceExpression("blink") == 2);
-    CHECK(FaceExpression("happy") == 3);
-    CHECK(FaceExpression("sad") == 4);
-    CHECK(FaceExpression("suprz") == 5);
-    CHECK(FaceExpression("lh_happy") == 0);
+std::vector<std::string> Keys(const assets::MaterialAnimationAsset& animation) {
+    std::vector<std::string> keys;
+    keys.reserve(animation.keys.size());
+    for (const assets::MaterialKey& key : animation.keys) {
+        keys.push_back(key.material);
+    }
+    return keys;
+}
+
+TEST_CASE("guy1's face tracks show the driver's own expressions, renamed once") {
+    const assets::CutsceneFrame frame{
+        .models = {{.model = assets::EntityByName{.name = "Guy1", .isJointed = true},
+                    .materials = {{.track = 1}, {.track = 1}}},
+                   {.model = assets::EntityByName{.name = "rr1", .isJointed = true},
+                    .materials = {{.track = 0}}}}};
+    WorldAnimations animations{{assets::MaterialAnimationAsset{
+        .keys = {{.material = "rdflt"},
+                 {.material = "dflt"},
+                 {.material = "Happy"},
+                 {.material = "blink"}},
+        .tracks = {{.firstKey = 0, .keyCount = 1}, {.firstKey = 1, .keyCount = 3}}}}};
+
+    ShowDriverFaces(std::vector{frame, frame}, "cr_", animations);
+
+    CHECK(Keys(animations[0][0]) ==
+          std::vector<std::string>{"rdflt", "cr_dflt", "cr_happy", "cr_blink"});
 }
 
 }

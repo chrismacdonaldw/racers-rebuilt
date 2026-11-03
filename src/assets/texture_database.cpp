@@ -28,6 +28,15 @@ constexpr std::array kTextureFields{
     Field<&TextureDefinition::hasFlag2E>(0x2E),
 };
 
+void FlipRows(ImageAsset& image) {
+    const std::size_t rowBytes = std::size_t{image.widthPx} * kBytesPerPixel;
+    const std::span<std::byte> pixels = image.rgba;
+    for (std::size_t top = 0, bottom = image.heightPx; top + 1 < bottom; ++top, --bottom) {
+        std::ranges::swap_ranges(pixels.subspan(top * rowBytes, rowBytes),
+                                 pixels.subspan((bottom - 1) * rowBytes, rowBytes));
+    }
+}
+
 }
 
 Result<void> ReadValue(TokenReader& reader, ColorKey& key) {
@@ -48,6 +57,18 @@ Result<std::vector<TextureDefinition>> ParseTextureDatabase(std::span<const std:
 
 Result<ImageAsset> DecodeImage(std::span<const std::byte> bytes, TextureFileKind kind) {
     return kind == TextureFileKind::Bmp ? DecodeBmp(bytes) : DecodeTga(bytes);
+}
+
+Result<ImageAsset> DecodeTexture(std::span<const std::byte> bytes,
+                                 const TextureDefinition& definition) {
+    Result<ImageAsset> image = DecodeImage(bytes, definition.fileKind);
+    if (image && definition.colorKey) {
+        ApplyColorKey(*image, *definition.colorKey);
+    }
+    if (image && definition.flipsVertically) {
+        FlipRows(*image);
+    }
+    return image;
 }
 
 void ApplyColorKey(ImageAsset& image, ColorKey key) {

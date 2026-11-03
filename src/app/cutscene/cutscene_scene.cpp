@@ -31,12 +31,11 @@ Result<CutscenePlay> ViewerPlay(std::string_view scene) {
         .file = assets::ToUpperAscii(path.substr(slash + 1))};
 }
 
-Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(const RaceOutputs& outputs,
-                                                             const assets::Vfs& vfs,
-                                                             assets::TrackLoader& loader,
-                                                             std::string_view language,
-                                                             std::string_view scene) {
-    return (IsCutsceneScreen(scene) ? ScreenPlay(vfs, scene) : ViewerPlay(scene))
+Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(
+    const RaceOutputs& outputs, const assets::Vfs& vfs, assets::TrackLoader& loader,
+    std::string_view language, std::string_view scene,
+    const std::optional<settings::Racer>& playerRacer) {
+    return (IsCutsceneScreen(scene) ? ScreenPlay(vfs, scene, playerRacer) : ViewerPlay(scene))
         .and_then([&](CutscenePlay play) {
             return CutsceneView::Create(outputs, vfs, loader, language, std::move(play));
         })
