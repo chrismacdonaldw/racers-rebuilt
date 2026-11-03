@@ -117,16 +117,17 @@ private:
     [[nodiscard]] overlay::RacerActionGroup PowerupTools();
     void ApplyChosenTools();
     [[nodiscard]] std::optional<PauseView> PauseShown() const;
-    void GatherMeshes(const sim::RenderSnapshot& interpolated, float elapsedMs);
+    void GatherMeshes(const sim::RenderSnapshot& interpolated, float simMs);
     void GatherCarMarks(const sim::RenderSnapshot& interpolated, float simMs);
     [[nodiscard]] render::RenderView PlayerView(const sim::RenderSnapshot& interpolated,
-                                                std::size_t player, float elapsedMs);
+                                                std::size_t player, float simMs);
     [[nodiscard]] std::span<const MapView> PlayerMapViews(const sim::RenderSnapshot& interpolated);
     void DrawDebugLines();
 
     Parts parts_;
     CarShadows shadows_;
     std::vector<SkidMarks> skids_;
+    std::array<std::optional<SkidWheels>, sim::kMaxPlayers> skidding_{};
     PowerupVisuals powerupVisuals_;
     std::vector<PowerupQuads> powerupQuads_;
     PlayerCameras cameras_;

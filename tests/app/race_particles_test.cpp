@@ -3,8 +3,10 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <optional>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -49,8 +51,9 @@ std::vector<sim::RacerStart> Grid() {
 
 class GrassRace {
 public:
-    explicit GrassRace(std::string particle)
-        : surfaces_{{.name = "grass", .particle = std::move(particle)}},
+    explicit GrassRace(std::string particle, std::size_t players = 1)
+        : players_(players),
+          surfaces_{{.name = "grass", .particle = std::move(particle)}},
           world_({test::TestPlane{.surface = {.tableEntry = 0}, .maxX = kGrassEndX},
                   test::TestPlane{.minX = kGrassEndX}}),
           session_(Start()),
@@ -62,11 +65,11 @@ public:
     }
 
     void Hold(std::size_t racer) { controls_.at(racer).isThrottleHeld = true; }
-    void Skid(std::optional<SkidWheels> wheels) { skidding_ = wheels; }
+    void Skid(std::optional<SkidWheels> wheels) { skidding_.front() = wheels; }
 
     void Tick() {
         session_.Tick(kTick, controls_);
-        particles_.Update(session_, skidding_, kFrame);
+        particles_.Update(session_, std::span(skidding_).first(players_), kFrame);
     }
 
     [[nodiscard]] std::vector<render::QuadDraw> Quads() const {
@@ -87,13 +90,16 @@ public:
 private:
     sim::RaceSession Start() {
         sim::RaceSetup setup{.racers = std::vector<sim::RacerEntry>(kGridSize)};
-        setup.racers[0].isPlayer = true;
+        for (std::size_t player = 0; player < players_; ++player) {
+            setup.racers[player].isPlayer = true;
+        }
         Result<sim::RaceSession> session = sim::RaceSession::Create(
             setup, {.checkpoints = &graph_, .grid = grid_, .world = &world_, .lowestTrackZ = -100});
         REQUIRE(session.has_value());
         return std::move(*session);
     }
 
+    std::size_t players_;
     std::vector<assets::SurfaceEntry> surfaces_;
     sim::CheckpointGraph graph_ = test::Ring();
     test::PlaneWorld world_;
@@ -101,7 +107,7 @@ private:
     sim::RaceSession session_;
     RaceParticles particles_;
     std::vector<sim::RacerControls> controls_ = std::vector<sim::RacerControls>(kGridSize);
-    std::optional<SkidWheels> skidding_;
+    std::array<std::optional<SkidWheels>, 2> skidding_{};
 };
 
 Vector3 Centre(const render::QuadDraw& quad) {
@@ -135,6 +141,18 @@ TEST_CASE("the player's wheels kick up grass while rolling and stop on the road"
         race.Tick();
     }
     CHECK(race.QuadCount() == 0);
+}
+
+TEST_CASE("in split screen the second player's wheels kick up grass too") {
+    GrassRace race("grassemt", 2);
+    race.Hold(1);
+
+    for (int tick = 0; tick < 20; ++tick) {
+        race.Tick();
+    }
+
+    CHECK(race.RacerX(0) == doctest::Approx(Grid()[0].position.x).epsilon(0.01));
+    CHECK(race.QuadCount() >= static_cast<std::size_t>(sim::kWheelCount));
 }
 
 TEST_CASE("a spun-out player kicks up nothing") {
@@ -189,6 +207,7 @@ TEST_CASE("other effects start emitters by name in either file") {
     CHECK(race.QuadCount() == 2);
     CHECK_FALSE(race.Particles().Bank(ParticleFile::Track).HasEmitter("grassemt"));
 }
+
 TEST_CASE("a skidding player's tyres smoke from either marked wheel until the skid ends") {
     GrassRace race("grassemt");
     race.Skid(SkidWheels{false, false, true, true});
