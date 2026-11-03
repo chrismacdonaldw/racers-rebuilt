@@ -4,10 +4,12 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <variant>
 #include <vector>
 
 #include "app/frame_loop.hpp"
 #include "app/track_space.hpp"
+#include "sim/hazard/hazards.hpp"
 #include "sim/replay/snapshot_hash.hpp"
 
 namespace rr::app {
@@ -88,6 +90,21 @@ std::optional<int> DrivenPlace(const sim::RaceProgress& progress, std::size_t ra
     return own.finishPlace;
 }
 
+sim::HazardMaterialsSnapshot HazardMaterialsOf(const sim::Hazards& hazards) {
+    sim::HazardMaterialsSnapshot shown;
+    for (const sim::HazardSlot& slot : hazards.Slots()) {
+        if (const auto* puzzle = std::get_if<sim::CodePuzzle>(&slot.state)) {
+            for (std::size_t gate = 0; gate < sim::kCodeGates; ++gate) {
+                shown.areLampsRed.at(gate) = puzzle->IsLampRed(gate);
+            }
+            shown.lampsFlashing = puzzle->Flashing();
+        } else if (const auto* sphinx = std::get_if<sim::Sphinx>(&slot.state)) {
+            shown.sphinxBlowingUp = sphinx->BlowingUp();
+        }
+    }
+    return shown;
+}
+
 sim::SkidSnapshot SkidOf(const sim::Racer& racer) {
     const sim::BodyMotion& motion = racer.Body().motion;
     const std::optional<sim::Turbo>& turbo = racer.ActiveTurbo();
@@ -151,6 +168,7 @@ void SnapshotRace(const sim::RaceSession& session, sim::RenderSnapshot& out) {
     }
     const std::vector<bool>& switched = session.TrackHazards().Models().Hidden();
     out.hiddenModels.insert(out.hiddenModels.end(), switched.begin(), switched.end());
+    out.hazardMaterials = HazardMaterialsOf(session.TrackHazards());
     out.simStateHash = sim::HashRaceSession(session);
 }
 

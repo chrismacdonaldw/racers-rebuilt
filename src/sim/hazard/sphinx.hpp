@@ -27,6 +27,9 @@ struct Sphinx {
 
     /// Ends the hazard once the blow-up has played, leaving the sphinx destroyed and hidden.
     [[nodiscard]] bool Tick(HazardContext& context);
+
+    /// Since the hit, until the sphinx is destroyed.
+    [[nodiscard]] std::optional<Milliseconds> BlowingUp() const;
 };
 
 [[nodiscard]] Sphinx LoadSphinx(const TrackEntities& entities, ModelSwitches& models);

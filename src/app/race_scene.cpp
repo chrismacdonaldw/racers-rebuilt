@@ -285,7 +285,7 @@ void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float simM
     const std::size_t entityFirst = draws_.size();
     draws_.insert(draws_.end(), parts_.entityDraws.Draws().begin(),
                   parts_.entityDraws.Draws().end());
-    parts_.materialAnims.Apply(shownMs_, entityFirst, draws_);
+    parts_.materialAnims.Apply(shownMs_, interpolated.hazardMaterials, entityFirst, draws_);
     parts_.hiddenModels.Apply(interpolated.hiddenModels, parts_.trackDraws, parts_.entityDraws,
                               entityFirst, draws_);
     parts_.ghostTrail.Append(parts_.session.TrackHazards(), interpolated.entityClocks, draws_);

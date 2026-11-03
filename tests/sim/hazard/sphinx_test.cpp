@@ -76,5 +76,22 @@ TEST_CASE("a destroyed sphinx stays open and ignores later hits") {
     CHECK_FALSE(rig.Surfaces().IsSolid(0));
 }
 
+TEST_CASE("the blow-up counts up from the hit until the sphinx is destroyed") {
+    test::HazardRig rig({{.kind = assets::HazardKind::Sphinx}},
+                        test::StillEntities({"blowup"}, kSphinxAt));
+    rig.UseSurfaces(TrackSurfaces(Surfaces()));
+    const auto blowingUp = [&] {
+        return std::get<Sphinx>(rig.Hazards().Slots()[0].state).BlowingUp();
+    };
+    CHECK_FALSE(blowingUp());
+
+    rig.Hear(kSphinxTrigger, Start);
+    rig.Tick();
+    CHECK(blowingUp() == test::kRigTick);
+    TickFor(rig, kSphinxBlowUp - test::kRigTick);
+
+    CHECK_FALSE(blowingUp());
+}
+
 }
 }

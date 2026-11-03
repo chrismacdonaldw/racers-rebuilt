@@ -113,10 +113,16 @@ Result<MaterialAnimationAsset> ParseMaterialAnimation(std::span<const std::byte>
 std::size_t SampleTrack(const MaterialAnimationAsset& animation, std::size_t track,
                         Milliseconds age) {
     const MaterialTrack& played = animation.tracks[track];
-    const auto elapsedFrames =
+    return KeyAtFrame(
+        animation, track,
         static_cast<std::int64_t>(static_cast<float>(played.framesPerSecond) /
-                                  kMillisecondsPerSecond * static_cast<float>(age.count()));
-    const std::int64_t frame = elapsedFrames % played.duration;
+                                  kMillisecondsPerSecond * static_cast<float>(age.count())));
+}
+
+std::size_t KeyAtFrame(const MaterialAnimationAsset& animation, std::size_t track,
+                       std::int64_t frames) {
+    const MaterialTrack& played = animation.tracks[track];
+    const std::int64_t frame = frames % played.duration;
     const std::span<const MaterialKey> keys =
         std::span(animation.keys).subspan(played.firstKey, played.keyCount);
     std::size_t shown = played.keyCount - 1;

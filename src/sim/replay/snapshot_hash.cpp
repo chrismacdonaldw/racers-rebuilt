@@ -344,8 +344,8 @@ public:
     void Add(const Snowfall& /*snowfall*/) {}
 
     void Add(const CodePuzzle& puzzle) {
-        for (const assets::EventId gate : puzzle.code) {
-            Add(static_cast<int>(gate));
+        for (std::size_t gate = 0; gate < kCodeGates; ++gate) {
+            Add(static_cast<int>(puzzle.code[gate]), static_cast<int>(puzzle.lampCode[gate]));
         }
         Add(static_cast<int>(puzzle.progress), puzzle.revealLeft);
     }

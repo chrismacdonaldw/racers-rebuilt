@@ -37,6 +37,13 @@ bool Sphinx::Tick(HazardContext& context) {
     return false;
 }
 
+std::optional<Milliseconds> Sphinx::BlowingUp() const {
+    if (isDestroyed || blowUpLeft == Milliseconds{0}) {
+        return std::nullopt;
+    }
+    return kSphinxBlowUp - blowUpLeft;
+}
+
 Sphinx LoadSphinx(const TrackEntities& entities, ModelSwitches& models) {
     return {.entity = entities.Find("blowup"), .model = models.Add("blowup")};
 }
