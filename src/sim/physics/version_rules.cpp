@@ -17,6 +17,7 @@ constexpr VersionRules kRules2001{
     .hoversOnWheels = true,
     .firstCircuitPace = -0.03F,
     .racersStepFirst = true,
+    .allowsInputLag = true,
 };
 
 }

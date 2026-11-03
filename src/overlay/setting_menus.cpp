@@ -108,6 +108,14 @@ Menu& FindOrAddMenu(std::vector<Menu>& menus, std::string_view category) {
     return *menu;
 }
 
+std::string TooltipOf(const settings::Registry::Declaration& declaration) {
+    std::string tooltip = declaration.tooltip;
+    if (declaration.changesGameplay) {
+        tooltip += tooltip.empty() ? kGameplayTooltip : std::string("\n\n") + kGameplayTooltip;
+    }
+    return tooltip;
+}
+
 std::string_view LabelOf(std::string_view key, const settings::Registry::Declaration& declaration) {
     return declaration.label.empty() ? key : std::string_view(declaration.label);
 }
@@ -122,6 +130,7 @@ void DrawItem(settings::Registry& registry, std::string_view key, std::string la
     const Item item{.key = key, .label = label.c_str(), .declaration = declaration};
     const settings::SettingValue value = registry.AllValues().find(key)->second;
     ImGui::PushID(key.data(), key.data() + key.size());
+    ImGui::BeginDisabled(!registry.IsAvailable(key));
     const bool isFinished = std::visit(
         [&]<typename V>(const V& current) {
             if constexpr (std::same_as<V, bool>) {
@@ -137,8 +146,10 @@ void DrawItem(settings::Registry& registry, std::string_view key, std::string la
             }
         },
         value);
-    if (declaration.changesGameplay && ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("%s", kGameplayTooltip);
+    ImGui::EndDisabled();
+    const std::string tooltip = TooltipOf(declaration);
+    if (!tooltip.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+        ImGui::SetTooltip("%s", tooltip.c_str());
     }
     ImGui::PopID();
     if (isFinished) {

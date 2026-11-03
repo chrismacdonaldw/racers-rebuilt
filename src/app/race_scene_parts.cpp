@@ -45,6 +45,7 @@ sim::RaceSetup GridSetup(const assets::Vfs& vfs, const RaceSceneSetup& scene,
                          .effects = sim::EveryEffect(),
                          .cheats = scene.cheats,
                          .version = scene.version,
+                         .lagsInput = scene.lagsInput,
                          .isTestDrive = scene.isTestDrive,
                          .isDemo = scene.isDemo};
     setup.racers.resize(slots);

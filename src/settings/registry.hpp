@@ -29,6 +29,8 @@ public:
         std::string category;
         bool changesGameplay = false;
         std::vector<std::string> choices;
+        std::string tooltip;
+        std::optional<std::pair<std::string, std::string>> requirement;
     };
 
     using Declarations = std::map<std::string, Declaration, std::less<>>;
@@ -39,12 +41,18 @@ public:
         if (spec.range) {
             range.emplace(ToSettingValue(spec.range->min), ToSettingValue(spec.range->max));
         }
+        std::optional<std::pair<std::string, std::string>> requirement;
+        if (spec.requirement) {
+            requirement.emplace(spec.requirement->key, spec.requirement->choice);
+        }
         DeclareValue(spec.key, {.defaultValue = ToSettingValue(spec.defaultValue),
                                 .range = range,
                                 .label = std::string(spec.label),
                                 .category = std::string(spec.category),
                                 .changesGameplay = spec.changesGameplay,
-                                .choices = {spec.choices.begin(), spec.choices.end()}});
+                                .choices = {spec.choices.begin(), spec.choices.end()},
+                                .tooltip = std::string(spec.tooltip),
+                                .requirement = std::move(requirement)});
     }
 
     /// `spec` must be declared.
@@ -69,6 +77,9 @@ public:
 
     /// Parses `text` as the declared type of `key`, as `--set key=value` does.
     [[nodiscard]] Result<void> AssignText(std::string_view key, std::string_view text);
+
+    /// False while the setting's requirement names another setting not holding its choice.
+    [[nodiscard]] bool IsAvailable(std::string_view key) const;
 
     /// Called after a value changes.
     void Observe(Observer observer);

@@ -122,6 +122,8 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       cheats_(setup.cheats),
       isDemo_(setup.isDemo),
       rules_(&RulesFor(setup.version)),
+      lagsInput_(setup.lagsInput && rules_->allowsInputLag),
+      lastControls_(setup.racers.size()),
       respawns_(setup.racers.size()),
       wasRespawned_(setup.racers.size()),
       positions_(setup.racers.size()),
@@ -196,10 +198,12 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     }
     MeasureReaches();
     std::ranges::copy(positions_, rivals_.begin());
+    const std::span<const RacerControls> stepped = lagsInput_ ? lastControls_ : controls;
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         TickRacer(i, elapsed,
-                  clock_.Phase() == RacePhase::Intro ? RacerControls{} : ControlsOf(i, controls));
+                  clock_.Phase() == RacePhase::Intro ? RacerControls{} : ControlsOf(i, stepped));
     }
+    std::ranges::copy(controls, lastControls_.begin());
     ResolveContacts();
     TickBricks(elapsed);
     if (rules_->racersStepFirst) {
