@@ -173,6 +173,26 @@ TEST_CASE("a route driver doesn't pass its own position in the field") {
     CHECK(driver.Drive(racer, field, 0).steerLeftAxis < 0.0F);
 }
 
+TEST_CASE("an aiming route driver moves to its aim's side of the route instead of passing") {
+    RouteDriver driver(WideStraightRoute());
+    const Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+    const std::array leftRival{Vector3{.x = 15.0F, .y = 1.0F, .z = 0.2F}};
+
+    CHECK(driver.Drive(racer, leftRival, {}, Vector3{.x = 80.0F, .y = 5.0F}).steerLeftAxis > 0.0F);
+    CHECK(driver.Drive(racer, leftRival, {}, Vector3{.x = 80.0F, .y = -5.0F}).steerLeftAxis < 0.0F);
+    CHECK(driver.Drive(racer, leftRival, {}, Vector3{.x = 80.0F}).steerLeftAxis == 0.0F);
+}
+
+TEST_CASE("an aiming route driver keeps to its share of the route's width") {
+    RouteDriver driver(WideStraightRoute());
+    const Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+    const float edge = driver.Drive(racer, {}, {}, Vector3{.x = 80.0F, .y = 8.0F}).steerLeftAxis;
+
+    CHECK(edge > 0.0F);
+    CHECK(driver.Drive(racer, {}, {}, Vector3{.x = 80.0F, .y = 50.0F}).steerLeftAxis == edge);
+    CHECK(driver.Drive(racer, {}, {}, Vector3{.x = 80.0F, .y = -50.0F}).steerLeftAxis == -edge);
+}
+
 TEST_CASE("a route driver steers back onto a route it starts beside") {
     const test::PlaneWorld world = test::FlatGround();
     RouteDriver driver(test::StraightRoute({.z = 0.2F}, 3000));

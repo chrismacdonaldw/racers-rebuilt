@@ -281,6 +281,7 @@ add_executable(racers-rebuilt-tests
     settings/registry_test.cpp
     settings/setting_preset_test.cpp
     settings/settings_file_test.cpp
+    sim/ai/ai_aim_test.cpp
     sim/ai/ai_grid_test.cpp
     sim/ai/ai_powerups_test.cpp
     sim/ai/ai_racer_test.cpp

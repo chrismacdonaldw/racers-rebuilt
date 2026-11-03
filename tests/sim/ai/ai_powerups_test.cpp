@@ -34,7 +34,8 @@ struct Scene {
         return {.racers = racers,
                 .inventory = &inventory,
                 .isCrowded = isCrowded,
-                .hasFinished = hasFinished};
+                .hasFinished = hasFinished,
+                .isLiningUp = isLiningUp};
     }
 
     int TicksToUse(AiPowerupUser& user, int limit = kManyTicks) {
@@ -52,6 +53,7 @@ struct Scene {
     PowerupInventory inventory;
     bool isCrowded = false;
     bool hasFinished = false;
+    bool isLiningUp = false;
     Random random;
     Random twin;
 };
@@ -101,6 +103,31 @@ TEST_CASE("a computer racer holds red until a racer is in the cone ahead, withou
 
     scene.random = Random(kSeed);
     scene.racers[1].Place({.position = {.x = 50.0F, .z = 0.2F}});
+    CHECK(scene.TicksToUse(user) == kFirstCheck);
+}
+
+TEST_CASE("a lining-up computer racer holds yellow until a racer is behind it, without rolling") {
+    Scene scene;
+    scene.isLiningUp = true;
+    scene.inventory.Grant(BrickColour::Yellow, 0);
+    AddRacerAt(scene, -150.0F);
+    AiPowerupUser user(Chance(BrickColour::Yellow, Roll(scene.twin) + 1));
+
+    CHECK(scene.TicksToUse(user, kFirstCheck * 2) == -1);
+    scene.twin = Random(kSeed);
+    CHECK_FALSE(scene.HasRolled());
+
+    scene.random = Random(kSeed);
+    scene.racers[1].Place({.position = {.x = -50.0F, .z = 0.2F}});
+    CHECK(scene.TicksToUse(user) == kFirstCheck);
+}
+
+TEST_CASE("a computer racer that isn't lining up drops yellow on its roll alone") {
+    Scene scene;
+    scene.inventory.Grant(BrickColour::Yellow, 0);
+    AddRacerAt(scene, -150.0F);
+    AiPowerupUser user(Chance(BrickColour::Yellow, Roll(scene.twin) + 1));
+
     CHECK(scene.TicksToUse(user) == kFirstCheck);
 }
 

@@ -10,6 +10,8 @@ using assets::BrickColour;
 
 constexpr AimCone kRedCone{
     .minDistanceSquared = 100.0F, .maxDistanceSquared = 62'500.0F, .cosine = 0.96F};
+constexpr AimCone kDropCone{
+    .minDistanceSquared = 25.0F, .maxDistanceSquared = 10'000.0F, .cosine = 0.96F};
 constexpr std::uint32_t kByteRange = 256;
 
 bool Rolls(std::uint8_t chance, Random& random) {
@@ -20,6 +22,19 @@ bool HasRacerAhead(const AiPowerupView& view) {
     const BodyState& body = view.racers[view.racer].Body();
     return FindRacerInCone(view.racers, body.motion.position, body.motion.basis.forward, kRedCone)
         .has_value();
+}
+
+bool HasRacerBehind(const AiPowerupView& view) {
+    const BodyState& body = view.racers[view.racer].Body();
+    return FindRacerInCone(view.racers, body.motion.position, -body.motion.basis.forward, kDropCone)
+        .has_value();
+}
+
+bool IsUnaimed(BrickColour colour, const AiPowerupView& view) {
+    if (colour == BrickColour::Red) {
+        return !HasRacerAhead(view);
+    }
+    return colour == BrickColour::Yellow && view.isLiningUp && !HasRacerBehind(view);
 }
 
 bool HoldsGreenBack(const AiPowerupView& view) {
@@ -56,7 +71,7 @@ AiPowerupUser::Choice AiPowerupUser::Choose(const AiPowerupView& view, Random& r
         return Choice::Hold;
     }
     const BrickColour colour = *view.inventory->Colour();
-    if (colour == BrickColour::Red && !HasRacerAhead(view)) {
+    if (IsUnaimed(colour, view)) {
         return Choice::Recheck;
     }
     if (!Rolls(habits_.UseChance(colour), random)) {
