@@ -261,7 +261,7 @@ void EditDriverScene::Ask(std::size_t question, std::size_t yes, std::size_t no)
 }
 
 void EditDriverScene::GoBack() {
-    if (racers_.racer.isNew) {
+    if (racers_.racer.isNew && racers_.racer.index + 1 == racers_.store.racers.size()) {
         DeleteRacer(racers_.store, racers_.racer.index);
         if (Result<void> saved = settings::SaveRacers(racers_.store, racers_.file); !saved) {
             log::Warn("{}, the abandoned racer isn't removed", saved.error().message);
