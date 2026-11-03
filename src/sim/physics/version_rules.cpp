@@ -20,6 +20,7 @@ constexpr VersionRules kRules2001{
     .allowsInputLag = true,
     .keepsOneLapZone = true,
     .dropsDriftLean = true,
+    .tintsFinalFrameRed = true,
 };
 
 }
