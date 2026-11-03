@@ -8,7 +8,9 @@ rr_add_module(render
         particle_bank.cpp
         quad_batch.cpp
         renderer.cpp
-        renderer_uploads.cpp
+        sdl_gpu_backend.cpp
+        sdl_gpu_draws.cpp
+        sdl_gpu_uploads.cpp
         sprite_batch.cpp
         ui_layout.cpp
     DEPENDS
@@ -19,6 +21,7 @@ rr_add_module(render
         SDL3::SDL3
 )
 target_compile_definitions(rr_render PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE)
+target_link_libraries(rr_render PRIVATE imgui::imgui)
 
 rr_add_shader(rr_render MeshVertex vs "${PROJECT_SOURCE_DIR}/shaders/mesh.vert.hlsl")
 rr_add_shader(rr_render MeshFragment ps "${PROJECT_SOURCE_DIR}/shaders/mesh.frag.hlsl")

@@ -81,7 +81,8 @@ Result<Application> Application::Create(GameBoot boot) {
     boot.startup.EndPhase("window", platform::Now());
 
     const platform::PacingConfig pacing = PacingFromSettings(boot.settings);
-    Result<render::Renderer> renderer = render::Renderer::Create(*window, pacing.mode);
+    Result<render::Renderer> renderer =
+        render::Renderer::Create(*window, pacing.mode, render::RendererKind::Standard);
     Result<platform::FramePacer> pacer =
         renderer.and_then([&](const render::Renderer&) { return CreatePacer(pacing); });
     if (!pacer) {

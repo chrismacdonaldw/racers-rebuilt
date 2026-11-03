@@ -11,7 +11,6 @@
 
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
-#include <imgui_impl_sdlgpu3.h>
 
 namespace rr::overlay {
 namespace {
@@ -70,23 +69,21 @@ Result<std::unique_ptr<Overlay>> Overlay::Create(const platform::Window& window,
     ImGui::CreateContext();
     ImGui::GetIO().IniFilename = nullptr;
     ImGui::StyleColorsDark();
-    ImGui_ImplSDLGPU3_InitInfo info{.Device = renderer.Device(),
-                                    .ColorTargetFormat = renderer.ColorFormat()};
-    if (!ImGui_ImplSDL3_InitForSDLGPU(window.Handle())) {
+    if (!ImGui_ImplSDL3_InitForOther(window.Handle())) {
         ImGui::DestroyContext();
         return Fail(ErrorCode::Platform, "can't start the overlay's input");
     }
-    if (!ImGui_ImplSDLGPU3_Init(&info)) {
+    if (Result<void> started = renderer.StartImGui(); !started) {
         ImGui_ImplSDL3_Shutdown();
         ImGui::DestroyContext();
-        return Fail(ErrorCode::Platform, "can't start the overlay's renderer");
+        return std::unexpected(std::move(started.error()));
     }
     return overlay;
 }
 
 Overlay::~Overlay() {
     renderer_->SetOverlay(nullptr);
-    ImGui_ImplSDLGPU3_Shutdown();
+    renderer_->StopImGui();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 }
@@ -106,7 +103,6 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
         return {};
     }
     const Nanoseconds start = platform::Now();
-    ImGui_ImplSDLGPU3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
     std::vector<std::string> finished;
@@ -149,21 +145,12 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
     return finished;
 }
 
-void Overlay::Prepare(SDL_GPUCommandBuffer* commands) {
-    if (hasFrame_) {
-        const Nanoseconds start = platform::Now();
-        ImGui_ImplSDLGPU3_PrepareDrawData(ImGui::GetDrawData(), commands);
-        frameCost_ += platform::Now() - start;
+ImDrawData* Overlay::TakeDrawData() {
+    if (!std::exchange(hasFrame_, false)) {
+        return nullptr;
     }
-}
-
-void Overlay::Draw(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass) {
-    if (hasFrame_) {
-        const Nanoseconds start = platform::Now();
-        ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(), commands, pass);
-        lastFrameCost_ = frameCost_ + (platform::Now() - start);
-        hasFrame_ = false;
-    }
+    lastFrameCost_ = frameCost_;
+    return ImGui::GetDrawData();
 }
 
 }

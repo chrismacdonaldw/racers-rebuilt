@@ -59,8 +59,7 @@ public:
                                                  const RacerTools& racerTools,
                                                  std::span<const MenuChoice> modActions);
 
-    void Prepare(SDL_GPUCommandBuffer* commands) override;
-    void Draw(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass) override;
+    [[nodiscard]] ImDrawData* TakeDrawData() override;
 
 private:
     Overlay(render::Renderer& renderer, std::vector<settings::SettingPreset> presets)

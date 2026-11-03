@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "render/gpu_error.hpp"
-#include "render/renderer.hpp"
+#include "render/sdl_gpu_backend.hpp"
 #include "render/ui_layout.hpp"
 
 namespace rr::render {
@@ -24,7 +24,7 @@ std::span<const T> FirstAtMost(std::span<const T> items, std::size_t count) {
 
 }
 
-Result<MeshId> Renderer::UploadMesh(const assets::GeometryAsset& geometry) {
+Result<MeshId> SdlGpuBackend::UploadMesh(const assets::GeometryAsset& geometry) {
     const std::span<const assets::GeometryVertex> vertices = geometry.vertices;
     const std::span<const std::uint32_t> indices = geometry.indices;
     const bool hasValidIndices =
@@ -53,7 +53,7 @@ Result<MeshId> Renderer::UploadMesh(const assets::GeometryAsset& geometry) {
     });
 }
 
-Result<TextureId> Renderer::UploadTexture(const assets::ImageAsset& image) {
+Result<TextureId> SdlGpuBackend::UploadTexture(const assets::ImageAsset& image) {
     if (Result<void> valid = CheckRgba(image); !valid) {
         return std::unexpected(std::move(valid.error()));
     }
@@ -72,9 +72,9 @@ Result<TextureId> Renderer::UploadTexture(const assets::ImageAsset& image) {
         });
 }
 
-Result<GpuTexture> Renderer::CreateTexture(const assets::ImageAsset& image,
-                                           std::span<const std::byte> pixels,
-                                           std::uint32_t mipLevels) {
+Result<GpuTexture> SdlGpuBackend::CreateTexture(const assets::ImageAsset& image,
+                                                std::span<const std::byte> pixels,
+                                                std::uint32_t mipLevels) {
     const std::uint32_t levels =
         std::clamp(mipLevels, 1U, assets::FullMipLevels(image.widthPx, image.heightPx));
     const SDL_GPUTextureUsageFlags usage =
@@ -98,7 +98,7 @@ Result<GpuTexture> Renderer::CreateTexture(const assets::ImageAsset& image,
     return uploaded.transform([&] { return std::move(texture); });
 }
 
-Result<void> Renderer::UpdateTexture(TextureId texture, const assets::ImageAsset& image) {
+Result<void> SdlGpuBackend::UpdateTexture(TextureId texture, const assets::ImageAsset& image) {
     if (Result<void> valid = CheckRgba(image); !valid) {
         return valid;
     }
@@ -108,7 +108,7 @@ Result<void> Renderer::UpdateTexture(TextureId texture, const assets::ImageAsset
     return CopyToTexture(textures_.Get(texture).original.Get(), image, image.rgba, true);
 }
 
-Result<void> Renderer::CheckRgba(const assets::ImageAsset& image) {
+Result<void> SdlGpuBackend::CheckRgba(const assets::ImageAsset& image) {
     const std::size_t pixelCount = std::size_t{image.widthPx} * image.heightPx;
     if (pixelCount == 0 || image.rgba.size() != pixelCount * 4) {
         return Fail(ErrorCode::InvalidData,
@@ -118,8 +118,8 @@ Result<void> Renderer::CheckRgba(const assets::ImageAsset& image) {
     return {};
 }
 
-Result<void> Renderer::CopyToTexture(SDL_GPUTexture* texture, const assets::ImageAsset& image,
-                                     std::span<const std::byte> pixels, bool cycles) {
+Result<void> SdlGpuBackend::CopyToTexture(SDL_GPUTexture* texture, const assets::ImageAsset& image,
+                                          std::span<const std::byte> pixels, bool cycles) {
     const std::array<std::span<const std::byte>, 1> parts{pixels};
     Result<GpuTransferBuffer> staged = Stage(parts);
     if (!staged) {
@@ -141,7 +141,7 @@ Result<void> Renderer::CopyToTexture(SDL_GPUTexture* texture, const assets::Imag
     return {};
 }
 
-Result<void> Renderer::GenerateMips(SDL_GPUTexture* texture) {
+Result<void> SdlGpuBackend::GenerateMips(SDL_GPUTexture* texture) {
     SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(device_.get());
     if (commands == nullptr) {
         return GpuFailure("can't start generating mipmaps");
@@ -153,7 +153,8 @@ Result<void> Renderer::GenerateMips(SDL_GPUTexture* texture) {
     return {};
 }
 
-Result<GpuBuffer> Renderer::CreateBuffer(SDL_GPUBufferUsageFlags usage, std::size_t sizeBytes) {
+Result<GpuBuffer> SdlGpuBackend::CreateBuffer(SDL_GPUBufferUsageFlags usage,
+                                              std::size_t sizeBytes) {
     if (sizeBytes == 0 || sizeBytes > std::numeric_limits<std::uint32_t>::max()) {
         return Fail(ErrorCode::InvalidData,
                     std::format("can't create a GPU buffer of {} bytes", sizeBytes));
@@ -167,7 +168,7 @@ Result<GpuBuffer> Renderer::CreateBuffer(SDL_GPUBufferUsageFlags usage, std::siz
     return GpuBuffer(device_.get(), buffer);
 }
 
-Result<Renderer::StreamBuffer> Renderer::CreateStream(std::size_t sizeBytes) {
+Result<SdlGpuBackend::StreamBuffer> SdlGpuBackend::CreateStream(std::size_t sizeBytes) {
     Result<GpuBuffer> vertices = CreateBuffer(SDL_GPU_BUFFERUSAGE_VERTEX, sizeBytes);
     if (!vertices) {
         return std::unexpected(std::move(vertices.error()));
@@ -181,7 +182,7 @@ Result<Renderer::StreamBuffer> Renderer::CreateStream(std::size_t sizeBytes) {
     return StreamBuffer{.vertices = std::move(*vertices), .upload = std::move(upload)};
 }
 
-Result<GpuTransferBuffer> Renderer::Stage(std::span<const std::span<const std::byte>> parts) {
+Result<GpuTransferBuffer> SdlGpuBackend::Stage(std::span<const std::span<const std::byte>> parts) {
     std::size_t sizeBytes = 0;
     for (const std::span<const std::byte> part : parts) {
         sizeBytes += part.size();
@@ -206,7 +207,7 @@ Result<GpuTransferBuffer> Renderer::Stage(std::span<const std::span<const std::b
     return staging;
 }
 
-Result<void> Renderer::UploadBuffers(std::span<const UploadPart> parts) {
+Result<void> SdlGpuBackend::UploadBuffers(std::span<const UploadPart> parts) {
     std::vector<std::span<const std::byte>> bytes;
     for (const UploadPart& part : parts) {
         bytes.push_back(part.bytes);
@@ -236,7 +237,7 @@ Result<void> Renderer::UploadBuffers(std::span<const UploadPart> parts) {
     return {};
 }
 
-void Renderer::GatherViews(std::span<const RenderView> views) {
+void SdlGpuBackend::GatherViews(std::span<const RenderView> views) {
     lineVertices_.clear();
     quadVertices_.clear();
     quadBatches_.clear();
@@ -266,20 +267,20 @@ void Renderer::GatherViews(std::span<const RenderView> views) {
             FirstAtMost(view.sprites, kMaxSprites - sprites_.size());
         sprites_.insert(sprites_.end(), sprites.begin(), sprites.end());
     }
-    if (pointer_ && sprites_.size() < kMaxSprites) {
-        sprites_.push_back(*pointer_);
+    if (settings_.pointer && sprites_.size() < kMaxSprites) {
+        sprites_.push_back(*settings_.pointer);
     }
     int widthPx = 0;
     int heightPx = 0;
     SDL_GetWindowSizeInPixels(device_.get_deleter().window, &widthPx, &heightPx);
-    const float edgeShift =
-        EdgeShift(static_cast<std::uint32_t>(std::max(widthPx, 1)),
-                  static_cast<std::uint32_t>(std::max(heightPx, 1)), uiFit_, sceneFit_);
+    const float edgeShift = EdgeShift(static_cast<std::uint32_t>(std::max(widthPx, 1)),
+                                      static_cast<std::uint32_t>(std::max(heightPx, 1)),
+                                      settings_.uiFit, settings_.sceneFit);
     BatchSprites(sprites_, edgeShift, spriteVertices_, spriteBatches_);
 }
 
-Result<void> Renderer::UploadFrame(SDL_GPUCommandBuffer* commands,
-                                   std::span<const RenderView> views) {
+Result<void> SdlGpuBackend::UploadFrame(SDL_GPUCommandBuffer* commands,
+                                        std::span<const RenderView> views) {
     GatherViews(views);
     if (lineVertices_.empty() && quadVertices_.empty() && spriteVertices_.empty()) {
         return {};
