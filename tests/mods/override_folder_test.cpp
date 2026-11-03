@@ -62,7 +62,9 @@ TEST_CASE_FIXTURE(OverridesFixture, "overrides replace files from the layers bel
     CHECK(Text("GAMEDATA/B.TXT") == "base");
 }
 
-TEST_CASE_FIXTURE(OverridesFixture, "turned off or missing, overrides mount nothing") {
+TEST_CASE_FIXTURE(OverridesFixture, "turned off, missing or empty, overrides mount nothing") {
+    CHECK_FALSE(MountOverrides().has_value());
+    std::filesystem::create_directories(folder_.Path() / "overrides/GAMEDATA");
     CHECK_FALSE(MountOverrides().has_value());
 
     WriteText("overrides/GAMEDATA/A.TXT", "override");
@@ -72,7 +74,8 @@ TEST_CASE_FIXTURE(OverridesFixture, "turned off or missing, overrides mount noth
     CHECK(vfs_.Read("GAMEDATA/A.TXT").error().code == ErrorCode::NotFound);
 }
 
-TEST_CASE_FIXTURE(OverridesFixture, "the overrides hash follows file names and sizes") {
+TEST_CASE_FIXTURE(OverridesFixture,
+                  "the overrides hash follows game paths and sizes, ignoring case") {
     WriteText("overrides/GAMEDATA/A.TXT", "one");
     const std::optional<std::uint64_t> first = MountOverrides();
     const std::optional<std::uint64_t> again = MountOverrides();
@@ -80,11 +83,15 @@ TEST_CASE_FIXTURE(OverridesFixture, "the overrides hash follows file names and s
     const std::optional<std::uint64_t> resized = MountOverrides();
     WriteText("overrides/GAMEDATA/B.TXT", "three");
     const std::optional<std::uint64_t> added = MountOverrides();
+    std::filesystem::rename(folder_.Path() / "overrides/GAMEDATA/B.TXT",
+                            folder_.Path() / "overrides/GAMEDATA/b.txt");
+    const std::optional<std::uint64_t> recased = MountOverrides();
 
     REQUIRE(first.has_value());
     CHECK(again == first);
     CHECK(resized != first);
     CHECK(added != resized);
+    CHECK(recased == added);
 }
 
 }

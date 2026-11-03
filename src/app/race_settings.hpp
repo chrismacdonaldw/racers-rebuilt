@@ -12,20 +12,22 @@ namespace rr::app {
 inline constexpr settings::SettingSpec<bool> kRespawn{.key = "race.respawn",
                                                       .defaultValue = true,
                                                       .label = "Respawn off the track",
-                                                      .category = "Race"};
+                                                      .category = "Enhancements/Gameplay",
+                                                      .changesGameplay = true};
 
 inline constexpr settings::SettingSpec<int> kRespawnSeconds{
     .key = "race.respawn_seconds",
     .defaultValue = 3,
     .range = settings::SettingRange<int>{.min = 1, .max = 30},
     .label = "Seconds in the air before respawning",
-    .category = "Race"};
+    .category = "Enhancements/Gameplay",
+    .changesGameplay = true};
 
 inline constexpr settings::SettingSpec<bool> kPhysicsAi{
     .key = "race.physics_ai",
     .defaultValue = false,
     .label = "Computer racers drive with the car physics",
-    .category = "Race"};
+    .category = "Enhancements/Gameplay"};
 
 inline constexpr settings::SettingSpec<int> kOpponents{
     .key = "race.opponents",

@@ -27,6 +27,7 @@ public:
         std::optional<Range> range;
         std::string label;
         std::string category;
+        bool changesGameplay = false;
     };
 
     using Declarations = std::map<std::string, Declaration, std::less<>>;
@@ -40,7 +41,8 @@ public:
         DeclareValue(spec.key, {.defaultValue = ToSettingValue(spec.defaultValue),
                                 .range = range,
                                 .label = std::string(spec.label),
-                                .category = std::string(spec.category)});
+                                .category = std::string(spec.category),
+                                .changesGameplay = spec.changesGameplay});
     }
 
     /// `spec` must be declared.

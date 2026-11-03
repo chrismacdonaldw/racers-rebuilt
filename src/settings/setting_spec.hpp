@@ -25,7 +25,7 @@ struct SettingRange {
     T max;
 };
 
-/// `key` is a dotted TOML path such as `game.path`. Out-of-range values are clamped.
+/// `key` is a dotted TOML path. Out-of-range values are clamped. A `/` in `category` nests menus.
 template <SettingType T>
 struct SettingSpec {
     std::string_view key;
@@ -33,6 +33,7 @@ struct SettingSpec {
     std::optional<SettingRange<T>> range;
     std::string_view label;
     std::string_view category;
+    bool changesGameplay = false;
 };
 
 template <SettingType T>

@@ -12,6 +12,7 @@
 #include "mods/mod_list.hpp"
 #include "settings/racers.hpp"
 #include "settings/registry.hpp"
+#include "settings/setting_spec.hpp"
 #include "temp_folder.hpp"
 
 namespace rr::app {
@@ -36,6 +37,27 @@ TEST_CASE("the gameplay fingerprint names each enabled mod and its version") {
 TEST_CASE("the gameplay fingerprint records the overrides folder's hash") {
     CHECK(GameplayFingerprint(settings::Registry{}, mods::ModList{}, 0xABCULL, {}) ==
           std::vector<std::string>{"overrides:0000000000000abc"});
+}
+
+TEST_CASE("the gameplay fingerprint names gameplay settings away from their defaults") {
+    constexpr settings::SettingSpec<bool> kRespawn{
+        .key = "race.respawn", .defaultValue = true, .changesGameplay = true};
+    constexpr settings::SettingSpec<int> kSeconds{
+        .key = "race.respawn_seconds", .defaultValue = 3, .changesGameplay = true};
+    constexpr settings::SettingSpec<bool> kVsync{.key = "video.vsync", .defaultValue = true};
+    settings::Registry registry;
+    registry.Declare(kRespawn);
+    registry.Declare(kSeconds);
+    registry.Declare(kVsync);
+    registry.Set(kSeconds, 3);
+    registry.Set(kVsync, false);
+    CHECK(GameplayFingerprint(registry, mods::ModList{}, std::nullopt, {}).empty());
+
+    registry.Set(kRespawn, false);
+    registry.Set(kSeconds, 7);
+
+    CHECK(GameplayFingerprint(registry, mods::ModList{}, std::nullopt, {}) ==
+          std::vector<std::string>{"setting:race.respawn=false", "setting:race.respawn_seconds=7"});
 }
 
 TEST_CASE("the gameplay fingerprint changes with the player's car but not their trophies") {

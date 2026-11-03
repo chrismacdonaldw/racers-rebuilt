@@ -13,14 +13,14 @@ namespace rr::app {
 inline constexpr settings::SettingSpec<bool> kFreeCamera{.key = "enhancements.free_camera",
                                                          .defaultValue = false,
                                                          .label = "Free camera",
-                                                         .category = "Enhancements"};
+                                                         .category = "Enhancements/Camera"};
 
 inline constexpr settings::SettingSpec<double> kFreeCameraSpeed{
     .key = "enhancements.free_camera_speed",
     .defaultValue = 40.0,
     .range = settings::SettingRange<double>{.min = 1.0, .max = 400.0},
     .label = "Free camera speed",
-    .category = "Enhancements"};
+    .category = "Enhancements/Camera"};
 
 struct FlyKeys {
     bool forward = false;

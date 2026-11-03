@@ -4,6 +4,8 @@
 #include <array>
 #include <cstdint>
 #include <limits>
+#include <span>
+#include <string>
 #include <utility>
 #include <variant>
 
@@ -15,6 +17,8 @@ namespace rr::overlay {
 namespace {
 
 constexpr std::size_t kMaxTextBytes = 512;
+constexpr const char* kGameplayTooltip =
+    "Changes gameplay. Replays record it and warn when played back without it.";
 
 struct Item {
     std::string_view key;
@@ -77,31 +81,26 @@ bool DrawText(settings::Registry& registry, const Item& item, const std::string&
     return false;
 }
 
-}
-
-std::vector<SettingMenu> GroupSettingMenus(const settings::Registry::Declarations& declarations) {
-    std::vector<SettingMenu> menus;
-    for (const auto& [key, declaration] : declarations) {
-        if (declaration.category.empty()) {
-            continue;
-        }
-        auto menu = std::ranges::find(menus, std::string_view(declaration.category),
-                                      &SettingMenu::category);
-        if (menu == menus.end()) {
-            menu = menus.insert(menus.end(), {.category = declaration.category, .keys = {}});
-        }
-        menu->keys.emplace_back(key);
+template <typename Menu>
+Menu& FindOrAddMenu(std::vector<Menu>& menus, std::string_view category) {
+    auto menu = std::ranges::find(menus, category, &Menu::category);
+    if (menu == menus.end()) {
+        Menu added;
+        added.category = category;
+        menu = menus.insert(menus.end(), std::move(added));
     }
-    std::ranges::sort(menus, {}, &SettingMenu::category);
-    return menus;
+    return *menu;
 }
 
-std::vector<std::string> DrawSettingItems(settings::Registry& registry, const SettingMenu& menu) {
-    std::vector<std::string> finished;
-    for (const std::string_view key : menu.keys) {
+void DrawItems(settings::Registry& registry, std::span<const std::string_view> keys,
+               std::vector<std::string>& finished) {
+    for (const std::string_view key : keys) {
         const settings::Registry::Declaration& declaration =
             registry.AllDeclarations().find(key)->second;
-        const std::string label = declaration.label.empty() ? std::string(key) : declaration.label;
+        std::string label = declaration.label.empty() ? std::string(key) : declaration.label;
+        if (declaration.changesGameplay) {
+            label += " *";
+        }
         const Item item{.key = key, .label = label.c_str(), .declaration = declaration};
         const settings::SettingValue value = registry.AllValues().find(key)->second;
         ImGui::PushID(key.data(), key.data() + key.size());
@@ -118,11 +117,49 @@ std::vector<std::string> DrawSettingItems(settings::Registry& registry, const Se
                 }
             },
             value);
+        if (declaration.changesGameplay && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", kGameplayTooltip);
+        }
         ImGui::PopID();
         if (isFinished) {
             finished.emplace_back(key);
         }
     }
+}
+
+}
+
+std::vector<SettingMenu> GroupSettingMenus(const settings::Registry::Declarations& declarations) {
+    std::vector<SettingMenu> menus;
+    for (const auto& [key, declaration] : declarations) {
+        const std::string_view category = declaration.category;
+        if (category.empty()) {
+            continue;
+        }
+        const std::size_t slash = category.find('/');
+        SettingMenu& menu = FindOrAddMenu(menus, category.substr(0, slash));
+        if (slash == std::string_view::npos) {
+            menu.keys.emplace_back(key);
+        } else {
+            FindOrAddMenu(menu.submenus, category.substr(slash + 1)).keys.emplace_back(key);
+        }
+    }
+    std::ranges::sort(menus, {}, &SettingMenu::category);
+    for (SettingMenu& menu : menus) {
+        std::ranges::sort(menu.submenus, {}, &SettingSubmenu::category);
+    }
+    return menus;
+}
+
+std::vector<std::string> DrawSettingItems(settings::Registry& registry, const SettingMenu& menu) {
+    std::vector<std::string> finished;
+    for (const SettingSubmenu& submenu : menu.submenus) {
+        if (ImGui::BeginMenu(std::string(submenu.category).c_str())) {
+            DrawItems(registry, submenu.keys, finished);
+            ImGui::EndMenu();
+        }
+    }
+    DrawItems(registry, menu.keys, finished);
     return finished;
 }
 
