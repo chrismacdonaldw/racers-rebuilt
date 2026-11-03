@@ -1,5 +1,6 @@
 #include "sim/race/race_session.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <format>
 
@@ -122,6 +123,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       respawns_(setup.racers.size()),
       wasRespawned_(setup.racers.size()),
       positions_(setup.racers.size()),
+      rivals_(setup.racers.size()),
       places_(setup.racers.size()),
       progress_(setup.racers.size(), setup.lapCount),
       clock_(setup.isTestDrive),
@@ -191,6 +193,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     HazardContext hazards = HazardsContext(elapsed, hazardEffects);
     hazards_.Tick(hazards);
     MeasureReaches();
+    std::ranges::copy(positions_, rivals_.begin());
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         TickRacer(i, elapsed,
                   clock_.Phase() == RacePhase::Intro ? RacerControls{} : ControlsOf(i, controls));
@@ -235,7 +238,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
 
 RacerControls RaceSession::ControlsOf(std::size_t racer, std::span<const RacerControls> controls) {
     std::optional<RouteDriver>& driver = drivers_[racer];
-    return driver ? driver->Drive(racers_[racer]) : controls[racer];
+    return driver ? driver->Drive(racers_[racer], rivals_, racer) : controls[racer];
 }
 
 bool RaceSession::WantsPowerup(std::size_t racer, Milliseconds elapsed,

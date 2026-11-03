@@ -20,9 +20,19 @@ constexpr Milliseconds kStallTimeout{3000};
 constexpr float kBrakeWindowStartMs = 400.0F;
 constexpr float kBrakeWindowEndMs = 650.0F;
 constexpr float kBrakeMargin = 1.1F;
+constexpr Milliseconds kBackUpFrom{1000};
+constexpr Milliseconds kBackUpUntil{1800};
+constexpr float kBlockAhead = 25.0F;
+constexpr float kBlockWidth = 5.0F;
+constexpr float kPassOffset = 6.0F;
+constexpr float kPassWidthShare = 0.8F;
 
 Vector3 Flat(const Vector3& v) {
     return {.x = v.x, .y = v.y};
+}
+
+Vector3 LeftOf(const Vector3& forward) {
+    return {.x = -forward.y, .y = forward.x};
 }
 
 Vector3 FlatForward(const Quaternion& rotation) {
@@ -39,8 +49,7 @@ float CurvatureToward(const Vector3& from, const Vector3& forward, const Vector3
     if (lengthSquared <= 0.0F) {
         return 0.0F;
     }
-    const Vector3 left{.x = -forward.y, .y = forward.x};
-    return 2.0F * Dot(chord, left) / lengthSquared;
+    return 2.0F * Dot(chord, LeftOf(forward)) / lengthSquared;
 }
 
 float GripTurnRadius(float radius, float limit) {
@@ -64,15 +73,20 @@ float LockFor(float radius, float handling) {
 RouteDriver::RouteDriver(const assets::RaceRoute& route, std::optional<float> pace)
     : nearest_(route), reference_(route), ahead_(route), pace_(pace) {}
 
-RacerControls RouteDriver::Drive(const Racer& racer) {
+RacerControls RouteDriver::Drive(const Racer& racer, std::span<const Vector3> racers,
+                                 std::optional<std::size_t> self) {
     const BodyMotion& motion = racer.Body().motion;
     Follow(motion.position);
+    if (stalled_ >= kBackUpFrom && stalled_ < kBackUpUntil) {
+        return {.isBrakeHeld = true};
+    }
     const Pedal pedal = PedalFor(motion);
     const bool isThrottleHeld = pedal == Pedal::Throttle;
     const bool isBrakeHeld = pedal == Pedal::Brake;
     const Transform reference = reference_.Pose();
     const Vector3 tangent = FlatForward(reference.rotation);
-    const Vector3 target = Flat(reference.position) + (tangent * kCorrectionDistance);
+    const Vector3 target = Flat(reference.position) + (tangent * kCorrectionDistance) +
+                           (LeftOf(tangent) * PassOffset(motion, racers, self));
     const Vector3 forward = Normalized(Flat(motion.basis.forward), {.x = 1.0F});
     const float curvature = CurvatureToward(reference.position, tangent, ahead_.Pose().position) +
                             CurvatureToward(motion.position, forward, target);
@@ -107,6 +121,25 @@ RouteDriver::Pedal RouteDriver::PedalFor(const BodyMotion& motion) const {
         return Pedal::Throttle;
     }
     return speed > target * kBrakeMargin ? Pedal::Brake : Pedal::Coast;
+}
+
+float RouteDriver::PassOffset(const BodyMotion& motion, std::span<const Vector3> racers,
+                              std::optional<std::size_t> self) const {
+    const Vector3 forward = Normalized(Flat(motion.basis.forward), {.x = 1.0F});
+    const Vector3 left = LeftOf(forward);
+    for (std::size_t i = 0; i < racers.size(); ++i) {
+        if (i == self) {
+            continue;
+        }
+        const Vector3 gap = Flat(racers[i] - motion.position);
+        const float ahead = Dot(gap, forward);
+        const float side = Dot(gap, left);
+        if (ahead > 0.0F && ahead < kBlockAhead && std::abs(side) < kBlockWidth) {
+            return side > 0.0F ? -std::min(kPassOffset, reference_.WidthRight() * kPassWidthShare)
+                               : std::min(kPassOffset, reference_.WidthLeft() * kPassWidthShare);
+        }
+    }
+    return 0.0F;
 }
 
 bool RouteDriver::IsStalled(Milliseconds elapsed) {
