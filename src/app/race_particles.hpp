@@ -76,6 +76,7 @@ private:
     std::span<const assets::SurfaceEntry> surfaces_;
     std::size_t player_;
     std::vector<PlayerEmitters> players_;
+    std::vector<CarParticles::Puffs> computers_;
     CarParticles cars_;
     PowerupParticles powerups_;
     HazardParticles hazards_;

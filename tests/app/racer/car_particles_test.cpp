@@ -60,7 +60,8 @@ public:
 
     void Frames(int count, bool isRearKicking = false) {
         for (int i = 0; i < count; ++i) {
-            particles_.Update(racers_[0], puffs_, std::nullopt, isRearKicking, {}, bank_);
+            particles_.Update(racers_[0], puffs_,
+                              {.isRearKicking = isRearKicking, .isPlayer = isPlayer_}, bank_);
             bank_.Update(kFrame);
         }
     }
@@ -86,6 +87,7 @@ public:
     [[nodiscard]] sim::Racer& Car() { return racers_[0]; }
     [[nodiscard]] bool IsGrounded() const { return racers_[0].Body().motion.contactCount > 0; }
     void Tick() { particles_.Tick(racers_, bank_); }
+    void DriveByComputer() { isPlayer_ = false; }
     void Update() { bank_.Update(kFrame); }
 
 private:
@@ -96,6 +98,7 @@ private:
     render::ParticleBank bank_{Emitters()};
     CarParticles particles_;
     CarParticles::Puffs puffs_;
+    bool isPlayer_ = true;
 };
 
 std::size_t CountAbove(const std::vector<Vector3>& puffs, float z) {
@@ -114,6 +117,17 @@ TEST_CASE("a turbo start puffs ten dust clouds at the rear wheels and four exhau
     const std::vector<Vector3> puffs = garage.Puffs();
     CHECK(puffs.size() == 14);
     CHECK(CountAbove(puffs, garage.WheelTop() + 1.0F) == 4);
+}
+
+TEST_CASE("a computer car's turbo start puffs the same dust and exhaust") {
+    Garage garage;
+    garage.DriveByComputer();
+    garage.Settle(5);
+
+    garage.Car().StartTurbo(sim::TurboLevel::Strong);
+    garage.Frames(100);
+
+    CHECK(garage.Puffs().size() == 14);
 }
 
 TEST_CASE("a turbo start raises no dust while a rear wheel kicks up its surface") {
