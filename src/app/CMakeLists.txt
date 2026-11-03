@@ -188,6 +188,8 @@ rr_add_module(app
         racer/animation_player.cpp
         racer/car_particles.cpp
         racer/car_shadows.cpp
+        racer/car_silhouette.cpp
+        racer/shadow_silhouette.cpp
         racer/far_cars.cpp
         racer/body_lean.cpp
         racer/built_racer.cpp
