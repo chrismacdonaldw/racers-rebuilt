@@ -60,6 +60,8 @@ add_executable(racers-rebuilt-tests
     app/menu/options_menu_test.cpp
     app/menu/pause_menu_test.cpp
     app/menu/preview_cycle_test.cpp
+    app/menu/racer_pick_list_test.cpp
+    app/menu/racer_pick_menu_test.cpp
     app/menu/race_setup_menu_test.cpp
     app/menu/track_preview_test.cpp
     app/music_folder_source_test.cpp
@@ -96,6 +98,7 @@ add_executable(racers-rebuilt-tests
     app/racer/racer_assets_test.cpp
     app/racer/racer_bounds_test.cpp
     app/racer/racer_lookup_test.cpp
+    app/racer/racer_ref_test.cpp
     app/racer/racer_visuals_test.cpp
     app/racer/skid_marks_test.cpp
     app/racer/skid_trail_test.cpp

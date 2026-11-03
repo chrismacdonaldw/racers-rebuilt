@@ -257,11 +257,10 @@ void RaceSetupScene::Render(const sim::RenderSnapshot& interpolated) {
             {.label = isCircuit ? OneLine(text_.Line(kCircuitNumberLine)) : u"TRACK",
              .value = courseNames_.at(menu_.CourseIndex()),
              .isGameText = isCircuit});
-    DrawRow(RaceSetupRow::Racer,
-            {.label = isVersus ? OneLine(text_.Line(kPlayerOneLine)) : u"RACER",
-             .value = RacerName(menu_.Racer()),
-             .isGameText = isVersus});
     if (isVersus) {
+        DrawRow(RaceSetupRow::Racer, {.label = OneLine(text_.Line(kPlayerOneLine)),
+                                      .value = RacerName(menu_.Racer()),
+                                      .isGameText = true});
         DrawRow(RaceSetupRow::SecondRacer, {.label = OneLine(text_.Line(kPlayerTwoLine)),
                                             .value = RacerName(menu_.SecondRacer()),
                                             .isGameText = true});

@@ -38,10 +38,11 @@ Result<std::optional<std::string>> StartupScene(const settings::CommandLine& com
         return std::optional(std::format("{}{}", kCutsceneScenePrefix, *commandLine.cutscene));
     }
     if (commandLine.race) {
-        return std::optional(RaceNamed({.track = *commandLine.race,
-                                        .players = commandLine.players.value_or(1),
-                                        .player = commandLine.racer.value_or(std::string())},
-                                       settings));
+        return std::optional(
+            RaceNamed({.track = *commandLine.race,
+                       .players = commandLine.players.value_or(1),
+                       .player = {.name = commandLine.racer.value_or(std::string())}},
+                      settings));
     }
     return std::optional(
         commandLine.track.value_or(CutsceneScreenName({.menu = std::string(kLegalScreen)})));

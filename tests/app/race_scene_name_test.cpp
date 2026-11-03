@@ -91,18 +91,36 @@ TEST_CASE("a versus race scene name records player 2's racer and the lap count")
 }
 
 TEST_CASE("every race scene name carries the player's own racer, escaped") {
-    const RaceSceneSetup race{.track = "RACEC0R0", .player = "MR:X>50% 2"};
-    const RaceSceneSetup trial{.track = "RACEC0R0", .isTimeTrial = true, .player = "MINE"};
-    const CircuitSceneSetup circuit{.race = {.circuit = "c0", .player = "MINE"},
+    const RaceSceneSetup race{.track = "RACEC0R0", .player = {.name = "MR:X>50% @2"}};
+    const RaceSceneSetup trial{.track = "RACEC0R0", .isTimeTrial = true, .player = {.name = "ME"}};
+    const RacerRef copy{.name = "ME", .hash = 0xABC};
+    const CircuitSceneSetup circuit{.race = {.circuit = "c0", .player = copy},
                                     .standing = {.points = {}}};
 
-    CHECK(RaceSceneName(race) == "race:RACEC0R0:respawn=3000:racer=0:player=MR%3AX%3E50%25%202");
+    CHECK(RaceSceneName(race) == "race:RACEC0R0:respawn=3000:racer=0:player=MR%3AX%3E50%25%20%402");
     CHECK(ParseRaceScene(RaceSceneName(race)) == race);
-    CHECK(ParseTrialScene(RaceSceneName(trial))->player == "MINE");
-    CHECK(ParseCircuitScene(CircuitSceneName(circuit))->race.player == "MINE");
+    CHECK(ParseTrialScene(RaceSceneName(trial))->player == trial.player);
+    CHECK(CircuitSceneName(circuit).contains(":player=ME@0000000000000abc:"));
+    CHECK(ParseCircuitScene(CircuitSceneName(circuit))->race.player == copy);
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:player=ME@"));
+    CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:player=ME@xyz"));
     CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:player="));
     CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:player=A%4"));
     CHECK_FALSE(ParseRaceScene("race:RACEC0R0:respawn=3000:racer=0:player=A%G0"));
+}
+
+TEST_CASE("the racer pick names its racer in every race of a scene chain") {
+    const RacerRef me{.name = "ME", .hash = 1};
+
+    CHECK(WithPlayer("screen:circuit1>circuit:c0:respawn=off:racer=0", me) ==
+          "screen:circuit1>circuit:c0:respawn=off:racer=0:player=ME@0000000000000001:race=0:"
+          "points=0,0,0,0,0,0");
+    CHECK(WithPlayer("trial:RACEC0R0:respawn=off:racer=0", {.name = "ME"}) ==
+          "trial:RACEC0R0:respawn=off:racer=0:player=ME");
+    CHECK(ScenePlayer(WithPlayer("race:RACEC0R0:respawn=off:racer=0", me)) == me);
+    CHECK(WithPlayer("menu:main", me) == "menu:main");
+    CHECK(WithPlayer("race:RACEC0R0:respawn=off:racer=0:player=YOU", me) ==
+          "race:RACEC0R0:respawn=off:racer=0:player=ME@0000000000000001");
 }
 
 TEST_CASE("a single race scene name records fewer opponents than a full grid") {

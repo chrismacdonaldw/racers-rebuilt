@@ -22,10 +22,11 @@ namespace rr::app {
 /// The original's controls screen, rebinding one player's race keys and buttons.
 class ControlsScene final : public Scene {
 public:
-    /// `renderer` and `vfs` must outlive the scene.
+    /// `renderer` and `vfs` must outlive the scene. Finishing opens `back`.
     [[nodiscard]] static Result<std::unique_ptr<ControlsScene>> Create(render::Renderer& renderer,
                                                                        const assets::Vfs& vfs,
-                                                                       std::size_t player);
+                                                                       std::size_t player,
+                                                                       std::string back);
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
@@ -38,7 +39,7 @@ public:
 
 private:
     ControlsScene(render::Renderer& renderer, const assets::Vfs& vfs, ControlsLook look,
-                  std::size_t player);
+                  std::size_t player, std::string back);
 
     [[nodiscard]] const ControlNames& DeviceNames() const;
     void DrawDevicePicker();
@@ -48,6 +49,7 @@ private:
     const assets::Vfs* vfs_;
     ControlsLook look_;
     std::size_t player_;
+    std::string back_;
     ControlsMenu menu_;
     MenuText text_;
     ControlNames keyboardNames_;

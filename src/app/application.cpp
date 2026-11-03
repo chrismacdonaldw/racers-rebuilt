@@ -23,13 +23,10 @@
 #include "app/gameplay_fingerprint.hpp"
 #include "app/input_bindings.hpp"
 #include "app/menu/award_scene_name.hpp"
-#include "app/menu/controls_scene.hpp"
-#include "app/menu/language_scene.hpp"
 #include "app/menu/main_menu_scene.hpp"
+#include "app/menu/menu_scene_factory.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_sounds.hpp"
-#include "app/menu/options_scene.hpp"
-#include "app/menu/race_setup_scene.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/pacing_presets.hpp"
 #include "app/race_loading_screen.hpp"
@@ -126,7 +123,8 @@ Result<Application> Application::Create(GameBoot boot) {
 Result<void> Application::Run() {
     Result<ReplaySession> replay =
         ReplaySession::Start(recordFile_, replayFile_, scene_, [this](std::string_view scene) {
-            return GameplayFingerprint(settings_, extensions_.mods, PlayerRacerOf(scene));
+            return GameplayFingerprint(settings_, extensions_.mods,
+                                       FindPlayerRacer(vfs_, RacersFile(), ScenePlayer(scene)));
         });
     if (!replay) {
         return std::unexpected(std::move(replay.error()));
@@ -247,24 +245,14 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(
                                      std::exchange(unlockNotice_, false))
             .transform(ToScene<MainMenuScene>);
     }
-    if (*scene == kOptionsScene) {
-        return OptionsScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_))
-            .transform(ToScene<OptionsScene>);
-    }
-    if (*scene == kControlsScene || *scene == kPlayer2ControlsScene) {
-        const std::size_t player = *scene == kPlayer2ControlsScene ? 1 : 0;
-        return ControlsScene::Create(renderer_, vfs_, player).transform(ToScene<ControlsScene>);
-    }
-    if (*scene == kLanguageScene) {
-        return LanguageScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_))
-            .transform(ToScene<LanguageScene>);
-    }
-    if (const std::optional<RaceSetupMode> mode = RaceSetupModeOf(*scene)) {
-        return RaceSetupScene::Create(
-                   {.renderer = &renderer_, .mixer = &mixer_, .banks = &soundBanks_}, vfs_,
-                   LoadMenuSounds(mixer_, soundBanks_, vfs_), *mode, ReadProgress(ProgressFile()),
-                   SelectedLanguage(settings_))
-            .transform(ToScene<RaceSetupScene>);
+    if (std::optional<Result<std::unique_ptr<Scene>>> menu = CreateMenuScene(
+            {.outputs = {.renderer = &renderer_, .mixer = &mixer_, .banks = &soundBanks_},
+             .vfs = &vfs_,
+             .progressFile = ProgressFile(),
+             .racersFile = RacersFile(),
+             .language = SelectedLanguage(settings_)},
+            *scene)) {
+        return std::move(*menu);
     }
     if (IsAwardScene(*scene)) {
         return ParseAwardScene(*scene).and_then([&](const AwardSceneSetup& award) {
@@ -348,7 +336,7 @@ std::string Application::EndTimeTrial() {
 Result<std::unique_ptr<RaceScene>> Application::LoadRace(RaceSceneSetup setup,
                                                          assets::TrackLoader& loader,
                                                          Nanoseconds started) {
-    if (!setup.player.empty()) {
+    if (!setup.player.name.empty()) {
         Result<settings::Racer> racer = FindRacer(vfs_, RacersFile(), setup.player);
         if (!racer) {
             return std::unexpected(std::move(racer.error()));
@@ -376,25 +364,8 @@ std::filesystem::path Application::RacersFile() const {
     return settingsFile_.parent_path() / kRacersFileName;
 }
 
-std::optional<settings::Racer> Application::PlayerRacerOf(std::string_view scene) const {
-    const std::string player = ScenePlayer(scene);
-    if (player.empty()) {
-        return std::nullopt;
-    }
-    Result<settings::Racer> racer = FindRacer(vfs_, RacersFile(), player);
-    return racer ? std::optional(std::move(*racer)) : std::nullopt;
-}
-
 std::optional<settings::Racer> Application::AwardRacer() const {
-    if (playerRacer_) {
-        return playerRacer_;
-    }
-    Result<std::optional<settings::Racer>> selected = SelectedRacer(RacersFile());
-    if (!selected) {
-        log::Warn("{}, the award screens show the stand-in racer", selected.error().message);
-        return std::nullopt;
-    }
-    return std::move(*selected);
+    return playerRacer_ ? playerRacer_ : SelectedRacerOrNone(RacersFile());
 }
 
 Result<std::unique_ptr<Scene>> Application::CreateRace(const std::string& track) {

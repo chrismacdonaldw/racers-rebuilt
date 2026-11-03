@@ -7,13 +7,15 @@
 #include <vector>
 
 #include "assets/game_path.hpp"
+#include "core/log.hpp"
 #include "core/utf16_text.hpp"
 
 namespace rr::app {
 namespace {
 
 constexpr std::string_view kQuickBuildFile = "MENUDATA/QBUILD.LRS";
-constexpr std::array<std::string_view, 2> kRacerFiles{"MENUDATA/DEFAULT.LRS", kQuickBuildFile};
+constexpr std::string_view kDefaultFile = "MENUDATA/DEFAULT.LRS";
+constexpr std::array<std::string_view, 2> kRacerFiles{kDefaultFile, kQuickBuildFile};
 constexpr std::string_view kChampionCarName = "CHAMP";
 
 bool IsNamed(std::string_view name, std::string_view wanted) {
@@ -36,34 +38,47 @@ settings::Racer RacerFromSave(const assets::SavedRacer& saved) {
             .trophies = {}};
 }
 
-Result<settings::Racer> FindGameRacer(const assets::Vfs& vfs, std::string_view name) {
+Result<settings::Racer> FindGameRacer(const assets::Vfs& vfs, const RacerRef& ref) {
     for (const std::string_view file : kRacerFiles) {
         Result<std::vector<assets::SavedRacer>> racers = ReadRacerFile(vfs, file);
         if (!racers) {
             return std::unexpected(std::move(racers.error()));
         }
-        const auto found = std::ranges::find_if(*racers, [&](const assets::SavedRacer& racer) {
-            return IsNamed(Utf8FromUtf16(racer.name), name);
-        });
-        if (found != racers->end()) {
-            return RacerFromSave(*found);
+        for (const assets::SavedRacer& saved : *racers) {
+            settings::Racer racer = RacerFromSave(saved);
+            if (IsRef(racer, ref)) {
+                return racer;
+            }
         }
     }
-    return Fail(ErrorCode::NotFound, std::format("no racer named {}", name));
+    return Fail(ErrorCode::NotFound, std::format("no racer named {}", ref.name));
 }
 
 Result<settings::Racer> FindRacer(const assets::Vfs& vfs, const std::filesystem::path& racersFile,
-                                  std::string_view name) {
+                                  const RacerRef& ref) {
     Result<settings::RacerStore> store = settings::LoadRacers(racersFile);
     if (!store) {
-        return std::unexpected(std::move(store.error()));
+        log::Warn("{}, looking only in the game's racers", store.error().message);
+        return FindGameRacer(vfs, ref);
     }
     const auto own = std::ranges::find_if(
-        store->racers, [&](const settings::Racer& racer) { return IsNamed(racer.name, name); });
+        store->racers, [&](const settings::Racer& racer) { return IsRef(racer, ref); });
     if (own != store->racers.end()) {
         return std::move(*own);
     }
-    return FindGameRacer(vfs, name);
+    return FindGameRacer(vfs, ref);
+}
+
+Result<std::vector<settings::Racer>> ReadDefaultRacers(const assets::Vfs& vfs) {
+    return ReadRacerFile(vfs, kDefaultFile)
+        .transform([](const std::vector<assets::SavedRacer>& saved) {
+            std::vector<settings::Racer> racers;
+            racers.reserve(saved.size());
+            for (const assets::SavedRacer& racer : saved) {
+                racers.push_back(RacerFromSave(racer));
+            }
+            return racers;
+        });
 }
 
 Result<std::optional<settings::Racer>> SelectedRacer(const std::filesystem::path& racersFile) {
@@ -72,6 +87,25 @@ Result<std::optional<settings::Racer>> SelectedRacer(const std::filesystem::path
                    ? std::optional(std::move(store.racers[*store.selected]))
                    : std::nullopt;
     });
+}
+
+std::optional<settings::Racer> SelectedRacerOrNone(const std::filesystem::path& racersFile) {
+    Result<std::optional<settings::Racer>> selected = SelectedRacer(racersFile);
+    if (!selected) {
+        log::Warn("{}, the award screens show the stand-in racer", selected.error().message);
+        return std::nullopt;
+    }
+    return std::move(*selected);
+}
+
+std::optional<settings::Racer> FindPlayerRacer(const assets::Vfs& vfs,
+                                               const std::filesystem::path& racersFile,
+                                               const RacerRef& ref) {
+    if (ref.name.empty()) {
+        return std::nullopt;
+    }
+    Result<settings::Racer> racer = FindRacer(vfs, racersFile, ref);
+    return racer ? std::optional(std::move(*racer)) : std::nullopt;
 }
 
 Result<settings::Racer> FindChampionCar(const assets::Vfs& vfs, std::string_view chassis) {

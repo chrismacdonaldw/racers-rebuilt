@@ -35,6 +35,8 @@ constexpr std::string_view kPointsKey = "points";
 constexpr std::string_view kPlayerKey = "player";
 constexpr std::string_view kHexDigits = "0123456789ABCDEF";
 constexpr int kHexBase = 16;
+constexpr char kHashMark = '@';
+constexpr char kChainMark = '>';
 constexpr unsigned char kFirstPlain = 0x21;
 constexpr unsigned char kLastPlain = 0x7E;
 constexpr std::string_view kRespawnOff = "off";
@@ -43,7 +45,8 @@ constexpr std::string_view kRouteAi = "route";
 
 bool IsPlain(char c) {
     const auto byte = static_cast<unsigned char>(c);
-    return byte >= kFirstPlain && byte <= kLastPlain && c != ':' && c != '>' && c != '%';
+    return byte >= kFirstPlain && byte <= kLastPlain && c != ':' && c != kChainMark && c != '%' &&
+           c != kHashMark;
 }
 
 std::string Escaped(std::string_view text) {
@@ -81,6 +84,30 @@ std::optional<std::string> Unescaped(std::string_view text) {
         at += 2;
     }
     return out;
+}
+
+std::optional<RacerRef> ParseRef(std::string_view text) {
+    const std::size_t mark = text.find(kHashMark);
+    std::optional<std::string> name = Unescaped(text.substr(0, mark));
+    if (!name || name->empty()) {
+        return std::nullopt;
+    }
+    if (mark == std::string_view::npos) {
+        return RacerRef{.name = std::move(*name)};
+    }
+    const std::string_view digits = text.substr(mark + 1);
+    std::uint64_t hash = 0;
+    const auto [end, error] =
+        std::from_chars(digits.data(), digits.data() + digits.size(), hash, kHexBase);
+    if (digits.empty() || error != std::errc() || end != digits.data() + digits.size()) {
+        return std::nullopt;
+    }
+    return RacerRef{.name = std::move(*name), .hash = hash};
+}
+
+std::string RefText(const RacerRef& ref) {
+    return ref.hash ? std::format("{}{}{:016x}", Escaped(ref.name), kHashMark, *ref.hash)
+                    : Escaped(ref.name);
 }
 
 struct Field {
@@ -177,8 +204,8 @@ bool ReadField(Field field, RaceSceneSetup& setup, std::optional<sim::RespawnRul
         return ReadAiDriving(field.value, setup.aiDriving);
     }
     if (field.key == kPlayerKey) {
-        setup.player = Unescaped(field.value).value_or(std::string());
-        return !setup.player.empty();
+        setup.player = ParseRef(field.value).value_or(RacerRef{});
+        return !setup.player.name.empty();
     }
     if (field.key == kMirroredKey) {
         setup.isMirrored = true;
@@ -222,8 +249,8 @@ std::string RulesFields(const RaceSceneSetup& setup) {
                                     ? std::to_string(setup.respawn.timeout.count())
                                     : std::string(kRespawnOff);
     std::string fields = std::format(":{}={}:{}={}", kRespawnKey, respawn, kRacerKey, setup.racer);
-    if (!setup.player.empty()) {
-        fields += std::format(":{}={}", kPlayerKey, Escaped(setup.player));
+    if (!setup.player.name.empty()) {
+        fields += std::format(":{}={}", kPlayerKey, RefText(setup.player));
     }
     return fields;
 }
@@ -270,14 +297,47 @@ bool IsRaceScene(std::string_view scene) {
     return scene.starts_with(kRacePrefix);
 }
 
-std::string ScenePlayer(std::string_view scene) {
+namespace {
+
+std::string NamingPlayer(std::string_view scene, const RacerRef& player) {
+    if (IsCircuitScene(scene)) {
+        Result<CircuitSceneSetup> circuit = ParseCircuitScene(scene);
+        if (circuit) {
+            circuit->race.player = player;
+            return CircuitSceneName(*circuit);
+        }
+    } else if (IsRaceScene(scene) || IsTrialScene(scene)) {
+        Result<RaceSceneSetup> race =
+            IsTrialScene(scene) ? ParseTrialScene(scene) : ParseRaceScene(scene);
+        if (race) {
+            race->player = player;
+            return RaceSceneName(*race);
+        }
+    }
+    return std::string(scene);
+}
+
+}
+
+RacerRef ScenePlayer(std::string_view scene) {
     if (IsCircuitScene(scene)) {
         const Result<CircuitSceneSetup> circuit = ParseCircuitScene(scene);
-        return circuit ? circuit->race.player : std::string();
+        return circuit ? circuit->race.player : RacerRef{};
     }
     const Result<RaceSceneSetup> race =
         IsTrialScene(scene) ? ParseTrialScene(scene) : ParseRaceScene(scene);
-    return race ? race->player : std::string();
+    return race ? race->player : RacerRef{};
+}
+
+std::string WithPlayer(std::string_view scenes, const RacerRef& player) {
+    std::string out;
+    for (const auto part : std::views::split(scenes, kChainMark)) {
+        if (!out.empty()) {
+            out += kChainMark;
+        }
+        out += NamingPlayer(std::string_view(part), player);
+    }
+    return out;
 }
 
 Result<RaceSceneSetup> ParseRaceScene(std::string_view scene) {

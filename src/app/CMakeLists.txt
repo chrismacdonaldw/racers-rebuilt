@@ -77,6 +77,7 @@ rr_add_module(app
         menu/menu_files.cpp
         menu/menu_focus.cpp
         menu/menu_page.cpp
+        menu/menu_scene_factory.cpp
         menu/menu_sounds.cpp
         menu/menu_text.cpp
         menu/menu_widgets.cpp
@@ -87,6 +88,10 @@ rr_add_module(app
         menu/options_scene.cpp
         menu/pause_menu.cpp
         menu/preview_cycle.cpp
+        menu/racer_pick_list.cpp
+        menu/racer_pick_look.cpp
+        menu/racer_pick_menu.cpp
+        menu/racer_pick_scene.cpp
         menu/race_setup_menu.cpp
         menu/race_setup_scene.cpp
         menu/track_preview.cpp
@@ -132,6 +137,7 @@ rr_add_module(app
         racer/racer_fx.cpp
         racer/racer_grid.cpp
         racer/racer_lookup.cpp
+        racer/racer_ref.cpp
         racer/racer_models.cpp
         racer/posed_draws.cpp
         racer/racer_visuals.cpp
