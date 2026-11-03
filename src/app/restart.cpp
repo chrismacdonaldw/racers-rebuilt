@@ -60,6 +60,25 @@ std::optional<overlay::MenuChoice> Restart::Choice(const settings::Registry& reg
                                }};
 }
 
+std::optional<overlay::MenuChoice> LiveRemount::Choice(const settings::Registry& registry) {
+    if (!isAllowed_ || !changes_.Any(registry)) {
+        return std::nullopt;
+    }
+    return overlay::MenuChoice{.name = "Apply now", .choose = [this] { isRequested_ = true; }};
+}
+
+std::vector<overlay::MenuChoice> ModActions(LiveRemount& remount, const Restart& restart,
+                                            const settings::Registry& registry, bool& isQuitting) {
+    std::vector<overlay::MenuChoice> actions;
+    std::array choices{remount.Choice(registry), restart.Choice(registry, isQuitting)};
+    for (std::optional<overlay::MenuChoice>& action : choices) {
+        if (action) {
+            actions.push_back(std::move(*action));
+        }
+    }
+    return actions;
+}
+
 bool ModChanges::Any(const settings::Registry& registry) const {
     return std::ranges::any_of(startup_, [&](const auto& entry) {
         return registry.AllValues().find(entry.first)->second != entry.second;

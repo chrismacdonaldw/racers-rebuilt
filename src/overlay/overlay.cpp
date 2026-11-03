@@ -36,6 +36,15 @@ void DrawStats(const DeveloperStats& stats, Nanoseconds overlayCost) {
                            stats.startupSummary.data() + stats.startupSummary.size());
 }
 
+void DrawModActions(std::span<const MenuChoice> actions) {
+    ImGui::TextDisabled("Apply now returns to the main menu");
+    for (const MenuChoice& action : actions) {
+        if (ImGui::MenuItem(action.name.c_str())) {
+            action.choose();
+        }
+    }
+}
+
 void DrawChoices(const char* menu, std::span<const MenuChoice> choices, const char* empty) {
     if (!ImGui::BeginMenu(menu)) {
         return;
@@ -91,7 +100,7 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
                                         std::span<const MenuChoice> scenes,
                                         std::span<const MenuChoice> saveImports,
                                         const RacerTools& racerTools,
-                                        const std::optional<MenuChoice>& restart) {
+                                        std::span<const MenuChoice> modActions) {
     if (!input_.IsOpen()) {
         return {};
     }
@@ -106,10 +115,7 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
             if (menu.category != kDeveloperCategory &&
                 ImGui::BeginMenu(std::string(menu.category).c_str())) {
                 if (menu.category == kModsCategory) {
-                    ImGui::TextDisabled("Changes apply on restart");
-                    if (restart && ImGui::MenuItem(restart->name.c_str())) {
-                        restart->choose();
-                    }
+                    DrawModActions(modActions);
                 }
                 Append(finished, DrawPresets(registry, presets_, menu.category));
                 Append(finished, DrawSettingItems(registry, menu));

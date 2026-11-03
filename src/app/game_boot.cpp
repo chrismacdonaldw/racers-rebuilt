@@ -116,10 +116,7 @@ Result<assets::Vfs> MountGameFiles(GameInstall install, Extensions& extensions,
     assets::Vfs vfs;
     vfs.Mount(std::make_unique<assets::FolderLayer>(std::move(*looseFiles)));
     vfs.Mount(std::make_unique<assets::JamArchive>(std::move(install.jam)));
-    const mods::ModList& mods = extensions.mods;
-    mods.MountEnabled(vfs, registry);
-    extensions.overrides.Mount(vfs, registry);
-    log::Info("{} mods, {} enabled", mods.All().size(), mods.Enabled(registry).size());
+    MountExtensions(extensions, vfs, registry);
     return vfs;
 }
 

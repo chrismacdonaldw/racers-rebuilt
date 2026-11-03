@@ -34,6 +34,11 @@ public:
     /// Adds `layer` above every layer mounted so far.
     void Mount(std::unique_ptr<VfsLayer> layer);
 
+    [[nodiscard]] std::size_t LayerCount() const { return layers_.size(); }
+
+    /// Unmounts every layer above the first `count`. Nothing may still borrow bytes from them.
+    void KeepLayers(std::size_t count);
+
     /// `resolver` runs on the reading thread before every read, so it must be thread-safe.
     void SetResolver(AssetResolver resolver);
 

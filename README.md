@@ -96,7 +96,7 @@ Create `music/`, `mods/` and `overrides/` when you first need them.
 
 ## Configuration
 
-Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Enhancements**, **Game**, **Input**, **Mods**, **Race**, **Video**, **Progress** and **Developer**. **Enhancements** holds the **Camera**, **Cheats** and **Gameplay** submenus. Items marked * change gameplay: replays record them and warn when played back with other values. Video, audio and enhancement changes apply on the next frame. Game and mod changes apply on the next start. Every change saves when an edit finishes.
+Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Enhancements**, **Game**, **Input**, **Mods**, **Race**, **Video**, **Progress** and **Developer**. **Enhancements** holds the **Camera**, **Cheats** and **Gameplay** submenus. Items marked * change gameplay: replays record them and warn when played back with other values. Video, audio and enhancement changes apply on the next frame. Game changes apply on the next start, and mod changes on **Apply now** or the next start. Every change saves when an edit finishes.
 
 **Developer** shows frame time, ticks per frame and startup timings. Its **Scenes** list opens the test scene, a sprite test that draws 1000 UI sprites, or any race track in your copy.
 
@@ -145,8 +145,8 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `race.versus_laps` | `3` | `1` to `5`. Laps in a versus race, from the options screen. |
 | `cheats.<plate>` | `false` | `true`, `false`. Keeps a license plate cheat on, such as `cheats.mxpmx`. Entered after the license's own cheats, from the next single race, versus race or test drive. Circuits and time trials ignore them, as the original does, and so does the attract demo. |
 | `mods.<id>.enabled` | The mod's `enabled` value | `true`, `false` |
-| `mods.hq_textures` | `true` | `true`, `false`. Uses PNG replacements for game images. Applies on the next start. |
-| `mods.overrides` | `true` | `true`, `false`. Loads `<data>/overrides/`. Applies on the next start. |
+| `mods.hq_textures` | `true` | `true`, `false`. Uses PNG replacements for game images. Applies on **Apply now** or the next start. |
+| `mods.overrides` | `true` | `true`, `false`. Loads `<data>/overrides/`. Applies on **Apply now** or the next start. |
 | `input.keys.<action>` | See below | The first keyboard set (arrows). Comma-separated SDL key names, such as `Up,W` or `Left Shift` |
 | `input.keys2.<action>` | See below | The second keyboard set (WASD), in the same form |
 | `input.keys3.<action>` | See below | The third keyboard set (keypad), in the same form |
@@ -263,7 +263,7 @@ enabled = true
 | `priority` | No | Whole number, default `0`. Higher wins when two mods replace the same file. On a tie, the id that sorts first wins. |
 | `enabled` | No | Default `true`. Sets the starting value of `mods.<id>.enabled`. |
 
-Turning a mod on or off applies on the next start. Once a setting in **Mods** changes, **Restart now** appears there: it relaunches the game with the same command line, minus `--record`, `--replay`, `--import-save` and `--dump-images`. A mod with a broken `mod.toml` is skipped with a warning in the log.
+Once a setting in **Mods** changes, two items appear there. **Apply now** remounts the mods and overrides, reloads the music, and returns to the main menu; it isn't offered while recording or playing a replay. **Restart now** relaunches the game with the same command line, minus `--record`, `--replay`, `--import-save` and `--dump-images`. A newly added mod folder, or a change to the menu cursor, still needs a restart. A mod with a broken `mod.toml` is skipped with a warning in the log.
 
 ### Tracks
 
@@ -308,7 +308,7 @@ A PNG next to a game image's path, named like it but ending in `.png`, replaces 
 To replace a few files without writing a mod, put them in `<data>/overrides/` at their paths inside `LEGO.JAM`, e.g. `<data>/overrides/GAMEDATA/COMMON/RRJMW.GDB`.
 
 - Overrides win over every mod. Path case doesn't matter.
-- **Loose file overrides** in the **Mods** menu (`mods.overrides`) turns them off. It applies on the next start.
+- **Loose file overrides** in the **Mods** menu (`mods.overrides`) turns them off. It applies on **Apply now** or the next start, which also pick up changed files.
 - Replays record which files are overridden and warn when played back with different ones.
 
 ## Troubleshooting

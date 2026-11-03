@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -62,6 +63,40 @@ TEST_CASE("restart is offered only once a Mods setting changes") {
           "Restart now");
     CHECK_FALSE(unknown.Choice(registry, isQuitting).has_value());
     CHECK_FALSE(isQuitting);
+}
+
+std::vector<std::string> Names(std::span<const overlay::MenuChoice> choices) {
+    std::vector<std::string> names;
+    for (const overlay::MenuChoice& choice : choices) {
+        names.push_back(choice.name);
+    }
+    return names;
+}
+
+TEST_CASE("applying mods in place is offered before restarting, and only asks once") {
+    settings::Registry registry = Declared();
+    const Restart restart({"racers-rebuilt.exe"}, registry);
+    LiveRemount remount(true, registry);
+    bool isQuitting = false;
+    registry.Set(kModSetting, false);
+
+    const std::vector<overlay::MenuChoice> actions =
+        ModActions(remount, restart, registry, isQuitting);
+    actions.front().choose();
+
+    CHECK(Names(actions) == std::vector<std::string>{"Apply now", "Restart now"});
+    CHECK(remount.TakeRequest());
+    CHECK_FALSE(remount.TakeRequest());
+    remount.Rebase(registry);
+    CHECK_FALSE(remount.Choice(registry).has_value());
+}
+
+TEST_CASE("mods aren't applied in place while a replay records or plays") {
+    settings::Registry registry = Declared();
+    LiveRemount remount(false, registry);
+    registry.Set(kModSetting, false);
+
+    CHECK_FALSE(remount.Choice(registry).has_value());
 }
 
 }

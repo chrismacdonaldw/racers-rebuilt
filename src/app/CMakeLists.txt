@@ -2,6 +2,7 @@ rr_add_module(app
     SOURCES
         ambient_sounds.cpp
         application.cpp
+        application_settings.cpp
         audio_settings.cpp
         audio_startup.cpp
         brick_models.cpp

@@ -24,6 +24,20 @@ void DeclareExtensionSettings(const Extensions& extensions, settings::Registry& 
     }
 }
 
+void MountExtensions(Extensions& extensions, assets::Vfs& vfs, const settings::Registry& registry) {
+    extensions.gameLayers = vfs.LayerCount();
+    extensions.mods.MountEnabled(vfs, registry);
+    extensions.overrides.Mount(vfs, registry);
+    log::Info("{} mods, {} enabled", extensions.mods.All().size(),
+              extensions.mods.Enabled(registry).size());
+}
+
+void RemountExtensions(Extensions& extensions, assets::Vfs& vfs,
+                       const settings::Registry& registry) {
+    vfs.KeepLayers(extensions.gameLayers);
+    MountExtensions(extensions, vfs, registry);
+}
+
 void AttachEnhancements(const Extensions& extensions, mods::HookRegistry& hooks, assets::Vfs& vfs,
                         const settings::Registry& settings) {
     mods::ResolveThroughHooks(vfs, hooks);

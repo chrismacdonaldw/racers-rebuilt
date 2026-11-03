@@ -72,6 +72,16 @@ TEST_CASE_FIXTURE(VfsFixture, "a loose-folder layer overrides a JAM file of the 
     CHECK(ReadText("GAMEDATA/C.TXT") == "loose c");
 }
 
+TEST_CASE_FIXTURE(VfsFixture, "keeping the first layers unmounts every layer above them") {
+    MountLoose();
+
+    vfs_.KeepLayers(1);
+
+    CHECK(vfs_.LayerCount() == 1);
+    CHECK(ReadText("GAMEDATA/A.TXT") == "jam a");
+    CHECK_FALSE(vfs_.Read("GAMEDATA/C.TXT").has_value());
+}
+
 TEST_CASE_FIXTURE(VfsFixture, "lookups ignore case and separator style") {
     CHECK(ReadText("gamedata\\b.txt") == "jam b");
 }

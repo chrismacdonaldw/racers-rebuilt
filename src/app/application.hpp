@@ -44,7 +44,7 @@ public:
 
     Application(const Application&) = delete;
     Application& operator=(const Application&) = delete;
-    // NOLINTNEXTLINE(bugprone-exception-escape)
+    // NOLINTNEXTLINE(bugprone-exception-escape,performance-noexcept-move-constructor)
     Application(Application&&) = default;
     Application& operator=(Application&&) = delete;
     ~Application() { vfs_.SetResolver({}); }
@@ -98,6 +98,8 @@ private:
     [[nodiscard]] Result<void> SwitchScene(const SceneFactory& create);
     [[nodiscard]] std::vector<overlay::MenuChoice> SceneChoices();
     void RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music, MenuPointer& pointer);
+    [[nodiscard]] audio::MusicPlayer CreateMusic();
+    void RemountMods(audio::MusicPlayer& music);
     void OpenNextScene();
     void StoreSceneSettings();
     void CyclePacing();
@@ -128,6 +130,7 @@ private:
     std::optional<settings::Racer> playerRacer_;
     sim::Cheats cheats_;
     Restart restart_;
+    LiveRemount remount_;
     FrameLoop frameLoop_;
 };
 
