@@ -29,6 +29,7 @@ struct TrackEntity {
     float radius = 0.0F;
     float drawRangeSquared = std::numeric_limits<float>::infinity();
     std::optional<assets::TextureScroll> textureScroll;
+    bool isEnvironmentMapped = false;
 };
 
 /// `placement` is in game space.

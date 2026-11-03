@@ -35,6 +35,7 @@ rr_add_module(app
         decal_clip.cpp
         decal_surface.cpp
         enhancement_presets.cpp
+        environment_map.cpp
         extensions.cpp
         far_models.cpp
         player_cameras.cpp

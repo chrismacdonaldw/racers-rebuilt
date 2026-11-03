@@ -2,9 +2,11 @@
 
 #include <doctest/doctest.h>
 
+#include <numbers>
 #include <vector>
 
 #include "app/track_space.hpp"
+#include "core/quaternion.hpp"
 #include "core/transform.hpp"
 #include "core/vector3.hpp"
 
@@ -60,6 +62,25 @@ TEST_CASE("an entity with a texture scroll offsets its own draws") {
     CHECK(draws.Draws()[1].material.uvOffset == render::UvOffset{.v = 0.5F});
     CHECK(draws.Draws()[2].material.uvOffset == render::UvOffset{});
     CHECK(draws.Draws()[3].material.uvOffset == render::UvOffset{});
+}
+
+TEST_CASE("an environment mapped entity reflects by its placement and root node") {
+    const Quaternion quarterTurn = FromAxisAngle({.z = 1.0F}, std::numbers::pi_v<float> / 2.0F);
+    sim::TrackEntitySources sources = Arm();
+    sources.skeletons[0].nodes[0].rotation = quarterTurn;
+    sources.entities[0].placement.rotation = quarterTurn;
+    sources.entities[0].isEnvironmentMapped = true;
+    sources.entities.push_back({.name = "still", .model = "arm"});
+    const assets::NameMap<JointedModel> models{
+        {"ARM", {.draws = std::vector<render::MeshDraw>(1), .joints = {0}, .slots = {0}}}};
+    TrackEntityDraws draws(models, sources);
+
+    draws.Update({});
+
+    REQUIRE(draws.Draws().size() == 2);
+    CHECK(draws.Draws()[0].material.uvOffset.u == doctest::Approx(0.5F));
+    CHECK(draws.Draws()[0].material.uvOffset.v == 0.0F);
+    CHECK(draws.Draws()[1].material.uvOffset == render::UvOffset{});
 }
 
 }

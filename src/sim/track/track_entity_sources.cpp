@@ -192,6 +192,7 @@ private:
         placed.radius = bounds->radius * entity.scale;
         placed.drawRangeSquared = assets::DrawRangeSquared(entity);
         placed.textureScroll = entity.textureScroll;
+        placed.isEnvironmentMapped = entity.isEnvironmentMapped;
         sources_.entities.push_back(std::move(placed));
         return {};
     }

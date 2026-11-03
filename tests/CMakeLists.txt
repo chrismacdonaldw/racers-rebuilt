@@ -27,6 +27,7 @@ add_executable(racers-rebuilt-tests
     app/ground_decal_test.cpp
     app/collision_wireframe_test.cpp
     app/enhancement_presets_test.cpp
+    app/environment_map_test.cpp
     app/extensions_test.cpp
     app/far_models_test.cpp
     app/frame_loop_test.cpp

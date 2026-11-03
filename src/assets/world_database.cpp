@@ -116,7 +116,7 @@ constexpr auto kModelEntityFields =
            std::array{
                FieldRule<WorldEntity>{.id = 0x2A, .read = ReadLod<&WorldLod::model>},
                Field<&WorldEntity::scale>(0x36),
-               Field<&WorldEntity::hasFlag4C>(0x4C),
+               Field<&WorldEntity::isEnvironmentMapped>(0x4C),
            });
 
 constexpr auto kAnimatedEntityFields =
@@ -129,7 +129,7 @@ constexpr auto kAnimatedEntityFields =
                                       .read = ReadLod<&WorldLod::sceneNode, &WorldLod::modelPart>},
                FieldRule<WorldEntity>{.id = 0x35, .read = ReadNameOrIndex<&WorldEntity::startPart>},
                Field<&WorldEntity::scale>(0x36),
-               Field<&WorldEntity::hasFlag4C>(0x4C),
+               Field<&WorldEntity::isEnvironmentMapped>(0x4C),
            });
 
 constexpr auto kCollidableEntityFields =
