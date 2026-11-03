@@ -31,10 +31,13 @@ struct HudText {
     float y = 0.0F;
     float scale = 1.0F;
     render::Color tint;
+    render::SpriteAnchor anchor = render::SpriteAnchor::Center;
 };
 
 /// Appends the glyph sprites of each text, in order.
 void DrawHudText(std::span<const HudText> texts, const HudFonts& fonts,
                  std::vector<render::SpriteDraw>& out);
+
+void AnchorSprites(std::span<render::SpriteDraw> sprites, render::SpriteAnchor anchor);
 
 }

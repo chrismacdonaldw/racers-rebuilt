@@ -56,6 +56,16 @@ float ViewAspect(const Viewport& viewport, const PixelRect& area, SceneFit scene
     return static_cast<float>(area.widthPx) / static_cast<float>(area.heightPx);
 }
 
+float EdgeShift(std::uint32_t widthPx, std::uint32_t heightPx, UiFit uiFit, SceneFit sceneFit) {
+    if (sceneFit != SceneFit::Window) {
+        return 0.0F;
+    }
+    const PixelRect area = FitUiArea(widthPx, heightPx, uiFit);
+    return area.widthPx == 0
+               ? 0.0F
+               : static_cast<float>(area.xPx) * kUiWidth / static_cast<float>(area.widthPx);
+}
+
 UiToClip UiToClipTransform(const PixelRect& area, std::uint32_t widthPx, std::uint32_t heightPx) {
     const auto windowWidth = static_cast<float>(widthPx);
     const auto windowHeight = static_cast<float>(heightPx);

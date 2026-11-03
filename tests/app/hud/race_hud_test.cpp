@@ -169,7 +169,20 @@ TEST_CASE("the lap counter and lap time sit top right, right of their labels") {
     CHECK_FALSE(Find(texts, u"BEST").has_value());
 }
 
-TEST_CASE("the place digit ends where its suffix starts, top left") {
+TEST_CASE("the lap rows keep to the window's right") {
+    const Fonts fonts;
+    RaceHud hud(EnglishStrings(), fonts.Hud());
+    const test::RingRace race(3, 3);
+    std::vector<HudText> texts;
+
+    hud.Layout(race.clock, race.progress, {.slot = 0}, texts);
+
+    REQUIRE_FALSE(texts.empty());
+    CHECK(std::ranges::all_of(
+        texts, [](const HudText& item) { return item.anchor == render::SpriteAnchor::Right; }));
+}
+
+TEST_CASE("the place digit ends where its suffix starts, kept top left") {
     const Fonts fonts;
     RaceHud hud(EnglishStrings(), fonts.Hud());
     test::RingRace race(3, 3);
@@ -186,6 +199,7 @@ TEST_CASE("the place digit ends where its suffix starts, top left") {
     REQUIRE(digit != texts.end());
     CHECK(digit->text == u"3");
     CHECK(digit->x == doctest::Approx(44.0F));
+    CHECK(digit->anchor == render::SpriteAnchor::Left);
     CHECK(XOf(texts, u"RD") == doctest::Approx(69.0F));
 }
 
@@ -207,6 +221,7 @@ TEST_CASE("the countdown is centred, yellow and in the number font") {
     CHECK(one.y ==
           doctest::Approx(7.0F + 42.0F - (static_cast<float>(kNumberHeight) * scale / 4.0F)));
     CHECK(one.tint.b == 0.0F);
+    CHECK(one.anchor == render::SpriteAnchor::Center);
 }
 
 TEST_CASE("one player's HUD fills the screen and two players' split it top and bottom") {

@@ -4,6 +4,23 @@
 #include <cstddef>
 
 namespace rr::render {
+namespace {
+
+[[nodiscard]] float Anchored(float x, SpriteAnchor anchor, float shift, bool isRightEdge) {
+    switch (anchor) {
+        case SpriteAnchor::Center:
+            return x;
+        case SpriteAnchor::Left:
+            return x - shift;
+        case SpriteAnchor::Right:
+            return x + shift;
+        case SpriteAnchor::Fill:
+            return isRightEdge ? x + shift : x - shift;
+    }
+    return x;
+}
+
+}
 
 void AddToBatches(std::vector<SpriteBatch>& batches, TextureId texture, BlendMode blend) {
     if (!batches.empty() && batches.back().texture == texture && batches.back().blend == blend) {
@@ -15,15 +32,17 @@ void AddToBatches(std::vector<SpriteBatch>& batches, TextureId texture, BlendMod
     batches.push_back({.texture = texture, .blend = blend, .firstSprite = first, .spriteCount = 1});
 }
 
-void BatchSprites(std::span<const SpriteDraw> sprites, std::vector<SpriteVertex>& vertices,
-                  std::vector<SpriteBatch>& batches) {
+void BatchSprites(std::span<const SpriteDraw> sprites, float edgeShift,
+                  std::vector<SpriteVertex>& vertices, std::vector<SpriteBatch>& batches) {
     vertices.clear();
     batches.clear();
     for (const SpriteDraw& sprite : sprites) {
         AddToBatches(batches, sprite.texture, sprite.blend);
         if (sprite.corners) {
-            for (const SpriteCorner& corner : *sprite.corners) {
-                vertices.push_back({.x = corner.x,
+            const std::array<SpriteCorner, kVerticesPerSprite>& corners = *sprite.corners;
+            for (std::size_t i = 0; i < corners.size(); ++i) {
+                const SpriteCorner& corner = corners[i];
+                vertices.push_back({.x = Anchored(corner.x, sprite.anchor, edgeShift, i % 2 == 1),
                                     .y = corner.y,
                                     .u = corner.u,
                                     .v = corner.v,
@@ -33,15 +52,16 @@ void BatchSprites(std::span<const SpriteDraw> sprites, std::vector<SpriteVertex>
         }
         const Rect& at = sprite.bounds;
         const Rect& uv = sprite.uv;
-        const float right = at.x + at.width;
+        const float left = Anchored(at.x, sprite.anchor, edgeShift, false);
+        const float right = Anchored(at.x + at.width, sprite.anchor, edgeShift, true);
         const float bottom = at.y + at.height;
         const float uvRight = uv.x + uv.width;
         const float uvBottom = uv.y + uv.height;
         vertices.insert(
             vertices.end(),
-            {{.x = at.x, .y = at.y, .u = uv.x, .v = uv.y, .color = sprite.tint},
+            {{.x = left, .y = at.y, .u = uv.x, .v = uv.y, .color = sprite.tint},
              {.x = right, .y = at.y, .u = uvRight, .v = uv.y, .color = sprite.tint},
-             {.x = at.x, .y = bottom, .u = uv.x, .v = uvBottom, .color = sprite.tint},
+             {.x = left, .y = bottom, .u = uv.x, .v = uvBottom, .color = sprite.tint},
              {.x = right, .y = bottom, .u = uvRight, .v = uvBottom, .color = sprite.tint}});
     }
 }

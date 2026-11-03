@@ -1,6 +1,9 @@
+#include <SDL3/SDL_video.h>
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <format>
 #include <limits>
 #include <span>
@@ -9,6 +12,7 @@
 
 #include "render/gpu_error.hpp"
 #include "render/renderer.hpp"
+#include "render/ui_layout.hpp"
 
 namespace rr::render {
 namespace {
@@ -228,7 +232,13 @@ void Renderer::GatherViews(std::span<const RenderView> views) {
     if (pointer_ && sprites_.size() < kMaxSprites) {
         sprites_.push_back(*pointer_);
     }
-    BatchSprites(sprites_, spriteVertices_, spriteBatches_);
+    int widthPx = 0;
+    int heightPx = 0;
+    SDL_GetWindowSizeInPixels(device_.get_deleter().window, &widthPx, &heightPx);
+    const float edgeShift =
+        EdgeShift(static_cast<std::uint32_t>(std::max(widthPx, 1)),
+                  static_cast<std::uint32_t>(std::max(heightPx, 1)), uiFit_, sceneFit_);
+    BatchSprites(sprites_, edgeShift, spriteVertices_, spriteBatches_);
 }
 
 Result<void> Renderer::UploadFrame(SDL_GPUCommandBuffer* commands,
