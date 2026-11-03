@@ -2,7 +2,11 @@
 
 #include <doctest/doctest.h>
 
+#include <cstddef>
+#include <string>
 #include <vector>
+
+#include "assets/vfs.hpp"
 
 namespace rr::mods {
 namespace {
@@ -24,6 +28,26 @@ TEST_CASE("handlers run in subscription order and see earlier changes") {
 
     CHECK(seen == std::vector<float>{0.0F, 1.0F});
     CHECK(camera.position.x == 2.0F);
+}
+
+TEST_CASE("asset handlers chain and serve reads through the vfs") {
+    HookRegistry hooks;
+    hooks.Subscribe<AssetResolving>(
+        [](AssetResolving& event) { event.request.path = "MENUDATA/LOGO.BMP"; });
+    std::string seen;
+    hooks.Subscribe<AssetResolving>([&seen](AssetResolving& event) {
+        seen = event.request.path;
+        event.request.generated = std::vector<std::byte>{std::byte{7}};
+    });
+    assets::Vfs vfs;
+    ResolveThroughHooks(vfs, hooks);
+
+    const Result<assets::FileData> data = vfs.Read("gamedata/a.txt");
+
+    CHECK(seen == "MENUDATA/LOGO.BMP");
+    REQUIRE(data.has_value());
+    CHECK(data->Bytes().size() == 1);
+    CHECK(data->Bytes()[0] == std::byte{7});
 }
 
 TEST_CASE("an event only reaches handlers of its own type") {

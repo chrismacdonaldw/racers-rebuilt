@@ -25,7 +25,8 @@ struct Extensions {
 
 void DeclareExtensionSettings(const Extensions& extensions, settings::Registry& registry);
 
-void AttachEnhancements(const Extensions& extensions, mods::HookRegistry& hooks,
+/// Also routes every later read through `vfs` to the `AssetResolving` hook.
+void AttachEnhancements(const Extensions& extensions, mods::HookRegistry& hooks, assets::Vfs& vfs,
                         const settings::Registry& settings);
 
 }

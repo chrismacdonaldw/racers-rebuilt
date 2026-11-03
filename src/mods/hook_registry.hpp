@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "assets/vfs.hpp"
 #include "core/duration.hpp"
 #include "core/transform.hpp"
 #include "settings/registry.hpp"
@@ -36,7 +37,12 @@ struct SettingChanged {
     const settings::Registry& settings;
 };
 
-/// Handlers run on the main thread in the order they subscribed.
+/// Handlers run on loader threads at once, and must answer a path the same way all session.
+struct AssetResolving {
+    assets::AssetRequest& request;
+};
+
+/// Handlers run in the order they subscribed, on the main thread unless the event says otherwise.
 class HookRegistry {
 public:
     template <typename Event>
@@ -57,8 +63,12 @@ public:
 private:
     std::tuple<std::vector<Handler<SceneEntered>>, std::vector<Handler<SceneExited>>,
                std::vector<Handler<TickStarted>>, std::vector<Handler<TickEnded>>,
-               std::vector<Handler<FrameRendering>>, std::vector<Handler<SettingChanged>>>
+               std::vector<Handler<FrameRendering>>, std::vector<Handler<SettingChanged>>,
+               std::vector<Handler<AssetResolving>>>
         handlers_;
 };
+
+/// `hooks` must outlive every later read through `vfs`.
+void ResolveThroughHooks(assets::Vfs& vfs, const HookRegistry& hooks);
 
 }
