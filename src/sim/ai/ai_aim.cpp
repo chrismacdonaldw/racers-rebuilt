@@ -13,13 +13,14 @@ constexpr AimCone kDropAimCone{
 }
 
 std::optional<Vector3> AimFor(std::optional<assets::BrickColour> colour,
-                              std::span<const Vector3> positions, const BodyMotion& motion) {
+                              std::span<const Vector3> positions, std::size_t self,
+                              const BodyMotion& motion) {
     const Vector3& forward = motion.basis.forward;
     std::optional<std::size_t> rival;
     if (colour == assets::BrickColour::Red) {
-        rival = FindNearestPositionInCone(positions, motion.position, forward, kShotAimCone);
+        rival = FindNearestPositionInCone(positions, self, motion.position, forward, kShotAimCone);
     } else if (colour == assets::BrickColour::Yellow) {
-        rival = FindNearestPositionInCone(positions, motion.position, -forward, kDropAimCone);
+        rival = FindNearestPositionInCone(positions, self, motion.position, -forward, kDropAimCone);
     }
     return rival ? std::optional(positions[*rival]) : std::nullopt;
 }

@@ -245,7 +245,7 @@ RacerControls RaceSession::ControlsOf(std::size_t racer, std::span<const RacerCo
     }
     const Racer& self = racers_[racer];
     return driver->Drive(self, rivals_, racer,
-                         AimFor(inventories_[racer].Colour(), rivals_, self.Body().motion));
+                         AimFor(inventories_[racer].Colour(), rivals_, racer, self.Body().motion));
 }
 
 bool RaceSession::WantsPowerup(std::size_t racer, Milliseconds elapsed,
