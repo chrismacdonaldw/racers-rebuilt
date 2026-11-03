@@ -17,7 +17,6 @@
 #include "app/collision_wireframe.hpp"
 #include "app/frame_loop.hpp"
 #include "app/game_settings.hpp"
-#include "app/hud/race_hud_values.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/powerup_tools.hpp"
 #include "app/race_scene_parts.hpp"
@@ -211,7 +210,7 @@ void RaceScene::Tick(const sim::InputFrame& input) {
     }
     ApplyChosenTools();
     if (!trial_) {
-        LeaveAfterResults(input);
+        LeaveAfterResults();
     }
     StepRace(parts_.session, input, controls_, parts_.setup.isDemo ? 0 : cameras_.Count());
     if (trial_) {
@@ -425,22 +424,10 @@ bool RaceScene::IsTrialAsking() const {
     return trial_ && trial_->IsAsking(parts_.session.Clock());
 }
 
-void RaceScene::LeaveAfterResults(const sim::InputFrame& input) {
+void RaceScene::LeaveAfterResults() {
     const sim::RaceClock& clock = parts_.session.Clock();
-    if (clock.IsTestDrive() || parts_.setup.isDemo) {
-        if (clock.Phase() == sim::RacePhase::Results) {
-            next_ = MenuAfter(parts_.setup);
-        }
-        return;
-    }
-    if (parts_.setup.players > 1) {
-        if (clock.Phase() == sim::RacePhase::Results) {
-            next_ = std::string(kMainMenuScene);
-        }
-        return;
-    }
     if (!circuit_) {
-        if (ShowsResults(clock) && input.WasPressed(sim::MenuAction::Confirm)) {
+        if (clock.Phase() == sim::RacePhase::Results) {
             next_ = MenuAfter(parts_.setup);
         }
         return;

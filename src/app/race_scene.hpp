@@ -112,7 +112,7 @@ private:
     void TickTrialQuestion(TimeTrialRace& trial, const sim::InputFrame& input);
     void Hush();
     [[nodiscard]] bool IsTrialAsking() const;
-    void LeaveAfterResults(const sim::InputFrame& input);
+    void LeaveAfterResults();
     [[nodiscard]] overlay::RacerActionGroup EffectTools();
     [[nodiscard]] overlay::RacerActionGroup PowerupTools();
     void ApplyChosenTools();

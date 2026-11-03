@@ -34,6 +34,7 @@ struct HudRacer {
     std::size_t slot = 0;
     bool isGhost = false;
     bool hidesRaceInfo = false;
+    bool hasResults = false;
     const sim::TimeTrialGhosts* trial = nullptr;
 };
 
@@ -52,7 +53,7 @@ public:
 
     void TickPause(Milliseconds elapsed);
 
-    /// `circuitPoints` is empty outside a circuit.
+    /// Only a circuit has a results table, so empty `circuitPoints` lay out nothing.
     void LayoutResults(const sim::RaceClock& clock, const sim::RaceProgress& progress,
                        std::size_t racer, std::span<const std::u16string> names,
                        std::span<const std::int32_t> circuitPoints, std::vector<HudText>& out);

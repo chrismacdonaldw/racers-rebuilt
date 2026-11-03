@@ -6,20 +6,22 @@ namespace rr::app {
 namespace {
 
 constexpr Milliseconds kQuarter{87};
+constexpr Milliseconds kTick{12};
 
-TEST_CASE("the starting place doesn't pulse") {
+TEST_CASE("the race opens with a pulse from place 9 to the starting place") {
     PlacePulse pulse;
-    pulse.Advance(6, Milliseconds{12});
+    CHECK(pulse.Shown() == 9);
 
+    pulse.Advance(6, kTick);
     pulse.Advance(6, kQuarter);
 
-    CHECK(pulse.Scale() == doctest::Approx(1.0F));
+    CHECK(pulse.Shown() == 6);
+    CHECK(pulse.Scale() == doctest::Approx(1.497F).epsilon(0.01));
 }
 
 TEST_CASE("a new place swells to double size at 175 ms and settles by 350 ms") {
     PlacePulse pulse;
-    pulse.Advance(4, Milliseconds{12});
-    pulse.Advance(3, Milliseconds{12});
+    pulse.Advance(3, kTick);
     const float start = pulse.Scale();
 
     pulse.Advance(3, kQuarter);
@@ -34,27 +36,29 @@ TEST_CASE("a new place swells to double size at 175 ms and settles by 350 ms") {
     CHECK(pulse.Scale() == doctest::Approx(1.0F));
 }
 
-TEST_CASE("a pulse ends after 350 ms") {
+TEST_CASE("the shown place holds for 1050 ms, then takes the latest place with a new pulse") {
     PlacePulse pulse;
-    pulse.Advance(3, Milliseconds{12});
-    pulse.Advance(2, Milliseconds{12});
-    pulse.Advance(2, Milliseconds{400});
-
-    pulse.Advance(2, kQuarter);
-
+    pulse.Advance(3, kTick);
+    pulse.Advance(2, Milliseconds{500});
+    pulse.Advance(1, Milliseconds{500});
+    CHECK(pulse.Shown() == 3);
     CHECK(pulse.Scale() == doctest::Approx(1.0F));
-}
 
-TEST_CASE("a place change mid-pulse starts the pulse again") {
-    PlacePulse pulse;
-    pulse.Advance(3, Milliseconds{12});
-    pulse.Advance(2, Milliseconds{12});
-    pulse.Advance(2, Milliseconds{175});
-
-    pulse.Advance(1, Milliseconds{12});
+    pulse.Advance(1, Milliseconds{50});
     pulse.Advance(1, kQuarter);
 
+    CHECK(pulse.Shown() == 1);
     CHECK(pulse.Scale() == doctest::Approx(1.497F).epsilon(0.01));
+}
+
+TEST_CASE("a place that doesn't change after the hold doesn't pulse") {
+    PlacePulse pulse;
+    pulse.Advance(4, kTick);
+    pulse.Advance(4, Milliseconds{1100});
+
+    pulse.Advance(4, kQuarter);
+
+    CHECK(pulse.Scale() == doctest::Approx(1.0F));
 }
 
 }
