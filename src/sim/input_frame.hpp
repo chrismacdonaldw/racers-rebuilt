@@ -38,13 +38,18 @@ inline constexpr std::size_t kMenuActionCount = static_cast<std::size_t>(MenuAct
 
 inline constexpr std::size_t kMaxPlayers = 2;
 
-/// On the UI canvas. `pressed` and `released` cover every mouse button since the previous tick.
+enum class PointerButton : std::uint8_t { Left, Right, Other };
+
+/// `x` and `y` are on the UI canvas; the rest covers everything since the previous tick.
 struct MenuPointer {
     float x = 0.0F;
     float y = 0.0F;
+    float dx = 0.0F;
+    float dy = 0.0F;
     bool isOver = false;
     bool moved = false;
     bool pressed = false;
+    bool rightPressed = false;
     bool released = false;
 
     friend bool operator==(const MenuPointer&, const MenuPointer&) = default;

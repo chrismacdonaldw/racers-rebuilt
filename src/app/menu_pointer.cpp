@@ -15,6 +15,17 @@ namespace {
 constexpr std::string_view kCursorFiles = "MAINMENU";
 constexpr std::string_view kCursorImage = "arrow";
 
+sim::PointerButton ButtonOf(std::uint8_t button) {
+    switch (button) {
+        case SDL_BUTTON_LEFT:
+            return sim::PointerButton::Left;
+        case SDL_BUTTON_RIGHT:
+            return sim::PointerButton::Right;
+        default:
+            return sim::PointerButton::Other;
+    }
+}
+
 }
 
 CanvasPoint ToCanvas(float xPx, float yPx, const render::PixelRect& area) {
@@ -50,11 +61,12 @@ std::optional<UiImage> LoadMenuCursor(render::Renderer& renderer, const assets::
 void MenuPointer::Handle(const SDL_Event& event, sim::InputLatch& latch) {
     switch (event.type) {
         case SDL_EVENT_MOUSE_MOTION:
+            latch.AddPointerMotion(event.motion.xrel, event.motion.yrel);
             Move(event.motion.x, event.motion.y, latch);
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             Move(event.button.x, event.button.y, latch);
-            latch.PressPointer();
+            latch.PressPointer(ButtonOf(event.button.button));
             break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
             Move(event.button.x, event.button.y, latch);
@@ -71,8 +83,9 @@ void MenuPointer::Handle(const SDL_Event& event, sim::InputLatch& latch) {
     }
 }
 
-void MenuPointer::Show(bool isShown) {
-    const bool drawsCursor = isShown && cursor_ && at_ && IsOnCanvas(*at_);
+void MenuPointer::Show(bool isShown, bool isHeld) {
+    Hold(isShown && isHeld);
+    const bool drawsCursor = isShown && !isHeld_ && cursor_ && at_ && IsOnCanvas(*at_);
     if (drawsCursor) {
         renderer_->SetPointer(
             render::SpriteDraw{.texture = cursor_->texture,
@@ -83,13 +96,31 @@ void MenuPointer::Show(bool isShown) {
     } else {
         renderer_->SetPointer(std::nullopt);
     }
-    if (drawsCursor != isHidingSystemCursor_) {
-        isHidingSystemCursor_ = drawsCursor;
-        static_cast<void>(drawsCursor ? SDL_HideCursor() : SDL_ShowCursor());
+    const bool hidesSystemCursor = drawsCursor || isHeld_;
+    if (hidesSystemCursor != isHidingSystemCursor_) {
+        isHidingSystemCursor_ = hidesSystemCursor;
+        static_cast<void>(hidesSystemCursor ? SDL_HideCursor() : SDL_ShowCursor());
+    }
+}
+
+void MenuPointer::Hold(bool isHeld) {
+    if (isHeld == isHeld_) {
+        return;
+    }
+    isHeld_ = isHeld;
+    if (isHeld) {
+        static_cast<void>(SDL_GetMouseState(&heldAtX_, &heldAtY_));
+    }
+    static_cast<void>(SDL_SetWindowRelativeMouseMode(window_, isHeld));
+    if (!isHeld) {
+        SDL_WarpMouseInWindow(window_, heldAtX_, heldAtY_);
     }
 }
 
 void MenuPointer::Move(float x, float y, sim::InputLatch& latch) {
+    if (isHeld_) {
+        return;
+    }
     int widthPx = 0;
     int heightPx = 0;
     static_cast<void>(SDL_GetWindowSizeInPixels(window_, &widthPx, &heightPx));

@@ -212,7 +212,9 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music,
                             .startupSummary = startupSummary_},
                            scenes, saveImports, racerTools));
         lastFrame = now;
-        pointer.Show(!menu.IsVisible() && shown != nullptr && shown->ShowsPointer());
+        const bool pointsAtScene = !menu.IsVisible() && shown != nullptr;
+        pointer.Show(pointsAtScene && shown->ShowsPointer(),
+                     pointsAtScene && shown->HoldsPointer());
         frame = frameLoop_.RunFrame(now);
         StoreSceneSettings();
         SaveCapturedFrame(renderer_, settingsFile_.parent_path());

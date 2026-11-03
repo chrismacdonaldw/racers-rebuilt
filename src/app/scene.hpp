@@ -49,6 +49,9 @@ public:
     /// Read every frame. The game's cursor then stands in for the system's.
     [[nodiscard]] virtual bool ShowsPointer() const { return false; }
 
+    /// Read every frame. While true, the pointer is hidden and stays put, but its motion is read.
+    [[nodiscard]] virtual bool HoldsPointer() const { return false; }
+
     /// Scene time per real time, read every frame. Ticks stay kSimTick long; more of them run.
     [[nodiscard]] virtual double TimeScale() const { return 1.0; }
 

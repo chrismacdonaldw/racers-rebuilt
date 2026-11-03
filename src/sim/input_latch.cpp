@@ -38,8 +38,14 @@ void InputLatch::MovePointer(float x, float y, bool isOver) {
     pointer.isOver = isOver;
 }
 
-void InputLatch::PressPointer() {
+void InputLatch::AddPointerMotion(float dx, float dy) {
+    pending_.pointer.dx += dx;
+    pending_.pointer.dy += dy;
+}
+
+void InputLatch::PressPointer(PointerButton button) {
     pending_.pointer.pressed = true;
+    pending_.pointer.rightPressed = pending_.pointer.rightPressed || button == PointerButton::Right;
 }
 
 void InputLatch::ReleasePointer() {
@@ -61,8 +67,11 @@ InputFrame InputLatch::TakeFrame() {
         input.released.reset();
     }
     pending_.menuPressed.reset();
+    pending_.pointer.dx = 0.0F;
+    pending_.pointer.dy = 0.0F;
     pending_.pointer.moved = false;
     pending_.pointer.pressed = false;
+    pending_.pointer.rightPressed = false;
     pending_.pointer.released = false;
     return frame;
 }
