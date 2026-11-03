@@ -1,7 +1,6 @@
 #include "app/menu/car_build_menu.hpp"
 
 #include <array>
-#include <utility>
 
 namespace rr::app {
 namespace {
@@ -25,6 +24,10 @@ constexpr std::array kBuildKeys{
     BuildKey{.key = SDLK_LEFT, .request = MoveTo(6)},
     BuildKey{.key = SDLK_KP_7, .request = MoveTo(7)},
     BuildKey{.key = SDLK_KP_5, .request = {.command = BuildCommand::Rotate}},
+    BuildKey{.key = SDLK_A, .request = {.command = BuildCommand::TurnLeft}},
+    BuildKey{.key = SDLK_D, .request = {.command = BuildCommand::TurnRight}},
+    BuildKey{.key = SDLK_S, .request = {.command = BuildCommand::TiltUp}},
+    BuildKey{.key = SDLK_X, .request = {.command = BuildCommand::TiltDown}},
     BuildKey{.key = SDLK_KP_PLUS, .request = {.command = BuildCommand::Place}},
     BuildKey{.key = SDLK_PLUS, .request = {.command = BuildCommand::Place}},
     BuildKey{.key = SDLK_EQUALS, .request = {.command = BuildCommand::Place}},
@@ -36,12 +39,13 @@ constexpr std::array kBuildKeys{
     BuildKey{.key = SDLK_PAGEDOWN, .request = {.command = BuildCommand::NextPiece}},
 };
 
-constexpr std::array<std::pair<sim::MenuAction, std::size_t>, 4> kPadDirections{{
-    {sim::MenuAction::Up, 0},
-    {sim::MenuAction::Right, 2},
-    {sim::MenuAction::Down, 4},
-    {sim::MenuAction::Left, 6},
-}};
+constexpr std::array kPadActions{sim::MenuAction::Up, sim::MenuAction::Right, sim::MenuAction::Down,
+                                 sim::MenuAction::Left};
+
+constexpr std::array kViewCommands{BuildCommand::TiltUp, BuildCommand::TurnRight,
+                                   BuildCommand::TiltDown, BuildCommand::TurnLeft};
+
+constexpr std::size_t kPadStep = 2;
 
 }
 
@@ -55,8 +59,8 @@ std::optional<BuildRequest> BuildKeyRequest(SDL_Keycode key) {
 }
 
 BuildRequest CarBuildMenu::Tick(const sim::InputFrame& input) {
-    if (isMoving_) {
-        return TickMoving(input);
+    if (held_) {
+        return TickHeld(input);
     }
     if (input.WasPressed(sim::MenuAction::Back)) {
         return {.command = BuildCommand::Done};
@@ -74,14 +78,15 @@ BuildRequest CarBuildMenu::Tick(const sim::InputFrame& input) {
     return input.WasPressed(sim::MenuAction::Confirm) ? Choose() : BuildRequest{};
 }
 
-BuildRequest CarBuildMenu::TickMoving(const sim::InputFrame& input) {
+BuildRequest CarBuildMenu::TickHeld(const sim::InputFrame& input) {
     if (input.WasPressed(sim::MenuAction::Confirm) || input.WasPressed(sim::MenuAction::Back)) {
-        isMoving_ = false;
+        held_.reset();
         return {};
     }
-    for (const auto& [action, direction] : kPadDirections) {
-        if (input.WasPressed(action)) {
-            return MoveTo(direction);
+    for (std::size_t side = 0; side < kPadActions.size(); ++side) {
+        if (input.WasPressed(kPadActions.at(side))) {
+            return held_ == BuildPad::Move ? MoveTo(side * kPadStep)
+                                           : BuildRequest{.command = kViewCommands.at(side)};
         }
     }
     return {};
@@ -105,7 +110,10 @@ BuildRequest CarBuildMenu::Step(const sim::InputFrame& input) const {
 BuildRequest CarBuildMenu::Choose() {
     switch (focus_) {
         case BuildRow::Move:
-            isMoving_ = true;
+            held_ = BuildPad::Move;
+            return {};
+        case BuildRow::View:
+            held_ = BuildPad::View;
             return {};
         case BuildRow::Rotate:
             return {.command = BuildCommand::Rotate};

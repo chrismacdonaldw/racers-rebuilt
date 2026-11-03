@@ -14,6 +14,7 @@ namespace rr::app {
 
 inline constexpr std::string_view kMenuFolder = "MENUDATA";
 inline constexpr std::string_view kMenuFontList = "GFONTS.FDB";
+inline constexpr std::string_view kMenuTextFile = "MENUTEXT.SRF";
 
 /// Shared styles and images come first, then the screen's own.
 struct MenuFiles {
@@ -33,8 +34,8 @@ struct MenuFiles {
 /// `screen` is a base name from `MENUNAME.SRF`, such as `MAINMENU`.
 [[nodiscard]] Result<MenuFiles> ReadMenuFiles(const assets::Vfs& vfs, std::string_view screen);
 
-[[nodiscard]] Result<std::vector<std::u16string>> ReadMenuText(const assets::Vfs& vfs,
-                                                               std::string_view language);
+[[nodiscard]] Result<std::vector<std::u16string>> ReadMenuText(
+    const assets::Vfs& vfs, std::string_view language, std::string_view file = kMenuTextFile);
 
 [[nodiscard]] std::string MenuLanguageFolder(std::string_view language);
 

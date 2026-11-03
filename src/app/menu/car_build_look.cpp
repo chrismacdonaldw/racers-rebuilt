@@ -17,8 +17,8 @@ constexpr std::string_view kPieces = "pieces";
 constexpr std::string_view kCarousel = "piecesel";
 constexpr std::string_view kItemStyle = "partcont";
 constexpr std::string_view kScrollStyle = "pieceset";
-constexpr std::array<std::string_view, kBuildButtons> kButtons{"procker", "rotbrik", "addbrik",
-                                                               "undobrik", "goback"};
+constexpr std::array<std::string_view, kBuildButtons> kButtons{"procker", "crocker",  "rotbrik",
+                                                               "addbrik", "undobrik", "goback"};
 constexpr StandSet kGarageSet{.folder = "MENUDATA/GARAGE", .element = "garage"};
 
 template <typename Body>

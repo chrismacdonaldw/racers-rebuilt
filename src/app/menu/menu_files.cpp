@@ -14,7 +14,6 @@ namespace {
 
 constexpr std::string_view kSharedStyles = "GSTYLES";
 constexpr std::string_view kSharedImages = "GIMAGES";
-constexpr std::string_view kMenuText = "MENUTEXT.SRF";
 
 std::string MenuPath(std::string_view base, std::string_view extension) {
     return assets::JoinGamePath(kMenuFolder, std::format("{}.{}", base, extension));
@@ -116,9 +115,9 @@ Result<MenuFiles> ReadMenuFiles(const assets::Vfs& vfs, std::string_view screen)
     return files;
 }
 
-Result<std::vector<std::u16string>> ReadMenuText(const assets::Vfs& vfs,
-                                                 std::string_view language) {
-    return ReadFile(vfs, assets::JoinGamePath(MenuLanguageFolder(language), kMenuText),
+Result<std::vector<std::u16string>> ReadMenuText(const assets::Vfs& vfs, std::string_view language,
+                                                 std::string_view file) {
+    return ReadFile(vfs, assets::JoinGamePath(MenuLanguageFolder(language), file),
                     assets::ParseStringTable);
 }
 

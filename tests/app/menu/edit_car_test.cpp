@@ -27,7 +27,8 @@ struct Pieces {
         assets::PieceRecord racer = Block(18, 10, 6, 1);
         racer.name = "rrchas0";
         catalog.library.pieces = {starter, racer, Block(0x900, 1, 1, 3)};
-        catalog.partSets.resize(kPartSetCount, {.chassisName = "ddchas0"});
+        catalog.partSets.resize(kPartSetCount,
+                                {.chassisName = "ddchas0", .choices = {{.piece = 2}}});
         catalog.partSets.at(1).chassisName = "nochas";
         catalog.partSets.at(kRaceSet).chassisName = "RRCHAS0";
         return catalog;
@@ -100,6 +101,9 @@ TEST_CASE_FIXTURE(Pieces, "the starter sets, unlocked sets and the car's own set
 
     REQUIRE(car.Place(Brick(), {.x = 2, .y = 1}, 7, Brick().type).has_value());
     CHECK(AvailablePartSets({0}, car, catalog) == std::vector<std::size_t>{0, 1, 2, 3, 4, 6});
+
+    catalog.partSets.at(1).choices.clear();
+    CHECK(AvailablePartSets({0}, car, catalog) == std::vector<std::size_t>{0, 2, 3, 4, 6});
 }
 
 TEST_CASE("quick build cycles exactly the builds on the chassis, in any case") {

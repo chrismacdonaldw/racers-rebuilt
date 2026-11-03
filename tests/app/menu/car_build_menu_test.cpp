@@ -32,7 +32,9 @@ TEST_CASE("the builder keys follow the original's") {
     CHECK(BuildKeyRequest(SDLK_MINUS) == BuildRequest{.command = BuildCommand::Undo});
     CHECK(BuildKeyRequest(SDLK_PAGEUP) == BuildRequest{.command = BuildCommand::NextSet});
     CHECK(BuildKeyRequest(SDLK_DELETE) == BuildRequest{.command = BuildCommand::PreviousPiece});
-    CHECK_FALSE(BuildKeyRequest(SDLK_A).has_value());
+    CHECK(BuildKeyRequest(SDLK_A) == BuildRequest{.command = BuildCommand::TurnLeft});
+    CHECK(BuildKeyRequest(SDLK_X) == BuildRequest{.command = BuildCommand::TiltDown});
+    CHECK_FALSE(BuildKeyRequest(SDLK_B).has_value());
 }
 
 TEST_CASE("left and right step the focused carousel") {
@@ -47,22 +49,34 @@ TEST_CASE("left and right step the focused carousel") {
 TEST_CASE("the move pad holds the directions until confirm") {
     CarBuildMenu menu;
     Press(menu, {sim::MenuAction::Down, sim::MenuAction::Down, sim::MenuAction::Confirm});
-    REQUIRE(menu.IsMoving());
+    REQUIRE(menu.Held() == BuildPad::Move);
 
     CHECK(Press(menu, {sim::MenuAction::Down}) ==
           BuildRequest{.command = BuildCommand::Move, .direction = 4});
     CHECK(Press(menu, {sim::MenuAction::Left}) ==
           BuildRequest{.command = BuildCommand::Move, .direction = 6});
     CHECK(Press(menu, {sim::MenuAction::Back}).command == BuildCommand::None);
-    CHECK_FALSE(menu.IsMoving());
+    CHECK_FALSE(menu.Held().has_value());
     CHECK(menu.Focus() == BuildRow::Move);
+}
+
+TEST_CASE("the view pad turns and tilts the view until confirm") {
+    CarBuildMenu menu;
+    Press(menu, {sim::MenuAction::Down, sim::MenuAction::Down, sim::MenuAction::Down,
+                 sim::MenuAction::Confirm});
+    REQUIRE(menu.Held() == BuildPad::View);
+
+    CHECK(Press(menu, {sim::MenuAction::Up}).command == BuildCommand::TiltUp);
+    CHECK(Press(menu, {sim::MenuAction::Left}).command == BuildCommand::TurnLeft);
+    CHECK(Press(menu, {sim::MenuAction::Confirm}).command == BuildCommand::None);
+    CHECK_FALSE(menu.Held().has_value());
 }
 
 TEST_CASE("the buttons act on confirm and back is done") {
     CarBuildMenu menu;
 
     CHECK(Press(menu, {sim::MenuAction::Down, sim::MenuAction::Down, sim::MenuAction::Down,
-                       sim::MenuAction::Confirm})
+                       sim::MenuAction::Down, sim::MenuAction::Confirm})
               .command == BuildCommand::Rotate);
     CHECK(Press(menu, {sim::MenuAction::Down, sim::MenuAction::Confirm}).command ==
           BuildCommand::Place);

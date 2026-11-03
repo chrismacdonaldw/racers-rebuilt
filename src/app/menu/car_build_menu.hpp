@@ -10,9 +10,11 @@
 
 namespace rr::app {
 
-enum class BuildRow : std::uint8_t { Sets, Pieces, Move, Rotate, Place, Undo, Done };
+enum class BuildRow : std::uint8_t { Sets, Pieces, Move, View, Rotate, Place, Undo, Done };
 
-inline constexpr std::size_t kBuildRows = 7;
+inline constexpr std::size_t kBuildRows = 8;
+
+enum class BuildPad : std::uint8_t { Move, View };
 
 enum class BuildCommand : std::uint8_t {
     None,
@@ -21,6 +23,10 @@ enum class BuildCommand : std::uint8_t {
     PreviousPiece,
     NextPiece,
     Move,
+    TurnLeft,
+    TurnRight,
+    TiltUp,
+    TiltDown,
     Rotate,
     Place,
     Undo,
@@ -34,24 +40,24 @@ struct BuildRequest {
     friend bool operator==(const BuildRequest&, const BuildRequest&) = default;
 };
 
-/// The original's builder keys: arrows and the keypad move, keypad 5 turns, + and - place and undo.
+/// The original's builder keys: arrows and keypad move, keypad 5 turns, + and - place and undo.
 [[nodiscard]] std::optional<BuildRequest> BuildKeyRequest(SDL_Keycode key);
 
-/// Confirm on the move pad holds it, so the directions move the piece until Confirm or Back.
+/// Confirm on a pad holds it, so the directions work it until Confirm or Back.
 class CarBuildMenu {
 public:
     [[nodiscard]] BuildRequest Tick(const sim::InputFrame& input);
 
     [[nodiscard]] BuildRow Focus() const { return focus_; }
-    [[nodiscard]] bool IsMoving() const { return isMoving_; }
+    [[nodiscard]] std::optional<BuildPad> Held() const { return held_; }
 
 private:
-    [[nodiscard]] BuildRequest TickMoving(const sim::InputFrame& input);
+    [[nodiscard]] BuildRequest TickHeld(const sim::InputFrame& input);
     [[nodiscard]] BuildRequest Step(const sim::InputFrame& input) const;
     [[nodiscard]] BuildRequest Choose();
 
     BuildRow focus_ = BuildRow::Sets;
-    bool isMoving_ = false;
+    std::optional<BuildPad> held_;
 };
 
 }
