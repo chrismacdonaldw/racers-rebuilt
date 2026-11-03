@@ -14,6 +14,7 @@
 #include "sim/powerup/powerup_effect.hpp"
 #include "sim/powerup/powerup_inventory.hpp"
 #include "sim/powerup/powerup_kind.hpp"
+#include "sim/race/cheats.hpp"
 
 namespace rr::sim {
 
@@ -48,7 +49,7 @@ struct PowerupEvent {
 /// Every effect is built up front, so using, ticking and ending effects never allocates.
 class PowerupSystem {
 public:
-    PowerupSystem(const EffectFactories& factories, std::size_t usesPerTick);
+    PowerupSystem(const EffectFactories& factories, std::size_t usesPerTick, Cheats cheats = {});
 
     void BeginTick();
 
@@ -89,6 +90,7 @@ private:
     std::vector<bool> isDone_;
     std::vector<PowerupEvent> events_;
     EffectEntities entities_;
+    Cheats cheats_;
 };
 
 }

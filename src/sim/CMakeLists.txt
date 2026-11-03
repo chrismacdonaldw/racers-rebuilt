@@ -81,6 +81,7 @@ rr_add_module(sim
         powerup/magnet_effect.cpp
         powerup/missile_effect.cpp
         powerup/oil_slick_effect.cpp
+        powerup/powerup_cheats.cpp
         powerup/powerup_inventory.cpp
         powerup/powerup_kind.cpp
         powerup/powerup_system.cpp
@@ -91,6 +92,7 @@ rr_add_module(sim
         powerup/warp_effect.cpp
         powerup/weapon_hits.cpp
         powerup/yellow_effects.cpp
+        race/cheats.cpp
         race/checkpoint_graph.cpp
         race/lap_tracker.cpp
         race/circuit_run.cpp

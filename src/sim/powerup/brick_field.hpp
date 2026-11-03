@@ -69,7 +69,8 @@ struct BrickEvent {
 class BrickField {
 public:
     BrickField() = default;
-    explicit BrickField(const assets::BrickLayout& layout);
+    explicit BrickField(const assets::BrickLayout& layout,
+                        std::optional<assets::BrickColour> everyBrick = std::nullopt);
 
     /// `racers` and `inventories` have one entry per racer.
     void Tick(Milliseconds elapsed, std::span<const BoundingSphere> racers,

@@ -201,6 +201,7 @@ Out-of-range values are clamped. Unknown keys are kept when the file is saved.
 | `--track <folder>` | Open a race track instead of the main menu, by its `GAMEDATA` folder, e.g. `RACEC0R0` |
 | `--race <folder>` | Start a race on a track instead of the main menu, by its `GAMEDATA` folder. Can't be combined with `--track`. |
 | `--players 2` | With `--race`, race two players against each other in split screen, with no computer racers |
+| `--cheats <plates>` | With `--race`, turn on the original's license plate cheats, comma separated, e.g. `MXPMX,PGLLRD`. Plates are entered in order, so later ones can switch earlier ones off. |
 | `--cutscene <folder>/<file>` | Play a menu cutscene on a loop instead of the main menu, by its `MENUDATA` folder and file, e.g. `CIRCUIT1/CIR1-01` |
 
 ```powershell

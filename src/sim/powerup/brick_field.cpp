@@ -104,15 +104,17 @@ float BrickScale(const Brick& brick) {
     return 0.0F;
 }
 
-BrickField::BrickField(const assets::BrickLayout& layout) {
+BrickField::BrickField(const assets::BrickLayout& layout,
+                       std::optional<assets::BrickColour> everyBrick) {
     coloured_.reserve(layout.coloured.size());
     for (const assets::ColourBrickPlacement& placement : layout.coloured) {
+        const assets::BrickColour colour = everyBrick.value_or(placement.colour);
         coloured_.push_back({.brick = {.position = placement.position,
                                        .state = BrickState::Wait,
                                        .stateTime = kStartTime},
-                             .colour = placement.colour,
-                             .homeColour = placement.colour,
-                             .nextColour = placement.colour,
+                             .colour = colour,
+                             .homeColour = colour,
+                             .nextColour = colour,
                              .respawn = placement.respawn});
     }
     white_.reserve(layout.white.size());

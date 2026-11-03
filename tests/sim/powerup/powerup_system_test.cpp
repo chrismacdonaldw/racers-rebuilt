@@ -23,8 +23,8 @@ PowerupUse Use(BrickColour colour, std::uint8_t level, std::uint8_t racer = 0) {
 
 class Manager {
 public:
-    explicit Manager(Milliseconds lifetime = kLongLife, bool blocksHits = false)
-        : system_(test::FakeEffects(lifetime, blocksHits), kRacers) {}
+    explicit Manager(Milliseconds lifetime = kLongLife, bool blocksHits = false, Cheats cheats = {})
+        : system_(test::FakeEffects(lifetime, blocksHits), kRacers, cheats) {}
 
     PowerupSystem& System() { return system_; }
     PowerupContext& Context() { return context_; }
@@ -259,6 +259,34 @@ TEST_CASE("ticking and reclaiming with every pool full allocates nothing") {
     manager.System().Fire(Use(BrickColour::Blue, 0), manager.Context());
 
     CHECK(test::AllocationCount() == before);
+}
+
+TEST_CASE("under red only a use fires a level 1 red whatever is held, then spends it") {
+    Manager manager(kLongLife, false, Cheats(static_cast<std::uint16_t>(Cheat::RedOnly)));
+    PowerupInventory inventory;
+    inventory.Grant(BrickColour::Blue, 3);
+    BrickField bricks;
+    manager.System().BeginTick();
+
+    manager.System().Use(0, inventory, bricks, manager.Context());
+
+    CHECK(manager.ActiveKinds() == std::vector{PowerupKind::GrapplingHook});
+    CHECK_FALSE(inventory.Colour().has_value());
+}
+
+TEST_CASE("under the hover cheat a green short of three white bricks is spent unfired") {
+    Manager manager(kLongLife, false, Cheats(static_cast<std::uint16_t>(Cheat::HoverTurbo)));
+    PowerupInventory inventory;
+    inventory.Grant(BrickColour::Green, 2);
+    BrickField bricks;
+    manager.System().BeginTick();
+
+    manager.System().Use(0, inventory, bricks, manager.Context());
+
+    CHECK(Kinds({manager.System().Events().begin(), manager.System().Events().end()}) ==
+          std::vector{PowerupEventKind::Used});
+    CHECK(manager.System().Active().empty());
+    CHECK_FALSE(inventory.Colour().has_value());
 }
 
 }

@@ -9,6 +9,7 @@
 #include "sim/ai/powerup_habits.hpp"
 #include "sim/physics/chassis.hpp"
 #include "sim/powerup/powerup_effect.hpp"
+#include "sim/race/cheats.hpp"
 #include "sim/race/respawn.hpp"
 
 namespace rr::sim {
@@ -37,6 +38,7 @@ struct RaceSetup {
     RespawnRule respawn;
     AiDriving aiDriving = AiDriving::Route;
     EffectFactories effects;
+    Cheats cheats;
 };
 
 }

@@ -8,6 +8,7 @@
 #include "core/transform.hpp"
 #include "sim/physics/body_state.hpp"
 #include "sim/physics/contact_effects.hpp"
+#include "sim/powerup/powerup_cheats.hpp"
 
 namespace rr::sim {
 namespace {
@@ -16,8 +17,9 @@ constexpr std::size_t kMostWeaponEventsPerEffect = 2;
 constexpr std::size_t kMostShotCastsPerEffect = 2;
 constexpr std::size_t kEventsPerShotCast = 2;
 
-BrickField BricksFor(const RaceCourse& course) {
-    return course.bricks == nullptr ? BrickField() : BrickField(*course.bricks);
+BrickField BricksFor(const RaceCourse& course, const Cheats& cheats) {
+    return course.bricks == nullptr ? BrickField()
+                                    : BrickField(*course.bricks, CheatBrickColour(cheats));
 }
 
 std::size_t BrickCount(const RaceCourse& course) {
@@ -115,6 +117,7 @@ Result<RaceSession> RaceSession::Create(const RaceSetup& setup, const RaceCourse
 RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
     : course_(course),
       respawn_(setup.respawn),
+      cheats_(setup.cheats),
       respawns_(setup.racers.size()),
       wasRespawned_(setup.racers.size()),
       positions_(setup.racers.size()),
@@ -136,9 +139,9 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       rubberBand_(course.isMirrored),
       paced_(setup.racers.size()),
       routeSpeeds_(setup.racers.size(), 1.0F),
-      bricks_(BricksFor(course)),
+      bricks_(BricksFor(course, setup.cheats)),
       inventories_(setup.racers.size()),
-      powerups_(setup.effects, UsesPerTick(setup, course)),
+      powerups_(setup.effects, UsesPerTick(setup, course), setup.cheats),
       weapons_(WeaponEventCount(setup, course)),
       reaches_(setup.racers.size()),
       contactBodies_(setup.racers.size()) {
@@ -397,7 +400,8 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
             effects.targets = course_.targets;
         }
         const std::optional<assets::BrickColour> colour = inventories_[racer].Colour();
-        if (colour == assets::BrickColour::Yellow || colour == assets::BrickColour::Blue) {
+        if ((colour == assets::BrickColour::Yellow || colour == assets::BrickColour::Blue) &&
+            !cheats_.Has(Cheat::RedOnly)) {
             car.React(VoiceReaction::Positive);
         }
         const bool isEmptyHanded = !colour;
