@@ -55,6 +55,8 @@ public:
     [[nodiscard]] bool FocusOn(BuildRow row);
 
     [[nodiscard]] std::optional<BuildPad> Held() const { return held_; }
+    void Hold(BuildPad pad);
+    void LetGo();
 
 private:
     [[nodiscard]] BuildRequest TickHeld(const sim::InputFrame& input);
