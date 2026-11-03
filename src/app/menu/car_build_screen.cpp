@@ -151,7 +151,8 @@ BuildOutcome CarBuildScreen::Tick(const sim::InputFrame& input) {
 
 BuildOutcome CarBuildScreen::ApplyInput(const sim::InputFrame& input) {
     BuildOutcome outcome = BuildOutcome::None;
-    sim::InputFrame menuInput = input;
+    const BuildPointing pointing = pointer_.Tick(input, look_, menu_);
+    sim::InputFrame menuInput = pointing.input;
     if (!keys_.empty()) {
         for (const sim::MenuAction action : {sim::MenuAction::Up, sim::MenuAction::Down,
                                              sim::MenuAction::Left, sim::MenuAction::Right}) {
@@ -164,7 +165,28 @@ BuildOutcome CarBuildScreen::ApplyInput(const sim::InputFrame& input) {
     const std::optional<BuildPad> held = menu_.Held();
     outcome = std::max(outcome, Apply(menu_.Tick(menuInput)));
     PadSounds(held);
+    ApplyPad(pointing.pad);
     return outcome;
+}
+
+void CarBuildScreen::ApplyPad(const BuildRequest& request) {
+    bool moved = false;
+    switch (request.command) {
+        case BuildCommand::TurnLeft:
+        case BuildCommand::TurnRight:
+            moved = camera_.Turn(request.command == BuildCommand::TurnRight ? 1 : -1);
+            break;
+        case BuildCommand::TiltUp:
+        case BuildCommand::TiltDown:
+            moved = camera_.Tilt(request.command == BuildCommand::TiltUp ? 1 : -1);
+            break;
+        default:
+            static_cast<void>(Apply(request));
+            return;
+    }
+    if (moved) {
+        services_.sounds.Play(kViewSound, kViewVolume);
+    }
 }
 
 BuildOutcome CarBuildScreen::Apply(const BuildRequest& request) {
@@ -187,6 +209,9 @@ BuildOutcome CarBuildScreen::Apply(const BuildRequest& request) {
         case BuildCommand::TiltUp:
         case BuildCommand::TiltDown:
             View(camera_.Tilt(request.command == BuildCommand::TiltUp ? 1 : -1));
+            break;
+        case BuildCommand::ResetView:
+            static_cast<void>(camera_.Reset());
             break;
         case BuildCommand::Rotate:
             builder_.Rotate();
@@ -445,6 +470,7 @@ void CarBuildScreen::DrawControls(std::vector<render::SpriteDraw>& sprites) cons
         sprites.push_back(
             {.texture = shown.images.at(ButtonState(menu_, index)), .bounds = shown.bounds});
     }
+    pointer_.DrawPressed(look_, sprites);
     const UiFont* font = services_.text->Font(kBuildHelpFont);
     if (helpBox_ && font != nullptr) {
         DrawHelp(*font, *helpBox_, sprites);

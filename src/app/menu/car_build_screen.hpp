@@ -12,6 +12,7 @@
 
 #include "app/menu/build_camera.hpp"
 #include "app/menu/build_help.hpp"
+#include "app/menu/build_pointer.hpp"
 #include "app/menu/car_build_look.hpp"
 #include "app/menu/car_build_menu.hpp"
 #include "app/menu/car_builder.hpp"
@@ -71,6 +72,7 @@ private:
 
     [[nodiscard]] BuildOutcome ApplyInput(const sim::InputFrame& input);
     [[nodiscard]] BuildOutcome Apply(const BuildRequest& request);
+    void ApplyPad(const BuildRequest& request);
     void StepSet(int direction);
     void StepPiece(int direction);
     void ShowSet();
@@ -102,6 +104,7 @@ private:
     float spin_ = 0.0F;
     IconStrip setStrip_;
     CarBuildMenu menu_;
+    BuildPointer pointer_;
     BuildCamera camera_;
     HeldPieceMotion motion_;
     HelpTimer help_;

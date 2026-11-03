@@ -17,6 +17,9 @@ public:
     /// False while a tilt is still easing or the tilt is already at that end.
     bool Tilt(int step);
 
+    /// Eases back to the opening turn and tilt. False while a turn or tilt is still easing.
+    bool Reset();
+
     void Tick(Milliseconds elapsed);
 
     [[nodiscard]] std::size_t Slot() const { return slot_; }

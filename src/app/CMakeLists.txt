@@ -73,6 +73,7 @@ rr_add_module(app
         menu/award_scene_name.cpp
         menu/build_camera.cpp
         menu/build_help.cpp
+        menu/build_pointer.cpp
         menu/car_build_look.cpp
         menu/car_build_menu.cpp
         menu/car_build_screen.cpp

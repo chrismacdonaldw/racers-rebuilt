@@ -78,6 +78,14 @@ BuildRequest CarBuildMenu::Tick(const sim::InputFrame& input) {
     return input.WasPressed(sim::MenuAction::Confirm) ? Choose() : BuildRequest{};
 }
 
+bool CarBuildMenu::FocusOn(BuildRow row) {
+    if (held_) {
+        return false;
+    }
+    focus_ = row;
+    return true;
+}
+
 BuildRequest CarBuildMenu::TickHeld(const sim::InputFrame& input) {
     if (input.WasPressed(sim::MenuAction::Confirm) || input.WasPressed(sim::MenuAction::Back)) {
         held_.reset();

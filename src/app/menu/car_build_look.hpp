@@ -1,7 +1,9 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <string_view>
+#include <vector>
 
 #include "app/menu/car_edit.hpp"
 #include "app/menu/carousel_layout.hpp"
@@ -21,9 +23,23 @@ inline constexpr std::string_view kCarBuildScreen = "CARBUILD";
 
 inline constexpr std::size_t kBuildButtons = 6;
 
+inline constexpr std::size_t kBuildPads = 2;
+
 struct StateButton {
     std::array<render::TextureId, assets::kControlStates> images{};
     render::Rect bounds;
+};
+
+struct PadSpot {
+    std::int32_t id = 0;
+    render::Rect area;
+};
+
+/// `highlight` covers the whole pad; each spot shows its own part of it.
+struct PadLook {
+    std::vector<PadSpot> spots;
+    UiImage highlight;
+    MenuPoint origin;
 };
 
 struct CarBuildLook {
@@ -41,6 +57,7 @@ struct CarBuildLook {
     Milliseconds setSlide{0};
     assets::CarouselSounds setSounds{};
     std::array<StateButton, kBuildButtons> buttons;
+    std::array<PadLook, kBuildPads> pads;
     StandFraming garage;
     render::Camera camera;
 };

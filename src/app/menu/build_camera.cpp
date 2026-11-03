@@ -10,6 +10,8 @@ namespace rr::app {
 namespace {
 
 constexpr std::size_t kSlots = 8;
+constexpr std::size_t kHomeSlot = 1;
+constexpr std::size_t kHomePitch = 1;
 constexpr float kFirstAngle = 1.57F;
 constexpr float kTwoPi = 2.0F * std::numbers::pi_v<float>;
 constexpr float kHalfPi = std::numbers::pi_v<float> / 2.0F;
@@ -67,6 +69,17 @@ bool BuildCamera::Tilt(int step) {
     }
     tiltFrom_ = pitch_;
     pitch_ = static_cast<std::size_t>(pitch);
+    tiltLeft_ = kTiltTime;
+    return true;
+}
+
+bool BuildCamera::Reset() {
+    if (tiltLeft_ > Milliseconds{0} ||
+        !Turn(static_cast<int>(kHomeSlot + kSlots) - static_cast<int>(slot_))) {
+        return false;
+    }
+    tiltFrom_ = pitch_;
+    pitch_ = kHomePitch;
     tiltLeft_ = kTiltTime;
     return true;
 }

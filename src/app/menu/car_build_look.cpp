@@ -65,6 +65,9 @@ public:
         for (std::size_t button = 0; loaded && button < kBuildButtons; ++button) {
             loaded = LoadButton(button);
         }
+        for (std::size_t pad = 0; loaded && pad < kBuildPads; ++pad) {
+            loaded = LoadPad(pad);
+        }
         if (!loaded) {
             return std::unexpected(std::move(loaded.error()));
         }
@@ -169,6 +172,32 @@ private:
             }
         }
         return placed.transform([](const PlacedImages&) {});
+    }
+
+    Result<void> LoadPad(std::size_t index) {
+        const std::string_view name = kButtons.at(index);
+        const assets::HotspotStyle* style = files_->FindHotspotStyle(name);
+        if (style == nullptr) {
+            return Fail(ErrorCode::NotFound, std::format("there's no hotspot style {}", name));
+        }
+        return FindMenuElement(*files_, kCarBuildScreen, name)
+            .and_then([](const assets::MenuElement* element) {
+                return BodyOf<assets::HotspotElement>(*element);
+            })
+            .and_then([&](const assets::HotspotElement* hotspot) {
+                return images_.Upload(hotspot->highlightImage);
+            })
+            .transform([&](const UiImage& highlight) {
+                PadLook& pad = look_.pads.at(index);
+                const render::Rect& bounds = look_.buttons.at(index).bounds;
+                pad.highlight = highlight;
+                pad.origin = {.x = bounds.x, .y = bounds.y};
+                for (const assets::Hotspot& spot : style->hotspots) {
+                    const MenuPoint at{.x = pad.origin.x + static_cast<float>(spot.rect.left),
+                                       .y = pad.origin.y + static_cast<float>(spot.rect.top)};
+                    pad.spots.push_back({.id = spot.id, .area = SpanOf(at, spot.rect)});
+                }
+            });
     }
 
     render::Renderer* renderer_;

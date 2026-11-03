@@ -27,6 +27,7 @@ enum class BuildCommand : std::uint8_t {
     TurnRight,
     TiltUp,
     TiltDown,
+    ResetView,
     Rotate,
     Place,
     Undo,
@@ -49,6 +50,10 @@ public:
     [[nodiscard]] BuildRequest Tick(const sim::InputFrame& input);
 
     [[nodiscard]] BuildRow Focus() const { return focus_; }
+
+    /// False, leaving the focus, while a pad is held.
+    [[nodiscard]] bool FocusOn(BuildRow row);
+
     [[nodiscard]] std::optional<BuildPad> Held() const { return held_; }
 
 private:
