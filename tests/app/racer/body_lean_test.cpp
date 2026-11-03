@@ -47,6 +47,14 @@ TEST_CASE("a body lags behind a sudden pitch of its wheels and then settles") {
     CHECK(NosePitch(settled) == doctest::Approx(NosePitch(Pitched(kTilt))).epsilon(0.01));
 }
 
+TEST_CASE("a drift's roll raises the side it is signed toward") {
+    BodyLean lean;
+    static_cast<void>(lean.Update(Pitched(0.0F), kFrameMs, kMass));
+
+    CHECK(SideRoll(lean.Update(Pitched(0.0F), kFrameMs, kMass, 0.05F)) > 0.0F);
+    CHECK(SideRoll(BodyLean().Update(Pitched(0.0F), kFrameMs, kMass, -0.05F)) < 0.0F);
+}
+
 TEST_CASE("a heavier car's body follows its wheels more slowly") {
     BodyLean light;
     BodyLean heavy;

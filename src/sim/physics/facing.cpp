@@ -10,6 +10,7 @@ namespace {
 
 constexpr float kMinFacingSpeed = 0.03F;
 constexpr float kSnapDot = 0.98F;
+constexpr float kDriftRollGain = 0.06F;
 constexpr std::size_t kArccosTableSize = 1024;
 constexpr float kArccosTableScale = static_cast<float>(kArccosTableSize - 1) / 2.0F;
 
@@ -82,6 +83,14 @@ void UpdateDerivedMotion(BodyState& body) {
     derived.forwardSpeed = Dot(velocity, body.facing);
     derived.forwardVelocity = body.facing * derived.forwardSpeed;
     derived.lateralVelocity = velocity - derived.forwardVelocity;
+}
+
+float DriftRoll(const BodyState& body, bool isDrifting, const VersionRules& rules) {
+    if (!isDrifting || rules.dropsDriftLean) {
+        return 0.0F;
+    }
+    const float trail = 1.0F - Dot(body.facing, body.motion.basis.forward);
+    return (body.turnRadius < 0.0F ? -trail : trail) * kDriftRollGain;
 }
 
 }

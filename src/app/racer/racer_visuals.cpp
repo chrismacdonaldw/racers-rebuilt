@@ -96,7 +96,7 @@ void RacerVisuals::Update(const Transform& wheels, const sim::RacerSnapshot& mot
            .finishPlace = motion.finishPlace,
            .nearestRacer = Facing(wheels, nearestRacer)},
           elapsedMs);
-    const Transform body = lean_.Update(wheels, elapsedMs, parts_.mass);
+    const Transform body = lean_.Update(wheels, elapsedMs, parts_.mass, motion.driftRoll);
     const Transform seat{.position = Apply(body, parts_.seat), .rotation = body.rotation};
     parts_.posed.Place(parts_.wheelDraws, wheels, parts_.wheels.Solve());
     parts_.posed.Place(parts_.bodyDraws, body);

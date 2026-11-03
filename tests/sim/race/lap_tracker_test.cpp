@@ -20,6 +20,15 @@ void CrossAll(LapTracker& laps, const CheckpointGraph& graph,
     }
 }
 
+void ShuttleOverLine(LapTracker& laps, const CheckpointGraph& graph) {
+    CrossAll(laps, graph, {0});
+    laps.EnterZone(assets::LapZone::PostLine);
+    laps.EnterZone(assets::LapZone::OpenTrack);
+    laps.EnterZone(assets::LapZone::PostLine);
+    CrossAll(laps, graph, {0}, GateSide::Backward);
+    laps.EnterZone(assets::LapZone::FinishLine);
+}
+
 void Drive(LapTracker& laps, const CheckpointGraph& graph, const Vector3& facing, int ms) {
     for (int elapsed = 0; elapsed < ms; elapsed += 12) {
         laps.Update(graph, Milliseconds{12}, facing);
@@ -102,6 +111,21 @@ TEST_CASE("with lap zones, a full lap of zones after the first line crossing com
     CHECK(lapsDone == 1);
     CHECK(laps.CompletedLaps() == 1);
     CHECK(laps.Progress(graph) == 1.25F);
+}
+
+TEST_CASE(
+    "2001 counts a lap each time a racer backs over the line from the open zone, 1999 doesn't") {
+    const CheckpointGraph graph = test::Ring();
+    for (const bool keepsOneZone : {false, true}) {
+        LapTracker laps({.usesZones = true, .keepsOneZone = keepsOneZone});
+        laps.EnterZone(assets::LapZone::FinishLine);
+
+        for (int shuttle = 0; shuttle < 3; ++shuttle) {
+            ShuttleOverLine(laps, graph);
+        }
+
+        CHECK(laps.CompletedLaps() == (keepsOneZone ? 3 : 0));
+    }
 }
 
 TEST_CASE("without lap zones, zone entries count nothing") {

@@ -1,5 +1,6 @@
 #include "app/racer/body_lean.hpp"
 
+#include "sim/physics/facing.hpp"
 #include "sim/physics/rigid_body.hpp"
 
 namespace rr::app {
@@ -26,7 +27,7 @@ Vector3 Leaned(const Vector3& kept, const Vector3& actual, const Vector3& up, fl
 
 }
 
-Transform BodyLean::Update(const Transform& wheels, float elapsedMs, float mass) {
+Transform BodyLean::Update(const Transform& wheels, float elapsedMs, float mass, float driftRoll) {
     const Vector3 forward = Rotate(wheels.rotation, {.x = 1.0F});
     const Vector3 side = Rotate(wheels.rotation, {.y = 1.0F});
     const Vector3 up = Rotate(wheels.rotation, {.z = 1.0F});
@@ -36,6 +37,7 @@ Transform BodyLean::Update(const Transform& wheels, float elapsedMs, float mass)
     const float step = elapsedMs / mass;
     pitch_ -= kPitchStiffness * SignedError(keptForward, forward, up) * step;
     roll_ -= kRollStiffness * SignedError(keptSide, side, up) * step;
+    roll_ += driftRoll * elapsedMs / sim::kDriftRollStepMs;
     pitch_ = Decayed(pitch_, kPitchDecayPerMs, elapsedMs);
     roll_ = Decayed(roll_, kRollDecayPerMs, elapsedMs);
     const Vector3 bodyForward = Leaned(keptForward, forward, up, pitch_);
