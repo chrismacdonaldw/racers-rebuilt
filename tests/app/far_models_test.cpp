@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstdint>
 #include <span>
 #include <vector>
@@ -26,7 +27,8 @@ FarModels CarAndScenery() {
     FarModels models(
         {{.position = {.x = 100.0F}, .draws = {.first = 0, .count = 1}, .rangeSquared = 10000.0F}});
     models.SetHidden(true, true);
-    models.AddCar(
+    models.Add(
+        FarKind::Car,
         {.position = {.x = 500.0F}, .draws = {.first = 1, .count = 3}, .rangeSquared = 250000.0F});
     return models;
 }
@@ -77,9 +79,26 @@ TEST_CASE("far models stay drawn unless hidden") {
 TEST_CASE("cars are added only while far cars are hidden") {
     FarModels models;
     models.SetHidden(false, true);
-    models.AddCar({.position = {}, .draws = {.first = 0, .count = 1}, .rangeSquared = 1.0F});
+    models.Add(FarKind::Car,
+               {.position = {}, .draws = {.first = 0, .count = 1}, .rangeSquared = 1.0F});
     std::vector<render::MeshDraw> meshes = Meshes();
 
+    CHECK(IndexCounts(models.Cull(0, {.x = 9000.0F}, meshes)) ==
+          std::vector<std::uint32_t>{3, 6, 9, 0});
+}
+
+TEST_CASE("added models count their draws from where they start and last one frame") {
+    FarModels models;
+    models.SetHidden(true, true);
+    const std::array<FarModel, 1> pickups{
+        FarModel{.position = {}, .draws = {.first = 1, .count = 1}, .rangeSquared = 1.0F}};
+    models.Add(FarKind::Scenery, pickups, 1);
+    std::vector<render::MeshDraw> meshes = Meshes();
+
+    CHECK(IndexCounts(models.Cull(0, {.x = 9000.0F}, meshes)) ==
+          std::vector<std::uint32_t>{3, 6, 0, 0});
+
+    models.Reset(meshes);
     CHECK(IndexCounts(models.Cull(0, {.x = 9000.0F}, meshes)) ==
           std::vector<std::uint32_t>{3, 6, 9, 0});
 }

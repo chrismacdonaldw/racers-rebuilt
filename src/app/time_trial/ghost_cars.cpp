@@ -91,15 +91,15 @@ void GhostCars::AppendDraws(std::vector<render::MeshDraw>& out) const {
 void GhostCars::AddFarCars(const sim::GhostSnapshot& ghosts, std::size_t firstDraw,
                            FarModels& out) const {
     if (ghosts.best) {
-        out.AddCar({.position = ToEngine(ghosts.best->pose.position),
-                    .draws = {.first = firstDraw, .count = bestCar_.Draws().size()},
-                    .rangeSquared = kCarRangeSquared});
+        out.Add(FarKind::Car, {.position = ToEngine(ghosts.best->pose.position),
+                               .draws = {.first = firstDraw, .count = bestCar_.Draws().size()},
+                               .rangeSquared = kCarRangeSquared});
     }
     if (ghosts.record) {
-        out.AddCar({.position = ToEngine(ghosts.record->pose.position),
-                    .draws = {.first = firstDraw + bestCar_.Draws().size(),
-                              .count = recordCar_.Draws().size()},
-                    .rangeSquared = recordRangeSquared_});
+        out.Add(FarKind::Car, {.position = ToEngine(ghosts.record->pose.position),
+                               .draws = {.first = firstDraw + bestCar_.Draws().size(),
+                                         .count = recordCar_.Draws().size()},
+                               .rangeSquared = recordRangeSquared_});
     }
 }
 

@@ -124,6 +124,7 @@ PowerupVisuals::PowerupVisuals(const EffectModels& models) : models_(&models) {}
 
 void PowerupVisuals::Update(const sim::RenderSnapshot& snapshot, float elapsedMs) {
     draws_.clear();
+    placed_.clear();
     for (Instance& instance : instances_) {
         instance.wasLive = std::exchange(instance.isLive, false);
     }
@@ -224,6 +225,9 @@ void PowerupVisuals::Place(Posed& posed, const Transform& engine, float scale, f
     const Transform game = Compose(TransformToGame(engine), posed.offset);
     const std::span<const Transform> nodes =
         posed.pose ? posed.pose->Solve() : std::span<const Transform>{};
+    placed_.push_back({.position = TransformToEngine(game).position,
+                       .draws = {.first = draws_.size(), .count = model.draws.size()},
+                       .rangeSquared = posed.model->rangeSquared});
     for (std::size_t i = 0; i < model.draws.size(); ++i) {
         render::MeshDraw draw = model.draws[i];
         const std::uint16_t joint = i < model.joints.size() ? model.joints[i] : 0;

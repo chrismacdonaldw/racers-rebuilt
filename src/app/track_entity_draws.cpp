@@ -48,10 +48,10 @@ void TrackEntityDraws::AddFarModels(std::size_t firstDraw, FarModels& out) const
         if (spans_[entity].count == 0 || !std::isfinite(source.drawRangeSquared)) {
             continue;
         }
-        out.AddScenery(
-            {.position = ToEngine(source.placement.position),
-             .draws = {.first = firstDraw + spans_[entity].first, .count = spans_[entity].count},
-             .rangeSquared = source.drawRangeSquared});
+        out.Keep(FarKind::Scenery, {.position = ToEngine(source.placement.position),
+                                    .draws = {.first = firstDraw + spans_[entity].first,
+                                              .count = spans_[entity].count},
+                                    .rangeSquared = source.drawRangeSquared});
     }
 }
 
