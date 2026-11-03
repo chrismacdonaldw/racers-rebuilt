@@ -36,6 +36,7 @@ namespace {
 constexpr std::uint64_t kHashPrime = 1099511628211ULL;
 constexpr Milliseconds kCircuitResultsTime{5000};
 constexpr std::size_t kChampionSlot = 1;
+constexpr double kFastForwardScale = 1.75;
 
 std::string MenuAfter(const RaceSceneSetup& setup) {
     return std::string(setup.isTestDrive ? kGarageScene : kMainMenuScene);
@@ -234,6 +235,11 @@ SceneMusic RaceScene::Music() const {
     return parts_.audio ? parts_.audio->Music() : SceneMusic{};
 }
 
+double RaceScene::TimeScale() const {
+    const bool isRacing = !pause_.IsOpen() && !IsTrialAsking();
+    return isRacing && parts_.setup.cheats.Has(sim::Cheat::FastForward) ? kFastForwardScale : 1.0;
+}
+
 void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
     SnapshotRace(parts_.session, out);
     cameras_.Snapshot(out);
@@ -341,7 +347,7 @@ render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated
 }
 
 void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
-    const float elapsedMs = MsSince(lastRender_);
+    const float elapsedMs = MsSince(lastRender_) * static_cast<float>(TimeScale());
     const float simMs = pause_.IsOpen() || IsTrialAsking() ? 0.0F : elapsedMs;
     GatherMeshes(interpolated, elapsedMs);
     DrawDebugLines();

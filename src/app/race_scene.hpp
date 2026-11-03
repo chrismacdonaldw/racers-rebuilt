@@ -77,6 +77,7 @@ public:
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
     [[nodiscard]] SceneMusic Music() const override;
+    [[nodiscard]] double TimeScale() const override;
     [[nodiscard]] std::size_t PlayerCount() const override { return parts_.setup.players; }
 
 private:

@@ -1,9 +1,9 @@
 #include "app/racer/racer_bounds.hpp"
 
 #include <algorithm>
-#include <array>
 #include <format>
 #include <string_view>
+#include <vector>
 
 #include "assets/game_path.hpp"
 
@@ -74,21 +74,27 @@ BoundingSphere GroupBounds(std::span<const BoundingSphere> members) {
     return {.centre = centre, .radius = radius};
 }
 
-Result<BoundingSphere> RacerBounds(const RacerAssets& racer) {
+Result<BoundingSphere> RacerBounds(const RacerAssets& racer, RacerParts shown) {
     const assets::RacerFiles& files = racer.files;
-    std::array<BoundingSphere, 3> members;
+    std::vector<BoundingSphere> members;
     return FindModel(racer, files.champion.body.geometry)
         .and_then([&](const assets::GeometryAsset* body) {
-            members[0] = ModelBounds(body->vertices);
+            if (shown.body) {
+                members.push_back(ModelBounds(body->vertices));
+            }
             return PartBounds(racer, racer.wheels, files.chassis.wheels.model.geometry, kWheelPart);
         })
         .and_then([&](const BoundingSphere& wheels) {
-            members[1] = wheels;
+            if (shown.wheels) {
+                members.push_back(wheels);
+            }
             return PartBounds(racer, racer.driver, files.driver.model.geometry, kDriverPart);
         })
         .transform([&](BoundingSphere driver) {
             driver.centre += files.chassis.seat;
-            members[2] = driver;
+            if (shown.driver) {
+                members.push_back(driver);
+            }
             return GroupBounds(members);
         });
 }

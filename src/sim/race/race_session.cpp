@@ -153,6 +153,9 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
         const RacerEntry& entry = setup.racers[i];
         Racer& racer = racers_.emplace_back(entry.chassis, entry.build, course.grid[i]);
         racer.HoldAtStart();
+        if (setup.cheats.Has(Cheat::IgnoreSurfaces)) {
+            racer.IgnoreSurfaces();
+        }
         const std::span<const assets::RaceRoute> routes = RoutesFor(course, setup.firstSlot + i);
         drivers_.emplace_back();
         if (!entry.isPlayer && !routes.empty()) {

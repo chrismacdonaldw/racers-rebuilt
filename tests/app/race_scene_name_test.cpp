@@ -166,6 +166,15 @@ TEST_CASE("a race scene name carries its cheats, which circuits and time trials 
     CHECK_FALSE(ParseCircuitScene("circuit:c0:respawn=off:cheats=MXPMX"));
 }
 
+TEST_CASE("the mirror cheat mirrors only the Rocket Racer circuit's race") {
+    const sim::Cheats mirror = *sim::ParseCheatPlates("LNFRRRM");
+
+    CHECK(LoadsMirrored({.track = "RACEC6R0", .circuit = "c6", .cheats = mirror}));
+    CHECK_FALSE(LoadsMirrored({.track = "RACEC6R0", .circuit = "c6"}));
+    CHECK_FALSE(LoadsMirrored({.track = "RACEC0R0", .circuit = "c0", .cheats = mirror}));
+    CHECK(LoadsMirrored({.track = "RACEC0R0", .isMirrored = true}));
+}
+
 TEST_CASE("a lone player races the opponents the grid holds, and two players race alone") {
     constexpr std::size_t kGridSize = 6;
 

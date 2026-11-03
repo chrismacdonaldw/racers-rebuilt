@@ -1,6 +1,7 @@
 #include "app/frame_loop.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <utility>
 
 #include "sim/interpolation.hpp"
@@ -29,7 +30,7 @@ FrameStats FrameLoop::RunFrame(Nanoseconds now) {
         hooks_.Emit(mods::SceneEntered{});
     }
 
-    accumulator_ += elapsed;
+    accumulator_ += std::chrono::duration_cast<Nanoseconds>(elapsed * scene->TimeScale());
     const int tickCount = RunTicks(*scene);
     const float alpha = static_cast<float>(accumulator_.count()) /
                         static_cast<float>(Nanoseconds{kSimTick}.count());

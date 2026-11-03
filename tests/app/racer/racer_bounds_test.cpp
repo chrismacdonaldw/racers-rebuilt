@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "assets/archive_survey.hpp"
+#include "assets/game_path.hpp"
 #include "assets/loader_pool.hpp"
 
 namespace rr::app {
@@ -58,7 +59,9 @@ void CheckRacer(const assets::Vfs& vfs, assets::TrackLoader& loader,
                 const assets::RacerCatalog& catalog, const RetailBounds& expected) {
     CAPTURE(expected.code);
     const Result<BoundingSphere> bounds =
-        LoadRacer(vfs, loader, catalog, expected.code).and_then(RacerBounds);
+        LoadRacer(vfs, loader, catalog, expected.code).and_then([](const RacerAssets& racer) {
+            return RacerBounds(racer, {});
+        });
     REQUIRE(bounds.has_value());
     CHECK(Length(bounds->centre - expected.centre) < kTableRounding);
     CHECK(std::abs(bounds->radius - expected.radius) < kTableRounding);
@@ -77,6 +80,38 @@ TEST_CASE("prebuilt racers' bounds match the values worked out from the retail f
     for (const RetailBounds& expected : kRetailBounds) {
         CheckRacer(*vfs, loader, *catalog, expected);
     }
+}
+
+void CheckHiddenParts(const RacerAssets& racer) {
+    const auto body =
+        racer.models.models.find(assets::ToUpperAscii(racer.files.champion.body.geometry));
+    REQUIRE(body != racer.models.models.end());
+    const BoundingSphere expected = ModelBounds(body->second->vertices);
+
+    const Result<BoundingSphere> bodyOnly =
+        RacerBounds(racer, {.wheels = false, .body = true, .driver = false});
+    const Result<BoundingSphere> none =
+        RacerBounds(racer, {.wheels = false, .body = false, .driver = false});
+
+    REQUIRE(bodyOnly.has_value());
+    CHECK(bodyOnly->centre == expected.centre);
+    CHECK(bodyOnly->radius == expected.radius);
+    CHECK(none.value_or(BoundingSphere{.radius = 1.0F}).radius == 0.0F);
+}
+
+TEST_CASE("hidden parts leave a racer's bounds") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    assets::LoaderPool pool(2);
+    assets::TrackLoader loader(*vfs, pool);
+    const Result<RacerAssets> racer =
+        assets::RacerCatalog::Load(*vfs).and_then([&](const assets::RacerCatalog& catalog) {
+            return LoadRacer(*vfs, loader, catalog, "CC");
+        });
+    REQUIRE(racer.has_value());
+    CheckHiddenParts(*racer);
 }
 
 }

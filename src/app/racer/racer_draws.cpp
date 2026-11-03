@@ -21,6 +21,12 @@ Result<ModelDraws> UploadPart(render::Renderer& renderer, const assets::TrackAss
     });
 }
 
+void Hide(ModelDraws& model) {
+    for (render::MeshDraw& draw : model.draws) {
+        draw.indexCount = 0;
+    }
+}
+
 }
 
 ModelDraws FollowJoints(const assets::GeometryAsset& geometry,
@@ -48,6 +54,19 @@ Result<RacerDraws> UploadRacer(render::Renderer& renderer, const RacerAssets& ra
             draws.driver = std::move(driver);
             return std::move(draws);
         });
+}
+
+RacerDraws ShowOnly(RacerDraws draws, RacerParts shown) {
+    if (!shown.wheels) {
+        Hide(draws.wheels);
+    }
+    if (!shown.body) {
+        Hide(draws.body);
+    }
+    if (!shown.driver) {
+        Hide(draws.driver);
+    }
+    return draws;
 }
 
 }
