@@ -36,16 +36,20 @@ public:
 
     void Handle(const SDL_Event& event, sim::InputLatch& latch);
 
-    /// Call once a frame.
-    void Show(bool isShown);
+    /// Call once a frame. A held pointer stays put and hidden while its motion is still read.
+    void Show(bool isShown, bool isHeld);
 
 private:
     void Move(float x, float y, sim::InputLatch& latch);
+    void Hold(bool isHeld);
 
     SDL_Window* window_;
     render::Renderer* renderer_;
     std::optional<UiImage> cursor_;
     std::optional<CanvasPoint> at_;
+    float heldAtX_ = 0.0F;
+    float heldAtY_ = 0.0F;
+    bool isHeld_ = false;
     bool isHidingSystemCursor_ = false;
 };
 

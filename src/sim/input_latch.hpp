@@ -14,7 +14,8 @@ public:
     void Press(MenuAction action);
     void SetSteerLeftAxis(std::size_t player, std::int8_t value);
     void MovePointer(float x, float y, bool isOver);
-    void PressPointer();
+    void AddPointerMotion(float dx, float dy);
+    void PressPointer(PointerButton button);
     void ReleasePointer();
     void ReleaseAll();
 

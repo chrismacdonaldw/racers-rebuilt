@@ -9,14 +9,20 @@ TEST_CASE("a pointer click between two ticks reaches the next frame only") {
     InputLatch latch;
 
     latch.MovePointer(12.0F, 34.0F, true);
-    latch.PressPointer();
+    latch.AddPointerMotion(3.0F, -1.0F);
+    latch.AddPointerMotion(2.0F, -1.0F);
+    latch.PressPointer(PointerButton::Right);
+    latch.PressPointer(PointerButton::Left);
     latch.ReleasePointer();
     const InputFrame first = latch.TakeFrame();
     const InputFrame second = latch.TakeFrame();
 
     CHECK(first.pointer.moved);
     CHECK(first.pointer.pressed);
+    CHECK(first.pointer.rightPressed);
     CHECK(first.pointer.released);
+    CHECK(first.pointer.dx == 5.0F);
+    CHECK(first.pointer.dy == -2.0F);
     CHECK(second.pointer == MenuPointer{.x = 12.0F, .y = 34.0F, .isOver = true});
 }
 
