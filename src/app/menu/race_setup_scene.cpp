@@ -12,6 +12,7 @@
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/race_settings.hpp"
+#include "app/video_settings.hpp"
 #include "core/log.hpp"
 
 namespace rr::app {
@@ -173,6 +174,9 @@ void RaceSetupScene::ApplySettings(const settings::Registry& settings) {
         rules_.lapCount = settings.Get(kVersusLaps);
     }
     rules_.isTimeTrial = mode_ == RaceSetupMode::TimeTrial;
+    if (preview_) {
+        preview_->DrawFarScenery(settings.Get(kFarScenerySetting));
+    }
     if (!text_.Apply(*renderer_, *vfs_, settings)) {
         return;
     }

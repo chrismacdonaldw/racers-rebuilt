@@ -54,6 +54,8 @@ public:
 
     void Advance(Milliseconds elapsed);
 
+    void DrawFarScenery(bool isDrawn) { isFarSceneryDrawn_ = isDrawn; }
+
     [[nodiscard]] bool IsComplete() const { return parts_.player.IsComplete(); }
     [[nodiscard]] std::span<const sim::EntityClock> Clocks() const {
         return parts_.player.Clocks();
@@ -104,6 +106,7 @@ private:
     std::vector<render::MeshDraw> draws_;
     std::vector<render::QuadDraw> quads_;
     std::vector<render::DirectionalLight> lights_;
+    bool isFarSceneryDrawn_ = true;
 };
 
 }

@@ -18,6 +18,11 @@ render::Color ToColor(const assets::CutsceneColor& color) {
             .b = static_cast<float>(color[2]) / kChannelMax};
 }
 
+bool IsOutOfRange(const ModelBinding& binding, const Vector3& position, const Vector3& camera) {
+    const Vector3 offset = position - camera;
+    return Dot(offset, offset) > binding.drawRangeSquared;
+}
+
 Transform Placement(const assets::CutsceneModel& model) {
     return {.position = model.position,
             .rotation = sim::ToQuaternion(sim::OrthonormalBasis(model.direction, model.up))};
@@ -124,12 +129,15 @@ render::Lighting CutscenePlayer::Lighting(std::vector<render::DirectionalLight>&
 }
 
 void CutscenePlayer::AppendDraws(const TrackEntityDraws& jointed, const CutsceneTints& tints,
+                                 const std::optional<Vector3>& rangeFrom,
                                  std::vector<render::MeshDraw>& out) const {
     for (std::size_t model = 0; model < bindings_.models.size(); ++model) {
-        if (!timeline_.IsActive({.kind = CutsceneEventKind::Model, .index = model})) {
+        const ModelBinding& binding = bindings_.models[model];
+        if (!timeline_.IsActive({.kind = CutsceneEventKind::Model, .index = model}) ||
+            (rangeFrom &&
+             IsOutOfRange(binding, ToEngine(placements_[model].position), *rangeFrom))) {
             continue;
         }
-        const ModelBinding& binding = bindings_.models[model];
         const std::size_t modelFirst = out.size();
         if (binding.staticDraws) {
             const DrawSpan span = *binding.staticDraws;

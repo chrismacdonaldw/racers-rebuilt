@@ -36,6 +36,8 @@ public:
 
     void Tick(Milliseconds elapsed);
 
+    void DrawFarScenery(bool isDrawn) { view_->DrawFarScenery(isDrawn); }
+
     [[nodiscard]] std::span<const sim::EntityClock> Clocks() const { return view_->Clocks(); }
     [[nodiscard]] const render::Rect& Bounds() const { return bounds_; }
 

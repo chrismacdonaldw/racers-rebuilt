@@ -62,7 +62,14 @@ struct Stage {
     [[nodiscard]] std::vector<render::MeshDraw> Draws(
         const CutscenePlayer& player, const CutsceneTints& tints = CutsceneTints({}, {})) const {
         std::vector<render::MeshDraw> draws;
-        player.AppendDraws(jointed, tints, draws);
+        player.AppendDraws(jointed, tints, std::nullopt, draws);
+        return draws;
+    }
+
+    [[nodiscard]] std::vector<render::MeshDraw> DrawsFrom(const CutscenePlayer& player,
+                                                          const Vector3& camera) const {
+        std::vector<render::MeshDraw> draws;
+        player.AppendDraws(jointed, CutsceneTints({}, {}), camera, draws);
         return draws;
     }
 
@@ -95,6 +102,20 @@ TEST_CASE("a static model draws only while its event runs, where the event place
 
     stage.Advance(player, Milliseconds{340});
     CHECK(stage.Draws(player).empty());
+}
+
+TEST_CASE("a model past its draw range from the camera is left out, counting from its event") {
+    assets::CutsceneModel set = Model("set", false, {.start = 0, .duration = 10});
+    set.position = {.x = 30.0F};
+    Stage stage({.length = 30, .models = {set}});
+    stage.bindings.models[0].drawRangeSquared = 400.0F;
+    CutscenePlayer player = stage.Player();
+
+    stage.Advance(player, kFrame);
+
+    CHECK(stage.DrawsFrom(player, ToEngine({.x = 15.0F})).size() == 2);
+    CHECK(stage.DrawsFrom(player, ToEngine({.x = 5.0F})).empty());
+    CHECK(stage.Draws(player).size() == 2);
 }
 
 TEST_CASE("an indexed model shows its sprite facing the camera while its event runs, up close") {

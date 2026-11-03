@@ -5,6 +5,7 @@
 
 #include "app/cutscene/cutscene_screen.hpp"
 #include "app/frame_loop.hpp"
+#include "app/video_settings.hpp"
 #include "assets/game_path.hpp"
 #include "core/log.hpp"
 
@@ -49,6 +50,10 @@ Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(
             return std::unique_ptr<CutsceneScene>(
                 new CutsceneScene(*outputs.renderer, std::move(view)));
         });
+}
+
+void CutsceneScene::ApplySettings(const settings::Registry& settings) {
+    view_->DrawFarScenery(settings.Get(kFarScenerySetting));
 }
 
 std::optional<std::string> CutsceneScene::TakeNextScene() {

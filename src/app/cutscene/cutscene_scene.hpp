@@ -37,6 +37,7 @@ public:
 
     [[nodiscard]] SceneMusic Music() const override { return view_->Play().music; }
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
+    void ApplySettings(const settings::Registry& settings) override;
     void HandleEvent(const SDL_Event& event) override;
     void Tick(const sim::InputFrame& input) override;
     void Snapshot(sim::RenderSnapshot& out) const override;
