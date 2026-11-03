@@ -64,7 +64,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
         return RacerGrid::Load(renderer, vfs, loader, setup, RacerCount(setup, race.grid.size()));
     });
     Result<BrickModels> bricks =
-        racers.and_then([&](const RacerGrid&) { return BrickModels::Load(renderer, loader); });
+        racers.and_then([&](const RacerGrid&) { return BrickModels::Load(renderer, vfs, loader); });
     Result<SkyBackdrop> sky = bricks.and_then([&](const BrickModels&) {
         return SkyBackdrop::Upload(renderer, std::move(model->skyModels));
     });
@@ -287,8 +287,9 @@ void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float simM
                               parts_.trackDraws.size() + parts_.racers.Draws().size(), draws_);
     parts_.ghostTrail.Append(parts_.session.TrackHazards(), interpolated.entityClocks, draws_);
     parts_.waterScroll.Apply(draws_);
-    parts_.bricks.AppendDraws(interpolated.bricks, draws_);
+    parts_.bricks.AppendDraws(interpolated.bricks, draws_, parts_.farModels);
     powerupVisuals_.Update(interpolated, simMs);
+    parts_.farModels.Add(FarKind::Car, powerupVisuals_.PlacedModels(), draws_.size());
     draws_.insert(draws_.end(), powerupVisuals_.Draws().begin(), powerupVisuals_.Draws().end());
     if (ghostCars_) {
         ghostCars_->Update(interpolated.ghosts, simMs);

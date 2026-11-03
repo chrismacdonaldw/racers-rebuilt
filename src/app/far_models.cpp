@@ -4,26 +4,43 @@
 
 namespace rr::app {
 
+FarModels::FarModels(std::vector<FarModel> scenery) {
+    GroupOf(FarKind::Scenery).kept = std::move(scenery);
+}
+
 void FarModels::SetHidden(bool hidesCars, bool hidesScenery) {
-    hidesCars_ = hidesCars;
-    hidesScenery_ = hidesScenery;
+    GroupOf(FarKind::Car).isHidden = hidesCars;
+    GroupOf(FarKind::Scenery).isHidden = hidesScenery;
+}
+
+void FarModels::Keep(FarKind kind, const FarModel& model) {
+    GroupOf(kind).kept.push_back(model);
 }
 
 void FarModels::Reset(std::span<render::MeshDraw> meshes) {
     Restore(meshes);
     hidden_.clear();
-    cars_.clear();
+    for (Group& group : groups_) {
+        group.added.clear();
+    }
 }
 
-void FarModels::AddCar(const FarModel& car) {
-    if (hidesCars_) {
-        cars_.push_back(car);
+void FarModels::Add(FarKind kind, const FarModel& model) {
+    if (Group& group = GroupOf(kind); group.isHidden) {
+        group.added.push_back(model);
+    }
+}
+
+void FarModels::Add(FarKind kind, std::span<const FarModel> models, std::size_t firstDraw) {
+    for (FarModel model : models) {
+        model.draws.first += firstDraw;
+        Add(kind, model);
     }
 }
 
 std::span<const render::MeshDraw> FarModels::Cull(std::size_t view, const Vector3& camera,
                                                   std::vector<render::MeshDraw>& meshes) {
-    if (!hidesCars_ && !hidesScenery_) {
+    if (std::ranges::none_of(groups_, &Group::isHidden)) {
         return meshes;
     }
     if (view == 0) {
@@ -46,9 +63,11 @@ void FarModels::Restore(std::span<render::MeshDraw> meshes) const {
 }
 
 void FarModels::Hide(const Vector3& camera, std::span<render::MeshDraw> meshes, bool logs) {
-    Hide(camera, cars_, meshes, logs);
-    if (hidesScenery_) {
-        Hide(camera, scenery_, meshes, logs);
+    for (const Group& group : groups_) {
+        if (group.isHidden) {
+            Hide(camera, group.kept, meshes, logs);
+            Hide(camera, group.added, meshes, logs);
+        }
     }
 }
 

@@ -10,6 +10,7 @@
 #include "app/powerup/cursed_cars.hpp"
 #include "app/powerup/powerup_models.hpp"
 #include "app/racer/animation_player.hpp"
+#include "app/track_model.hpp"
 #include "core/transform.hpp"
 #include "render/render_view.hpp"
 #include "sim/animation/skeleton_pose.hpp"
@@ -26,6 +27,8 @@ public:
 
     /// In engine space.
     [[nodiscard]] std::span<const render::MeshDraw> Draws() const { return draws_; }
+    /// Their draws count from the start of Draws.
+    [[nodiscard]] std::span<const FarModel> PlacedModels() const { return placed_; }
 
 private:
     struct Posed {
@@ -60,6 +63,7 @@ private:
     CursedCars cursedCars_;
     std::vector<std::optional<Posed>> carCurses_;
     std::vector<render::MeshDraw> draws_;
+    std::vector<FarModel> placed_;
 };
 
 }
