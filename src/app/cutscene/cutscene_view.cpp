@@ -28,14 +28,7 @@ render::Viewport ViewportOf(const std::optional<render::Rect>& rect) {
     const bool fillsCanvas =
         !rect || (rect->x == 0.0F && rect->y == 0.0F && rect->width == render::kUiWidth &&
                   rect->height == render::kUiHeight);
-    if (fillsCanvas) {
-        return {};
-    }
-    return {.x = rect->x / render::kUiWidth,
-            .y = rect->y / render::kUiHeight,
-            .width = rect->width / render::kUiWidth,
-            .height = rect->height / render::kUiHeight,
-            .isOnUiCanvas = true};
+    return fillsCanvas ? render::Viewport{} : render::UiViewport(*rect);
 }
 
 Result<std::unique_ptr<assets::CutsceneTimelineAsset>> ReadTimeline(const assets::Vfs& vfs,

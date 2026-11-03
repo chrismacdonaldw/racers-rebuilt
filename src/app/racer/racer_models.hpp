@@ -9,6 +9,7 @@
 #include "assets/geometry_asset.hpp"
 #include "assets/material_library.hpp"
 #include "assets/piece_catalog.hpp"
+#include "assets/skeleton_database.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -33,6 +34,9 @@ struct BuiltCarModel {
                                                          const assets::DriverPartCatalog& parts,
                                                          const assets::DriverLook& look,
                                                          assets::DriverDetail detail);
+
+[[nodiscard]] Result<assets::SkeletonAsset> LoadMenuMinifigSkeleton(
+    const assets::Vfs& vfs, const assets::DriverPartCatalog& parts, const assets::DriverLook& look);
 
 /// The face's five other expressions, copied from its default material with `PARTDB` images.
 [[nodiscard]] Result<assets::TrackAssets> LoadExpressionFaces(

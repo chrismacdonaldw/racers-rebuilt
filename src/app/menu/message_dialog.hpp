@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "app/menu/dialog_layout.hpp"
+#include "app/menu/menu_frame.hpp"
 #include "app/menu/menu_parts.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
@@ -32,9 +33,7 @@ struct DialogButton {
 };
 
 struct DialogLook {
-    std::array<UiImage, kFrameParts> border;
-    render::Color borderTint;
-    std::optional<render::Color> fill;
+    MenuFrameLook frame;
     std::string font;
     render::Color textColor;
     float wrapWidth = 0.0F;

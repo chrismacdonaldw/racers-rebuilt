@@ -12,6 +12,7 @@
 
 #include "app/frame_loop.hpp"
 #include "app/menu/menu_files.hpp"
+#include "app/menu/menu_frame.hpp"
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_widgets.hpp"
 #include "app/ui_text/text_layout.hpp"
@@ -37,29 +38,8 @@ Result<const Body*> FindElement(const assets::MenuLayout& layout, std::string_vi
     return body;
 }
 
-BoxSize SizeOf(const UiImage& image) {
-    return {.width = static_cast<float>(image.widthPx),
-            .height = static_cast<float>(image.heightPx)};
-}
-
 render::Color TintOr(const std::optional<assets::MenuColor>& color) {
     return color ? ToColor(*color) : render::Color{};
-}
-
-Result<void> LoadBorder(MenuImageCache& images, const assets::FrameElement& frame,
-                        DialogLook& look) {
-    for (std::size_t part = 0; part < kFrameParts; ++part) {
-        Result<UiImage> image = images.Upload(frame.images.at(part));
-        if (!image) {
-            return std::unexpected(std::move(image.error()));
-        }
-        look.border.at(part) = *image;
-    }
-    look.borderTint = TintOr(frame.color);
-    if (frame.hasFillColor != 0) {
-        look.fill = TintOr(frame.fillColor);
-    }
-    return {};
 }
 
 Result<void> LoadMessage(const MenuFiles& files, DialogLook& look) {
@@ -87,28 +67,6 @@ Result<void> LoadButtons(MenuImageCache& images, const MenuFiles& files, DialogL
     return {};
 }
 
-void PushVisible(const render::SpriteDraw& sprite, std::vector<render::SpriteDraw>& out) {
-    if (sprite.bounds.width > 0.0F && sprite.bounds.height > 0.0F) {
-        out.push_back(sprite);
-    }
-}
-
-void DrawFrame(const DialogLook& look, const render::Rect& frame,
-               std::vector<render::SpriteDraw>& out) {
-    std::array<BoxSize, kFrameParts> sizes{};
-    std::ranges::transform(look.border, sizes.begin(), SizeOf);
-    const std::array<render::Rect, kFrameParts + 1> slices = FrameSlices(frame, sizes);
-    if (look.fill) {
-        PushVisible({.bounds = slices.back(), .tint = *look.fill}, out);
-    }
-    for (std::size_t part = 0; part < kFrameParts; ++part) {
-        PushVisible({.texture = look.border.at(part).texture,
-                     .bounds = slices.at(part),
-                     .tint = look.borderTint},
-                    out);
-    }
-}
-
 BoxSize MessageSize(const UiFont& font, std::span<const std::u16string_view> lines) {
     BoxSize size{.height = static_cast<float>(lines.size() * font.heightPx)};
     for (const std::u16string_view line : lines) {
@@ -127,8 +85,8 @@ Result<DialogLook> LoadDialogLook(render::Renderer& renderer, const assets::Vfs&
     DialogLook look;
     MenuImageCache images(renderer, vfs, *files);
     return FindElement<assets::FrameElement>(files->layout, kFrameElement)
-        .and_then(
-            [&](const assets::FrameElement* frame) { return LoadBorder(images, *frame, look); })
+        .and_then([&](const assets::FrameElement* frame) { return LoadMenuFrame(images, *frame); })
+        .transform([&](const MenuFrameLook& frame) { look.frame = frame; })
         .and_then([&] { return LoadMessage(*files, look); })
         .and_then([&] { return LoadButtons(images, *files, look); })
         .transform([&] { return std::move(look); });
@@ -183,7 +141,7 @@ void MessageDialog::Draw(const MenuText& text, std::vector<render::SpriteDraw>& 
     if (IsClosed() || !layout_ || font == nullptr) {
         return;
     }
-    DrawFrame(look_, DialogFrame(*layout_, animation_.Scale()), out);
+    DrawMenuFrame(look_.frame, DialogFrame(*layout_, animation_.Scale()), out);
     if (animation_.Phase() != DialogPhase::Open) {
         return;
     }
