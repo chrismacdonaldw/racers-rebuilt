@@ -21,6 +21,7 @@ struct AiPowerupView {
     const PowerupInventory* inventory = nullptr;
     bool isCrowded = false;
     bool hasFinished = false;
+    bool isLiningUp = false;
 };
 
 class AiPowerupUser {

@@ -18,9 +18,10 @@ class RouteDriver {
 public:
     explicit RouteDriver(const assets::RaceRoute& route, std::optional<float> pace = std::nullopt);
 
-    /// Paced, coasts or brakes above its share of the route's speed. Passes `racers` but `self`.
+    /// Paced, keeps to its share of route speed. Lines up `aim`, else passes `racers` but `self`.
     [[nodiscard]] RacerControls Drive(const Racer& racer, std::span<const Vector3> racers = {},
-                                      std::optional<std::size_t> self = std::nullopt);
+                                      std::optional<std::size_t> self = std::nullopt,
+                                      std::optional<Vector3> aim = std::nullopt);
 
     /// True once `Drive` has made no headway along the route for 3 s. The count then restarts.
     [[nodiscard]] bool IsStalled(Milliseconds elapsed);
@@ -43,6 +44,7 @@ private:
     [[nodiscard]] Pedal PedalFor(const BodyMotion& motion) const;
     [[nodiscard]] float PassOffset(const BodyMotion& motion, std::span<const Vector3> racers,
                                    std::optional<std::size_t> self) const;
+    [[nodiscard]] float AimOffset(const Vector3& aim) const;
 
     RoutePlayback nearest_;
     RoutePlayback reference_;

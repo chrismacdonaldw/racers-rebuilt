@@ -1,5 +1,6 @@
 rr_add_module(sim
     SOURCES
+        ai/ai_aim.cpp
         ai/ai_powerups.cpp
         ai/ai_racer.cpp
         ai/ai_taunts.cpp

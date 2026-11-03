@@ -7,6 +7,7 @@
 #include "assets/game_path.hpp"
 #include "core/assert.hpp"
 #include "core/transform.hpp"
+#include "sim/ai/ai_aim.hpp"
 #include "sim/physics/body_state.hpp"
 #include "sim/physics/contact_effects.hpp"
 #include "sim/powerup/powerup_cheats.hpp"
@@ -239,7 +240,12 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
 
 RacerControls RaceSession::ControlsOf(std::size_t racer, std::span<const RacerControls> controls) {
     std::optional<RouteDriver>& driver = drivers_[racer];
-    return driver ? driver->Drive(racers_[racer], rivals_, racer) : controls[racer];
+    if (!driver) {
+        return controls[racer];
+    }
+    const Racer& self = racers_[racer];
+    return driver->Drive(self, rivals_, racer,
+                         AimFor(inventories_[racer].Colour(), rivals_, self.Body().motion));
 }
 
 bool RaceSession::WantsPowerup(std::size_t racer, Milliseconds elapsed,
@@ -247,14 +253,14 @@ bool RaceSession::WantsPowerup(std::size_t racer, Milliseconds elapsed,
     if (isPlayer_[racer]) {
         return controls.isUsePressed;
     }
-    return aiPowerups_[racer].Tick(
-        elapsed,
-        {.racers = racers_,
-         .racer = racer,
-         .inventory = &inventories_[racer],
-         .isCrowded = powerups_.IsCrowded(),
-         .hasFinished = progress_.OfRacer(racer).finishPlace.has_value()},
-        random_);
+    return aiPowerups_[racer].Tick(elapsed,
+                                   {.racers = racers_,
+                                    .racer = racer,
+                                    .inventory = &inventories_[racer],
+                                    .isCrowded = powerups_.IsCrowded(),
+                                    .hasFinished = progress_.OfRacer(racer).finishPlace.has_value(),
+                                    .isLiningUp = drivers_[racer].has_value()},
+                                   random_);
 }
 
 void RaceSession::StartBoosts() {

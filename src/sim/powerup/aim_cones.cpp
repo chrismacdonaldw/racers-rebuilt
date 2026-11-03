@@ -68,6 +68,14 @@ std::optional<std::size_t> FindFarthestRacerInCone(std::span<const Racer> racers
     return FindBest(racers, origin, direction, cone, RacerPosition, IsFarther);
 }
 
+std::optional<std::size_t> FindNearestPositionInCone(std::span<const Vector3> positions,
+                                                     const Vector3& origin,
+                                                     const Vector3& direction,
+                                                     const AimCone& cone) {
+    return FindBest(
+        positions, origin, direction, cone, [](const Vector3& at) { return at; }, IsNearer);
+}
+
 std::optional<Vector3> FindNearestTargetPoint(std::span<const assets::TargetPoint> points,
                                               const Vector3& origin, const Vector3& direction,
                                               const AimCone& cone) {

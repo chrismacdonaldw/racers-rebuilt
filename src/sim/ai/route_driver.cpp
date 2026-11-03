@@ -74,7 +74,7 @@ RouteDriver::RouteDriver(const assets::RaceRoute& route, std::optional<float> pa
     : nearest_(route), reference_(route), ahead_(route), pace_(pace) {}
 
 RacerControls RouteDriver::Drive(const Racer& racer, std::span<const Vector3> racers,
-                                 std::optional<std::size_t> self) {
+                                 std::optional<std::size_t> self, std::optional<Vector3> aim) {
     const BodyMotion& motion = racer.Body().motion;
     Follow(motion.position);
     if (stalled_ >= kBackUpFrom && stalled_ < kBackUpUntil) {
@@ -85,8 +85,9 @@ RacerControls RouteDriver::Drive(const Racer& racer, std::span<const Vector3> ra
     const bool isBrakeHeld = pedal == Pedal::Brake;
     const Transform reference = reference_.Pose();
     const Vector3 tangent = FlatForward(reference.rotation);
-    const Vector3 target = Flat(reference.position) + (tangent * kCorrectionDistance) +
-                           (LeftOf(tangent) * PassOffset(motion, racers, self));
+    const float offset = aim ? AimOffset(*aim) : PassOffset(motion, racers, self);
+    const Vector3 target =
+        Flat(reference.position) + (tangent * kCorrectionDistance) + (LeftOf(tangent) * offset);
     const Vector3 forward = Normalized(Flat(motion.basis.forward), {.x = 1.0F});
     const float curvature = CurvatureToward(reference.position, tangent, ahead_.Pose().position) +
                             CurvatureToward(motion.position, forward, target);
@@ -140,6 +141,13 @@ float RouteDriver::PassOffset(const BodyMotion& motion, std::span<const Vector3>
         }
     }
     return 0.0F;
+}
+
+float RouteDriver::AimOffset(const Vector3& aim) const {
+    const Transform reference = reference_.Pose();
+    const float side = Dot(Flat(aim - reference.position), LeftOf(FlatForward(reference.rotation)));
+    return std::clamp(side, -reference_.WidthRight() * kPassWidthShare,
+                      reference_.WidthLeft() * kPassWidthShare);
 }
 
 bool RouteDriver::IsStalled(Milliseconds elapsed) {

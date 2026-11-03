@@ -40,6 +40,10 @@ inline constexpr AimCone kMissileCone{
                                                                  const Vector3& direction,
                                                                  const AimCone& cone);
 
+[[nodiscard]] std::optional<std::size_t> FindNearestPositionInCone(
+    std::span<const Vector3> positions, const Vector3& origin, const Vector3& direction,
+    const AimCone& cone);
+
 [[nodiscard]] std::optional<Vector3> FindNearestTargetPoint(
     std::span<const assets::TargetPoint> points, const Vector3& origin, const Vector3& direction,
     const AimCone& cone);
