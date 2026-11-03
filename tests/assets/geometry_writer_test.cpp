@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -21,12 +22,22 @@ namespace {
 constexpr std::size_t kGridSide = 12;
 constexpr std::size_t kRetailModels = 812;
 
+constexpr float kScaleTolerance = 1e-5F;
+
+bool IsNear(float a, float b) {
+    return std::abs(a - b) <= kScaleTolerance * std::max(1.0F, std::abs(a));
+}
+
+bool IsNear(const Vector3& a, const Vector3& b) {
+    return IsNear(a.x, b.x) && IsNear(a.y, b.y) && IsNear(a.z, b.z);
+}
+
 struct Corner {
     std::string material;
     GeometryVertex vertex;
 
     friend bool operator==(const Corner& a, const Corner& b) {
-        return a.material == b.material && a.vertex.position == b.vertex.position &&
+        return a.material == b.material && IsNear(a.vertex.position, b.vertex.position) &&
                a.vertex.normal == b.vertex.normal && a.vertex.u == b.vertex.u &&
                a.vertex.v == b.vertex.v && a.vertex.rgba == b.vertex.rgba &&
                a.vertex.joint == b.vertex.joint;
@@ -110,6 +121,20 @@ TEST_CASE("colored vertices keep their colours instead of normals") {
     }
 
     CHECK(RoundTrip(grid, GdbVertices::Colored).value_or(std::vector<Corner>{}) == Corners(grid));
+}
+
+TEST_CASE("a scaled model keeps its scale and scaled positions") {
+    GeometryAsset grid = Grid();
+    grid.scale = 1.0F / 64.0F;
+
+    const Result<GeometryAsset> back =
+        WriteGeometry(grid, GdbVertices::Lit).and_then([](const std::vector<std::byte>& bytes) {
+            return ParseGeometry(bytes);
+        });
+
+    REQUIRE(back.has_value());
+    CHECK(back->scale == grid.scale);
+    CHECK(Corners(*back) == Corners(grid));
 }
 
 TEST_CASE("a model can't be written with a material name the reader can't read") {

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <iterator>
 #include <optional>
 #include <span>
@@ -18,6 +19,7 @@ constexpr FieldId kLitVerticesField = 0x29;
 constexpr FieldId kColoredVerticesField = 0x2A;
 constexpr FieldId kTrianglesField = 0x2D;
 constexpr FieldId kDrawListField = 0x2E;
+constexpr FieldId kScaleField = 0x33;
 constexpr FieldId kLoadVertices = 0x31;
 constexpr FieldId kDrawTriangles = 0x2D;
 constexpr FieldId kUseMaterial = 0x27;
@@ -140,12 +142,12 @@ Result<void> WriteMaterials(TokenWriter& writer, const std::vector<std::string>&
 }
 
 void WriteVertices(TokenWriter& writer, std::span<const GeometryVertex> vertices,
-                   GdbVertices layout) {
+                   GdbVertices layout, float scale) {
     writer.Field(layout == GdbVertices::Lit ? kLitVerticesField : kColoredVerticesField);
     writer.OpenList(vertices.size());
     for (const GeometryVertex& vertex : vertices) {
-        for (const float value :
-             {vertex.position.x, vertex.position.y, vertex.position.z, vertex.u, vertex.v}) {
+        for (const float value : {vertex.position.x / scale, vertex.position.y / scale,
+                                  vertex.position.z / scale, vertex.u, vertex.v}) {
             writer.Float(value);
         }
         if (layout == GdbVertices::Lit) {
@@ -190,6 +192,9 @@ Result<std::vector<std::byte>> WriteGeometry(const GeometryAsset& geometry, GdbV
     if (!geometry.ranges.empty() && geometry.materials.empty()) {
         return Fail(ErrorCode::InvalidData, "a model with triangles needs a material");
     }
+    if (!std::isfinite(geometry.scale) || geometry.scale == 0.0F) {
+        return Fail(ErrorCode::InvalidData, "a model's scale must be finite and nonzero");
+    }
     DrawListBuilder builder(geometry);
     for (const GeometryRange& range : geometry.ranges) {
         builder.Add(range);
@@ -197,9 +202,13 @@ Result<std::vector<std::byte>> WriteGeometry(const GeometryAsset& geometry, GdbV
     builder.Flush();
     TokenWriter writer;
     return WriteMaterials(writer, geometry.materials).transform([&] {
-        WriteVertices(writer, builder.Vertices(), vertices);
+        WriteVertices(writer, builder.Vertices(), vertices, geometry.scale);
         WriteTriangles(writer, builder.Triangles());
         WriteDrawList(writer, builder.Commands());
+        if (geometry.scale != 1.0F) {
+            writer.Field(kScaleField);
+            writer.Float(geometry.scale);
+        }
         return std::move(writer).Take();
     });
 }
