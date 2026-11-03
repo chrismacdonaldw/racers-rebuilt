@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <cstdint>
+#include <format>
 #include <optional>
 #include <set>
 #include <string>
@@ -176,6 +177,18 @@ TEST_CASE("a mod's parts keep the game's indices and its hats bring their head p
     CHECK(Names(merged.torsos.parts) == std::vector<std::string>{"kk_chst", "robe"});
     CHECK(merged.torsos.folder == "chests");
     CHECK(merged.bodies == std::vector<std::string>{"rr"});
+}
+
+TEST_CASE("merged parts stop at the 256 a driver look can index") {
+    DriverPartCatalog mod;
+    for (int i = 0; i < 300; ++i) {
+        mod.torsos.parts.push_back({.name = std::format("t{}", i)});
+    }
+
+    const DriverPartCatalog merged = MergeDriverParts({DriverPartCatalog{}, mod});
+
+    REQUIRE(merged.torsos.parts.size() == 256);
+    CHECK(merged.torsos.parts.back().name == "t255");
 }
 
 }

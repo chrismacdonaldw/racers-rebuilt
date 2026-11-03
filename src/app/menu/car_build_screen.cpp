@@ -115,6 +115,7 @@ CarBuildScreen::CarBuildScreen(BuildServices services, CarBuildLook look, PieceM
       models_(std::move(models)),
       builder_(std::move(builder)),
       sets_(std::move(sets)),
+      setIcons_(SetIcons(*services_.catalog, sets_)),
       carousel_(MakeCarousel(*services_.catalog, builder_.Set(), look_, 0)),
       carouselView_(look_.carousel, look_.itemColors),
       setStrip_(look_.setSlide),
@@ -481,7 +482,7 @@ void CarBuildScreen::Render(std::vector<render::RenderView>& views,
 void CarBuildScreen::DrawControls(std::vector<render::SpriteDraw>& sprites) const {
     DrawSelectorArrows(look_.arrows, look_.sets, menu_.Focus() == BuildRow::Sets, sprites);
     DrawSelectorArrows(look_.arrows, look_.pieces, menu_.Focus() == BuildRow::Pieces, sprites);
-    DrawStrip(setStrip_, look_.setImages, sets_, look_.setBox, sprites);
+    DrawStrip(setStrip_, look_.setImages, setIcons_, look_.setBox, sprites);
     for (std::size_t index = 0; index < kBuildButtons; ++index) {
         const StateButton& shown = look_.buttons.at(index);
         sprites.push_back(

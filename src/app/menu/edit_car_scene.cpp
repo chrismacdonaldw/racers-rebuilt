@@ -96,6 +96,7 @@ Result<std::unique_ptr<EditCarScene>> EditCarScene::Create(render::Renderer& ren
             .built = std::move(built),
             .quickBuilds = std::move(*quickBuilds),
             .sets = sets,
+            .setIcons = SetIcons(*pieces, sets),
             .set = set == sets.end() ? 0 : static_cast<std::size_t>(set - sets.begin()),
             .isReplaceable = isReplaceable};
     Views views{.stand = LoadStand(renderer, vfs, *menu, record),
@@ -482,7 +483,7 @@ void EditCarScene::DrawControls() {
     if (menu_.IsEnabled(CarRow::PartSet)) {
         DrawSelectorArrows(look_.arrows, look_.picker, menu_.Focus() == CarRow::PartSet, sprites_);
     }
-    DrawStrip(setStrip_, look_.sets, car_.sets, look_.setBox, sprites_);
+    DrawStrip(setStrip_, look_.sets, car_.setIcons, look_.setBox, sprites_);
     DrawBanner(text_, look_.banner, text_.Line(kTitleLine), look_.backdrop, look_.bannerTop,
                sprites_);
     for (std::size_t button = 0; button < kCarTextButtons; ++button) {

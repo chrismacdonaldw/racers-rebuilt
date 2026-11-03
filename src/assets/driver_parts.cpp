@@ -5,11 +5,13 @@
 #include <format>
 #include <iterator>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "assets/game_path.hpp"
 #include "assets/merged_table.hpp"
 #include "assets/token_schema.hpp"
+#include "core/log.hpp"
 
 namespace rr::assets {
 namespace {
@@ -17,6 +19,7 @@ namespace {
 constexpr std::int32_t kAllRacesUnlock = 0x80;
 constexpr std::int32_t kAlwaysUnlocked = 2;
 constexpr std::int32_t kFirstPartSetUnlock = 3;
+constexpr std::size_t kMaxShelfParts = 256;
 
 constexpr std::array<std::string_view, 6> kExpressionSuffixes{"dflt",  "angry", "blink",
                                                               "happy", "sad",   "suprz"};
@@ -102,14 +105,25 @@ void PutHeadedHats(std::vector<HeadedHat> hats, DriverPartCatalog& catalog) {
     }
 }
 
+template <typename Part>
+std::vector<Part> Capped(std::vector<Part> parts, std::string_view shelf) {
+    if (parts.size() > kMaxShelfParts) {
+        log::Warn("dropping {} mod {}, a driver can pick from {} at most",
+                  parts.size() - kMaxShelfParts, shelf, kMaxShelfParts);
+        parts.resize(kMaxShelfParts);
+    }
+    return parts;
+}
+
 std::vector<DriverPart> MergeShelf(std::vector<DriverPartCatalog>& catalogs,
-                                   DriverPartShelf DriverPartCatalog::* shelf) {
+                                   DriverPartShelf DriverPartCatalog::* shelf,
+                                   std::string_view name) {
     std::vector<std::vector<DriverPart>> parts;
     parts.reserve(catalogs.size());
     for (DriverPartCatalog& catalog : catalogs) {
         parts.push_back(std::move((catalog.*shelf).parts));
     }
-    return MergeNamed(std::move(parts));
+    return Capped(MergeNamed(std::move(parts)), name);
 }
 
 }
@@ -118,16 +132,16 @@ DriverPartCatalog MergeDriverParts(std::vector<DriverPartCatalog> catalogs) {
     if (catalogs.empty()) {
         return {};
     }
-    std::vector<DriverPart> faces = MergeShelf(catalogs, &DriverPartCatalog::faces);
-    std::vector<DriverPart> torsos = MergeShelf(catalogs, &DriverPartCatalog::torsos);
-    std::vector<DriverPart> legs = MergeShelf(catalogs, &DriverPartCatalog::legs);
+    std::vector<DriverPart> faces = MergeShelf(catalogs, &DriverPartCatalog::faces, "faces");
+    std::vector<DriverPart> torsos = MergeShelf(catalogs, &DriverPartCatalog::torsos, "torsos");
+    std::vector<DriverPart> legs = MergeShelf(catalogs, &DriverPartCatalog::legs, "legs");
     std::vector<std::vector<HeadedHat>> hats;
     hats.reserve(catalogs.size());
     for (DriverPartCatalog& catalog : catalogs) {
         hats.push_back(TakeHeadedHats(catalog));
     }
     DriverPartCatalog merged = std::move(catalogs.front());
-    PutHeadedHats(MergeNamed(std::move(hats)), merged);
+    PutHeadedHats(Capped(MergeNamed(std::move(hats)), "hats"), merged);
     merged.faces.parts = std::move(faces);
     merged.torsos.parts = std::move(torsos);
     merged.legs.parts = std::move(legs);

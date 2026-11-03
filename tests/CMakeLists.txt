@@ -202,6 +202,7 @@ add_executable(racers-rebuilt-tests
     assets/mirror_test.cpp
     assets/original_save_test.cpp
     assets/part_library_test.cpp
+    assets/piece_merge_test.cpp
     assets/model_survey_test.cpp
     assets/part_sets_test.cpp
     assets/piece_catalog_test.cpp

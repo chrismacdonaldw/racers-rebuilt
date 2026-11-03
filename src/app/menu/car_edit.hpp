@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <optional>
 #include <set>
+#include <span>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -19,7 +20,7 @@ namespace rr::app {
 
 inline constexpr std::size_t kPartSetCount = 12;
 
-/// The starter sets, those `partSets` unlocks and those the car's pieces use, if they have choices.
+/// Starter and mod sets, those `partSets` unlocks and those the car's pieces use, with choices.
 [[nodiscard]] std::vector<std::size_t> AvailablePartSets(const std::set<std::int32_t>& partSets,
                                                          const sim::BuiltCar& car,
                                                          const assets::PieceCatalog& catalog);
@@ -29,6 +30,10 @@ inline constexpr std::size_t kPartSetCount = 12;
 
 [[nodiscard]] std::optional<std::size_t> PartSetOfType(const assets::PieceCatalog& catalog,
                                                        std::uint16_t partType);
+
+/// A mod's set shows the icon of the game's set with its chassis.
+[[nodiscard]] std::vector<std::size_t> SetIcons(const assets::PieceCatalog& catalog,
+                                                std::span<const std::size_t> sets);
 
 /// The first set when none has that chassis.
 [[nodiscard]] std::size_t PartSetOfChassis(const assets::PieceCatalog& catalog,

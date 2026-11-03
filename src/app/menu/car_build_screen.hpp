@@ -100,6 +100,7 @@ private:
     PieceModels models_;
     CarBuilder builder_;
     std::vector<std::size_t> sets_;
+    std::vector<std::size_t> setIcons_;
     std::size_t set_ = 0;
     PartCarousel carousel_;
     CarouselView carouselView_;
