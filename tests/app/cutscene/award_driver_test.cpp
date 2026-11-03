@@ -53,10 +53,15 @@ assets::TrackAssets Stage() {
 }
 
 TEST_CASE("a prebuilt driver's look takes its table's part indices") {
-    const assets::DriverLook look = DriverLookOf(
+    const Result<assets::DriverLook> look = DriverLookOf(
         {.hatIndex = 1, .faceIndex = 2, .torsoIndex = 3, .legsIndex = 10, .expressionIndex = 4});
 
     CHECK(look == assets::DriverLook{.face = 2, .hat = 1, .legs = 10, .torso = 3, .expression = 4});
+}
+
+TEST_CASE("a prebuilt driver with a part index past a byte has no look") {
+    CHECK_FALSE(DriverLookOf({.name = "bad", .hatIndex = 256}).has_value());
+    CHECK_FALSE(DriverLookOf({.name = "bad", .legsIndex = -1}).has_value());
 }
 
 TEST_CASE("the award driver takes guy1's place and lends swap and pleg its legs") {

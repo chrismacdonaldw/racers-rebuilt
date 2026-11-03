@@ -26,6 +26,19 @@ bool IsJointedNamed(const assets::CutsceneModel& event, std::string_view upperNa
            assets::ToUpperAscii(entity->name) == upperName;
 }
 
+std::optional<std::string> ModelNamed(const assets::WorldAsset& world,
+                                      std::span<const assets::WorldEntity> entities,
+                                      std::string_view upperName) {
+    for (const assets::WorldEntity& entity : entities) {
+        const bool hasModel = !entity.lods.empty() && entity.lods.front().model != assets::kNoIndex;
+        if (hasModel && assets::ToUpperAscii(entity.name) == upperName) {
+            return assets::ToUpperAscii(
+                world.models.at(static_cast<std::size_t>(entity.lods.front().model)));
+        }
+    }
+    return std::nullopt;
+}
+
 using TrackKey = std::tuple<std::size_t, std::size_t, std::size_t>;
 
 std::set<TrackKey> DriverTracks(std::span<const assets::CutsceneFrame> frames) {
@@ -61,6 +74,21 @@ bool IsLegVariant(const assets::CutsceneModel& event) {
         kLegVariants, [&](std::string_view variant) { return IsJointedNamed(event, variant); });
 }
 
+}
+
+std::optional<std::string> EntityModel(const assets::TrackAssets& assets,
+                                       std::string_view upperName) {
+    for (const assets::AssetCache<assets::WorldAsset>::Handle& world : assets.worlds) {
+        if (std::optional<std::string> model =
+                ModelNamed(*world, world->modelEntities, upperName)) {
+            return model;
+        }
+        if (std::optional<std::string> model =
+                ModelNamed(*world, world->animatedEntities, upperName)) {
+            return model;
+        }
+    }
+    return std::nullopt;
 }
 
 void DropLegVariants(const assets::CutsceneFrame& frame, std::span<ModelBinding> models,

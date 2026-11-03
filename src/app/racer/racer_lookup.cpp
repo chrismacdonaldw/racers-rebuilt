@@ -12,11 +12,18 @@
 namespace rr::app {
 namespace {
 
-constexpr std::array<std::string_view, 2> kRacerFiles{"MENUDATA/DEFAULT.LRS",
-                                                      "MENUDATA/QBUILD.LRS"};
+constexpr std::string_view kQuickBuildFile = "MENUDATA/QBUILD.LRS";
+constexpr std::array<std::string_view, 2> kRacerFiles{"MENUDATA/DEFAULT.LRS", kQuickBuildFile};
+constexpr std::string_view kChampionCarName = "CHAMP";
 
 bool IsNamed(std::string_view name, std::string_view wanted) {
     return assets::ToUpperAscii(name) == assets::ToUpperAscii(wanted);
+}
+
+Result<std::vector<assets::SavedRacer>> ReadRacerFile(const assets::Vfs& vfs,
+                                                      std::string_view file) {
+    return vfs.Read(file).and_then(
+        [](const assets::FileData& data) { return assets::ParseRacerFile(data.Bytes()); });
 }
 
 }
@@ -31,8 +38,7 @@ settings::Racer RacerFromSave(const assets::SavedRacer& saved) {
 
 Result<settings::Racer> FindGameRacer(const assets::Vfs& vfs, std::string_view name) {
     for (const std::string_view file : kRacerFiles) {
-        Result<std::vector<assets::SavedRacer>> racers = vfs.Read(file).and_then(
-            [](const assets::FileData& data) { return assets::ParseRacerFile(data.Bytes()); });
+        Result<std::vector<assets::SavedRacer>> racers = ReadRacerFile(vfs, file);
         if (!racers) {
             return std::unexpected(std::move(racers.error()));
         }
@@ -58,6 +64,21 @@ Result<settings::Racer> FindRacer(const assets::Vfs& vfs, const std::filesystem:
         return std::move(*own);
     }
     return FindGameRacer(vfs, name);
+}
+
+Result<settings::Racer> FindChampionCar(const assets::Vfs& vfs, std::string_view chassis) {
+    return ReadRacerFile(vfs, kQuickBuildFile)
+        .and_then([&](const std::vector<assets::SavedRacer>& racers) -> Result<settings::Racer> {
+            const auto found = std::ranges::find_if(racers, [&](const assets::SavedRacer& racer) {
+                return IsNamed(Utf8FromUtf16(racer.name), kChampionCarName) &&
+                       IsNamed(racer.chassis, chassis);
+            });
+            if (found == racers.end()) {
+                return Fail(ErrorCode::NotFound,
+                            std::format("no {} car on the {} chassis", kChampionCarName, chassis));
+            }
+            return RacerFromSave(*found);
+        });
 }
 
 }

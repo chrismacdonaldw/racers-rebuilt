@@ -20,7 +20,7 @@ struct AwardDriver {
     assets::TrackAssets looks;
 };
 
-[[nodiscard]] assets::DriverLook DriverLookOf(const assets::DriverEntry& driver);
+[[nodiscard]] Result<assets::DriverLook> DriverLookOf(const assets::DriverEntry& driver);
 
 /// The player's own racer when `play` has one, else the prebuilt driver `play.driver` names.
 [[nodiscard]] Result<assets::DriverLook> AwardLook(const assets::Vfs& vfs,

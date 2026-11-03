@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -10,8 +11,13 @@
 #include "app/cutscene/cutscene_materials.hpp"
 #include "assets/cutscene_effects.hpp"
 #include "assets/cutscene_timeline.hpp"
+#include "assets/track_loader.hpp"
 
 namespace rr::app {
+
+/// Looks in model entities, then animated ones.
+[[nodiscard]] std::optional<std::string> EntityModel(const assets::TrackAssets& assets,
+                                                     std::string_view upperName);
 
 /// Unbinds the model events on `swap` and `pleg` unless `legs` is the peg leg.
 void DropLegVariants(const assets::CutsceneFrame& frame, std::span<ModelBinding> models,
