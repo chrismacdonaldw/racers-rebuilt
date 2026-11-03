@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "assets/game_path.hpp"
+#include "assets/merged_table.hpp"
 #include "assets/token_schema.hpp"
 
 namespace rr::assets {
@@ -75,6 +76,62 @@ Result<void> CheckHeadParts(const DriverPartCatalog& catalog) {
     return {};
 }
 
+struct HeadedHat {
+    std::string name;
+    DriverPart hat;
+    std::string headPart;
+};
+
+std::vector<HeadedHat> TakeHeadedHats(DriverPartCatalog& catalog) {
+    std::vector<HeadedHat> hats;
+    hats.reserve(catalog.hats.size());
+    for (std::size_t i = 0; i < catalog.hats.size(); ++i) {
+        hats.push_back({.name = catalog.hats[i].name,
+                        .hat = std::move(catalog.hats[i]),
+                        .headPart = std::move(catalog.headParts.at(i))});
+    }
+    return hats;
+}
+
+void PutHeadedHats(std::vector<HeadedHat> hats, DriverPartCatalog& catalog) {
+    catalog.hats.clear();
+    catalog.headParts.clear();
+    for (HeadedHat& hat : hats) {
+        catalog.hats.push_back(std::move(hat.hat));
+        catalog.headParts.push_back(std::move(hat.headPart));
+    }
+}
+
+std::vector<DriverPart> MergeShelf(std::vector<DriverPartCatalog>& catalogs,
+                                   DriverPartShelf DriverPartCatalog::* shelf) {
+    std::vector<std::vector<DriverPart>> parts;
+    parts.reserve(catalogs.size());
+    for (DriverPartCatalog& catalog : catalogs) {
+        parts.push_back(std::move((catalog.*shelf).parts));
+    }
+    return MergeNamed(std::move(parts));
+}
+
+}
+
+DriverPartCatalog MergeDriverParts(std::vector<DriverPartCatalog> catalogs) {
+    if (catalogs.empty()) {
+        return {};
+    }
+    std::vector<DriverPart> faces = MergeShelf(catalogs, &DriverPartCatalog::faces);
+    std::vector<DriverPart> torsos = MergeShelf(catalogs, &DriverPartCatalog::torsos);
+    std::vector<DriverPart> legs = MergeShelf(catalogs, &DriverPartCatalog::legs);
+    std::vector<std::vector<HeadedHat>> hats;
+    hats.reserve(catalogs.size());
+    for (DriverPartCatalog& catalog : catalogs) {
+        hats.push_back(TakeHeadedHats(catalog));
+    }
+    DriverPartCatalog merged = std::move(catalogs.front());
+    PutHeadedHats(MergeNamed(std::move(hats)), merged);
+    merged.faces.parts = std::move(faces);
+    merged.torsos.parts = std::move(torsos);
+    merged.legs.parts = std::move(legs);
+    return merged;
 }
 
 Result<DriverPartCatalog> ParseDriverParts(std::span<const std::byte> bytes) {

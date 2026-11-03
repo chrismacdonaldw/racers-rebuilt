@@ -141,5 +141,42 @@ TEST_CASE("the retail part catalogue lists every part the save can index") {
           std::vector<std::string>{"heads", "chests", "chest_hk", "legss", "leg-pegs"});
 }
 
+DriverPartCatalog Shelves(std::vector<DriverPart> hats, std::vector<std::string> headParts,
+                          std::vector<DriverPart> torsos) {
+    DriverPartCatalog catalog;
+    catalog.hats = std::move(hats);
+    catalog.headParts = std::move(headParts);
+    catalog.torsos.parts = std::move(torsos);
+    return catalog;
+}
+
+std::vector<std::string> Names(const std::vector<DriverPart>& parts) {
+    std::vector<std::string> names;
+    names.reserve(parts.size());
+    for (const DriverPart& part : parts) {
+        names.push_back(part.name);
+    }
+    return names;
+}
+
+TEST_CASE("a mod's parts keep the game's indices and its hats bring their head parts") {
+    DriverPartCatalog game =
+        Shelves({{.name = "nohat"}, {.name = "cap"}}, {"head", "capped"}, {{.name = "kk_chst"}});
+    game.torsos.folder = "chests";
+    game.bodies = {"rr"};
+    const DriverPartCatalog mod =
+        Shelves({{.name = "CAP", .unlock = 3}, {.name = "crown"}}, {"recapped", "crowned"},
+                {{.name = "robe", .variant = 1}});
+
+    const DriverPartCatalog merged = MergeDriverParts({game, mod});
+
+    CHECK(Names(merged.hats) == std::vector<std::string>{"nohat", "CAP", "crown"});
+    CHECK(merged.hats[1].unlock == 3);
+    CHECK(merged.headParts == std::vector<std::string>{"head", "recapped", "crowned"});
+    CHECK(Names(merged.torsos.parts) == std::vector<std::string>{"kk_chst", "robe"});
+    CHECK(merged.torsos.folder == "chests");
+    CHECK(merged.bodies == std::vector<std::string>{"rr"});
+}
+
 }
 }

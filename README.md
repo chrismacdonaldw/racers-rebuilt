@@ -282,7 +282,7 @@ Keep the `EMITC0R0` files as they are: the track's worlds refer to them by name.
 
 New tracks aren't part of any circuit, so they race with the first circuit's grid.
 
-### Racers
+### Racers and driver parts
 
 These tables merge with the game's instead of replacing it, so a mod only needs the entries it adds or changes:
 
@@ -292,8 +292,13 @@ These tables merge with the game's instead of replacing it, so a mod only needs 
 | `GAMEDATA/COMMON/CHAMPS.CCB` | Champion cars, by name |
 | `GAMEDATA/COMMON/CHASSIS.CMB`, `MENUDATA/PIECEDB/CHASSIS.CMB` | Chassis, by name |
 | `MENUDATA/RACERS.TOML` | Prebuilt racers in the racer pick, by name |
+| `MENUDATA/PARTDB/BODYPART.PCB` | Hats, faces, torsos and legs, by name. A hat brings its head part with it |
+| `MENUDATA/PARTDB/MENUPART/CBBODIES.GCB`, `MENUDATA/PARTDB/GAMEPART/ICB_CHAR.GCB` | Head parts, by name, with their own vertices |
+| Any `.MDB` or `.TDB` | Materials and textures, by name |
 
 - An entry named like one before it, in any case, replaces it. Mods merge in priority order, lowest first, and overrides last.
+- New entries come after the game's, so saved racers keep their parts. A racer saved with a mod's part gets the first part once the mod is off.
+- A mod's table that doesn't load is skipped with a warning in the log.
 - `RACERS.TOML` uses the data folder's `racers.toml` layout, so a racer built in the game can be copied in. Trophies and `selected` are ignored.
 - Entries can't be removed.
 

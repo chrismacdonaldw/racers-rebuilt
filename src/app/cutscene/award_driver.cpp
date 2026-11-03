@@ -13,6 +13,7 @@
 
 #include "app/cutscene/cutscene_racer.hpp"
 #include "app/racer/racer_models.hpp"
+#include "assets/driver_model.hpp"
 #include "assets/driver_parts.hpp"
 #include "assets/game_path.hpp"
 #include "assets/racer_catalog.hpp"
@@ -76,7 +77,8 @@ Result<AwardDriver> LoadAwardDriver(const assets::Vfs& vfs, assets::TrackLoader&
     Result<assets::TrackAssets> looks = minifig.and_then([&](const assets::GeometryAsset&) {
         return loader.LoadModels(kPartFolder, std::span(&files, 1));
     });
-    const std::string face = minifig ? parts->faces.parts.at(look.face).name : std::string();
+    const std::string face =
+        minifig ? parts->faces.parts.at(assets::FitLook(*parts, look).face).name : std::string();
     Result<assets::TrackAssets> faces = looks.and_then([&](const assets::TrackAssets& loaded) {
         return LoadExpressionFaces(vfs, loaded.materials, face);
     });

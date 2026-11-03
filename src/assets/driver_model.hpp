@@ -13,6 +13,9 @@ namespace rr::assets {
 
 enum class DriverDetail : std::uint8_t { Menu, Race };
 
+/// Indices past their list, as a removed mod's part leaves them, become the first part.
+[[nodiscard]] DriverLook FitLook(const DriverPartCatalog& catalog, DriverLook look);
+
 /// Menus pick the body by torso and legs variant. Races always use `leg_box`.
 [[nodiscard]] Result<std::string> DriverBodyName(const DriverPartCatalog& catalog,
                                                  const DriverLook& look, DriverDetail detail);

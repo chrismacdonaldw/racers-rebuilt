@@ -11,6 +11,7 @@
 
 #include "assets/game_path.hpp"
 #include "assets/vfs.hpp"
+#include "core/log.hpp"
 #include "core/result.hpp"
 
 namespace rr::assets {
@@ -37,11 +38,10 @@ template <typename Entry>
     return merged;
 }
 
-/// Fails when no layer has `path`, or when any layer's copy doesn't parse.
-template <typename Entry>
-[[nodiscard]] Result<std::vector<Entry>> ReadMergedTable(
-    const Vfs& vfs, std::string_view path,
-    Result<std::vector<Entry>> (*parse)(std::span<const std::byte>)) {
+/// Lowest layer first. A higher copy that doesn't parse is skipped with a warning.
+template <typename T>
+[[nodiscard]] Result<std::vector<T>> ParseEveryLayer(
+    const Vfs& vfs, std::string_view path, Result<T> (*parse)(std::span<const std::byte>)) {
     Result<std::vector<FileData>> files = vfs.ReadEveryLayer(path);
     if (!files) {
         return std::unexpected(std::move(files.error()));
@@ -50,16 +50,26 @@ template <typename Entry>
         return Fail(ErrorCode::NotFound,
                     std::format("{} isn't in the game files or any mod", path));
     }
-    std::vector<std::vector<Entry>> tables;
-    tables.reserve(files->size());
+    std::vector<T> parsed;
+    parsed.reserve(files->size());
     for (const FileData& file : *files) {
-        Result<std::vector<Entry>> table = parse(file.Bytes());
-        if (!table) {
-            return std::unexpected(std::move(table.error()));
+        Result<T> layer = parse(file.Bytes());
+        if (layer) {
+            parsed.push_back(std::move(*layer));
+        } else if (parsed.empty()) {
+            return std::unexpected(std::move(layer.error()));
+        } else {
+            log::Warn("skipping a mod's {}: {}", path, layer.error().message);
         }
-        tables.push_back(std::move(*table));
     }
-    return MergeNamed(std::move(tables));
+    return parsed;
+}
+
+template <typename Entry>
+[[nodiscard]] Result<std::vector<Entry>> ReadMergedTable(
+    const Vfs& vfs, std::string_view path,
+    Result<std::vector<Entry>> (*parse)(std::span<const std::byte>)) {
+    return ParseEveryLayer(vfs, path, parse).transform(MergeNamed<Entry>);
 }
 
 }

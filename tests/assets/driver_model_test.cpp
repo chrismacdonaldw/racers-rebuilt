@@ -103,24 +103,40 @@ TEST_CASE("a race driver shows the default face") {
     CHECK(driver->materials == std::vector<std::string>{"tu_chst", "kk_dflt", "leg_blck"});
 }
 
-TEST_CASE("a look past the catalogue or a body without a face fails") {
-    const DriverPartCatalog catalog = SmallCatalog();
-    const PartLibrary heads = SmallHeads();
-    const GeometryAsset body = SmallBody();
+std::vector<std::string> MenuMaterials(const DriverLook& look) {
+    return BuildDriverGeometry(SmallCatalog(), SmallHeads(), SmallBody(), look, DriverDetail::Menu)
+        .transform([](const GeometryAsset& driver) { return driver.materials; })
+        .value_or(std::vector<std::string>{});
+}
 
-    CHECK_FALSE(
-        BuildDriverGeometry(catalog, heads, body, {.face = 2}, DriverDetail::Menu).has_value());
-    CHECK_FALSE(
-        BuildDriverGeometry(catalog, heads, body, {.hat = 2}, DriverDetail::Menu).has_value());
-    CHECK_FALSE(
-        BuildDriverGeometry(catalog, heads, body, {.legs = 2}, DriverDetail::Menu).has_value());
-    CHECK_FALSE(
-        BuildDriverGeometry(catalog, heads, body, {.torso = 2}, DriverDetail::Menu).has_value());
-    CHECK_FALSE(DriverBodyName(catalog, {.torso = 2}, DriverDetail::Menu).has_value());
+TEST_CASE("a look past the catalogue, as a removed mod's part leaves, wears the first part") {
+    const std::vector<std::string> first = MenuMaterials({});
 
-    GeometryAsset faceless = body;
+    REQUIRE_FALSE(first.empty());
+    CHECK(MenuMaterials({.face = 2}) == first);
+    CHECK(MenuMaterials({.hat = 2}) == first);
+    CHECK(MenuMaterials({.legs = 2}) == first);
+    CHECK(MenuMaterials({.torso = 2}) == first);
+    CHECK(DriverBodyName(SmallCatalog(), {.torso = 2}, DriverDetail::Menu) == "rr");
+}
+
+TEST_CASE("a body without a face or an empty part list fails") {
+    GeometryAsset faceless = SmallBody();
     faceless.materials[1] = "head";
-    CHECK_FALSE(BuildDriverGeometry(catalog, heads, faceless, {}, DriverDetail::Menu).has_value());
+    CHECK_FALSE(BuildDriverGeometry(SmallCatalog(), SmallHeads(), faceless, {}, DriverDetail::Menu)
+                    .has_value());
+
+    DriverPartCatalog bare = SmallCatalog();
+    bare.faces.parts.clear();
+    CHECK_FALSE(
+        BuildDriverGeometry(bare, SmallHeads(), SmallBody(), {}, DriverDetail::Menu).has_value());
+}
+
+TEST_CASE("fitting a look keeps the indices its catalogue lists") {
+    const DriverLook look{.face = 1, .hat = 2, .legs = 1, .torso = 9, .expression = 4};
+
+    CHECK(FitLook(SmallCatalog(), look) ==
+          DriverLook{.face = 1, .hat = 0, .legs = 1, .torso = 0, .expression = 4});
 }
 
 template <typename T, typename Parse>

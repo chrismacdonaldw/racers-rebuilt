@@ -13,6 +13,7 @@
 
 #include "assets/game_path.hpp"
 #include "assets/geometry_database.hpp"
+#include "assets/merged_table.hpp"
 #include "assets/part_library.hpp"
 #include "assets/skeleton_database.hpp"
 #include "assets/texture_database.hpp"
@@ -44,8 +45,8 @@ Result<T> ReadParsed(const assets::Vfs& vfs, const std::string& path,
 
 Result<assets::TextureDefinition> DefaultFaceTexture(const assets::Vfs& vfs,
                                                      std::string_view name) {
-    return ReadParsed(vfs, std::format("{}/BODYPART.TDB", kPartFolder),
-                      assets::ParseTextureDatabase)
+    return assets::ReadMergedTable(vfs, std::format("{}/BODYPART.TDB", kPartFolder),
+                                   assets::ParseTextureDatabase)
         .and_then([&](const std::vector<assets::TextureDefinition>& definitions)
                       -> Result<assets::TextureDefinition> {
             const std::string upper = assets::ToUpperAscii(name);
@@ -77,7 +78,14 @@ Result<BuiltCarModel> BuildCarModel(const assets::Vfs& vfs, const assets::CarDat
 }
 
 Result<assets::DriverPartCatalog> LoadDriverParts(const assets::Vfs& vfs) {
-    return ReadParsed(vfs, std::format("{}/BODYPART.PCB", kPartFolder), assets::ParseDriverParts);
+    return assets::ParseEveryLayer(vfs, std::format("{}/BODYPART.PCB", kPartFolder),
+                                   assets::ParseDriverParts)
+        .transform(assets::MergeDriverParts);
+}
+
+Result<assets::PartLibrary> LoadHeadParts(const assets::Vfs& vfs, std::string_view path) {
+    return assets::ParseEveryLayer(vfs, path, assets::ParsePartLibrary)
+        .transform(assets::MergePartLibraries);
 }
 
 Result<assets::GeometryAsset> BuildMinifig(const assets::Vfs& vfs,
@@ -86,7 +94,7 @@ Result<assets::GeometryAsset> BuildMinifig(const assets::Vfs& vfs,
                                            assets::DriverDetail detail) {
     const MinifigFiles& files = detail == assets::DriverDetail::Race ? kRaceMinifig : kMenuMinifig;
     const Result<assets::PartLibrary> heads =
-        ReadParsed(vfs, std::format("{}/{}", files.folder, files.heads), assets::ParsePartLibrary);
+        LoadHeadParts(vfs, std::format("{}/{}", files.folder, files.heads));
     const Result<assets::GeometryAsset> body =
         heads
             .and_then([&](const assets::PartLibrary&) {
@@ -158,7 +166,8 @@ Result<assets::TrackAssets> LoadExpressionFaces(
 }
 
 void GreyMinifigMaterials(assets::NameMap<assets::MaterialAsset>& materials,
-                          const assets::DriverPartCatalog& parts, const assets::DriverLook& look) {
+                          const assets::DriverPartCatalog& parts, const assets::DriverLook& worn) {
+    const assets::DriverLook look = assets::FitLook(parts, worn);
     const std::array names{assets::FaceMaterial(parts.faces.parts.at(look.face).name, 0),
                            parts.torsos.parts.at(look.torso).name,
                            parts.legs.parts.at(look.legs).name};
