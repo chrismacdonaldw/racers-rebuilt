@@ -25,6 +25,7 @@ struct VersionRules {
     float firstCircuitPace = 0.0F;
     bool racersStepFirst = false;
     bool allowsInputLag = false;
+    bool keepsOneLapZone = false;
 };
 
 [[nodiscard]] const VersionRules& RulesFor(assets::GameVersion version);

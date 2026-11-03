@@ -43,7 +43,12 @@ public:
                    const TriggerWorlds& switched, const TrackSurfaces& surfaces,
                    std::span<const std::optional<Placement>> moved = {});
 
-    [[nodiscard]] std::size_t WorldCount() const override { return count_ + base_->WorldCount(); }
+    [[nodiscard]] std::size_t WorldCount() const override {
+        return count_ + (hasBase_ ? base_->WorldCount() : 0);
+    }
+
+    /// The checkpoint and trigger worlds alone, as a car on a route sweeps them.
+    [[nodiscard]] RacerWorldView WithoutBase() const;
     [[nodiscard]] std::optional<SegmentHit> CastSegment(std::size_t world, const Vector3& from,
                                                         const Vector3& to) const override;
 
@@ -53,6 +58,7 @@ private:
     std::array<const CollisionWorld*, kMaxTriggerWorlds + 1> extras_{};
     std::array<const Placement*, kMaxTriggerWorlds + 1> placements_{};
     std::size_t count_ = 0;
+    bool hasBase_ = true;
 };
 
 }

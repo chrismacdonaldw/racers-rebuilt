@@ -96,6 +96,20 @@ TEST_CASE("a racer tests the checkpoint world and its trigger worlds before the 
     CHECK_FALSE(EntryAt(view, 2).has_value());
 }
 
+TEST_CASE("a car on a route sweeps only its checkpoint and trigger worlds") {
+    const TrackCollision collision = Collision();
+    const test::PlaneWorld base = test::FlatGround();
+    TriggerWorlds switched;
+    switched.SwitchOn(2);
+    const TrackSurfaces surfaces(collision.surfaces);
+    const RacerWorldView extras =
+        RacerWorldView(base, &collision, switched, surfaces).WithoutBase();
+
+    REQUIRE(extras.WorldCount() == 2);
+    CHECK(EntryAt(extras, 0) == 1U);
+    CHECK(EntryAt(extras, 1) == 0U);
+}
+
 TEST_CASE("a racer's hits on a table surface follow the surface's current solidity") {
     const TrackCollision collision = Collision();
     const test::PlaneWorld base = test::FlatGround();

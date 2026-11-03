@@ -43,6 +43,13 @@ public:
     void HoldAt(float speed);
     void Release();
 
+    /// Keeps the playback state for `Restore`, which rewinds a step that hit a wall.
+    void Save();
+    void Restore();
+
+    /// Sends playback slowly backward, as after a wall hit.
+    void BackOff();
+
     /// Takes a contact's push as a seek along the route and a side offset within its width.
     void Shift(const Vector3& move);
 
@@ -72,6 +79,16 @@ private:
     void ReturnToFullSpeed();
     void Place(int dtMs);
 
+    struct Saved {
+        Transform pose;
+        float playbackSpeed = 1.0F;
+        float targetSpeed = 1.0F;
+        float baseSpeed = 1.0F;
+        float sideOffset = 0.0F;
+        Vector3 velocity;
+        RouteEffects effects;
+    };
+
     RoutePlayback route_;
     Vector3 wheelAnchor_;
     Transform pose_;
@@ -81,6 +98,7 @@ private:
     float sideOffset_ = 0.0F;
     Vector3 velocity_;
     RouteEffects effects_;
+    Saved saved_;
 };
 
 }

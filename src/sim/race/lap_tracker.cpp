@@ -10,6 +10,8 @@ constexpr Milliseconds kWrongWayDelay{500};
 
 }
 
+LapTracker::LapTracker(LapCounting counting) : counting_(counting), zones_(counting.keepsOneZone) {}
+
 void LapTracker::Cross(const CheckpointGraph& graph, const GateCrossing& crossing) {
     if (last_ == crossing.checkpoint && lastSide_ == crossing.side) {
         return;
@@ -17,13 +19,16 @@ void LapTracker::Cross(const CheckpointGraph& graph, const GateCrossing& crossin
     if (graph.LapFraction(crossing.checkpoint) == 0.0F) {
         if (crossing.side == GateSide::Backward) {
             isPastLineBackward_ = true;
+            zones_.Reverse();
             last_ = crossing.checkpoint;
             lastSide_ = crossing.side;
             return;
         }
         if (!isPastLineBackward_) {
             ++lapIndex_;
-            completedLaps_ = std::max(completedLaps_, lapIndex_);
+            if (!counting_.usesZones) {
+                completedLaps_ = std::max(completedLaps_, lapIndex_);
+            }
         }
         isPastLineBackward_ = false;
     } else if (isPastLineBackward_) {
@@ -36,6 +41,22 @@ void LapTracker::Cross(const CheckpointGraph& graph, const GateCrossing& crossin
 
 void LapTracker::ReachFinish(int lapCount) {
     completedLaps_ = std::max(completedLaps_, lapCount);
+}
+
+bool LapTracker::EnterZone(assets::LapZone zone) {
+    if (!counting_.usesZones || !zones_.Enter(zone)) {
+        return false;
+    }
+    ++finishCrossings_;
+    if (finishCrossings_ > 0 && finishCrossings_ > completedLaps_) {
+        ++completedLaps_;
+        return true;
+    }
+    return false;
+}
+
+void LapTracker::StartZones() {
+    zones_ = LapZones(counting_.keepsOneZone);
 }
 
 void LapTracker::Update(const CheckpointGraph& graph, Milliseconds elapsed, const Vector3& facing) {

@@ -129,7 +129,9 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       positions_(setup.racers.size()),
       rivals_(setup.racers.size()),
       places_(setup.racers.size()),
-      progress_(setup.racers.size(), setup.lapCount),
+      progress_(setup.racers.size(), setup.lapCount,
+                {.usesZones = !EventSourcesFor(course).table.lapZones.empty(),
+                 .keepsOneZone = rules_->keepsOneLapZone}),
       clock_(setup.isTestDrive),
       sounds_(setup.racers.size(), BrickCount(course), WeaponEventCount(setup, course)),
       random_(setup.seed),
@@ -225,10 +227,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     clock_.Advance(elapsed, HasPlayerFinished());
     sounds_.HearClock(before, clock_, isPlayer_);
     if (before.Phase() == RacePhase::Countdown && clock_.Phase() == RacePhase::Racing) {
-        for (Racer& racer : racers_) {
-            racer.Go();
-        }
-        StartBoosts();
+        StartRacing();
     }
     if (before.Phase() == RacePhase::Finished && clock_.Phase() == RacePhase::Results) {
         progress_.FinishRemaining();
@@ -243,6 +242,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     hazards_.Hear(triggers_, hazards);
     resources_.Dispatch(triggers_, entities_);
     tints_.Apply(triggers_.Events());
+    progress_.EnterZones(triggers_.Events(), EventSourcesFor(course_).table.lapZones);
 }
 
 RacerControls RaceSession::ControlsOf(std::size_t racer, std::span<const RacerControls> controls) {
@@ -268,6 +268,14 @@ bool RaceSession::WantsPowerup(std::size_t racer, Milliseconds elapsed,
                                     .hasFinished = progress_.OfRacer(racer).finishPlace.has_value(),
                                     .isLiningUp = drivers_[racer].has_value()},
                                    random_);
+}
+
+void RaceSession::StartRacing() {
+    for (Racer& racer : racers_) {
+        racer.Go();
+    }
+    progress_.StartZones();
+    StartBoosts();
 }
 
 void RaceSession::StartBoosts() {
@@ -399,7 +407,8 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     Racer& car = racers_[racer];
     const Vector3 from = positions_[racer];
     car.RollCurse(elapsed, random_);
-    car.Tick(elapsed, controls, WorldsOf(racer));
+    const RacerWorldView worlds = WorldsOf(racer);
+    car.Tick(elapsed, controls, car.Route() ? worlds.WithoutBase() : worlds);
     if (progress_.OfRacer(racer).laps.CompletedLaps() < progress_.LapCount()) {
         car.WatchForSuddenStop();
     }

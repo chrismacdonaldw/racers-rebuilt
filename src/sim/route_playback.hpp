@@ -33,6 +33,9 @@ public:
     /// Wheels on the ground at the point being approached: 0, 1, 2 or 4.
     [[nodiscard]] int ContactCount() const { return cursor_.contactCount; }
 
+    void Save() { saved_ = cursor_; }
+    void Restore() { cursor_ = saved_; }
+
 private:
     struct Cursor {
         std::size_t target = 0;
@@ -52,6 +55,7 @@ private:
 
     assets::RaceRoute route_;
     Cursor cursor_;
+    Cursor saved_;
 };
 
 }

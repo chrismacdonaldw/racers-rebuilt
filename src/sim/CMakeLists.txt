@@ -98,6 +98,7 @@ rr_add_module(sim
         race/cheats.cpp
         race/checkpoint_graph.cpp
         race/lap_tracker.cpp
+        race/lap_zones.cpp
         race/circuit_run.cpp
         race/race_clock.cpp
         race/race_progress.cpp

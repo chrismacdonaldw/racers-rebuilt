@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 
 #include "sim/physics/rigid_body.hpp"
@@ -16,6 +17,7 @@ constexpr float kVerticalBounce = 0.15F;
 constexpr float kFloorNormalZ = 0.7071068F;
 constexpr float kPushOffSpeed = 0.004F;
 constexpr float kMaxRiseSpeed = 0.3F;
+constexpr int kWallRetryMarginMs = 5;
 
 float WallYawRate(float sideFacing) {
     if (sideFacing < 0.0F) {
@@ -71,6 +73,11 @@ std::optional<WallHit> SweepBodyPoints(const BodyState& body, const BodyConstant
         }
     }
     return deepest;
+}
+
+int RetryStepMs(int stepMs, float fraction) {
+    const int reachedMs = static_cast<int>(std::floor(static_cast<float>(stepMs) * fraction));
+    return std::max(reachedMs - kWallRetryMarginMs, 0);
 }
 
 void ApplyWallResponse(BodyState& body, const BodyConstants& constants, const Vector3& normal) {

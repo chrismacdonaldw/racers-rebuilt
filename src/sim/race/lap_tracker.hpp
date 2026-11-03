@@ -3,16 +3,32 @@
 #include <cstddef>
 #include <optional>
 
+#include "assets/event_table.hpp"
 #include "core/duration.hpp"
 #include "core/vector3.hpp"
 #include "sim/race/checkpoint_graph.hpp"
+#include "sim/race/lap_zones.hpp"
 
 namespace rr::sim {
 
+struct LapCounting {
+    bool usesZones = false;
+    bool keepsOneZone = false;
+};
+
+/// Counts laps through the lap zones when `usesZones`, else at the start checkpoint.
 class LapTracker {
 public:
+    LapTracker() = default;
+    explicit LapTracker(LapCounting counting);
+
     void Cross(const CheckpointGraph& graph, const GateCrossing& crossing);
     void ReachFinish(int lapCount);
+
+    /// True when entering `zone` completes a lap.
+    bool EnterZone(assets::LapZone zone);
+
+    void StartZones();
 
     /// `facing` is the racer's facing direction in game space.
     void Update(const CheckpointGraph& graph, Milliseconds elapsed, const Vector3& facing);
@@ -27,6 +43,9 @@ public:
 private:
     void UpdateWrongWay(Milliseconds elapsed, bool isFacingAhead);
 
+    LapCounting counting_;
+    LapZones zones_;
+    int finishCrossings_ = -1;
     std::optional<std::size_t> last_;
     GateSide lastSide_ = GateSide::Forward;
     int lapIndex_ = -1;

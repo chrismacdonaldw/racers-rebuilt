@@ -214,6 +214,7 @@ public:
     [[nodiscard]] ContactBody ForContacts(const CollisionQuery& world);
 
 private:
+    void TickRoute(AiRacer& route, Milliseconds elapsed, const CollisionQuery& world);
     void UpdateTurbo(int dtMs);
     void FinishTurbo();
     [[nodiscard]] bool HasHoverStalled() const;

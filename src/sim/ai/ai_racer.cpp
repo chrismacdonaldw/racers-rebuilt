@@ -38,6 +38,7 @@ constexpr float kSideReturnPerMs = 1.0F / 512.0F;
 constexpr float kFullBump = 240.0F;
 constexpr float kForwardBumpSwing = 0.05F;
 constexpr float kBackwardBumpSwing = 0.25F;
+constexpr float kBackOffSpeed = -0.1F;
 
 }
 
@@ -66,6 +67,32 @@ void AiRacer::Tick(Milliseconds elapsed) {
     UpdateRouteHop(effects_, dtMs);
     Place(dtMs);
     velocity_ = (pose_.position - from) * (1.0F / elapsedMs);
+}
+
+void AiRacer::Save() {
+    route_.Save();
+    saved_ = {.pose = pose_,
+              .playbackSpeed = playbackSpeed_,
+              .targetSpeed = targetSpeed_,
+              .baseSpeed = baseSpeed_,
+              .sideOffset = sideOffset_,
+              .velocity = velocity_,
+              .effects = effects_};
+}
+
+void AiRacer::Restore() {
+    route_.Restore();
+    pose_ = saved_.pose;
+    playbackSpeed_ = saved_.playbackSpeed;
+    targetSpeed_ = saved_.targetSpeed;
+    baseSpeed_ = saved_.baseSpeed;
+    sideOffset_ = saved_.sideOffset;
+    velocity_ = saved_.velocity;
+    effects_ = saved_.effects;
+}
+
+void AiRacer::BackOff() {
+    playbackSpeed_ = kBackOffSpeed;
 }
 
 void AiRacer::SetBaseSpeed(float speed) {

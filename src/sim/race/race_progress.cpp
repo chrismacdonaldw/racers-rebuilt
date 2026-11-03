@@ -27,10 +27,11 @@ std::size_t CountedLaps(const RacerProgress& racer, int lapCount) {
 
 }
 
-RaceProgress::RaceProgress(std::size_t racerCount, int lapCount)
+RaceProgress::RaceProgress(std::size_t racerCount, int lapCount, LapCounting counting)
     : racers_(racerCount), standings_(racerCount), order_(racerCount), lapCount_(lapCount) {
     RR_ASSERT(lapCount > 0);
     for (RacerProgress& racer : racers_) {
+        racer.laps = LapTracker(counting);
         racer.lapTimes.assign(static_cast<std::size_t>(lapCount), Milliseconds{0});
     }
     std::ranges::iota(order_, std::size_t{0});
@@ -59,6 +60,33 @@ void RaceProgress::Move(const CheckpointGraph& graph, std::size_t racer, const R
         progress.lapTimes[static_cast<std::size_t>(lap)] += elapsed;
     } else {
         TakeNextPlace(progress);
+    }
+}
+
+void RaceProgress::EnterZone(std::size_t racer, assets::LapZone zone) {
+    RacerProgress& progress = racers_.at(racer);
+    if (progress.laps.EnterZone(zone) && progress.laps.CompletedLaps() < lapCount_) {
+        progress.lapGap = GapToLeader(racer);
+    }
+}
+
+void RaceProgress::EnterZones(std::span<const TrackEvent> events,
+                              std::span<const assets::LapZoneResource> zones) {
+    for (const TrackEvent& event : events) {
+        if (event.edge != EventEdge::Start || !event.racer || *event.racer >= racers_.size()) {
+            continue;
+        }
+        for (const assets::LapZoneResource& zone : zones) {
+            if (zone.trigger.event == event.id) {
+                EnterZone(*event.racer, zone.zone);
+            }
+        }
+    }
+}
+
+void RaceProgress::StartZones() {
+    for (RacerProgress& racer : racers_) {
+        racer.laps.StartZones();
     }
 }
 
