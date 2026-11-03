@@ -129,15 +129,24 @@ private:
                      const std::array<GpuPipeline, kBlendModeCount>& pipelines) const;
     void DrawMeshes(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, const RenderView& view,
                     const glm::mat4& viewProjection) const;
-    void DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, const MeshDraw& draw,
-                  const glm::mat4& viewProjection, const Color& ambient,
-                  SDL_GPUGraphicsPipeline*& bound) const;
+    struct MeshPass {
+        SDL_GPUCommandBuffer* commands;
+        SDL_GPURenderPass* pass;
+        glm::mat4 viewProjection;
+        Color ambient;
+        SDL_GPUGraphicsPipeline* bound;
+    };
+
+    [[nodiscard]] const std::array<GpuPipeline, kBlendModeCount>& MeshPipelines(
+        bool isBackdrop, bool isSkinned) const;
+    void DrawMesh(MeshPass& meshPass, const MeshDraw& draw, bool isBackdrop = false) const;
     void DrawLines(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass, const ViewRange& range,
                    const glm::mat4& viewProjection) const;
 
     std::unique_ptr<SDL_GPUDevice, DeviceDeleter> device_;
     std::array<GpuPipeline, kBlendModeCount> meshPipelines_;
     std::array<GpuPipeline, kBlendModeCount> skinnedMeshPipelines_;
+    std::array<GpuPipeline, kBlendModeCount> backdropPipelines_;
     std::array<GpuPipeline, kBlendModeCount> quadPipelines_;
     std::array<GpuPipeline, kBlendModeCount> spritePipelines_;
     GpuPipeline linePipeline_;

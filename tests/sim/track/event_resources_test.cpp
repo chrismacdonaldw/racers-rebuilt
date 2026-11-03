@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "assets/archive_survey.hpp"
+#include "assets/sky_file.hpp"
 #include "sim/race/race_track.hpp"
 
 namespace rr::sim {
@@ -57,13 +58,15 @@ assets::EventTrigger On(assets::EventId event, assets::SubEvents subEvents = {})
 
 class Rig {
 public:
-    explicit Rig(assets::EventTableAsset table, TrackEntitySources sources = Door())
+    explicit Rig(assets::EventTableAsset table, TrackEntitySources sources = Door(),
+                 assets::SkyFile sky = {})
         : table_(std::move(table)),
           sources_(std::move(sources)),
+          sky_(std::move(sky)),
           events_(TrackEventSources{}, 0, false, random_,
                   EventResources::MostFiredPerTick(table_) + kSpareEvents),
           entities(sources_),
-          resources(table_, sources_, nullptr) {}
+          resources(table_, sources_, nullptr, sky_) {}
 
     void Tick(std::initializer_list<TrackEvent> fired = {}) {
         entities.Tick(kTick);
@@ -94,6 +97,7 @@ public:
 private:
     assets::EventTableAsset table_;
     TrackEntitySources sources_;
+    assets::SkyFile sky_;
     Random random_{1};
     TrackEvents events_;
 
@@ -244,12 +248,54 @@ TEST_CASE("racer-path events reach none of the position-path resources") {
     CHECK(rig.resources.IsModelHidden(0));
 }
 
+constexpr assets::Rgb8 kBlack{0, 0, 0};
+
+assets::SkyFile DaylightAndFlash() {
+    return {.skies = {{.name = "daylight", .keyframes = {{.top = {25, 25, 255}}}},
+                      {.name = "flash",
+                       .keyframes = {{.horizon = kBlack, .middle = kBlack, .top = kBlack}}}}};
+}
+
+Rig SkyRig(const assets::SkyStateResource& state) {
+    return Rig({.skyStates = {state}}, Door(), DaylightAndFlash());
+}
+
+TEST_CASE("a sky state fades to its sky and hides the dome as its event starts") {
+    Rig rig = SkyRig({.trigger = On(20), .sky = "flash", .hidesDome = true});
+
+    rig.Tick({Start(20)});
+
+    CHECK(rig.resources.Sky().Colors().top == kBlack);
+    CHECK_FALSE(rig.resources.Sky().ShowsDome());
+    CHECK(rig.resources.SkyStates()[0] == ResourcePhase::Idle);
+}
+
+TEST_CASE("a sky state starts its active sub-event as it ends itself") {
+    Rig rig = SkyRig({.trigger = On(20, {.active = 21}), .sky = "flash"});
+
+    rig.Tick({Start(20)});
+
+    CHECK(rig.history == std::vector{Start(20), Start(21)});
+}
+
+TEST_CASE("a sky state that starts on its event's end waits for the end") {
+    Rig rig = SkyRig(
+        {.trigger = {.event = 20, .startsOnEnd = true}, .sky = "flash", .hidesSkyWorld = true});
+
+    rig.Tick({Start(20)});
+    CHECK(rig.resources.Sky().ShowsWorld());
+    rig.Tick({End(20)});
+
+    CHECK_FALSE(rig.resources.Sky().ShowsWorld());
+    CHECK(rig.resources.Sky().Colors().top == kBlack);
+}
+
 struct RetailRig {
     explicit RetailRig(const RaceTrack& track)
         : events(track.events, 1, false, random,
                  EventResources::MostFiredPerTick(track.events.table) + kSpareEvents),
           entities(track.entities),
-          resources(track.events.table, track.entities, &track.collision) {}
+          resources(track.events.table, track.entities, &track.collision, track.events.sky) {}
 
     void Tick(std::initializer_list<TrackEvent> fired = {}) {
         entities.Tick(kTick);
@@ -328,6 +374,24 @@ TEST_CASE("the RACEC0R2 shortcut volume follows its sliding door while event 2 r
     REQUIRE(slid.has_value());
     CHECK(Length(started.value_or(Placement{}).position - rest) < 0.01F);
     CHECK(Length(slid.value_or(Placement{}).position - rest) > 1.0F);
+}
+
+TEST_CASE("RACEC0R3 lightning flashes the sky, then fades back to daylight") {
+    const std::optional<RaceTrack> track = RetailTrack("RACEC0R3");
+    if (!track) {
+        return;
+    }
+    RetailRig rig(*track);
+    const SkyColors daylight = rig.resources.Sky().Colors();
+
+    rig.Tick({Start(50)});
+    rig.Run(Milliseconds{300});
+    const SkyColors flashed = rig.resources.Sky().Colors();
+    rig.Tick({End(50)});
+    rig.Run(Milliseconds{600});
+
+    CHECK(flashed != daylight);
+    CHECK(rig.resources.Sky().Colors() == daylight);
 }
 
 }

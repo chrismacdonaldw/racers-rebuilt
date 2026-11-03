@@ -357,16 +357,25 @@ Result<TrackAssets> TrackLoader::LoadWorldFiles(const NameResolver& resolver,
         return std::unexpected(std::move(worlds.error()));
     }
     Names names;
+    Handles<WorldAsset> placed;
+    AssetCache<WorldAsset>::Handle sky;
     for (std::size_t i = 0; i < worlds->size(); ++i) {
-        const AssetCache<WorldAsset>::Handle& world = (*worlds)[i];
+        AssetCache<WorldAsset>::Handle& world = (*worlds)[i];
         InsertAllUpper(names.models, world->models);
-        if (!IsMirroredWorld(files[i].path)) {
-            InsertAllUpper(names.skyModels, world->models);
-        }
         InsertAllUpper(names.materialLibraries, world->materialLibraries);
         InsertAllUpper(names.textureDatabases, world->textureLists);
+        if (IsMirroredWorld(files[i].path)) {
+            placed.push_back(std::move(world));
+        } else {
+            InsertAllUpper(names.skyModels, world->models);
+            sky = std::move(world);
+        }
     }
-    return LoadNamed(resolver, std::move(*worlds), names, isMirrored);
+    return LoadNamed(resolver, std::move(placed), names, isMirrored)
+        .transform([&](TrackAssets assets) {
+            assets.skyWorld = std::move(sky);
+            return assets;
+        });
 }
 
 Result<TrackAssets> TrackLoader::LoadModels(std::string_view folder,

@@ -41,6 +41,12 @@ std::string MenuAfter(const RaceSceneSetup& setup) {
     return std::string(setup.isTestDrive ? kGarageScene : kMainMenuScene);
 }
 
+Result<TrackModel> LoadTrackModel(render::Renderer& renderer, assets::TrackLoader& loader,
+                                  const RaceSceneSetup& setup) {
+    return loader.Load(std::format("GAMEDATA/{}", setup.track), setup.isMirrored)
+        .and_then([&](const assets::TrackAssets& assets) { return UploadTrack(renderer, assets); });
+}
+
 }
 
 Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
@@ -50,10 +56,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                                                      std::uint64_t seed, Nanoseconds started) {
     render::Renderer& renderer = *outputs.renderer;
     const std::string& track = setup.track;
-    Result<TrackModel> model = loader.Load(std::format("GAMEDATA/{}", track), setup.isMirrored)
-                                   .and_then([&](const assets::TrackAssets& assets) {
-                                       return UploadTrack(renderer, assets);
-                                   });
+    Result<TrackModel> model = LoadTrackModel(renderer, loader, setup);
     Result<sim::RaceTrack> loaded =
         model.and_then([&](const TrackModel&) { return LoadSceneTrack(vfs, setup); });
     Result<RacerGrid> racers = loaded.and_then([&](const sim::RaceTrack& race) {
@@ -61,8 +64,11 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     });
     Result<BrickModels> bricks =
         racers.and_then([&](const RacerGrid&) { return BrickModels::Load(renderer, loader); });
-    if (!bricks) {
-        return std::unexpected(std::move(bricks.error()));
+    Result<SkyBackdrop> sky = bricks.and_then([&](const BrickModels&) {
+        return SkyBackdrop::Upload(renderer, std::move(model->skyModels));
+    });
+    if (!sky) {
+        return std::unexpected(std::move(sky.error()));
     }
     auto raceTrack = std::make_unique<sim::RaceTrack>(std::move(*loaded));
     auto world = std::make_unique<sim::WorldList>(raceTrack->collision.Track());
@@ -94,6 +100,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                        .bricks = std::move(*bricks),
                        .powerups = LoadPowerupModels(renderer, vfs, loader),
                        .warpTube = WarpTube::Load(renderer, vfs, loader),
+                       .sky = std::move(*sky),
                        .camera = TrackCamera(model->bounds),
                        .raceTrack = std::move(raceTrack),
                        .entityDraws = std::move(entityDraws),
@@ -350,7 +357,10 @@ render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated
     PowerupQuads& powerupQuads = powerupQuads_[player];
     powerupQuads.Update(interpolated, camera.transform, simMs);
     quads.insert(quads.end(), powerupQuads.Quads().begin(), powerupQuads.Quads().end());
+    std::vector<render::MeshDraw>& sky = skyDraws_.at(player);
+    parts_.sky.Place(parts_.session.Resources().Sky(), camera.transform.position, skyShownMs_, sky);
     return {.camera = camera,
+            .backdrop = sky,
             .meshes = draws_,
             .quads = quads,
             .lines = debugLines_,
@@ -360,6 +370,7 @@ render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated
 void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     const float elapsedMs = MsSince(lastRender_) * static_cast<float>(TimeScale());
     const float simMs = pause_.IsOpen() || IsTrialAsking() ? 0.0F : elapsedMs;
+    skyShownMs_ += simMs;
     GatherMeshes(interpolated, simMs);
     DrawDebugLines();
     GatherCarMarks(interpolated, simMs);

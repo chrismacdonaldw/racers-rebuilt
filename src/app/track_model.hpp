@@ -10,6 +10,7 @@
 #include "app/decal_surface.hpp"
 #include "app/track_space.hpp"
 #include "assets/track_loader.hpp"
+#include "assets/world_database.hpp"
 #include "core/result.hpp"
 #include "render/camera.hpp"
 #include "render/renderer.hpp"
@@ -33,6 +34,12 @@ struct NamedDraws {
     DrawSpan span;
 };
 
+/// A sky world model. Its draws hold the entity's rotation; the race moves them to the camera.
+struct SkyModel {
+    std::vector<render::MeshDraw> draws;
+    assets::TextureScroll scroll;
+};
+
 /// `draws` leaves out the animated entities, and `entityDraws` says which draws each entity owns.
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct TrackModel {
@@ -40,6 +47,7 @@ struct TrackModel {
     std::vector<std::uint32_t> drawSlots;
     std::vector<NamedDraws> entityDraws;
     assets::NameMap<JointedModel> animatedModels;
+    std::vector<SkyModel> skyModels;
     assets::NameMap<render::Material> materials;
     Bounds bounds;
     assets::NameMap<render::TextureId> textures;

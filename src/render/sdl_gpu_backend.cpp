@@ -214,7 +214,10 @@ Result<void> SdlGpuBackend::CreatePipelines() {
         Result<GpuPipeline> skinnedPipeline = meshPipeline.and_then([&](const GpuPipeline&) {
             return CreateSkinnedMeshPipeline(device, colorFormat_, blend);
         });
-        Result<GpuPipeline> quadPipeline = skinnedPipeline.and_then(
+        Result<GpuPipeline> backdropPipeline = skinnedPipeline.and_then([&](const GpuPipeline&) {
+            return CreateBackdropPipeline(device, colorFormat_, blend);
+        });
+        Result<GpuPipeline> quadPipeline = backdropPipeline.and_then(
             [&](const GpuPipeline&) { return CreateQuadPipeline(device, colorFormat_, blend); });
         Result<GpuPipeline> spritePipeline = quadPipeline.and_then(
             [&](const GpuPipeline&) { return CreateSpritePipeline(device, colorFormat_, blend); });
@@ -223,6 +226,7 @@ Result<void> SdlGpuBackend::CreatePipelines() {
         }
         meshPipelines_.at(mode) = std::move(*meshPipeline);
         skinnedMeshPipelines_.at(mode) = std::move(*skinnedPipeline);
+        backdropPipelines_.at(mode) = std::move(*backdropPipeline);
         quadPipelines_.at(mode) = std::move(*quadPipeline);
         spritePipelines_.at(mode) = std::move(*spritePipeline);
     }

@@ -143,36 +143,52 @@ void SdlGpuBackend::DrawMeshes(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass
                                const RenderView& view, const glm::mat4& viewProjection) const {
     const LightUniforms lights = ToLightUniforms(view.lighting);
     SDL_PushGPUFragmentUniformData(commands, 1, &lights, sizeof(lights));
-    SDL_GPUGraphicsPipeline* bound = nullptr;
+    MeshPass meshPass{.commands = commands,
+                      .pass = pass,
+                      .viewProjection = viewProjection,
+                      .ambient = view.lighting.ambient,
+                      .bound = nullptr};
+    for (const MeshDraw& draw : view.backdrop) {
+        DrawMesh(meshPass, draw, true);
+    }
     for (const MeshDraw& draw : view.meshes | std::views::filter(IsOpaque)) {
-        DrawMesh(commands, pass, draw, viewProjection, view.lighting.ambient, bound);
+        DrawMesh(meshPass, draw);
     }
     for (const MeshDraw& draw : view.meshes | std::views::filter(std::not_fn(IsOpaque))) {
-        DrawMesh(commands, pass, draw, viewProjection, view.lighting.ambient, bound);
+        DrawMesh(meshPass, draw);
     }
 }
 
-void SdlGpuBackend::DrawMesh(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass,
-                             const MeshDraw& draw, const glm::mat4& viewProjection,
-                             const Color& ambient, SDL_GPUGraphicsPipeline*& bound) const {
+const std::array<GpuPipeline, SdlGpuBackend::kBlendModeCount>& SdlGpuBackend::MeshPipelines(
+    bool isBackdrop, bool isSkinned) const {
+    if (isBackdrop) {
+        return backdropPipelines_;
+    }
+    return isSkinned ? skinnedMeshPipelines_ : meshPipelines_;
+}
+
+void SdlGpuBackend::DrawMesh(MeshPass& meshPass, const MeshDraw& draw, bool isBackdrop) const {
+    SDL_GPUCommandBuffer* commands = meshPass.commands;
+    SDL_GPURenderPass* pass = meshPass.pass;
     const Mesh& mesh = meshes_.Get(draw.mesh);
     RR_VERIFY(draw.firstIndex <= mesh.indexCount);
     const std::uint32_t indexCount = std::min(draw.indexCount, mesh.indexCount - draw.firstIndex);
     RR_VERIFY(draw.indexCount == kWholeMesh || indexCount == draw.indexCount);
 
     const bool isSkinned = !draw.joints.empty();
-    SDL_GPUGraphicsPipeline* pipeline = (isSkinned ? skinnedMeshPipelines_ : meshPipelines_)
+    RR_VERIFY(!isBackdrop || !isSkinned);
+    SDL_GPUGraphicsPipeline* pipeline = MeshPipelines(isBackdrop, isSkinned)
                                             .at(static_cast<std::size_t>(draw.material.blend))
                                             .Get();
-    if (pipeline != bound) {
+    if (pipeline != meshPass.bound) {
         SDL_BindGPUGraphicsPipeline(pass, pipeline);
-        bound = pipeline;
+        meshPass.bound = pipeline;
     }
     const DrawUniforms drawUniforms{.model = ModelMatrix(draw.transform, draw.scale),
-                                    .viewProjection = viewProjection};
+                                    .viewProjection = meshPass.viewProjection};
     const MaterialUniforms materialUniforms{
         .tint = draw.material.tint,
-        .ambient = draw.material.ambient * ambient,
+        .ambient = draw.material.ambient * meshPass.ambient,
         .alphaCutoff = draw.material.alphaCutoff,
         .modulateWeight = draw.material.modulates ? 1.0F : 0.0F,
         .uvOffset = {draw.material.uvOffset.u, draw.material.uvOffset.v},

@@ -35,6 +35,7 @@
 #include "app/racer/skid_marks.hpp"
 #include "app/racer_effect_tools.hpp"
 #include "app/scene.hpp"
+#include "app/sky_backdrop.hpp"
 #include "app/sound_banks.hpp"
 #include "app/time_trial/ghost_cars.hpp"
 #include "app/time_trial/time_trial_race.hpp"
@@ -95,6 +96,7 @@ private:
         BrickModels bricks;
         PowerupModelSet powerups;
         std::optional<WarpTube> warpTube;
+        SkyBackdrop sky;
         render::Camera camera;
         std::unique_ptr<sim::RaceTrack> raceTrack;
         TrackEntityDraws entityDraws;
@@ -152,6 +154,8 @@ private:
     std::vector<render::QuadDraw> carMarks_;
     std::array<std::vector<render::QuadDraw>, sim::kMaxPlayers> playerQuads_;
     std::array<std::vector<render::MeshDraw>, sim::kMaxPlayers> tubeDraws_;
+    std::array<std::vector<render::MeshDraw>, sim::kMaxPlayers> skyDraws_;
+    float skyShownMs_ = 0.0F;
     std::vector<render::RenderView> views_;
     std::array<std::vector<MapMarker>, sim::kMaxPlayers> mapMarkers_;
     std::array<MapView, sim::kMaxPlayers> mapViews_;

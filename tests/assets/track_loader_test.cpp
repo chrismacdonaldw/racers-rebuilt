@@ -7,6 +7,7 @@
 #include <fstream>
 #include <memory>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -199,6 +200,26 @@ TEST_CASE_FIXTURE(TrackFixture, "a mirrored load leaves the sky world and its mo
     REQUIRE(mirrored.has_value());
     CHECK(mirrored->models.at("SKY")->vertices[2].position == Vector3{.y = 1.0F});
     CHECK(mirrored->models.at("KART")->vertices[2].position == Vector3{.y = -1.0F});
+}
+
+TEST_CASE_FIXTURE(TrackFixture, "the sky world loads apart from the track's worlds") {
+    Write("gamedata/racex/backgrd.wdb", NameList(0x2A, "sky"));
+    Write("gamedata/racex/sky.gdb", OneTriangleModel());
+
+    const Result<TrackAssets> track = Load();
+
+    REQUIRE(track.has_value());
+    CHECK(track->worlds.size() == 1);
+    REQUIRE(track->skyWorld != nullptr);
+    CHECK(track->skyWorld->models == std::vector<std::string>{"sky"});
+    CHECK(track->models.contains("SKY"));
+}
+
+TEST_CASE_FIXTURE(TrackFixture, "a track without a sky world has none") {
+    const Result<TrackAssets> track = Load();
+
+    REQUIRE(track.has_value());
+    CHECK(track->skyWorld == nullptr);
 }
 
 TEST_CASE_FIXTURE(TrackFixture, "a missing texture file is skipped and named") {

@@ -170,10 +170,12 @@ struct Viewport {
     bool isOnUiCanvas = false;
 };
 
-/// Quads draw after the meshes without writing depth, then sprites over the scene, each in order.
+/// The backdrop draws first, in order, without depth. Quads draw after the meshes without writing
+/// depth, then sprites over the scene, each in order. Backdrop draws can't be skinned.
 struct RenderView {
     Camera camera;
     Lighting lighting;
+    std::span<const MeshDraw> backdrop;
     std::span<const MeshDraw> meshes;
     std::span<const QuadDraw> quads;
     std::span<const DebugLine> lines;
