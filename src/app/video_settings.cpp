@@ -7,6 +7,7 @@ void DeclareVideoSettings(settings::Registry& registry) {
     registry.Declare(kFpsCapSetting);
     registry.Declare(kResolutionScaleSetting);
     registry.Declare(kStretchUiSetting);
+    registry.Declare(kWidescreenSetting);
 }
 
 platform::PacingConfig PacingFromSettings(const settings::Registry& registry) {
@@ -32,6 +33,8 @@ void ApplyRendererSettings(const settings::Registry& registry, render::Renderer&
     renderer.SetResolutionScale(static_cast<float>(registry.Get(kResolutionScaleSetting)));
     renderer.SetUiFit(registry.Get(kStretchUiSetting) ? render::UiFit::Stretched
                                                       : render::UiFit::Centered);
+    renderer.SetSceneFit(registry.Get(kWidescreenSetting) ? render::SceneFit::Window
+                                                          : render::SceneFit::Canvas);
 }
 
 }

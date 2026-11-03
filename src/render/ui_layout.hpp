@@ -12,6 +12,9 @@ inline constexpr float kUiHeight = 480.0F;
 
 enum class UiFit : std::uint8_t { Centered, Stretched };
 
+/// Where views that aren't on the UI canvas go: within the canvas's area, or the whole window.
+enum class SceneFit : std::uint8_t { Canvas, Window };
+
 struct PixelRect {
     std::uint32_t xPx = 0;
     std::uint32_t yPx = 0;
@@ -32,6 +35,12 @@ struct UiToClip {
 [[nodiscard]] PixelRect FitUiArea(std::uint32_t widthPx, std::uint32_t heightPx, UiFit fit);
 
 [[nodiscard]] Viewport UiViewport(const Rect& rect);
+
+[[nodiscard]] PixelRect ViewportArea(const Viewport& viewport, std::uint32_t widthPx,
+                                     std::uint32_t heightPx, UiFit uiFit, SceneFit sceneFit);
+
+/// Under `SceneFit::Canvas` a window view keeps the canvas's shape, so a stretched UI stretches it.
+[[nodiscard]] float ViewAspect(const Viewport& viewport, const PixelRect& area, SceneFit sceneFit);
 
 [[nodiscard]] UiToClip UiToClipTransform(const PixelRect& area, std::uint32_t widthPx,
                                          std::uint32_t heightPx);

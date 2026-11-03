@@ -29,6 +29,33 @@ PixelRect FitUiArea(std::uint32_t widthPx, std::uint32_t heightPx, UiFit fit) {
             .heightPx = fitHeightPx};
 }
 
+PixelRect ViewportArea(const Viewport& viewport, std::uint32_t widthPx, std::uint32_t heightPx,
+                       UiFit uiFit, SceneFit sceneFit) {
+    const bool isWithinCanvas = viewport.isOnUiCanvas || sceneFit == SceneFit::Canvas;
+    const PixelRect within = isWithinCanvas ? FitUiArea(widthPx, heightPx, uiFit)
+                                            : PixelRect{.widthPx = widthPx, .heightPx = heightPx};
+    const auto edge = [](float fraction, std::uint32_t startPx, std::uint32_t sizePx) {
+        const long px =
+            static_cast<long>(startPx) + std::lround(fraction * static_cast<float>(sizePx));
+        return static_cast<std::uint32_t>(std::max(px, 0L));
+    };
+    const std::uint32_t left = edge(viewport.x, within.xPx, within.widthPx);
+    const std::uint32_t top = edge(viewport.y, within.yPx, within.heightPx);
+    const std::uint32_t right = edge(viewport.x + viewport.width, within.xPx, within.widthPx);
+    const std::uint32_t bottom = edge(viewport.y + viewport.height, within.yPx, within.heightPx);
+    return {.xPx = left,
+            .yPx = top,
+            .widthPx = std::max(1U, right - std::min(left, right)),
+            .heightPx = std::max(1U, bottom - std::min(top, bottom))};
+}
+
+float ViewAspect(const Viewport& viewport, const PixelRect& area, SceneFit sceneFit) {
+    if (sceneFit == SceneFit::Canvas && !viewport.isOnUiCanvas) {
+        return (kUiWidth * viewport.width) / (kUiHeight * viewport.height);
+    }
+    return static_cast<float>(area.widthPx) / static_cast<float>(area.heightPx);
+}
+
 UiToClip UiToClipTransform(const PixelRect& area, std::uint32_t widthPx, std::uint32_t heightPx) {
     const auto windowWidth = static_cast<float>(widthPx);
     const auto windowHeight = static_cast<float>(heightPx);

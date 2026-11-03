@@ -29,6 +29,9 @@ inline constexpr settings::SettingSpec<double> kResolutionScaleSetting{
 inline constexpr settings::SettingSpec<bool> kStretchUiSetting{
     .key = "video.stretch_ui", .defaultValue = false, .label = "Stretch UI", .category = "Video"};
 
+inline constexpr settings::SettingSpec<bool> kWidescreenSetting{
+    .key = "video.widescreen", .defaultValue = false, .label = "Widescreen", .category = "Video"};
+
 void DeclareVideoSettings(settings::Registry& registry);
 
 [[nodiscard]] platform::PacingConfig PacingFromSettings(const settings::Registry& registry);
