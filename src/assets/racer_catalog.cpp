@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "assets/game_path.hpp"
+#include "assets/merged_table.hpp"
 
 namespace rr::assets {
 namespace {
@@ -16,8 +17,7 @@ template <typename Entry>
 Result<std::vector<Entry>> ReadTable(
     const Vfs& vfs, std::string_view file,
     Result<std::vector<Entry>> (*parse)(std::span<const std::byte>)) {
-    return vfs.Read(std::format("{}/{}", kTablesFolder, file))
-        .and_then([parse](const FileData& data) { return parse(data.Bytes()); });
+    return ReadMergedTable(vfs, std::format("{}/{}", kTablesFolder, file), parse);
 }
 
 template <typename Entry>

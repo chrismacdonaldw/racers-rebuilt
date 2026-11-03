@@ -45,6 +45,9 @@ public:
     /// Skips the resolver.
     [[nodiscard]] bool Contains(std::string_view path) const;
 
+    /// Lowest layer first, skipping the resolver. Empty when no layer has `path`.
+    [[nodiscard]] Result<std::vector<FileData>> ReadEveryLayer(std::string_view path) const;
+
     /// Merges every layer's children, sorted by name.
     [[nodiscard]] Result<std::vector<VfsEntry>> List(std::string_view directory) const;
 
