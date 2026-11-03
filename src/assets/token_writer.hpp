@@ -23,6 +23,7 @@ public:
 
     /// Writes `[ count ] {`. `Close` ends it.
     void OpenList(std::size_t count);
+    void OpenBlock();
     void Close();
 
     [[nodiscard]] std::vector<std::byte> Take() && { return std::move(bytes_); }

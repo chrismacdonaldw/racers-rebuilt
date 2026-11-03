@@ -28,6 +28,8 @@ struct GlbTriangle {
     bool isSkinned = false;
     float normalZ = 1.0F;
     int bindMatrices = 0;
+    std::string animation;
+    std::string turnInterpolation = "LINEAR";
 };
 
 class GlbParts {
@@ -103,7 +105,25 @@ private:
     int viewCount_ = 0;
 };
 
+inline void AddAnimation(GlbParts& parts, const GlbTriangle& triangle) {
+    constexpr std::array kTimes{0.0F, 1.0F};
+    constexpr std::array kStepTimes{0.0F, 0.5F};
+    constexpr std::array kTurns{0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.70710677F, 0.0F, 0.70710677F};
+    constexpr std::array kMoves{0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F};
+    const std::string times = parts.Floats(kTimes, 2, "SCALAR");
+    const std::string stepTimes = parts.Floats(kStepTimes, 2, "SCALAR");
+    const std::string turns = parts.Floats(kTurns, 2, "VEC4");
+    const std::string moves = parts.Floats(kMoves, 2, "VEC3");
+    parts.Add(R"("animations":[{"name":")" + triangle.animation +
+              R"(","channels":[{"sampler":0,"target":{"node":2,"path":"rotation"}},)" +
+              R"({"sampler":1,"target":{"node":2,"path":"translation"}}],"samplers":[)" +
+              R"({"input":)" + times + R"(,"output":)" + turns + R"(,"interpolation":")" +
+              triangle.turnInterpolation + R"("},{"input":)" + stepTimes + R"(,"output":)" + moves +
+              R"(,"interpolation":"STEP"}]}])");
+}
+
 /// Node 0 (`parentName`) holds the +Z triangle (0,0,0) (1,0,0) (0,1,0) and node 2, `arm`.
+/// `animation` turns `arm` 90 degrees about Y over 1 s and steps it 1 along X at 0.5 s.
 [[nodiscard]] inline std::vector<std::byte> BuildGlb(const GlbTriangle& triangle) {
     constexpr std::array kPositions{0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 1.0F, 0.0F};
     constexpr std::array kUvs{0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 1.0F};
@@ -138,6 +158,9 @@ private:
                 R"(,"inverseBindMatrices":)" + parts.Floats(binds, triangle.bindMatrices, "MAT4");
         }
         parts.Add(R"("skins":[)" + skin + "}]");
+    }
+    if (!triangle.animation.empty()) {
+        AddAnimation(parts, triangle);
     }
     std::string primitive = R"({"attributes":{)" + attributes + R"(},"indices":)" +
                             parts.Indices(std::array<std::uint16_t, 3>{0, 1, triangle.lastIndex}) +

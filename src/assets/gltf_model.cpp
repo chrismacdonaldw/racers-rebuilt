@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include "assets/gltf_data.hpp"
 #include "assets/gltf_joints.hpp"
 
 #include <cgltf.h>
@@ -38,7 +39,6 @@ constexpr std::size_t kSkinInfluences = 4;
 constexpr std::size_t kMaxJoints = std::size_t{std::numeric_limits<std::uint16_t>::max()} + 1;
 constexpr Vector3 kUp{.x = 0.0F, .y = 0.0F, .z = 1.0F};
 
-using GltfData = std::unique_ptr<cgltf_data, decltype(&cgltf_free)>;
 using SkinSpaces = std::vector<JointSpace>;
 
 struct AccessorRule {
@@ -55,10 +55,6 @@ struct Attributes {
     const cgltf_accessor* joints = nullptr;
     const cgltf_accessor* weights = nullptr;
 };
-
-Vector3 ToGame(const glm::vec3& gltf) {
-    return {.x = gltf.x, .y = -gltf.z, .z = gltf.y};
-}
 
 std::uint8_t ToSrgbChannel(float linear) {
     const float clamped = std::clamp(linear, 0.0F, 1.0F);
@@ -83,35 +79,6 @@ Vector Read(const cgltf_accessor* accessor, cgltf_size index) {
 
 Result<void> Expect(bool isTrue, std::string_view problem) {
     return isTrue ? Result<void>{} : Fail(ErrorCode::InvalidData, std::string(problem));
-}
-
-bool HasEmbeddedBuffers(const cgltf_data& data) {
-    return std::ranges::all_of(
-        std::span(data.buffers, data.buffers_count), [](const cgltf_buffer& buffer) {
-            return buffer.uri == nullptr || std::string_view(buffer.uri).starts_with("data:");
-        });
-}
-
-Result<GltfData> Parse(std::span<const std::byte> bytes) {
-    const cgltf_options options{};
-    cgltf_data* raw = nullptr;
-    cgltf_result result = cgltf_parse(&options, bytes.data(), bytes.size(), &raw);
-    GltfData data(raw, cgltf_free);
-    if (result == cgltf_result_success && !HasEmbeddedBuffers(*data)) {
-        result = cgltf_result_file_not_found;
-    }
-    if (result == cgltf_result_success) {
-        result = cgltf_load_buffers(&options, data.get(), nullptr);
-    }
-    if (result == cgltf_result_success) {
-        result = cgltf_validate(data.get());
-    }
-    if (result != cgltf_result_success) {
-        return Fail(ErrorCode::InvalidData,
-                    std::format("not a self-contained glTF binary (cgltf error {})",
-                                static_cast<int>(result)));
-    }
-    return data;
 }
 
 Result<void> CheckAccessor(const AccessorRule& rule) {
@@ -345,7 +312,7 @@ std::span<cgltf_node* const> SceneRoots(const cgltf_data& data) {
 }
 
 Result<GltfModel> ImportGltfModel(std::span<const std::byte> bytes, const GltfTarget& target) {
-    Result<GltfData> data = Parse(bytes);
+    Result<GltfData> data = ParseGlb(bytes);
     if (!data) {
         return std::unexpected(std::move(data.error()));
     }

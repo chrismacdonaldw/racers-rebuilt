@@ -12,7 +12,7 @@ namespace rr::app {
 inline constexpr settings::SettingSpec<bool> kGltfModels{
     .key = "mods.gltf_models", .defaultValue = true, .label = "glTF models", .category = "Mods"};
 
-/// `path` is normalized. Only `.GDB` models have one.
+/// `path` is normalized. Only `.GDB` models and `.ADB` animations have one.
 [[nodiscard]] std::optional<std::string> GlbSibling(std::string_view path);
 
 /// Builds a game model from a mod's `.glb` in place of the `.GDB` it shares a name with.
