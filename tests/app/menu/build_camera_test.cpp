@@ -74,6 +74,34 @@ TEST_CASE("a reset eases back to the opening slot and tilt") {
     CHECK(SameEye(camera.Eye(0.0F), {.y = -10.0F, .z = 14.0F}));
 }
 
+TEST_CASE("a swing turns part of a slot and settles on the nearest") {
+    BuildCamera camera;
+    REQUIRE(camera.Swing(-1.6F));
+    CHECK(camera.Slot() == 1);
+    CHECK(camera.Angle() == doctest::Approx(kFirstAngle - (0.6F * kQuarter)));
+
+    camera.Settle(0.0F);
+    CHECK(camera.Slot() == 7);
+    CHECK_FALSE(camera.Swing(0.5F));
+    camera.Tick(Milliseconds{150});
+    CHECK(camera.Angle() == doctest::Approx(kFirstAngle - kQuarter));
+}
+
+TEST_CASE("a lift stops at the ends and settles on the nearest tilt") {
+    BuildCamera camera;
+    REQUIRE(camera.Lift(5.0F));
+    CHECK_FALSE(camera.Lift(0.1F));
+    CHECK(SameEye(camera.Eye(0.0F), {.y = -0.3F, .z = 17.0F}));
+
+    REQUIRE(camera.Lift(-0.8F));
+    CHECK(SameEye(camera.Eye(0.0F), {.y = -8.06F, .z = 14.6F}));
+    camera.Settle(0.0F);
+    CHECK_FALSE(camera.IsOverhead());
+    CHECK_FALSE(camera.Lift(0.1F));
+    camera.Tick(Milliseconds{300});
+    CHECK(SameEye(camera.Eye(0.0F), {.y = -10.0F, .z = 14.0F}));
+}
+
 TEST_CASE("the eye eases between tilts and pulls back for a bigger car") {
     BuildCamera camera;
     CHECK(SameEye(camera.Eye(5.9F), {.y = -10.0F, .z = 14.0F}));

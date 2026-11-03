@@ -31,8 +31,14 @@ constexpr std::array<Vector3, kBuildPitches> kFarEyes{{
     {.y = -0.3F, .z = 20.0F},
 }};
 
+constexpr auto kTopPitch = static_cast<float>(kBuildPitches - 1);
+
+float SlotAngle(float slot) {
+    return std::fmod(kFirstAngle + (slot * kSlotAngle), kTwoPi);
+}
+
 float SlotAngle(std::size_t slot) {
-    return std::fmod(kFirstAngle + (static_cast<float>(slot) * kSlotAngle), kTwoPi);
+    return SlotAngle(static_cast<float>(slot));
 }
 
 float Easing(Milliseconds left, Milliseconds total) {
@@ -48,6 +54,17 @@ Vector3 EyeAt(std::size_t pitch, float radius) {
     return kNearEyes.at(pitch) + ((kFarEyes.at(pitch) - kNearEyes.at(pitch)) * blend);
 }
 
+Vector3 EyeAt(float pitch, float radius) {
+    const auto low = std::min(static_cast<std::size_t>(pitch), kBuildPitches - 2);
+    const Vector3 from = EyeAt(low, radius);
+    return from + ((EyeAt(low + 1, radius) - from) * (pitch - static_cast<float>(low)));
+}
+
+float DistanceSquared(const Vector3& a, const Vector3& b) {
+    const Vector3 apart = a - b;
+    return (apart.x * apart.x) + (apart.y * apart.y) + (apart.z * apart.z);
+}
+
 }
 
 bool BuildCamera::Turn(int step) {
@@ -57,8 +74,56 @@ bool BuildCamera::Turn(int step) {
     turnFrom_ = SlotAngle(slot_);
     const auto count = static_cast<int>(kSlots);
     slot_ = static_cast<std::size_t>((((static_cast<int>(slot_) + step) % count) + count) % count);
+    place_ = static_cast<float>(slot_);
     turnLeft_ = kTurnTime;
     return true;
+}
+
+bool BuildCamera::Swing(float slots) {
+    if (turnLeft_ > Milliseconds{0} || slots == 0.0F) {
+        return false;
+    }
+    constexpr auto kCount = static_cast<float>(kSlots);
+    place_ = std::fmod(std::fmod(place_ + slots, kCount) + kCount, kCount);
+    return true;
+}
+
+bool BuildCamera::Lift(float tilts) {
+    if (tiltLeft_ > Milliseconds{0} || tilts == 0.0F || (tilts > 0.0F && tilt_ >= kTopPitch) ||
+        (tilts < 0.0F && tilt_ <= 0.0F)) {
+        return false;
+    }
+    tilt_ = std::clamp(tilt_ + tilts, 0.0F, kTopPitch);
+    return true;
+}
+
+void BuildCamera::Settle(float radius) {
+    if (turnLeft_ == Milliseconds{0}) {
+        const std::size_t nearest = static_cast<std::size_t>(std::lround(place_)) % kSlots;
+        if (nearest != slot_ || place_ != static_cast<float>(nearest)) {
+            turnFrom_ = SlotAngle(place_);
+            slot_ = nearest;
+            place_ = static_cast<float>(nearest);
+            turnLeft_ = kTurnTime;
+        }
+    }
+    if (tiltLeft_ > Milliseconds{0}) {
+        return;
+    }
+    const Vector3 eye = EyeAt(tilt_, radius);
+    std::size_t nearest = 0;
+    for (std::size_t pitch = 1; pitch < kBuildPitches; ++pitch) {
+        if (DistanceSquared(eye, EyeAt(pitch, radius)) <
+            DistanceSquared(eye, EyeAt(nearest, radius))) {
+            nearest = pitch;
+        }
+    }
+    if (tilt_ != static_cast<float>(nearest)) {
+        tiltFrom_ = tilt_;
+        tiltLeft_ = kTiltTime;
+    }
+    pitch_ = nearest;
+    tilt_ = static_cast<float>(nearest);
 }
 
 bool BuildCamera::Tilt(int step) {
@@ -67,8 +132,9 @@ bool BuildCamera::Tilt(int step) {
     if (tiltLeft_ > Milliseconds{0} || std::cmp_equal(pitch, pitch_)) {
         return false;
     }
-    tiltFrom_ = pitch_;
+    tiltFrom_ = static_cast<float>(pitch_);
     pitch_ = static_cast<std::size_t>(pitch);
+    tilt_ = static_cast<float>(pitch_);
     tiltLeft_ = kTiltTime;
     return true;
 }
@@ -78,8 +144,9 @@ bool BuildCamera::Reset() {
         !Turn(static_cast<int>(kHomeSlot + kSlots) - static_cast<int>(slot_))) {
         return false;
     }
-    tiltFrom_ = pitch_;
+    tiltFrom_ = static_cast<float>(pitch_);
     pitch_ = kHomePitch;
+    tilt_ = static_cast<float>(pitch_);
     tiltLeft_ = kTiltTime;
     return true;
 }
@@ -90,10 +157,10 @@ void BuildCamera::Tick(Milliseconds elapsed) {
 }
 
 float BuildCamera::Angle() const {
-    float target = SlotAngle(slot_);
     if (turnLeft_ == Milliseconds{0}) {
-        return target;
+        return SlotAngle(place_);
     }
+    float target = SlotAngle(slot_);
     if (target > turnFrom_ + kHalfPi) {
         target -= kTwoPi;
     } else if (target < turnFrom_ - kHalfPi) {
@@ -103,7 +170,7 @@ float BuildCamera::Angle() const {
 }
 
 Vector3 BuildCamera::Eye(float radius) const {
-    const Vector3 target = EyeAt(pitch_, radius);
+    const Vector3 target = EyeAt(tilt_, radius);
     if (tiltLeft_ == Milliseconds{0}) {
         return target;
     }
