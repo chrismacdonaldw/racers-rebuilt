@@ -33,10 +33,9 @@ Result<assets::PartSet> FirstPartSet(const assets::Vfs& vfs) {
 
 }
 
-Result<settings::Racer> NewRacer(const assets::Vfs& vfs, std::string name) {
-    return FirstPartSet(vfs).transform([&](assets::PartSet set) {
-        return settings::Racer{.name = std::move(name), .chassis = std::move(set.chassisName)};
-    });
+Result<settings::Racer> NewRacer(const assets::Vfs& vfs) {
+    return FirstPartSet(vfs).transform(
+        [](assets::PartSet set) { return settings::Racer{.chassis = std::move(set.chassisName)}; });
 }
 
 Result<settings::RacerStore> LoadRacerStore(const std::filesystem::path& file, std::size_t racer) {

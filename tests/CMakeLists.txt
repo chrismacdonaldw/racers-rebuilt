@@ -78,6 +78,7 @@ add_executable(racers-rebuilt-tests
     app/menu/options_menu_test.cpp
     app/menu/part_carousel_test.cpp
     app/menu/pause_menu_test.cpp
+    app/menu/racer_edit_flow_test.cpp
     app/menu/preview_cycle_test.cpp
     app/menu/racer_pick_list_test.cpp
     app/menu/racer_pick_menu_test.cpp

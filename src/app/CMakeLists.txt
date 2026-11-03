@@ -126,6 +126,7 @@ rr_add_module(app
         menu/pause_menu.cpp
         menu/piece_models.cpp
         menu/preview_cycle.cpp
+        menu/racer_edit_flow.cpp
         menu/racer_pick_list.cpp
         menu/racer_pick_look.cpp
         menu/racer_pick_menu.cpp

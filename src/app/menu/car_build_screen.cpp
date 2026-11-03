@@ -220,10 +220,9 @@ void CarBuildScreen::View(bool moved) const {
 BuildOutcome CarBuildScreen::Place() {
     switch (builder_.Check()) {
         case PlaceResult::Placed:
-            motion_.Drop();
-            break;
         case PlaceResult::TooManyPieces:
-            return BuildOutcome::TooManyPieces;
+            motion_.Drop(RestHeight());
+            break;
         case PlaceResult::Refused:
             services_.sounds.Play(kRefusedSound);
             break;

@@ -22,15 +22,14 @@ constexpr std::string_view kScrollStyle = "picker";
 constexpr std::string_view kSetBox = "imagebox";
 constexpr std::string_view kTextStyle = "nubutton";
 constexpr std::string_view kDone = "gonext";
-constexpr std::string_view kDoneStyle = "buttonch";
 constexpr std::string_view kBack = "goback";
-constexpr std::string_view kBackStyle = "buttonca";
 constexpr std::array<std::string_view, kCarTextButtons> kTextButtons{"build", "ripapart", "qbuild"};
 
 class LookLoader {
 public:
-    LookLoader(render::Renderer& renderer, const assets::Vfs& vfs, const MenuFiles& files)
-        : files_(&files), images_(renderer, vfs, files) {}
+    LookLoader(render::Renderer& renderer, const assets::Vfs& vfs, const MenuFiles& files,
+               const EditorButtons& buttons)
+        : files_(&files), buttons_(buttons), images_(renderer, vfs, files) {}
 
     Result<EditCarLook> Load() && {
         Result<void> loaded = LoadImages().and_then([&] { return LoadPicker(); }).and_then([&] {
@@ -62,9 +61,9 @@ private:
                 })
                 .and_then([&] { return LoadSelectorArrows(images_); })
                 .transform([&](const SelectorArrows& arrows) { look_.arrows = arrows; })
-                .and_then([&] { return LoadImageButton(images_, *files_, kDoneStyle); })
+                .and_then([&] { return LoadImageButton(images_, *files_, buttons_.done.style); })
                 .transform([&](const ImageButtonLook& done) { look_.done = done; })
-                .and_then([&] { return LoadImageButton(images_, *files_, kBackStyle); })
+                .and_then([&] { return LoadImageButton(images_, *files_, buttons_.back.style); })
                 .transform([&](const ImageButtonLook& back) { look_.back = back; });
         for (std::size_t set = 0; loaded && set < kPartSetCount; ++set) {
             loaded = StyleImage(kSetImageStyles.at(set)).transform([&](const UiImage& image) {
@@ -138,6 +137,7 @@ private:
     }
 
     const MenuFiles* files_;
+    EditorButtons buttons_;
     MenuImageCache images_;
     EditCarLook look_;
 };
@@ -154,8 +154,8 @@ Result<void> AddBuilderImages(const assets::Vfs& vfs, MenuFiles& files) {
 }
 
 Result<EditCarLook> LoadEditCarLook(render::Renderer& renderer, const assets::Vfs& vfs,
-                                    const MenuFiles& files) {
-    return LookLoader(renderer, vfs, files).Load();
+                                    const MenuFiles& files, const EditorButtons& buttons) {
+    return LookLoader(renderer, vfs, files, buttons).Load();
 }
 
 }

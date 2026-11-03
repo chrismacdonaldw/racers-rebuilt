@@ -11,6 +11,7 @@
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_parts.hpp"
 #include "app/menu/menu_widgets.hpp"
+#include "app/menu/racer_edit_flow.hpp"
 #include "app/ui_text/ui_image.hpp"
 #include "assets/menu_layout.hpp"
 #include "assets/vfs.hpp"
@@ -53,7 +54,8 @@ struct LicenceLook {
 };
 
 [[nodiscard]] Result<LicenceLook> LoadLicenceLook(render::Renderer& renderer,
-                                                  const assets::Vfs& vfs, const MenuFiles& files);
+                                                  const assets::Vfs& vfs, const MenuFiles& files,
+                                                  const EditorButtons& buttons);
 
 [[nodiscard]] MenuPicture TrophyPicture(const LicenceLook& look, std::size_t circuit,
                                         settings::Trophy trophy);

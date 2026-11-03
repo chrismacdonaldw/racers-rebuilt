@@ -8,6 +8,7 @@
 #include "app/menu/menu_frame.hpp"
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_widgets.hpp"
+#include "app/menu/racer_edit_flow.hpp"
 #include "assets/menu_styles.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -45,6 +46,7 @@ struct EditCarLook {
 [[nodiscard]] Result<void> AddBuilderImages(const assets::Vfs& vfs, MenuFiles& files);
 
 [[nodiscard]] Result<EditCarLook> LoadEditCarLook(render::Renderer& renderer,
-                                                  const assets::Vfs& vfs, const MenuFiles& files);
+                                                  const assets::Vfs& vfs, const MenuFiles& files,
+                                                  const EditorButtons& buttons);
 
 }

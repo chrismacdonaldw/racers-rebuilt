@@ -18,6 +18,7 @@
 #include "app/menu/menu_text.hpp"
 #include "app/menu/message_dialog.hpp"
 #include "app/menu/part_carousel.hpp"
+#include "app/menu/racer_edit_flow.hpp"
 #include "app/scene.hpp"
 #include "assets/driver_look.hpp"
 #include "assets/vfs.hpp"
@@ -41,7 +42,7 @@ public:
     /// `renderer` and `vfs` must outlive the scene.
     [[nodiscard]] static Result<std::unique_ptr<EditDriverScene>> Create(
         render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
-        const EditDriverFiles& files, std::size_t racer);
+        const EditDriverFiles& files, EditedRacer racer);
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
@@ -55,7 +56,7 @@ private:
     struct Racers {
         std::filesystem::path file;
         settings::RacerStore store;
-        std::size_t racer = 0;
+        EditedRacer racer;
         settings::Progress progress;
     };
 
@@ -74,7 +75,9 @@ private:
     void Mix();
     void Done();
     void AskLeave();
-    void Leave(bool isCheering);
+    void Ask(std::size_t question, std::size_t yes, std::size_t no);
+    void GoBack();
+    void Leave(std::string next, bool isCheering);
     void ShowDriver();
     void PlaySounds(const sim::InputFrame& input, DriverRequest request, DriverRow focusBefore,
                     CarouselStep step) const;
@@ -89,6 +92,7 @@ private:
     EditDriverLook look_;
     Views views_;
     Racers racers_;
+    EditorButtons buttons_;
     assets::DriverLook saved_;
     assets::DriverLook driver_;
     std::vector<PartCarousel> carousels_;

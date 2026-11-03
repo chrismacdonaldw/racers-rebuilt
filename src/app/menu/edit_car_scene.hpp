@@ -17,6 +17,7 @@
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/menu/message_dialog.hpp"
+#include "app/menu/racer_edit_flow.hpp"
 #include "app/scene.hpp"
 #include "assets/piece_catalog.hpp"
 #include "assets/vfs.hpp"
@@ -34,7 +35,7 @@ public:
     /// `renderer` and `vfs` must outlive the scene. `partSets` are the progress file's unlocks.
     [[nodiscard]] static Result<std::unique_ptr<EditCarScene>> Create(
         render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
-        const std::filesystem::path& racersFile, std::size_t racer,
+        const std::filesystem::path& racersFile, EditedRacer racer,
         const std::set<std::int32_t>& partSets);
 
     void OpenBuilder();
@@ -52,7 +53,7 @@ private:
     struct Racers {
         std::filesystem::path file;
         settings::RacerStore store;
-        std::size_t racer = 0;
+        EditedRacer racer;
     };
 
     // NOLINTNEXTLINE(bugprone-exception-escape)
@@ -104,6 +105,7 @@ private:
     EditCarLook look_;
     Views views_;
     Racers racers_;
+    EditorButtons buttons_;
     Car car_;
     settings::Racer shown_;
     EditCarMenu menu_;
