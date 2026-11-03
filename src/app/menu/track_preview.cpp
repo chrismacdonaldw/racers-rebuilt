@@ -1,5 +1,6 @@
 #include "app/menu/track_preview.hpp"
 
+#include <cstddef>
 #include <utility>
 
 #include "app/cutscene/cutscene_screen.hpp"
@@ -10,6 +11,7 @@ namespace {
 
 constexpr std::string_view kPreviewElement = "singrace";
 constexpr float kDimmerAlpha = 200.0F / 255.0F;
+constexpr std::size_t kLoaderWorkers = 2;
 
 render::SpriteDraw Shade(const render::Rect& bounds, float alpha) {
     return {.bounds = bounds, .tint = {.r = 0.0F, .g = 0.0F, .b = 0.0F, .a = alpha}};
@@ -21,7 +23,7 @@ Result<std::unique_ptr<TrackPreview>> TrackPreview::Load(const RaceOutputs& outp
                                                          const assets::Vfs& vfs,
                                                          std::string_view language,
                                                          std::string_view layout) {
-    auto pool = std::make_unique<assets::LoaderPool>(assets::LoaderPool::DefaultWorkerCount());
+    auto pool = std::make_unique<assets::LoaderPool>(kLoaderWorkers);
     auto loader = std::make_unique<assets::TrackLoader>(vfs, *pool);
     Loading loading{.pool = std::move(pool), .loader = std::move(loader)};
     Result<CutsceneScreenPlacement> placed =

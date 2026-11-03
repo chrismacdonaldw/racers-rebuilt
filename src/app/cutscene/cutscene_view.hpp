@@ -49,7 +49,7 @@ public:
     /// Rewinds to frame `name`, in any case, and stops the effects. False if playing or missing.
     [[nodiscard]] Result<bool> SelectFrame(std::string_view name);
 
-    /// Puts driver `code` in for `guy1` and rewinds the frame, loading each driver only once.
+    /// Puts driver `code` in for `guy1` from the next SelectFrame, loading each driver only once.
     [[nodiscard]] Result<void> ShowDriver(std::string_view code, assets::TrackLoader& loader);
 
     void Advance(Milliseconds elapsed);
@@ -79,6 +79,7 @@ private:
         std::optional<assets::DriverLook> driver;
         std::optional<std::string> driverModel;
         std::string shownDriver;
+        bool isDriverPending = false;
         assets::NameMap<DressedDriver> dressed;
         std::unique_ptr<assets::CutsceneTimelineAsset> timeline;
         std::size_t frame = 0;

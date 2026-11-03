@@ -317,10 +317,11 @@ Result<bool> CutsceneView::SelectFrame(std::string_view name) {
         return assets::ToUpperAscii(frame.name) == wanted;
     });
     const auto index = static_cast<std::size_t>(found - frames.begin());
-    if (found == frames.end() || index == parts_.frame) {
+    const bool isNewFrame = found != frames.end() && index != parts_.frame;
+    if (!isNewFrame && !parts_.isDriverPending) {
         return false;
     }
-    return Replay(index).transform([] { return true; });
+    return Replay(isNewFrame ? index : parts_.frame).transform([&] { return isNewFrame; });
 }
 
 Result<void> CutsceneView::ShowDriver(std::string_view code, assets::TrackLoader& loader) {
@@ -344,7 +345,8 @@ Result<void> CutsceneView::ShowDriver(std::string_view code, assets::TrackLoader
     parts_.model->animatedModels.insert_or_assign(*parts_.driverModel, dressed->second.model);
     parts_.jointed = TrackEntityDraws(parts_.model->animatedModels, *parts_.sources);
     parts_.driver = dressed->second.look;
-    return Replay(parts_.frame);
+    parts_.isDriverPending = true;
+    return {};
 }
 
 Result<CutsceneView::DressedDriver> CutsceneView::Dress(const std::string& code,
@@ -385,6 +387,7 @@ Result<void> CutsceneView::Replay(std::size_t frame) {
     parts_.player = std::move(*player);
     parts_.effectPlayer.SetFrame(shown);
     parts_.frame = frame;
+    parts_.isDriverPending = false;
     return {};
 }
 
