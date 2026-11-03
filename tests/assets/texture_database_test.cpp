@@ -80,8 +80,10 @@ TEST_CASE("a color key makes matching pixels transparent in their neighbours' co
 
     ApplyColorKey(image, {.red = 1, .green = 2, .blue = 3});
 
-    CHECK(image.rgba == Bytes({0x20, 0x30, 0x40, 0x00, 0x10, 0x20, 0x30, 0xFF, 0x30, 0x40, 0x50,
-                               0xFF, 0x20, 0x30, 0x40, 0x00}));
+    CHECK(image.rgba == Bytes({0x01, 0x02, 0x03, 0x00, 0x10, 0x20, 0x30, 0xFF, 0x30, 0x40, 0x50,
+                               0xFF, 0x01, 0x02, 0x03, 0x00}));
+    CHECK(image.enhancedRgba == Bytes({0x20, 0x30, 0x40, 0x00, 0x10, 0x20, 0x30, 0xFF, 0x30, 0x40,
+                                       0x50, 0xFF, 0x20, 0x30, 0x40, 0x00}));
 }
 
 TEST_CASE("a keyed pixel with no unkeyed neighbour takes the image's mean colour") {
@@ -93,9 +95,10 @@ TEST_CASE("a keyed pixel with no unkeyed neighbour takes the image's mean colour
 
     ApplyColorKey(image, {.red = 1, .green = 2, .blue = 3});
 
-    CHECK(image.rgba == Join({Bytes({0x10, 0x10, 0x10, 0xFF}), Bytes({0x30, 0x30, 0x30, 0xFF}),
-                              Bytes({0x30, 0x30, 0x30, 0x00}), Bytes({0x20, 0x20, 0x20, 0x00}),
-                              Bytes({0x20, 0x20, 0x20, 0x00})}));
+    CHECK(image.enhancedRgba ==
+          Join({Bytes({0x10, 0x10, 0x10, 0xFF}), Bytes({0x30, 0x30, 0x30, 0xFF}),
+                Bytes({0x30, 0x30, 0x30, 0x00}), Bytes({0x20, 0x20, 0x20, 0x00}),
+                Bytes({0x20, 0x20, 0x20, 0x00})}));
 }
 
 TEST_CASE("an image that is all key stays as it was but transparent") {
@@ -104,6 +107,30 @@ TEST_CASE("an image that is all key stays as it was but transparent") {
     ApplyColorKey(image, {.red = 1, .green = 2, .blue = 3});
 
     CHECK(image.rgba == Bytes({0x01, 0x02, 0x03, 0x00}));
+    CHECK_FALSE(HasEnhancedLook(image));
+}
+
+TEST_CASE("an image without the key has no enhanced look") {
+    ImageAsset image{.widthPx = 1, .heightPx = 1, .rgba = Bytes({0x10, 0x20, 0x30, 0xFF})};
+
+    ApplyColorKey(image, {.red = 1, .green = 2, .blue = 3});
+
+    CHECK(image.rgba == Bytes({0x10, 0x20, 0x30, 0xFF}));
+    CHECK_FALSE(HasEnhancedLook(image));
+}
+
+TEST_CASE("a flipped keyed texture flips both looks") {
+    const ImageAsset rows{.widthPx = 1,
+                          .heightPx = 2,
+                          .rgba = Bytes({0x01, 0x02, 0x03, 0xFF, 0x10, 0x20, 0x30, 0xFF})};
+    const TextureDefinition definition{.name = "KEYED",
+                                       .flipsVertically = true,
+                                       .colorKey = ColorKey{.red = 1, .green = 2, .blue = 3}};
+
+    const ImageAsset image = DecodeTexture(test::TgaBytes(rows), definition).value_or(ImageAsset{});
+
+    CHECK(image.rgba == Bytes({0x10, 0x20, 0x30, 0xFF, 0x01, 0x02, 0x03, 0x00}));
+    CHECK(image.enhancedRgba == Bytes({0x10, 0x20, 0x30, 0xFF, 0x10, 0x20, 0x30, 0x00}));
 }
 
 TEST_CASE("full mip chains run down to one pixel") {
@@ -113,17 +140,22 @@ TEST_CASE("full mip chains run down to one pixel") {
     CHECK(FullMipLevels(1, 1) == 1);
 }
 
-TEST_CASE("game textures get their database's mip levels only when square") {
+ImageAsset DecodedTga(const std::vector<std::byte>& tga, const TextureDefinition& definition) {
+    return DecodeTexture(tga, definition).value_or(ImageAsset{});
+}
+
+TEST_CASE("game textures get their database's mip levels only when square, as enhanced") {
     const std::vector<std::byte> tga = test::TgaBytes(test::SolidImage(8, 8, std::byte{0xFF}));
     const std::vector<std::byte> wide = test::TgaBytes(test::SolidImage(8, 4, std::byte{0xFF}));
     TextureDefinition definition{.name = "SMOKE", .mipmapCount = 3};
 
-    CHECK(DecodeTexture(tga, definition).value_or(ImageAsset{}).mipLevels == 3);
-    CHECK(DecodeTexture(wide, definition).value_or(ImageAsset{}).mipLevels == 1);
+    CHECK(DecodedTga(tga, definition).mipLevels == 1);
+    CHECK(DecodedTga(tga, definition).enhancedMipLevels == 3);
+    CHECK(DecodedTga(wide, definition).enhancedMipLevels == 1);
     definition.mipmapCount = 9;
-    CHECK(DecodeTexture(tga, definition).value_or(ImageAsset{}).mipLevels == 4);
+    CHECK(DecodedTga(tga, definition).enhancedMipLevels == 4);
     definition.mipmapCount = 0;
-    CHECK(DecodeTexture(tga, definition).value_or(ImageAsset{}).mipLevels == 1);
+    CHECK_FALSE(HasEnhancedLook(DecodedTga(tga, definition)));
 }
 
 }

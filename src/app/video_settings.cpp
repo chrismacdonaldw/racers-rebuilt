@@ -8,6 +8,7 @@ void DeclareVideoSettings(settings::Registry& registry) {
     registry.Declare(kResolutionScaleSetting);
     registry.Declare(kStretchUiSetting);
     registry.Declare(kWidescreenSetting);
+    registry.Declare(kSmoothTexturesSetting);
 }
 
 platform::PacingConfig PacingFromSettings(const settings::Registry& registry) {
@@ -35,6 +36,7 @@ void ApplyRendererSettings(const settings::Registry& registry, render::Renderer&
                                                       : render::UiFit::Centered);
     renderer.SetSceneFit(registry.Get(kWidescreenSetting) ? render::SceneFit::Window
                                                           : render::SceneFit::Canvas);
+    renderer.SetSmoothTextures(registry.Get(kSmoothTexturesSetting));
 }
 
 }

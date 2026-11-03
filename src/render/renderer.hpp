@@ -52,6 +52,9 @@ public:
     /// Keeps every texture uploaded so far through later `ReleaseAssets` calls.
     void PinTextures() { textures_.Pin(); }
 
+    /// Draws textures with their enhanced look where they have one.
+    void SetSmoothTextures(bool isOn) { isSmoothingTextures_ = isOn; }
+
     /// The scene renders at this fraction of the window size, then scales to fit.
     void SetResolutionScale(float scale);
 
@@ -91,6 +94,11 @@ private:
         std::uint32_t indexCount = 0;
     };
 
+    struct Texture {
+        GpuTexture original;
+        GpuTexture enhanced;
+    };
+
     struct UploadPart {
         std::span<const std::byte> bytes;
         SDL_GPUBuffer* buffer = nullptr;
@@ -121,9 +129,12 @@ private:
     Result<StreamBuffer> CreateStream(std::size_t sizeBytes);
     Result<GpuTransferBuffer> Stage(std::span<const std::span<const std::byte>> parts);
     static Result<void> CheckRgba(const assets::ImageAsset& image);
+    Result<GpuTexture> CreateTexture(const assets::ImageAsset& image,
+                                     std::span<const std::byte> pixels, std::uint32_t mipLevels);
     Result<void> GenerateMips(SDL_GPUTexture* texture);
     Result<void> CopyToTexture(SDL_GPUTexture* texture, const assets::ImageAsset& image,
-                               bool cycles);
+                               std::span<const std::byte> pixels, bool cycles);
+    [[nodiscard]] SDL_GPUTexture* Shown(TextureId texture) const;
     Result<void> UploadBuffers(std::span<const UploadPart> parts);
     void GatherViews(std::span<const RenderView> views);
     Result<void> UploadFrame(SDL_GPUCommandBuffer* commands, std::span<const RenderView> views);
@@ -169,6 +180,7 @@ private:
     std::optional<SpriteDraw> pointer_;
     FrameReadback readback_;
     bool isCaptureRequested_ = false;
+    bool isSmoothingTextures_ = true;
     std::optional<assets::ImageAsset> capture_;
     StreamBuffer lineStream_;
     StreamBuffer quadStream_;
@@ -184,7 +196,7 @@ private:
     std::vector<SpriteDraw> sprites_;
     std::vector<ViewRange> viewRanges_;
     AssetTable<Mesh, MeshId> meshes_;
-    AssetTable<GpuTexture, TextureId> textures_;
+    AssetTable<Texture, TextureId> textures_;
 };
 
 }

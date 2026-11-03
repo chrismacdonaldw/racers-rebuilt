@@ -32,6 +32,12 @@ inline constexpr settings::SettingSpec<bool> kStretchUiSetting{
 inline constexpr settings::SettingSpec<bool> kWidescreenSetting{
     .key = "video.widescreen", .defaultValue = false, .label = "Widescreen", .category = "Video"};
 
+/// Retail textures' mip levels and colour-key edges filled from neighbours, unlike the original.
+inline constexpr settings::SettingSpec<bool> kSmoothTexturesSetting{.key = "video.smooth_textures",
+                                                                    .defaultValue = true,
+                                                                    .label = "Smooth textures",
+                                                                    .category = "Video"};
+
 void DeclareVideoSettings(settings::Registry& registry);
 
 [[nodiscard]] platform::PacingConfig PacingFromSettings(const settings::Registry& registry);
