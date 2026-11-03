@@ -19,9 +19,7 @@ constexpr std::string_view kName = "ftext";
 constexpr std::string_view kExpression = "swapface";
 constexpr std::string_view kExpressionStyle = "nubutton";
 constexpr std::string_view kDone = "gonext";
-constexpr std::string_view kDoneStyle = "buttonch";
 constexpr std::string_view kBack = "goback";
-constexpr std::string_view kBackStyle = "buttonca";
 constexpr std::array<std::string_view, 3> kTrophyStyles{"gold", "silver", "bronze"};
 
 template <typename Body>
@@ -51,8 +49,9 @@ assets::FrameElement Styled(const assets::FrameElement& frame, const assets::Fra
 
 class LookLoader {
 public:
-    LookLoader(render::Renderer& renderer, const assets::Vfs& vfs, const MenuFiles& files)
-        : files_(&files), images_(renderer, vfs, files) {}
+    LookLoader(render::Renderer& renderer, const assets::Vfs& vfs, const MenuFiles& files,
+               const EditorButtons& buttons)
+        : files_(&files), buttons_(buttons), images_(renderer, vfs, files) {}
 
     Result<LicenceLook> Load() && {
         Result<void> loaded =
@@ -137,9 +136,9 @@ private:
         look_.expressionButton = ButtonStates(*files_, kExpressionStyle);
         return ReadTextStyle(*files_, kBanner)
             .transform([&](MenuTextStyle style) { look_.banner = std::move(style); })
-            .and_then([&] { return LoadImageButton(images_, *files_, kDoneStyle); })
+            .and_then([&] { return LoadImageButton(images_, *files_, buttons_.done.style); })
             .transform([&](const ImageButtonLook& done) { look_.done = done; })
-            .and_then([&] { return LoadImageButton(images_, *files_, kBackStyle); })
+            .and_then([&] { return LoadImageButton(images_, *files_, buttons_.back.style); })
             .transform([&](const ImageButtonLook& back) { look_.back = back; })
             .and_then([&] { return PlaceAt(kDone, look_.donePlace); })
             .and_then([&] { return PlaceAt(kBack, look_.backPlace); })
@@ -157,6 +156,7 @@ private:
     }
 
     const MenuFiles* files_;
+    EditorButtons buttons_;
     MenuImageCache images_;
     LicenceLook look_;
     MenuPoint licenceAt_;
@@ -165,8 +165,8 @@ private:
 }
 
 Result<LicenceLook> LoadLicenceLook(render::Renderer& renderer, const assets::Vfs& vfs,
-                                    const MenuFiles& files) {
-    return LookLoader(renderer, vfs, files).Load();
+                                    const MenuFiles& files, const EditorButtons& buttons) {
+    return LookLoader(renderer, vfs, files, buttons).Load();
 }
 
 MenuPicture TrophyPicture(const LicenceLook& look, std::size_t circuit, settings::Trophy trophy) {

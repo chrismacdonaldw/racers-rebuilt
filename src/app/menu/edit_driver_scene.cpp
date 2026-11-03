@@ -21,10 +21,12 @@ namespace {
 
 constexpr std::size_t kTitleLine = 9;
 constexpr std::size_t kMixLine = 0x38;
-constexpr std::size_t kDoneLine = 0x72;
 constexpr std::size_t kBackLine = 0x1F;
 constexpr std::size_t kDiscardLine = 0x7B;
 constexpr std::size_t kContinueLine = 0x20;
+constexpr std::size_t kAbandonLine = 0x77;
+constexpr std::size_t kYesLine = 0x73;
+constexpr std::size_t kNoLine = 0x74;
 constexpr std::size_t kLoaderWorkers = 2;
 constexpr std::uint64_t kMixSeed = 0xD15C0;
 constexpr std::uint64_t kStateBase = 256;
@@ -55,14 +57,16 @@ Result<std::unique_ptr<EditDriverScene>> EditDriverScene::Create(render::Rendere
                                                                  const assets::Vfs& vfs,
                                                                  MenuSounds sounds,
                                                                  const EditDriverFiles& files,
-                                                                 std::size_t racer) {
+                                                                 EditedRacer racer) {
     assets::LoaderPool pool(kLoaderWorkers);
     assets::TrackLoader loader(vfs, pool);
-    Result<settings::RacerStore> store = LoadRacerStore(files.racers, racer);
+    Result<settings::RacerStore> store = LoadRacerStore(files.racers, racer.index);
     Result<MenuFiles> menu = store.and_then(
         [&](const settings::RacerStore&) { return ReadMenuFiles(vfs, kEditDriverScreen); });
-    Result<EditDriverLook> look = menu.and_then(
-        [&](const MenuFiles& loaded) { return LoadEditDriverLook(renderer, vfs, loaded); });
+    Result<EditDriverLook> look = menu.and_then([&](const MenuFiles& loaded) {
+        return LoadEditDriverLook(renderer, vfs, loaded,
+                                  ButtonsOf(RacerEditor::Driver, racer.isNew));
+    });
     Result<std::unique_ptr<DriverKit>> kit = look.and_then(
         [&](const EditDriverLook&) { return DriverKit::Load(renderer, vfs, loader); });
     if (!kit) {
@@ -87,7 +91,8 @@ EditDriverScene::EditDriverScene(render::Renderer& renderer, const assets::Vfs& 
       look_(std::move(look)),
       views_(std::move(views)),
       racers_(std::move(racers)),
-      saved_(racers_.store.racers.at(racers_.racer).look),
+      buttons_(ButtonsOf(RacerEditor::Driver, racers_.racer.isNew)),
+      saved_(racers_.store.racers.at(racers_.racer.index).look),
       driver_(saved_),
       random_(kMixSeed) {
     for (std::size_t row = 0; row < kDriverSlots; ++row) {
@@ -197,7 +202,7 @@ void EditDriverScene::Handle(DriverRequest request) {
 
 void EditDriverScene::TickDialog(MessageDialog& dialog, const sim::InputFrame& input) {
     if (dialog.Tick(input, sounds_) == 0) {
-        Leave(false);
+        GoBack();
     }
     if (dialog.IsClosed()) {
         dialog_.reset();
@@ -231,27 +236,42 @@ void EditDriverScene::Mix() {
 }
 
 void EditDriverScene::Done() {
-    racers_.store.racers.at(racers_.racer).look = driver_;
+    racers_.store.racers.at(racers_.racer.index).look = driver_;
     if (Result<void> saved = settings::SaveRacers(racers_.store, racers_.file); !saved) {
         log::Warn("{}, the driver isn't saved", saved.error().message);
     }
-    Leave(true);
+    Leave(NextScene(RacerEditor::Driver, racers_.racer), true);
 }
 
 void EditDriverScene::AskLeave() {
-    if (driver_ == saved_ || !views_.dialog) {
-        Leave(false);
-        return;
+    if (!views_.dialog || (!racers_.racer.isNew && driver_ == saved_)) {
+        GoBack();
+    } else if (racers_.racer.isNew) {
+        Ask(kAbandonLine, kYesLine, kNoLine);
+    } else {
+        Ask(kDiscardLine, kContinueLine, kBackLine);
     }
+}
+
+void EditDriverScene::Ask(std::size_t question, std::size_t yes, std::size_t no) {
     dialog_.emplace(
-        *views_.dialog, kDiscardLine,
-        std::vector<DialogButton>{{.line = kContinueLine},
-                                  {.line = kBackLine, .style = DialogButtonStyle::Cross}});
+        *views_.dialog, question,
+        std::vector<DialogButton>{{.line = yes}, {.line = no, .style = DialogButtonStyle::Cross}});
     dialog_->Measure(text_);
 }
 
-void EditDriverScene::Leave(bool isCheering) {
-    leaving_ = RacerScene(kGarageScene, racers_.racer);
+void EditDriverScene::GoBack() {
+    if (racers_.racer.isNew) {
+        DeleteRacer(racers_.store, racers_.racer.index);
+        if (Result<void> saved = settings::SaveRacers(racers_.store, racers_.file); !saved) {
+            log::Warn("{}, the abandoned racer isn't removed", saved.error().message);
+        }
+    }
+    Leave(PreviousScene(RacerEditor::Driver, racers_.racer), false);
+}
+
+void EditDriverScene::Leave(std::string next, bool isCheering) {
+    leaving_ = std::move(next);
     if (isCheering && views_.stand) {
         views_.stand->Leave();
     }
@@ -329,9 +349,9 @@ void EditDriverScene::DrawControls() {
                sprites_);
     DrawLabel(text_, look_.mixButton.at(StateOf(DriverRow::Mix)), text_.Line(kMixLine), look_.mix.x,
               look_.mix.y, sprites_);
-    DrawImageButton(text_, look_.done, StateOf(DriverRow::Done), text_.Line(kDoneLine),
+    DrawImageButton(text_, look_.done, StateOf(DriverRow::Done), text_.Line(buttons_.done.line),
                     look_.donePlace, sprites_);
-    DrawImageButton(text_, look_.back, StateOf(DriverRow::Back), text_.Line(kBackLine),
+    DrawImageButton(text_, look_.back, StateOf(DriverRow::Back), text_.Line(buttons_.back.line),
                     look_.backPlace, sprites_);
 }
 

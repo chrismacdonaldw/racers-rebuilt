@@ -85,14 +85,14 @@ Result<std::unique_ptr<EditCarScene>> EditCarScene::Create(render::Renderer& ren
                                                            const assets::Vfs& vfs,
                                                            MenuSounds sounds,
                                                            const std::filesystem::path& racersFile,
-                                                           std::size_t racer,
+                                                           EditedRacer racer,
                                                            const std::set<std::int32_t>& partSets) {
-    Result<settings::RacerStore> store = LoadRacerStore(racersFile, racer);
+    Result<settings::RacerStore> store = LoadRacerStore(racersFile, racer.index);
     Result<MenuFiles> menu = store.and_then(
         [&](const settings::RacerStore&) { return ReadMenuFiles(vfs, kEditCarScreen); });
     Result<EditCarLook> look = menu.and_then([&](MenuFiles& loaded) {
         return AddBuilderImages(vfs, loaded).and_then([&] {
-            return LoadEditCarLook(renderer, vfs, loaded);
+            return LoadEditCarLook(renderer, vfs, loaded, ButtonsOf(RacerEditor::Car, racer.isNew));
         });
     });
     Result<assets::PieceCatalog> pieces = look.and_then([&](const EditCarLook&) {
@@ -104,7 +104,7 @@ Result<std::unique_ptr<EditCarScene>> EditCarScene::Create(render::Renderer& ren
         return Fail(quickBuilds.error().code,
                     std::format("car editor: {}", quickBuilds.error().message));
     }
-    const settings::Racer& record = store->racers.at(racer);
+    const settings::Racer& record = store->racers.at(racer.index);
     sim::BuiltCar built = LoadEditedCar(record.car, pieces->library);
     std::vector<std::size_t> sets = AvailablePartSets(partSets, built, *pieces);
     const std::size_t chassisSet = built.Pieces().empty() ? 0 : SetOf(*pieces, record.chassis);
@@ -132,8 +132,9 @@ EditCarScene::EditCarScene(render::Renderer& renderer, const assets::Vfs& vfs, M
       look_(std::move(look)),
       views_(std::move(views)),
       racers_(std::move(edit.racers)),
+      buttons_(ButtonsOf(RacerEditor::Car, racers_.racer.isNew)),
       car_(std::move(edit.car)),
-      shown_(racers_.store.racers.at(racers_.racer)),
+      shown_(racers_.store.racers.at(racers_.racer.index)),
       random_(kColourSeed) {
     LayOut();
     if (car_.built.Pieces().empty()) {
@@ -257,7 +258,7 @@ void EditCarScene::Handle(CarRequest request) {
             Done();
             break;
         case CarRequest::Leave:
-            if (HasChanges()) {
+            if (HasChanges() && !racers_.racer.isNew) {
                 Confirm(request);
             } else {
                 Apply(request);
@@ -344,7 +345,7 @@ void EditCarScene::Apply(CarRequest request) {
             QuickBuild();
             break;
         case CarRequest::Leave:
-            opened_ = RacerScene(kGarageScene, racers_.racer);
+            opened_ = PreviousScene(RacerEditor::Car, racers_.racer);
             break;
         default:
             break;
@@ -384,13 +385,16 @@ void EditCarScene::QuickBuild() {
 }
 
 void EditCarScene::Done() {
-    settings::Racer& record = racers_.store.racers.at(racers_.racer);
+    settings::Racer& record = racers_.store.racers.at(racers_.racer.index);
     record.chassis = shown_.chassis;
     record.car = shown_.car;
+    if (racers_.racer.isNew) {
+        racers_.store.selected = racers_.racer.index;
+    }
     if (Result<void> saved = settings::SaveRacers(racers_.store, racers_.file); !saved) {
         log::Warn("{}, the car isn't saved", saved.error().message);
     }
-    opened_ = RacerScene(kGarageScene, racers_.racer);
+    opened_ = NextScene(RacerEditor::Car, racers_.racer);
 }
 
 void EditCarScene::ShowCar() {
@@ -404,7 +408,7 @@ void EditCarScene::ShowCar() {
 }
 
 bool EditCarScene::HasChanges() const {
-    return shown_.car != racers_.store.racers.at(racers_.racer).car;
+    return shown_.car != racers_.store.racers.at(racers_.racer.index).car;
 }
 
 void EditCarScene::PlaySounds(const sim::InputFrame& input, CarRequest request,
@@ -474,9 +478,9 @@ void EditCarScene::DrawControls() {
         DrawLabel(text_, look_.textButton.at(StateOf(kTextRows.at(button))),
                   text_.Line(kTextLines.at(button)), at.x, at.y, sprites_);
     }
-    DrawImageButton(text_, look_.done, StateOf(CarRow::Done), text_.Line(kDoneLine),
+    DrawImageButton(text_, look_.done, StateOf(CarRow::Done), text_.Line(buttons_.done.line),
                     look_.donePlace, sprites_);
-    DrawImageButton(text_, look_.back, StateOf(CarRow::Back), text_.Line(kBackLine),
+    DrawImageButton(text_, look_.back, StateOf(CarRow::Back), text_.Line(buttons_.back.line),
                     look_.backPlace, sprites_);
 }
 

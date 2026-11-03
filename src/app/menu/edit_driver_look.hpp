@@ -11,6 +11,7 @@
 #include "app/menu/menu_parts.hpp"
 #include "app/menu/menu_widgets.hpp"
 #include "app/menu/part_carousel.hpp"
+#include "app/menu/racer_edit_flow.hpp"
 #include "assets/menu_layout.hpp"
 #include "assets/menu_styles.hpp"
 #include "assets/vfs.hpp"
@@ -49,6 +50,7 @@ struct EditDriverLook {
 
 [[nodiscard]] Result<EditDriverLook> LoadEditDriverLook(render::Renderer& renderer,
                                                         const assets::Vfs& vfs,
-                                                        const MenuFiles& files);
+                                                        const MenuFiles& files,
+                                                        const EditorButtons& buttons);
 
 }

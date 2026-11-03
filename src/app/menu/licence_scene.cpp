@@ -27,7 +27,6 @@ constexpr std::size_t kCharsetLine = 1;
 constexpr std::size_t kTitleLine = 10;
 constexpr std::size_t kDefaultNameLine = 0x3A;
 constexpr std::size_t kExpressionLine = 0x3B;
-constexpr std::size_t kDoneLine = 0x72;
 constexpr std::size_t kBackLine = 0x1F;
 constexpr std::size_t kDiscardLine = 0x7B;
 constexpr std::size_t kContinueLine = 0x20;
@@ -91,14 +90,15 @@ Result<std::unique_ptr<LicenceScene>> LicenceScene::Create(render::Renderer& ren
                                                            const assets::Vfs& vfs,
                                                            MenuSounds sounds,
                                                            const std::filesystem::path& racersFile,
-                                                           std::size_t racer, sim::Cheats& cheats) {
-    Result<settings::RacerStore> store = LoadRacerStore(racersFile, racer);
+                                                           EditedRacer racer, sim::Cheats& cheats) {
+    Result<settings::RacerStore> store = LoadRacerStore(racersFile, racer.index);
     Result<std::vector<std::string>> circuits =
         store.and_then([&](const settings::RacerStore&) { return CircuitNames(vfs); });
     Result<MenuFiles> menu = circuits.and_then(
         [&](const std::vector<std::string>&) { return ReadMenuFiles(vfs, kLicenceScreen); });
-    Result<LicenceLook> look = menu.and_then(
-        [&](const MenuFiles& loaded) { return LoadLicenceLook(renderer, vfs, loaded); });
+    Result<LicenceLook> look = menu.and_then([&](const MenuFiles& loaded) {
+        return LoadLicenceLook(renderer, vfs, loaded, ButtonsOf(RacerEditor::Licence, racer.isNew));
+    });
     if (!look) {
         return Fail(look.error().code, std::format("licence: {}", look.error().message));
     }
@@ -124,8 +124,9 @@ LicenceScene::LicenceScene(render::Renderer& renderer, const assets::Vfs& vfs, M
       look_(std::move(look)),
       views_(std::move(views)),
       racers_(std::move(racers)),
+      buttons_(ButtonsOf(RacerEditor::Licence, racers_.racer.isNew)),
       name_(look_.name.maxLength),
-      expression_(racers_.store.racers.at(racers_.racer).look.expression) {
+      expression_(racers_.store.racers.at(racers_.racer.index).look.expression) {
     LayOut();
     ShowPhoto();
 }
@@ -210,9 +211,9 @@ void LicenceScene::Render(const sim::RenderSnapshot& interpolated) {
     DrawName();
     DrawLabel(text_, look_.expressionButton.at(StateOf(LicenceRow::Expression)),
               text_.Line(kExpressionLine), look_.expression.x, look_.expression.y, sprites_);
-    DrawImageButton(text_, look_.done, StateOf(LicenceRow::Done), text_.Line(kDoneLine),
+    DrawImageButton(text_, look_.done, StateOf(LicenceRow::Done), text_.Line(buttons_.done.line),
                     look_.donePlace, sprites_);
-    DrawImageButton(text_, look_.back, StateOf(LicenceRow::Back), text_.Line(kBackLine),
+    DrawImageButton(text_, look_.back, StateOf(LicenceRow::Back), text_.Line(buttons_.back.line),
                     look_.backPlace, sprites_);
     if (dialog_) {
         dialog_->Draw(text_, sprites_);
@@ -231,7 +232,7 @@ void LicenceScene::Handle(LicenceRequest request) {
             ShowPhoto();
             break;
         case LicenceRequest::Done:
-            Done();
+            SaveThenOpen(NextScene(RacerEditor::Licence, racers_.racer));
             break;
         case LicenceRequest::Leave:
             AskLeave();
@@ -243,7 +244,7 @@ void LicenceScene::Handle(LicenceRequest request) {
 
 void LicenceScene::TickDialog(MessageDialog& dialog, const sim::InputFrame& input) {
     if (dialog.Tick(input, sounds_) == 0) {
-        opened_ = RacerScene(kGarageScene, racers_.racer);
+        opened_ = PreviousScene(RacerEditor::Licence, racers_.racer);
     }
     if (dialog.IsClosed()) {
         dialog_.reset();
@@ -257,12 +258,18 @@ void LicenceScene::TypeKeys() {
     }
 }
 
-void LicenceScene::Done() {
+void LicenceScene::SaveThenOpen(std::string next) {
+    if (Save()) {
+        opened_ = std::move(next);
+    }
+}
+
+bool LicenceScene::Save() {
     if (cheats_ != nullptr) {
         cheats_->EnterPlate(PlateText(name_.Text()));
     }
     if (name_.Text().empty()) {
-        return;
+        return false;
     }
     settings::Racer& racer = Record();
     racer.name = Utf8FromUtf16(name_.Text());
@@ -270,12 +277,16 @@ void LicenceScene::Done() {
     if (Result<void> saved = settings::SaveRacers(racers_.store, racers_.file); !saved) {
         log::Warn("{}, the licence isn't saved", saved.error().message);
     }
-    opened_ = RacerScene(kGarageScene, racers_.racer);
+    return true;
 }
 
 void LicenceScene::AskLeave() {
+    if (racers_.racer.isNew) {
+        SaveThenOpen(PreviousScene(RacerEditor::Licence, racers_.racer));
+        return;
+    }
     if (!HasChanges() || !views_.dialog) {
-        opened_ = RacerScene(kGarageScene, racers_.racer);
+        opened_ = PreviousScene(RacerEditor::Licence, racers_.racer);
         return;
     }
     dialog_.emplace(
@@ -309,12 +320,12 @@ void LicenceScene::ShowPhoto() {
 }
 
 bool LicenceScene::HasChanges() const {
-    const settings::Racer& racer = racers_.store.racers.at(racers_.racer);
+    const settings::Racer& racer = racers_.store.racers.at(racers_.racer.index);
     return name_.Text() != Utf16FromUtf8(racer.name) || expression_ != racer.look.expression;
 }
 
 settings::Racer& LicenceScene::Record() {
-    return racers_.store.racers.at(racers_.racer);
+    return racers_.store.racers.at(racers_.racer.index);
 }
 
 void LicenceScene::PlaySounds(const sim::InputFrame& input, LicenceRequest request,
@@ -349,7 +360,7 @@ std::size_t LicenceScene::StateOf(LicenceRow row) const {
 void LicenceScene::LayOut() {
     under_.push_back(look_.backdrop);
     under_.push_back(look_.licence);
-    const settings::Racer& racer = racers_.store.racers.at(racers_.racer);
+    const settings::Racer& racer = racers_.store.racers.at(racers_.racer.index);
     const std::size_t shown = std::min(racers_.circuits.size(), kLicenceTrophies);
     for (std::size_t circuit = 0; circuit < shown; ++circuit) {
         const auto trophy = racer.trophies.find(racers_.circuits.at(circuit));

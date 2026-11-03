@@ -10,8 +10,8 @@
 
 namespace rr::app {
 
-/// The first part set's chassis with no pieces, until the driver and car editors exist.
-[[nodiscard]] Result<settings::Racer> NewRacer(const assets::Vfs& vfs, std::string name);
+/// A nameless racer on the first part set's chassis, with no pieces.
+[[nodiscard]] Result<settings::Racer> NewRacer(const assets::Vfs& vfs);
 
 /// Fails when the file has no racer `racer`.
 [[nodiscard]] Result<settings::RacerStore> LoadRacerStore(const std::filesystem::path& file,

@@ -13,8 +13,9 @@ namespace rr::app {
 namespace {
 
 settings::Racer MadeRacer(const assets::Vfs& vfs) {
-    Result<settings::Racer> made = NewRacer(vfs, "NEW RACER");
+    Result<settings::Racer> made = NewRacer(vfs);
     REQUIRE_MESSAGE(made.has_value(), made.error().message);
+    CHECK(made->name.empty());
     return std::move(*made);
 }
 

@@ -20,6 +20,7 @@
 #include "app/menu/menu_text.hpp"
 #include "app/menu/message_dialog.hpp"
 #include "app/menu/name_field.hpp"
+#include "app/menu/racer_edit_flow.hpp"
 #include "app/menu/stand_racer.hpp"
 #include "app/scene.hpp"
 #include "assets/driver_look.hpp"
@@ -42,7 +43,7 @@ public:
     /// `renderer`, `vfs` and `cheats` must outlive the scene.
     [[nodiscard]] static Result<std::unique_ptr<LicenceScene>> Create(
         render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
-        const std::filesystem::path& racersFile, std::size_t racer, sim::Cheats& cheats);
+        const std::filesystem::path& racersFile, EditedRacer racer, sim::Cheats& cheats);
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
@@ -57,7 +58,7 @@ private:
     struct Racers {
         std::filesystem::path file;
         settings::RacerStore store;
-        std::size_t racer = 0;
+        EditedRacer racer;
         std::vector<std::string> circuits;
     };
 
@@ -74,7 +75,8 @@ private:
     void Handle(LicenceRequest request);
     void TickDialog(MessageDialog& dialog, const sim::InputFrame& input);
     void TypeKeys();
-    void Done();
+    void SaveThenOpen(std::string next);
+    [[nodiscard]] bool Save();
     void AskLeave();
     void ShowPhoto();
     [[nodiscard]] bool HasChanges() const;
@@ -93,6 +95,7 @@ private:
     LicenceLook look_;
     Views views_;
     Racers racers_;
+    EditorButtons buttons_;
     NameField name_;
     std::uint8_t expression_ = 0;
     std::map<std::uint8_t, StandRacer> photos_;

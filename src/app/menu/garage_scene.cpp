@@ -12,6 +12,7 @@
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_widgets.hpp"
+#include "app/menu/racer_edit_flow.hpp"
 #include "app/race_settings.hpp"
 #include "app/racer/racer_ref.hpp"
 #include "core/log.hpp"
@@ -23,7 +24,6 @@ namespace {
 constexpr std::size_t kMainMenuLine = 2;
 constexpr std::size_t kMainPageLine = 3;
 constexpr std::size_t kEditPageLine = 4;
-constexpr std::size_t kNewRacerLine = 0x28;
 constexpr std::size_t kDeleteQuestionLine = 0x76;
 constexpr std::size_t kYesLine = 0x73;
 constexpr std::size_t kNoLine = 0x74;
@@ -197,14 +197,18 @@ void GarageScene::TickDialog(MessageDialog& dialog, const sim::InputFrame& input
 }
 
 void GarageScene::AddNew() {
-    Result<settings::Racer> racer = NewRacer(*vfs_, Utf8FromUtf16(text_.Line(kNewRacerLine)));
+    Result<settings::Racer> racer = NewRacer(*vfs_);
     if (!racer) {
         log::Warn("{}, the garage can't make a racer", racer.error().message);
         return;
     }
     names_.push_back(Utf16FromUtf8(racer->name));
     racers_.store.racers.push_back(std::move(*racer));
-    Changed(racers_.store.racers.size() - 1, GarageButton::New);
+    const std::size_t added = racers_.store.racers.size() - 1;
+    Changed(added, GarageButton::New);
+    if (racers_.isLoaded) {
+        opened_ = EditorSceneName(RacerEditor::Driver, {.index = added, .isNew = true});
+    }
 }
 
 void GarageScene::Copy() {

@@ -14,8 +14,6 @@ constexpr std::string_view kBanner = "banner";
 constexpr std::string_view kItemStyle = "partcont";
 constexpr std::string_view kScrollStyle = "picker";
 constexpr std::string_view kMixStyle = "nubutton";
-constexpr std::string_view kDoneStyle = "buttonch";
-constexpr std::string_view kBackStyle = "buttonca";
 constexpr std::string_view kMix = "mix";
 constexpr std::string_view kDone = "gonext";
 constexpr std::string_view kBack = "goback";
@@ -39,8 +37,9 @@ Result<const Body*> BodyOf(const MenuFiles& files, std::string_view name) {
 
 class LookLoader {
 public:
-    LookLoader(render::Renderer& renderer, const assets::Vfs& vfs, const MenuFiles& files)
-        : files_(&files), images_(renderer, vfs, files) {}
+    LookLoader(render::Renderer& renderer, const assets::Vfs& vfs, const MenuFiles& files,
+               const EditorButtons& buttons)
+        : files_(&files), buttons_(buttons), images_(renderer, vfs, files) {}
 
     Result<EditDriverLook> Load() && {
         Result<void> loaded = LoadImages()
@@ -73,9 +72,9 @@ private:
             })
             .and_then([&] { return LoadSelectorArrows(images_); })
             .transform([&](const SelectorArrows& arrows) { look_.arrows = arrows; })
-            .and_then([&] { return LoadImageButton(images_, *files_, kDoneStyle); })
+            .and_then([&] { return LoadImageButton(images_, *files_, buttons_.done.style); })
             .transform([&](const ImageButtonLook& done) { look_.done = done; })
-            .and_then([&] { return LoadImageButton(images_, *files_, kBackStyle); })
+            .and_then([&] { return LoadImageButton(images_, *files_, buttons_.back.style); })
             .transform([&](const ImageButtonLook& back) { look_.back = back; });
     }
 
@@ -146,6 +145,7 @@ private:
     }
 
     const MenuFiles* files_;
+    EditorButtons buttons_;
     MenuImageCache images_;
     EditDriverLook look_;
 };
@@ -153,8 +153,8 @@ private:
 }
 
 Result<EditDriverLook> LoadEditDriverLook(render::Renderer& renderer, const assets::Vfs& vfs,
-                                          const MenuFiles& files) {
-    return LookLoader(renderer, vfs, files).Load();
+                                          const MenuFiles& files, const EditorButtons& buttons) {
+    return LookLoader(renderer, vfs, files, buttons).Load();
 }
 
 }
