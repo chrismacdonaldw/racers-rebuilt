@@ -57,20 +57,27 @@ Result<TextureId> Renderer::UploadTexture(const assets::ImageAsset& image) {
     if (Result<void> valid = CheckRgba(image); !valid) {
         return std::unexpected(std::move(valid.error()));
     }
+    const std::uint32_t levels =
+        std::clamp(image.mipLevels, 1U, assets::FullMipLevels(image.widthPx, image.heightPx));
+    const SDL_GPUTextureUsageFlags usage =
+        levels > 1 ? SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET
+                   : SDL_GPU_TEXTUREUSAGE_SAMPLER;
     const SDL_GPUTextureCreateInfo info{.type = SDL_GPU_TEXTURETYPE_2D,
                                         .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-                                        .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
+                                        .usage = usage,
                                         .width = image.widthPx,
                                         .height = image.heightPx,
                                         .layer_count_or_depth = 1,
-                                        .num_levels = 1};
+                                        .num_levels = levels};
     GpuTexture texture(device_.get(), SDL_CreateGPUTexture(device_.get(), &info));
     if (texture.Get() == nullptr) {
         return GpuFailure("can't create texture");
     }
-    return CopyToTexture(texture.Get(), image, false).transform([&] {
-        return textures_.Add(std::move(texture));
-    });
+    Result<void> uploaded = CopyToTexture(texture.Get(), image, false);
+    if (uploaded && levels > 1) {
+        uploaded = GenerateMips(texture.Get());
+    }
+    return uploaded.transform([&] { return textures_.Add(std::move(texture)); });
 }
 
 Result<void> Renderer::UpdateTexture(TextureId texture, const assets::ImageAsset& image) {
@@ -112,6 +119,18 @@ Result<void> Renderer::CopyToTexture(SDL_GPUTexture* texture, const assets::Imag
     SDL_EndGPUCopyPass(copy);
     if (!SDL_SubmitGPUCommandBuffer(commands)) {
         return GpuFailure("can't submit a texture upload");
+    }
+    return {};
+}
+
+Result<void> Renderer::GenerateMips(SDL_GPUTexture* texture) {
+    SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(device_.get());
+    if (commands == nullptr) {
+        return GpuFailure("can't start generating mipmaps");
+    }
+    SDL_GenerateMipmapsForGPUTexture(commands, texture);
+    if (!SDL_SubmitGPUCommandBuffer(commands)) {
+        return GpuFailure("can't submit mipmap generation");
     }
     return {};
 }

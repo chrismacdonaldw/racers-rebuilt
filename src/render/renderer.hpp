@@ -121,6 +121,7 @@ private:
     Result<StreamBuffer> CreateStream(std::size_t sizeBytes);
     Result<GpuTransferBuffer> Stage(std::span<const std::span<const std::byte>> parts);
     static Result<void> CheckRgba(const assets::ImageAsset& image);
+    Result<void> GenerateMips(SDL_GPUTexture* texture);
     Result<void> CopyToTexture(SDL_GPUTexture* texture, const assets::ImageAsset& image,
                                bool cycles);
     Result<void> UploadBuffers(std::span<const UploadPart> parts);

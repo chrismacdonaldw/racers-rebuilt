@@ -23,6 +23,7 @@
 namespace rr::render {
 namespace {
 
+constexpr float kMaxLod = 16.0F;
 constexpr SDL_FColor kClearColor{.r = 0.0F, .g = 0.0F, .b = 0.0F, .a = 1.0F};
 constexpr std::size_t kLineVertexBytes = kMaxDebugLines * 2 * sizeof(LineVertex);
 constexpr std::size_t kSpriteVertexBytes = kMaxSprites * kVerticesPerSprite * sizeof(SpriteVertex);
@@ -61,7 +62,8 @@ GpuSampler CreateSampler(SDL_GPUDevice* device, SDL_GPUSamplerAddressMode addres
                                         .mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
                                         .address_mode_u = addressMode,
                                         .address_mode_v = addressMode,
-                                        .address_mode_w = addressMode};
+                                        .address_mode_w = addressMode,
+                                        .max_lod = kMaxLod};
     return {device, SDL_CreateGPUSampler(device, &info)};
 }
 
