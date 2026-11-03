@@ -41,6 +41,8 @@ constexpr render::Color kCountdownTint{.r = 1.0F, .g = 1.0F, .b = 0.0F};
 constexpr Milliseconds kDemoBlinkPeriod{1000};
 constexpr Milliseconds kDemoBlinkLit{750};
 constexpr float kDemoBottomGap = 5.0F;
+constexpr render::SpriteAnchor kLeft = render::SpriteAnchor::Left;
+constexpr render::SpriteAnchor kRight = render::SpriteAnchor::Right;
 
 float TimeWidth(const HudFonts& fonts) {
     std::array<char16_t, kRaceTimeLength> zero{};
@@ -188,11 +190,15 @@ void RaceHud::AddLap(const HudValues& values, std::vector<HudText>& out) {
     out.push_back({.text = strings_.lap,
                    .x = lapX - (TextWidth(HudFont::Text, strings_.lap) + kLapLabelGap),
                    .y = topY_,
-                   .scale = scale});
-    out.push_back({.text = lap, .x = lapX, .y = topY_, .scale = scale});
+                   .scale = scale,
+                   .anchor = kRight});
+    out.push_back({.text = lap, .x = lapX, .y = topY_, .scale = scale, .anchor = kRight});
     if (values.lapTime) {
-        out.push_back(
-            {.text = pool_.Time(*values.lapTime), .x = lapTimeX_, .y = topY_, .scale = scale});
+        out.push_back({.text = pool_.Time(*values.lapTime),
+                       .x = lapTimeX_,
+                       .y = topY_,
+                       .scale = scale,
+                       .anchor = kRight});
     }
     if (values.bestLap) {
         AddLabelledTime(strings_.best, kBestLabelGap, *values.bestLap, bestLapY_, out);
@@ -207,9 +213,13 @@ void RaceHud::AddLabelledTime(std::u16string_view label, float labelGap, Millise
     out.push_back({.text = label,
                    .x = lapTimeX_ - (TextWidth(HudFont::Text, label) + labelGap),
                    .y = y,
-                   .scale = placement_.textScale});
-    out.push_back(
-        {.text = pool_.Time(time), .x = lapTimeX_, .y = y, .scale = placement_.textScale});
+                   .scale = placement_.textScale,
+                   .anchor = kRight});
+    out.push_back({.text = pool_.Time(time),
+                   .x = lapTimeX_,
+                   .y = y,
+                   .scale = placement_.textScale,
+                   .anchor = kRight});
 }
 
 void RaceHud::AddPlace(int place, std::vector<HudText>& out) {
@@ -219,13 +229,15 @@ void RaceHud::AddPlace(int place, std::vector<HudText>& out) {
     out.push_back({.text = strings_.placeSuffixes[static_cast<std::size_t>(place - 1)],
                    .x = kPlaceX + kPlaceSuffixGap,
                    .y = topY_,
-                   .scale = placement_.textScale});
+                   .scale = placement_.textScale,
+                   .anchor = kLeft});
     const std::u16string_view digit = pool_.Number(static_cast<std::size_t>(place));
     out.push_back({.font = HudFont::Numbers,
                    .text = digit,
                    .x = kPlaceX - TextWidth(HudFont::Numbers, digit),
                    .y = topY_,
-                   .scale = pulse_.Scale() * placement_.textScale});
+                   .scale = pulse_.Scale() * placement_.textScale,
+                   .anchor = kLeft});
 }
 
 void RaceHud::AddBanner(const BannerView& banner, std::vector<HudText>& out) const {

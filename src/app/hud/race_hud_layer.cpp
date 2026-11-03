@@ -1,5 +1,7 @@
 #include "app/hud/race_hud_layer.hpp"
 
+#include <cstddef>
+#include <span>
 #include <utility>
 #include <variant>
 
@@ -138,15 +140,20 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(
                         .trial = trial_},
                        texts_);
             DrawHudText(texts_, hud.Fonts(), sprites_);
+            std::size_t first = sprites_.size();
             if (!isGhost) {
                 LayoutPowerupPanel(racers[player], images_, sprites_, placement.bottom);
             }
+            AnchorSprites(std::span(sprites_).subspan(first), render::SpriteAnchor::Left);
+            first = sprites_.size();
             if (!isGhost && player < gadgets_.size() && player < maps.size()) {
                 gadgets_[player].Draw(maps[player], images_, placement, sprites_);
             }
+            AnchorSprites(std::span(sprites_).subspan(first), render::SpriteAnchor::Right);
         }
         if (player < covers.size() && covers[player]) {
             render::SpriteDraw cover = *covers[player];
+            cover.anchor = render::SpriteAnchor::Fill;
             if (players_ > 1) {
                 cover.bounds.y = placement.top;
                 cover.bounds.height = placement.bottom - placement.top;

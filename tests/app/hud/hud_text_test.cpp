@@ -37,5 +37,20 @@ TEST_CASE("hud text draws each text with its own font") {
     CHECK(fonts.Height(HudFont::Text) == 8.0F);
 }
 
+TEST_CASE("each glyph keeps its text's anchor") {
+    const UiFont font = OneGlyphFont(render::TextureId{1}, 4, 8);
+    const HudFonts fonts{.text = &font, .numbers = &font};
+    const std::array texts{HudText{.text = u"1"},
+                           HudText{.text = u"11", .anchor = render::SpriteAnchor::Right}};
+    std::vector<render::SpriteDraw> sprites;
+
+    DrawHudText(texts, fonts, sprites);
+
+    REQUIRE(sprites.size() == 3);
+    CHECK(sprites[0].anchor == render::SpriteAnchor::Center);
+    CHECK(sprites[1].anchor == render::SpriteAnchor::Right);
+    CHECK(sprites[2].anchor == render::SpriteAnchor::Right);
+}
+
 }
 }

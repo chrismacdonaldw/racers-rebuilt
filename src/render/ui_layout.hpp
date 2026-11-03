@@ -42,6 +42,10 @@ struct UiToClip {
 /// Under `SceneFit::Canvas` a window view keeps the canvas's shape, so a stretched UI stretches it.
 [[nodiscard]] float ViewAspect(const Viewport& viewport, const PixelRect& area, SceneFit sceneFit);
 
+/// UI units from the canvas's side to the window's when the scene fills a wider window, else 0.
+[[nodiscard]] float EdgeShift(std::uint32_t widthPx, std::uint32_t heightPx, UiFit uiFit,
+                              SceneFit sceneFit);
+
 [[nodiscard]] UiToClip UiToClipTransform(const PixelRect& area, std::uint32_t widthPx,
                                          std::uint32_t heightPx);
 

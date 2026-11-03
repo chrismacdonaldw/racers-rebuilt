@@ -18,9 +18,9 @@ struct Batched {
     std::vector<SpriteBatch> batches;
 };
 
-Batched Batch(const std::vector<SpriteDraw>& sprites) {
+Batched Batch(const std::vector<SpriteDraw>& sprites, float edgeShift = 0.0F) {
     Batched out;
-    BatchSprites(sprites, out.vertices, out.batches);
+    BatchSprites(sprites, edgeShift, out.vertices, out.batches);
     return out;
 }
 
@@ -91,6 +91,36 @@ TEST_CASE("set corners replace the bounds, texture coordinates and tint") {
     CHECK(batched.vertices[5].color.g == 0.5F);
     CHECK(batched.vertices[6].v == 0.25F);
     CHECK(batched.vertices[7].y == 3.0F);
+}
+
+TEST_CASE("anchored sprites move out to the window's sides, and filling ones stretch") {
+    const Rect bounds{.x = 10.0F, .width = 20.0F, .height = 5.0F};
+    const std::vector<SpriteDraw> sprites{{.bounds = bounds},
+                                          {.bounds = bounds, .anchor = SpriteAnchor::Left},
+                                          {.bounds = bounds, .anchor = SpriteAnchor::Right},
+                                          {.bounds = bounds, .anchor = SpriteAnchor::Fill}};
+
+    const Batched batched = Batch(sprites, 80.0F);
+
+    REQUIRE(batched.vertices.size() == std::size_t{4} * kVerticesPerSprite);
+    CHECK(batched.vertices[0].x == 10.0F);
+    CHECK(batched.vertices[4].x == -70.0F);
+    CHECK(batched.vertices[9].x == 110.0F);
+    CHECK(batched.vertices[12].x == -70.0F);
+    CHECK(batched.vertices[13].x == 110.0F);
+}
+
+TEST_CASE("anchored corners move with their side") {
+    const SpriteDraw sprite{.corners = std::array{SpriteCorner{.x = 1.0F}, SpriteCorner{.x = 2.0F},
+                                                  SpriteCorner{.x = 1.0F}, SpriteCorner{.x = 2.0F}},
+                            .anchor = SpriteAnchor::Fill};
+
+    const Batched batched = Batch({sprite}, 10.0F);
+
+    CHECK(batched.vertices[0].x == -9.0F);
+    CHECK(batched.vertices[1].x == 12.0F);
+    CHECK(batched.vertices[2].x == -9.0F);
+    CHECK(batched.vertices[3].x == 12.0F);
 }
 
 TEST_CASE("sprite indices make two triangles over each sprite's corners") {

@@ -94,6 +94,16 @@ TEST_CASE("a view reaching past the window's left edge clips to it") {
           PixelRect{.widthPx = 960, .heightPx = 1080});
 }
 
+TEST_CASE(
+    "anchors shift by the side bar's width in UI units only when the scene fills the window") {
+    CHECK(EdgeShift(kWideWidthPx, kWideHeightPx, UiFit::Centered, SceneFit::Window) ==
+          doctest::Approx(240.0F * 640.0F / 1440.0F));
+    CHECK(EdgeShift(kWideWidthPx, kWideHeightPx, UiFit::Centered, SceneFit::Canvas) == 0.0F);
+    CHECK(EdgeShift(kWideWidthPx, kWideHeightPx, UiFit::Stretched, SceneFit::Window) == 0.0F);
+    CHECK(EdgeShift(1024, 1024, UiFit::Centered, SceneFit::Window) == 0.0F);
+    CHECK(EdgeShift(0, 0, UiFit::Centered, SceneFit::Window) == 0.0F);
+}
+
 TEST_CASE("a canvas view stays on the canvas whatever the scene fit") {
     const Viewport onCanvas = UiViewport({.x = 320.0F, .width = 320.0F, .height = 480.0F});
 

@@ -1,5 +1,7 @@
 #include "app/hud/hud_text.hpp"
 
+#include <cstddef>
+
 #include "app/ui_text/text_layout.hpp"
 
 namespace rr::app {
@@ -19,8 +21,16 @@ float HudFonts::Height(HudFont font) const {
 void DrawHudText(std::span<const HudText> texts, const HudFonts& fonts,
                  std::vector<render::SpriteDraw>& out) {
     for (const HudText& text : texts) {
+        const std::size_t first = out.size();
         LayoutText(fonts.Of(text.font), text.text,
                    {.x = text.x, .y = text.y, .scale = text.scale, .tint = text.tint}, out);
+        AnchorSprites(std::span(out).subspan(first), text.anchor);
+    }
+}
+
+void AnchorSprites(std::span<render::SpriteDraw> sprites, render::SpriteAnchor anchor) {
+    for (render::SpriteDraw& sprite : sprites) {
+        sprite.anchor = anchor;
     }
 }
 

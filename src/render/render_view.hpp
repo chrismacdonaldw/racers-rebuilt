@@ -114,6 +114,9 @@ struct SpriteCorner {
     Color tint;
 };
 
+/// Which window edge a sprite keeps to when the scene is wider than the UI canvas.
+enum class SpriteAnchor : std::uint8_t { Center, Left, Right, Fill };
+
 /// `bounds` is in UI coordinates and `uv` in texture coordinates; `corners` overrides both.
 struct SpriteDraw {
     TextureId texture = kWhiteTexture;
@@ -122,6 +125,7 @@ struct SpriteDraw {
     Color tint;
     BlendMode blend = BlendMode::Alpha;
     std::optional<std::array<SpriteCorner, 4>> corners;
+    SpriteAnchor anchor = SpriteAnchor::Center;
 };
 
 /// Corners go top left, top right, bottom left, bottom right, matching `uv`.

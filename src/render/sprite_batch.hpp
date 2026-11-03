@@ -28,9 +28,9 @@ struct SpriteBatch {
 
 void AddToBatches(std::vector<SpriteBatch>& batches, TextureId texture, BlendMode blend);
 
-/// Overwrites both outputs. Neighbours that share a texture and blend share a batch.
-void BatchSprites(std::span<const SpriteDraw> sprites, std::vector<SpriteVertex>& vertices,
-                  std::vector<SpriteBatch>& batches);
+/// Overwrites both outputs. `edgeShift` is how far, in UI units, anchored sprites move out.
+void BatchSprites(std::span<const SpriteDraw> sprites, float edgeShift,
+                  std::vector<SpriteVertex>& vertices, std::vector<SpriteBatch>& batches);
 
 [[nodiscard]] std::vector<std::uint16_t> SpriteIndices(std::uint32_t spriteCount);
 
