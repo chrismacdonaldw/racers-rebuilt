@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <format>
+#include <span>
 #include <utility>
 
 #include "app/track_model.hpp"
@@ -15,8 +16,8 @@ namespace {
 
 constexpr std::string_view kCommonFolder = "GAMEDATA/COMMON";
 constexpr std::string_view kCommonFiles = "EMITTER";
-constexpr std::string_view kRacePrefix = "RACE";
 constexpr std::string_view kTrackFilePrefix = "EMIT";
+constexpr std::string_view kAnimationExtension = ".MAB";
 
 template <typename Parse>
 auto ReadParsed(const assets::Vfs& vfs, const std::string& path, Parse parse) {
@@ -43,6 +44,20 @@ std::optional<render::ParticleLook> LookOf(std::string_view name,
                                                              : material.blend};
 }
 
+std::string SharedFiles(std::span<const assets::VfsEntry> entries, std::string_view track) {
+    std::string named = std::format("{}{}", kTrackFilePrefix, assets::RaceTrackStem(track));
+    if (assets::HasFile(entries, named + std::string(kAnimationExtension))) {
+        return named;
+    }
+    const auto renamed = std::ranges::find_if(entries, [](const assets::VfsEntry& entry) {
+        return entry.name.starts_with(kTrackFilePrefix) &&
+               entry.name.ends_with(kAnimationExtension);
+    });
+    return renamed == entries.end()
+               ? named
+               : renamed->name.substr(0, renamed->name.size() - kAnimationExtension.size());
+}
+
 assets::EmitterAsset ToEngineEmitter(assets::EmitterAsset emitter) {
     emitter.acceleration = ToEngine(emitter.acceleration);
     for (Vector3& point : emitter.points) {
@@ -62,10 +77,8 @@ ParticleFiles CommonParticleFiles() {
 
 Result<ParticleFiles> TrackParticleFiles(const assets::Vfs& vfs, std::string_view track) {
     const std::string folder = std::format("GAMEDATA/{}", track);
-    const std::string_view suffix =
-        track.starts_with(kRacePrefix) ? track.substr(kRacePrefix.size()) : track;
-    const std::string shared = std::format("{}{}", kTrackFilePrefix, suffix);
     return vfs.List(folder).transform([&](const std::vector<assets::VfsEntry>& entries) {
+        const std::string shared = SharedFiles(entries, track);
         const bool hasMaterials = assets::HasFile(entries, std::format("{}.MDB", shared));
         return ParticleFiles{.folder = folder,
                              .emitters = std::string(track),

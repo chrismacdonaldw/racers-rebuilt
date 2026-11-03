@@ -20,8 +20,11 @@
 
 namespace rr::assets {
 
-/// Race track folders under `GAMEDATA`, such as `RACEC0R0`, sorted.
+/// `GAMEDATA` folders with a start grid and checkpoints, such as `RACEC0R0`, upper case, sorted.
 [[nodiscard]] std::vector<std::string> ListRaceTracks(const Vfs& vfs);
+
+/// What a track's emitter and ambient files reuse: `C0R0` for `RACEC0R0`, the whole name otherwise.
+[[nodiscard]] std::string_view RaceTrackStem(std::string_view track);
 
 template <typename T>
 using NameMap = std::map<std::string, T, std::less<>>;

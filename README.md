@@ -263,6 +263,21 @@ enabled = true
 
 Turning a mod on or off applies on the next start. Once a setting in **Mods** changes, **Restart now** appears there: it relaunches the game with the same command line, minus `--record`, `--replay`, `--import-save` and `--dump-images`. A mod with a broken `mod.toml` is skipped with a warning in the log.
 
+### Tracks
+
+A mod adds a race track with a new folder in `files/GAMEDATA/`. Any folder there with a `STARTPOS.SPB` and a `RACE.CPB` is a track. It shows in the overlay's **Scenes** menu, and `--race <folder>` starts a race on it.
+
+Starting from a copy of a retail folder such as `RACEC0R0`, rename the files named after it:
+
+| Retail file | New track `<NAME>` |
+|---|---|
+| `RACEC0R0.TMB`, `.RAB`, `.EMB`, `.TGB` | `<NAME>.TMB`, `.RAB`, `.EMB`, `.TGB` |
+| `LEVC0R0.SBK` | `<NAME>.SBK` |
+
+Keep the `EMITC0R0` files as they are: the track's worlds refer to them by name.
+
+New tracks aren't part of any circuit, so they race with the first circuit's grid.
+
 ### Overrides
 
 To replace a few files without writing a mod, put them in `<data>/overrides/` at their paths inside `LEGO.JAM`, e.g. `<data>/overrides/GAMEDATA/COMMON/RRJMW.GDB`.
