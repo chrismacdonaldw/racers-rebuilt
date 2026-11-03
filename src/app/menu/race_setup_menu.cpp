@@ -14,6 +14,7 @@
 #include "assets/race_catalog.hpp"
 #include "assets/racer_catalog.hpp"
 #include "assets/string_table.hpp"
+#include "assets/track_loader.hpp"
 #include "core/assert.hpp"
 
 namespace rr::app {
@@ -107,6 +108,27 @@ std::vector<CourseChoice> TrackChoicesOf(const Catalogs& catalogs, std::size_t c
     return choices;
 }
 
+bool IsCircuitTrack(const assets::RaceCatalog& races, std::string_view track) {
+    return std::ranges::any_of(races.Races(), [&](const assets::RaceEntry& race) {
+        return assets::ToUpperAscii(race.folder) == track;
+    });
+}
+
+std::vector<CourseChoice> ModTrackChoices(const assets::Vfs& vfs, const Catalogs& catalogs) {
+    std::vector<CourseChoice> choices;
+    if (catalogs.races.Circuits().empty()) {
+        return choices;
+    }
+    const std::vector<RacerChoice> grid = CircuitChoice(catalogs, 0).racers;
+    for (std::string& track : assets::ListRaceTracks(vfs)) {
+        if (!IsCircuitTrack(catalogs.races, track)) {
+            choices.push_back(
+                {.track = std::move(track), .racers = grid, .previews = {std::nullopt}});
+        }
+    }
+    return choices;
+}
+
 RaceSetupRow Stepped(RaceSetupRow row, int step) {
     return static_cast<RaceSetupRow>(
         Wrap(static_cast<std::size_t>(row), step, static_cast<std::size_t>(kRowCount)));
@@ -133,6 +155,7 @@ Result<std::vector<CourseChoice>> LoadTrackChoices(const assets::Vfs& vfs) {
     for (std::size_t circuit = 0; circuit < catalogs->races.Circuits().size(); ++circuit) {
         std::ranges::move(TrackChoicesOf(*catalogs, circuit), std::back_inserter(choices));
     }
+    std::ranges::move(ModTrackChoices(vfs, *catalogs), std::back_inserter(choices));
     if (choices.empty()) {
         return Fail(ErrorCode::NotFound, "no circuit has an unmirrored race");
     }
