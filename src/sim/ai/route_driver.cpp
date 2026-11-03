@@ -17,6 +17,9 @@ constexpr float kCorrectionDistance = 30.0F;
 constexpr float kMinCurvature = 1.0F / 4096.0F;
 constexpr float kDriftReleaseLock = 0.8F;
 constexpr Milliseconds kStallTimeout{3000};
+constexpr float kBrakeWindowStartMs = 400.0F;
+constexpr float kBrakeWindowEndMs = 650.0F;
+constexpr float kBrakeMargin = 1.1F;
 
 Vector3 Flat(const Vector3& v) {
     return {.x = v.x, .y = v.y};
@@ -48,6 +51,10 @@ float DriftTurnRadius(float radius, float limit) {
     return radius >= limit ? radius : ((4.0F * radius) - limit) / 3.0F;
 }
 
+float SpeedBetween(const Vector3& from, const Vector3& to, float routeMs) {
+    return Length(Flat(to - from)) / routeMs;
+}
+
 float LockFor(float radius, float handling) {
     return radius <= 0.0F ? 2.0F : SteeringFor(radius) / handling;
 }
@@ -60,7 +67,9 @@ RouteDriver::RouteDriver(const assets::RaceRoute& route, std::optional<float> pa
 RacerControls RouteDriver::Drive(const Racer& racer) {
     const BodyMotion& motion = racer.Body().motion;
     Follow(motion.position);
-    const bool isThrottleHeld = IsBelowPace(motion);
+    const Pedal pedal = PedalFor(motion);
+    const bool isThrottleHeld = pedal == Pedal::Throttle;
+    const bool isBrakeHeld = pedal == Pedal::Brake;
     const Transform reference = reference_.Pose();
     const Vector3 tangent = FlatForward(reference.rotation);
     const Vector3 target = Flat(reference.position) + (tangent * kCorrectionDistance);
@@ -68,7 +77,7 @@ RacerControls RouteDriver::Drive(const Racer& racer) {
     const float curvature = CurvatureToward(reference.position, tangent, ahead_.Pose().position) +
                             CurvatureToward(motion.position, forward, target);
     if (std::abs(curvature) < kMinCurvature) {
-        return {.isThrottleHeld = isThrottleHeld};
+        return {.isThrottleHeld = isThrottleHeld, .isBrakeHeld = isBrakeHeld};
     }
     const float radius = 1.0F / std::abs(curvature);
     const float limit = GripLimit(racer.Body());
@@ -77,18 +86,27 @@ RacerControls RouteDriver::Drive(const Racer& racer) {
     const bool isDrifting = gripLock > (racer.Driver().isDrifting ? kDriftReleaseLock : 1.0F);
     const float lock = isDrifting ? LockFor(DriftTurnRadius(radius, limit), handling) : gripLock;
     return {.isThrottleHeld = isThrottleHeld,
-            .isDriftHeld = isDrifting,
+            .isBrakeHeld = isBrakeHeld,
+            .isDriftHeld = isDrifting && !isBrakeHeld,
             .steerLeftAxis = std::copysign(std::min(lock, 1.0F), curvature)};
 }
 
-bool RouteDriver::IsBelowPace(const BodyMotion& motion) const {
+RouteDriver::Pedal RouteDriver::PedalFor(const BodyMotion& motion) const {
     const auto leadMs = static_cast<float>((aheadLead_ - referenceLead_).count());
     if (!pace_ || leadMs <= 0.0F) {
-        return true;
+        return Pedal::Throttle;
     }
-    const float routeSpeed =
-        Length(Flat(ahead_.Pose().position - reference_.Pose().position)) / leadMs;
-    return Dot(motion.velocity, motion.basis.forward) < *pace_ * routeSpeed;
+    const Vector3 ahead = ahead_.Pose().position;
+    const float routeSpeed = SpeedBetween(reference_.Pose().position, ahead, leadMs);
+    const float brakeSpeed = SpeedBetween(ahead_.PoseAhead(kBrakeWindowStartMs).position,
+                                          ahead_.PoseAhead(kBrakeWindowEndMs).position,
+                                          kBrakeWindowEndMs - kBrakeWindowStartMs);
+    const float target = *pace_ * std::min(routeSpeed, brakeSpeed);
+    const float speed = Dot(motion.velocity, motion.basis.forward);
+    if (speed < target) {
+        return Pedal::Throttle;
+    }
+    return speed > target * kBrakeMargin ? Pedal::Brake : Pedal::Coast;
 }
 
 bool RouteDriver::IsStalled(Milliseconds elapsed) {
