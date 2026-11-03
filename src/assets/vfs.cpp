@@ -16,18 +16,39 @@ void Vfs::Mount(std::unique_ptr<VfsLayer> layer) {
     layers_.push_back(std::move(layer));
 }
 
+void Vfs::SetResolver(AssetResolver resolver) {
+    resolver_ = std::move(resolver);
+}
+
 Result<FileData> Vfs::Read(std::string_view path) const {
     Result<std::string> normalized = NormalizeGamePath(path);
     if (!normalized) {
         return std::unexpected(std::move(normalized.error()));
     }
+    if (!resolver_) {
+        return ReadLayers(*normalized, path);
+    }
+    AssetRequest request{.path = *normalized, .generated = std::nullopt};
+    resolver_(request);
+    if (request.generated) {
+        return FileData(std::move(*request.generated));
+    }
+    if (request.path == *normalized) {
+        return ReadLayers(*normalized, path);
+    }
+    return NormalizeGamePath(request.path).and_then([&](const std::string& redirect) {
+        return ReadLayers(redirect, std::format("{} (redirected to {})", path, redirect));
+    });
+}
+
+Result<FileData> Vfs::ReadLayers(std::string_view normalized, std::string_view shown) const {
     for (const std::unique_ptr<VfsLayer>& layer : layers_ | std::views::reverse) {
-        const std::optional<EntryInfo> entry = layer->Index().Find(*normalized);
+        const std::optional<EntryInfo> entry = layer->Index().Find(normalized);
         if (entry && entry->kind == EntryKind::File) {
             return layer->Read(*entry);
         }
     }
-    return Fail(ErrorCode::NotFound, std::format("{} isn't in the game files or any mod", path));
+    return Fail(ErrorCode::NotFound, std::format("{} isn't in the game files or any mod", shown));
 }
 
 Result<std::vector<VfsEntry>> Vfs::List(std::string_view directory) const {

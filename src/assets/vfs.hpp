@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstddef>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -17,11 +20,22 @@ struct VfsEntry {
     EntryKind kind = EntryKind::File;
 };
 
+/// `path` arrives normalized. A resolver may redirect it, or fill `generated` to skip the layers.
+struct AssetRequest {
+    std::string path;
+    std::optional<std::vector<std::byte>> generated;
+};
+
+using AssetResolver = std::function<void(AssetRequest&)>;
+
 /// A path resolves to the highest layer that has it, ignoring case. Const members are thread-safe.
 class Vfs {
 public:
     /// Adds `layer` above every layer mounted so far.
     void Mount(std::unique_ptr<VfsLayer> layer);
+
+    /// `resolver` runs on the reading thread before every read, so it must be thread-safe.
+    void SetResolver(AssetResolver resolver);
 
     [[nodiscard]] Result<FileData> Read(std::string_view path) const;
 
@@ -29,7 +43,11 @@ public:
     [[nodiscard]] Result<std::vector<VfsEntry>> List(std::string_view directory) const;
 
 private:
+    [[nodiscard]] Result<FileData> ReadLayers(std::string_view normalized,
+                                              std::string_view shown) const;
+
     std::vector<std::unique_ptr<VfsLayer>> layers_;
+    AssetResolver resolver_;
 };
 
 /// `name` must be upper case.

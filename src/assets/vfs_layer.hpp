@@ -4,6 +4,7 @@
 #include <optional>
 #include <span>
 #include <utility>
+#include <vector>
 
 #include "assets/path_index.hpp"
 #include "core/result.hpp"
@@ -17,11 +18,14 @@ public:
     explicit FileData(std::span<const std::byte> borrowed) : bytes_(borrowed) {}
     explicit FileData(platform::MappedFile owned)
         : owned_(std::move(owned)), bytes_(owned_->Bytes()) {}
+    explicit FileData(std::vector<std::byte> generated)
+        : generated_(std::move(generated)), bytes_(generated_) {}
 
     [[nodiscard]] std::span<const std::byte> Bytes() const { return bytes_; }
 
 private:
     std::optional<platform::MappedFile> owned_;
+    std::vector<std::byte> generated_;
     std::span<const std::byte> bytes_;
 };
 
