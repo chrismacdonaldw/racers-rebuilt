@@ -72,4 +72,15 @@ Result<ChassisEntry> RacerCatalog::FindChassis(std::string_view name) const {
     return FindNamed(chassis_, name, "CHASSIS.CMB");
 }
 
+Result<ChampionEntry> RacerCatalog::FindChampionOn(std::string_view chassis) const {
+    const std::string wanted = ToUpperAscii(chassis);
+    const auto champion = std::ranges::find_if(champions_, [&](const ChampionEntry& candidate) {
+        return ToUpperAscii(candidate.chassis) == wanted;
+    });
+    if (champion == champions_.end()) {
+        return Fail(ErrorCode::NotFound, std::format("CHAMPS.CCB has no car on {}", chassis));
+    }
+    return *champion;
+}
+
 }

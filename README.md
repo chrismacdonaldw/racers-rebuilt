@@ -96,7 +96,7 @@ Create `music/`, `mods/` and `overrides/` when you first need them.
 
 ## Configuration
 
-Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Bindings**, **Enhancements**, **Game**, **Mods**, **Race**, **Video**, **Progress** and **Developer**. **Enhancements** holds the **Camera**, **Cheats** and **Gameplay** submenus. **Bindings** picks each player's device and shows every keyboard and pad binding in one table. Items marked * change gameplay: replays record them and warn when played back with other values. Video, audio and enhancement changes apply on the next frame. Game changes apply on the next start, and mod changes on **Apply now** or the next start. Every change saves when an edit finishes.
+Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Bindings**, **Enhancements**, **Game**, **Mods**, **Race**, **Video**, **Progress** and **Developer**. **Enhancements** holds the **Camera**, **Cheats**, **Fixes** and **Gameplay** submenus. **Bindings** picks each player's device and shows every keyboard and pad binding in one table. Items marked * change gameplay: replays record them and warn when played back with other values. Video, audio and enhancement changes apply on the next frame. Game changes apply on the next start, and mod changes on **Apply now** or the next start. Every change saves when an edit finishes.
 
 **Developer** shows frame time, ticks per frame and startup timings. Its **Scenes** list opens the test scene, a sprite test that draws 1000 UI sprites, or any race track in your copy.
 

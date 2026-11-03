@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -30,9 +31,16 @@ Result<void> LoadInto(assets::TrackLoader& loader, assets::TrackAssets& into,
 }
 
 Result<assets::TrackAssets> LoadModels(assets::TrackLoader& loader,
-                                       const assets::ChassisEntry& chassis) {
+                                       const assets::ChassisEntry& chassis,
+                                       const std::optional<assets::ChampionEntry>& champion) {
     assets::TrackAssets models;
     return LoadInto(loader, models, kCommonFolder, chassis.wheels.model)
+        .and_then([&]() -> Result<void> {
+            if (!champion) {
+                return {};
+            }
+            return LoadInto(loader, models, kCommonFolder, champion->body);
+        })
         .and_then([&] {
             return LoadInto(loader, models, kPieceFolder,
                             {.materials = "LPIECELO", .textures = "LPIECELO"});
@@ -72,7 +80,7 @@ void AddModel(assets::TrackAssets& models, std::string_view name, assets::Geomet
 
 Result<RacerAssets> LoadBuiltRacer(const assets::Vfs& vfs, assets::TrackLoader& loader,
                                    const assets::RacerCatalog& catalog,
-                                   const settings::Racer& racer) {
+                                   const settings::Racer& racer, CarBody carBody) {
     const Result<assets::DriverPartCatalog> parts = LoadDriverParts(vfs);
     Result<assets::GeometryAsset> driver =
         parts.and_then([&](const assets::DriverPartCatalog& catalog) {
@@ -83,17 +91,25 @@ Result<RacerAssets> LoadBuiltRacer(const assets::Vfs& vfs, assets::TrackLoader& 
     Result<BuiltCarModel> body = chassis.and_then([&](const assets::ChassisEntry&) {
         return BuildCarModel(vfs, racer.car, assets::PieceDetail::Race);
     });
+    Result<std::optional<assets::ChampionEntry>> champion = body.and_then(
+        [&](const BuiltCarModel&) { return ChampionBodyOf(vfs, catalog, racer, carBody); });
     Result<assets::TrackAssets> models =
-        body.and_then([&](const BuiltCarModel&) { return LoadModels(loader, *chassis); });
+        champion.and_then([&](const std::optional<assets::ChampionEntry>& found) {
+            return LoadModels(loader, *chassis, found);
+        });
     if (!models) {
         return std::unexpected(std::move(models.error()));
     }
     GreyMinifigMaterials(models->materials, *parts, racer.look);
-    BakeBuiltRacerLight(body->geometry, models->materials, {});
-    AddModel(*models, kCarModel, std::move(body->geometry));
-    return LoadRacerJoints(vfs, {.files = BuiltFiles(racer, std::move(*chassis), body->build),
-                                 .models = std::move(*models),
-                                 .build = body->build})
+    assets::RacerFiles files = BuiltFiles(racer, std::move(*chassis), body->build);
+    if (*champion) {
+        files.champion.body = (*champion)->body;
+    } else {
+        BakeBuiltRacerLight(body->geometry, models->materials, {});
+        AddModel(*models, kCarModel, std::move(body->geometry));
+    }
+    return LoadRacerJoints(
+               vfs, {.files = std::move(files), .models = std::move(*models), .build = body->build})
         .transform([&](RacerAssets loaded) {
             sim::SkeletonPose pose(loaded.driver.skeleton, 1.0F);
             BakeBuiltRacerLight(*driver, loaded.models.materials, pose.Solve());

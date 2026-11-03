@@ -2,6 +2,7 @@
 
 #include <optional>
 
+#include "app/racer/champion_car.hpp"
 #include "app/track_model.hpp"
 #include "assets/driver_look.hpp"
 #include "assets/skeleton_database.hpp"
@@ -30,11 +31,12 @@ struct StandRacer {
 [[nodiscard]] Result<std::optional<JointedModel>> BuildStandCar(render::Renderer& renderer,
                                                                 const assets::Vfs& vfs,
                                                                 assets::TrackLoader& loader,
-                                                                const settings::Racer& racer);
+                                                                const settings::Racer& racer,
+                                                                CarBody carBody);
 
 /// The racer's menu minifig on its body rig, and its menu car unless it has no pieces.
 [[nodiscard]] Result<StandRacer> BuildStandRacer(render::Renderer& renderer, const assets::Vfs& vfs,
                                                  assets::TrackLoader& loader,
-                                                 const settings::Racer& racer);
+                                                 const settings::Racer& racer, CarBody carBody);
 
 }

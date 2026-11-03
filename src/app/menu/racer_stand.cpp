@@ -86,6 +86,10 @@ void RacerStand::Clear() {
     jointed_ = TrackEntityDraws(model_.animatedModels, scene_->sources);
 }
 
+bool RacerStand::UseCarBody(CarBody carBody) {
+    return std::exchange(carBody_, carBody) != carBody;
+}
+
 void RacerStand::Cheer() {
     if (!shown_) {
         return;
@@ -132,12 +136,14 @@ render::RenderView RacerStand::Render(std::span<const sim::EntityClock> clocks,
 
 const RacerStand::Built& RacerStand::Build(const settings::Racer& racer) {
     const auto found = std::ranges::find_if(built_, [&](const Built& built) {
-        return built.look == racer.look && built.chassis == racer.chassis && built.car == racer.car;
+        return built.look == racer.look && built.chassis == racer.chassis &&
+               built.car == racer.car && built.carBody == carBody_;
     });
     if (found != built_.end()) {
         return *found;
     }
-    Built built{.look = racer.look, .chassis = racer.chassis, .car = racer.car};
+    Built built{
+        .look = racer.look, .chassis = racer.chassis, .car = racer.car, .carBody = carBody_};
     Result<StandRacer> parts = BuildParts(racer);
     if (!parts) {
         log::Warn("{}, the racer stand leaves {} out", parts.error().message, racer.name);
@@ -154,7 +160,7 @@ const RacerStand::Built& RacerStand::Build(const settings::Racer& racer) {
 Result<StandRacer> RacerStand::BuildParts(const settings::Racer& racer) const {
     const assets::AnimationAsset& animations =
         scene_->sources.animations.at(scene_->sources.entities.at(scene_->driver).animation);
-    return BuildStandRacer(*renderer_, *vfs_, *loading_.loader, racer)
+    return BuildStandRacer(*renderer_, *vfs_, *loading_.loader, racer, carBody_)
         .and_then([&](StandRacer parts) -> Result<StandRacer> {
             return sim::CheckPartTracks(animations, parts.skeleton.nodes.size()).transform([&] {
                 return std::move(parts);

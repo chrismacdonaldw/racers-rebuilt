@@ -186,6 +186,7 @@ rr_add_module(app
         racer/car_shadows.cpp
         racer/body_lean.cpp
         racer/built_racer.cpp
+        racer/champion_car.cpp
         racer/car_look.cpp
         racer/driver_moves.cpp
         racer/racer_light.cpp

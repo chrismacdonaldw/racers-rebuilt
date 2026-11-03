@@ -93,7 +93,7 @@ void DressCar(const assets::Vfs& vfs, assets::TrackLoader& loader, const Cutscen
             if (!racer) {
                 return std::nullopt;
             }
-            return LoadAwardCar(vfs, loader, *racer);
+            return LoadAwardCar(vfs, loader, *racer, play.carBody);
         });
     if (!car) {
         log::Warn("{}, {} keeps its stand-in car", car.error().message, NameOf(play));

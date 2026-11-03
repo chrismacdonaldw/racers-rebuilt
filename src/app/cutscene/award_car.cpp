@@ -27,6 +27,7 @@ namespace rr::app {
 namespace {
 
 constexpr std::string_view kPieceFolder = "MENUDATA/PIECEDB";
+constexpr std::string_view kCommonFolder = "GAMEDATA/COMMON";
 constexpr std::string_view kCarBody = "CARBODY";
 
 template <typename T>
@@ -101,6 +102,47 @@ Result<Chassis> LoadChassis(const assets::Vfs& vfs, assets::TrackLoader& loader,
     return Chassis{.model = std::move(rest), .looks = std::move(*looks)};
 }
 
+Result<assets::TrackAssets> LoadPieceLooks(assets::TrackLoader& loader) {
+    const assets::ModelFiles pieces{.materials = "LPIECEHI", .textures = "LPIECEHI"};
+    return loader.LoadModels(kPieceFolder, std::span(&pieces, 1));
+}
+
+Result<std::optional<assets::ChampionEntry>> ChampionOf(const assets::Vfs& vfs,
+                                                        const settings::Racer& racer,
+                                                        CarBody carBody) {
+    if (carBody == CarBody::Bricks) {
+        return std::nullopt;
+    }
+    return assets::RacerCatalog::Load(vfs).and_then([&](const assets::RacerCatalog& catalog) {
+        return QuickBuiltChampion(vfs, catalog, racer);
+    });
+}
+
+Result<AwardCar> LoadChampionCar(const assets::Vfs& vfs, assets::TrackLoader& loader,
+                                 const assets::ChampionEntry& champion, std::string_view chassis) {
+    Result<assets::TrackAssets> looks =
+        loader.LoadModels(kCommonFolder, std::span(&champion.body, 1));
+    Result<assets::TrackAssets> pieces =
+        looks.and_then([&](const assets::TrackAssets&) { return LoadPieceLooks(loader); });
+    Result<Chassis> wheels = pieces.and_then(
+        [&](const assets::TrackAssets&) { return LoadChassis(vfs, loader, chassis); });
+    if (!wheels) {
+        return std::unexpected(std::move(wheels.error()));
+    }
+    const auto model = looks->models.find(assets::ToUpperAscii(champion.body.geometry));
+    if (model == looks->models.end()) {
+        return Fail(ErrorCode::NotFound, std::format("champion {} has no model {}", champion.name,
+                                                     champion.body.geometry));
+    }
+    assets::GeometryAsset body = *model->second;
+    body.scale = 1.0F;
+    looks->models.clear();
+    assets::MergeTrackAssets(*looks, std::move(*pieces));
+    assets::MergeTrackAssets(*looks, std::move(wheels->looks));
+    Append(body, wheels->model);
+    return AwardCar{.model = std::move(body), .looks = std::move(*looks)};
+}
+
 }
 
 Result<assets::ChassisEntry> FindMenuChassis(const assets::Vfs& vfs, std::string_view name) {
@@ -135,16 +177,24 @@ Result<std::optional<settings::Racer>> AwardCarRacer(const assets::Vfs& vfs,
 }
 
 Result<std::optional<AwardCar>> LoadAwardCar(const assets::Vfs& vfs, assets::TrackLoader& loader,
-                                             const settings::Racer& racer) {
-    const assets::ModelFiles pieces{.materials = "LPIECEHI", .textures = "LPIECEHI"};
+                                             const settings::Racer& racer, CarBody carBody) {
+    Result<std::optional<assets::ChampionEntry>> champion = ChampionOf(vfs, racer, carBody);
+    if (!champion) {
+        return std::unexpected(std::move(champion.error()));
+    }
+    if (*champion) {
+        return LoadChampionCar(vfs, loader, **champion, racer.chassis).transform([](AwardCar car) {
+            return std::optional(std::move(car));
+        });
+    }
     Result<BuiltCarModel> body = BuildCarModel(vfs, racer.car, assets::PieceDetail::Menu);
     if (body && body->geometry.indices.empty()) {
         return std::nullopt;
     }
     Result<Chassis> chassis = body.and_then(
         [&](const BuiltCarModel&) { return LoadChassis(vfs, loader, racer.chassis); });
-    Result<assets::TrackAssets> looks = chassis.and_then(
-        [&](const Chassis&) { return loader.LoadModels(kPieceFolder, std::span(&pieces, 1)); });
+    Result<assets::TrackAssets> looks =
+        chassis.and_then([&](const Chassis&) { return LoadPieceLooks(loader); });
     if (!looks) {
         return std::unexpected(std::move(looks.error()));
     }

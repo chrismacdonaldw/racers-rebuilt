@@ -5,6 +5,7 @@
 #include <string>
 #include <string_view>
 
+#include "app/racer/champion_car.hpp"
 #include "app/racer/racer_ref.hpp"
 #include "core/result.hpp"
 #include "settings/racers.hpp"
@@ -22,7 +23,8 @@ inline constexpr int kMinAiPace = 50;
 inline constexpr int kMaxAiPace = 150;
 
 /// Players drive grid slots `racer` then `secondRacer`, two alone. Empty `circuit` means home.
-/// `playerRacer` and `secondPlayerRacer` resolve `player` and `secondPlayer`, and aren't named.
+/// `playerRacer` and `secondPlayerRacer` resolve `player` and `secondPlayer`. They and `carBody`
+/// aren't named.
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct RaceSceneSetup {
     std::string track;
@@ -44,6 +46,7 @@ struct RaceSceneSetup {
     std::optional<settings::Racer> playerRacer;
     RacerRef secondPlayer;
     std::optional<settings::Racer> secondPlayerRacer;
+    CarBody carBody = CarBody::Bricks;
     sim::Cheats cheats;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;

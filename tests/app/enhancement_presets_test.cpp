@@ -6,6 +6,7 @@
 
 #include "app/audio_settings.hpp"
 #include "app/cheat_settings.hpp"
+#include "app/fix_settings.hpp"
 #include "app/race_settings.hpp"
 #include "app/video_settings.hpp"
 
@@ -18,6 +19,7 @@ settings::Registry DeclaredRegistry() {
     DeclareCheatSettings(registry);
     DeclareVideoSettings(registry);
     DeclareAudioSettings(registry);
+    DeclareFixSettings(registry);
     return registry;
 }
 
@@ -48,6 +50,7 @@ TEST_CASE("the original preset clears the cheats and the enhanced one keeps them
     CHECK(registry.Get(kRespawn));
     CHECK(registry.Get(kAiPace) == kDefaultAiPace);
     CHECK(registry.Get(noWheels));
+    CHECK(registry.Get(kChampionCars));
     CHECK(IsPresetActive(registry, enhanced));
     CHECK_FALSE(IsPresetActive(registry, original));
 
@@ -55,6 +58,7 @@ TEST_CASE("the original preset clears the cheats and the enhanced one keeps them
     CHECK_FALSE(registry.Get(kPhysicsAi));
     CHECK_FALSE(registry.Get(kRespawn));
     CHECK_FALSE(registry.Get(noWheels));
+    CHECK_FALSE(registry.Get(kChampionCars));
     CHECK(IsPresetActive(registry, original));
     CHECK_FALSE(IsPresetActive(registry, enhanced));
 }

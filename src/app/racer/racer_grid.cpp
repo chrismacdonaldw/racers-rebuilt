@@ -26,8 +26,9 @@ constexpr float kSelfDistanceSquared = 2.0F;
 
 Result<std::unique_ptr<RacerAssets>> LoadSlot(const assets::Vfs& vfs, assets::TrackLoader& loader,
                                               const assets::RacerCatalog& catalog,
-                                              std::string_view code, const settings::Racer* own) {
-    Result<RacerAssets> racer = own != nullptr ? LoadBuiltRacer(vfs, loader, catalog, *own)
+                                              std::string_view code, const settings::Racer* own,
+                                              CarBody body) {
+    Result<RacerAssets> racer = own != nullptr ? LoadBuiltRacer(vfs, loader, catalog, *own, body)
                                                : LoadRacer(vfs, loader, catalog, code);
     return racer.transform(
         [](RacerAssets assets) { return std::make_unique<RacerAssets>(std::move(assets)); });
@@ -119,7 +120,8 @@ Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs&
     std::vector<Slot> loaded;
     for (const std::string& code : std::span(*codes).first(slots)) {
         const settings::Racer* own = OwnRacer(setup, loaded.size());
-        Result<std::unique_ptr<RacerAssets>> assets = LoadSlot(vfs, loader, *catalog, code, own);
+        Result<std::unique_ptr<RacerAssets>> assets =
+            LoadSlot(vfs, loader, *catalog, code, own, setup.carBody);
         Result<BoundingSphere> bounds = assets.and_then(
             [&](const std::unique_ptr<RacerAssets>& racer) { return RacerBounds(*racer, shown); });
         RacerDraws models;

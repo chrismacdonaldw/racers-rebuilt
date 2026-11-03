@@ -49,6 +49,9 @@ public:
 
     void Clear();
 
+    /// True when it changes the body, so the shown racer needs showing again.
+    [[nodiscard]] bool UseCarBody(CarBody carBody);
+
     /// Plays one of the pick reactions, then holds its last frame instead of idling.
     void Cheer();
 
@@ -76,6 +79,7 @@ private:
         assets::DriverLook look;
         std::string chassis;
         assets::CarData car{};
+        CarBody carBody = CarBody::Bricks;
         std::optional<StandRacer> parts;
         std::string model;
         std::size_t skeleton = 0;
@@ -100,6 +104,7 @@ private:
     TrackEntityDraws jointed_;
     std::vector<Built> built_;
     std::optional<std::size_t> shown_;
+    CarBody carBody_ = CarBody::Bricks;
     sim::Random random_;
     bool isCheering_ = false;
     std::vector<render::MeshDraw> draws_;
