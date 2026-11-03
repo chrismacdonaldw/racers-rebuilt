@@ -31,6 +31,7 @@
 #include "app/race_scene_name.hpp"
 #include "app/race_scene_parts.hpp"
 #include "app/racer/car_shadows.hpp"
+#include "app/racer/far_cars.hpp"
 #include "app/racer/racer_grid.hpp"
 #include "app/racer/skid_marks.hpp"
 #include "app/racer_effect_tools.hpp"
@@ -132,6 +133,7 @@ private:
     Parts parts_;
     GroundDecals groundDecals_;
     CarShadows shadows_;
+    FarCars farCars_;
     std::vector<SkidMarks> skids_;
     std::array<std::optional<SkidWheels>, sim::kMaxPlayers> skidding_{};
     PowerupVisuals powerupVisuals_;

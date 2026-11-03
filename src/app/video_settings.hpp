@@ -38,6 +38,10 @@ inline constexpr settings::SettingSpec<bool> kSmoothTexturesSetting{.key = "vide
                                                                     .label = "Smooth textures",
                                                                     .category = "Video"};
 
+/// Draws cars and their shadows past the original's 500 units from the camera.
+inline constexpr settings::SettingSpec<bool> kFarCarsSetting{
+    .key = "video.far_cars", .defaultValue = true, .label = "Draw far cars", .category = "Video"};
+
 void DeclareVideoSettings(settings::Registry& registry);
 
 [[nodiscard]] platform::PacingConfig PacingFromSettings(const settings::Registry& registry);

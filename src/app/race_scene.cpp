@@ -25,6 +25,7 @@
 #include "app/track_map.hpp"
 #include "app/track_model.hpp"
 #include "app/track_space.hpp"
+#include "app/video_settings.hpp"
 #include "assets/circuit_database.hpp"
 #include "core/log.hpp"
 #include "platform/clock.hpp"
@@ -119,6 +120,7 @@ RaceScene::RaceScene(Parts parts)
     : parts_(std::move(parts)),
       groundDecals_(parts_.decalSurface),
       shadows_(parts_.racerFx, PerSlot(parts_.racers, parts_.racers.Count(), &RacerGrid::Chassis)),
+      farCars_(DrawsPerSlot(parts_.racers)),
       skids_(PlayerSkids(parts_.racerFx, parts_.racers, parts_.setup.players)),
       powerupVisuals_(parts_.powerups.models),
       powerupQuads_(PlayerPowerupQuads(parts_.powerups.quadMaterials, parts_.setup.players)),
@@ -141,6 +143,7 @@ void RaceScene::ApplySettings(const settings::Registry& settings) {
     showsCheckpoints_ = settings.Get(kShowCheckpoints);
     showsCollision_ = settings.Get(kCollisionWireframe);
     showsTriggers_ = settings.Get(kShowTriggerSpheres);
+    farCars_.SetHidden(!settings.Get(kFarCarsSetting));
     hud_.SetLanguage(SelectedLanguage(settings));
 }
 
@@ -315,8 +318,13 @@ std::span<const MapView> RaceScene::PlayerMapViews(const sim::RenderSnapshot& in
 
 void RaceScene::GatherCarMarks(const sim::RenderSnapshot& interpolated, float simMs) {
     carMarks_.clear();
-    shadows_.Append(interpolated.entities, interpolated.racers, carLooks_, groundDecals_,
-                    carMarks_);
+    std::array<Vector3, sim::kMaxPlayers> cameras{};
+    for (std::size_t player = 0; player < cameras_.Count(); ++player) {
+        cameras.at(player) = PlayerCameraPose(interpolated, player).position;
+    }
+    shadows_.Append(interpolated.entities, interpolated.racers, carLooks_,
+                    std::span(cameras).first(farCars_.IsHidden() ? cameras_.Count() : 0),
+                    groundDecals_, carMarks_);
     for (std::size_t player = 0; player < skids_.size(); ++player) {
         const std::size_t slot = kPlayerSlot + player;
         skids_[player].Update(interpolated.entities[slot], interpolated.racers[slot], simMs);
@@ -361,7 +369,8 @@ render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated
     parts_.sky.Place(parts_.session.Resources().Sky(), camera.transform.position, skyShownMs_, sky);
     return {.camera = camera,
             .backdrop = sky,
-            .meshes = draws_,
+            .meshes = farCars_.Cull(player, camera.transform.position, interpolated.entities,
+                                    draws_, parts_.trackDraws.size()),
             .quads = quads,
             .lines = debugLines_,
             .viewport = viewport};

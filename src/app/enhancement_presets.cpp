@@ -24,6 +24,7 @@ std::vector<settings::SettingPreset> EnhancementPresets() {
          .resets = {gameplay, std::string(kCheatsCategory), std::string(kFixesCategory)},
          .values = {{std::string(kRespawn.key), false},
                     {std::string(kSmoothTexturesSetting.key), false},
+                    {std::string(kFarCarsSetting.key), false},
                     {std::string(kPreventClipping.key), false}}},
         {.label = "Enhanced",
          .menu = std::string(kMenu),
@@ -31,6 +32,7 @@ std::vector<settings::SettingPreset> EnhancementPresets() {
          .values = {{std::string(kPhysicsAi.key), true},
                     {std::string(kSmoothTexturesSetting.key), true},
                     {std::string(kChampionCars.key), true},
+                    {std::string(kFarCarsSetting.key), true},
                     {std::string(kPreventClipping.key), true}}},
     };
 }
