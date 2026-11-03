@@ -63,6 +63,10 @@ void TokenWriter::OpenList(std::size_t count) {
     Code(kOpenBlock);
 }
 
+void TokenWriter::OpenBlock() {
+    Code(kOpenBlock);
+}
+
 void TokenWriter::Close() {
     Code(kCloseBlock);
 }

@@ -155,6 +155,7 @@ add_executable(racers-rebuilt-tests
     app/trigger_spheres_test.cpp
     app/video_settings_test.cpp
     assets/animation_database_test.cpp
+    assets/animation_writer_test.cpp
     assets/avi_file_test.cpp
     assets/asset_cache_test.cpp
     assets/bmp_image_test.cpp
@@ -180,6 +181,7 @@ add_executable(racers-rebuilt-tests
     assets/geometry_database_test.cpp
     assets/geometry_writer_test.cpp
     assets/ghost_run_test.cpp
+    assets/gltf_animation_test.cpp
     assets/gltf_joints_test.cpp
     assets/gltf_model_test.cpp
     assets/hazard_list_retail_test.cpp

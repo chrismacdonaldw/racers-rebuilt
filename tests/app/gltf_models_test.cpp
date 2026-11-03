@@ -13,6 +13,8 @@
 #include <utility>
 #include <vector>
 
+#include "assets/animation_database.hpp"
+#include "assets/animation_writer.hpp"
 #include "assets/folder_layer.hpp"
 #include "assets/geometry_database.hpp"
 #include "assets/token_bytes.hpp"
@@ -29,6 +31,20 @@ void WriteBytes(const std::filesystem::path& path, std::span<const std::byte> by
         .write(reinterpret_cast<const char*>(bytes.data()), std::ssize(bytes));
 }
 
+std::vector<std::byte> StillWalk() {
+    const assets::AnimationAsset still{
+        .rotationKeys = {Quaternion{}},
+        .tracks = {{.rotations = {.count = 1}}, {.rotations = {.count = 1}}},
+        .parts = {{.name = "WALK", .loopFrames = 1, .framesPerSecond = 30}}};
+    Result<std::vector<std::byte>> bytes = assets::WriteAnimations(still);
+    REQUIRE(bytes.has_value());
+    return std::move(*bytes);
+}
+
+Result<assets::AnimationAsset> ParseFile(const assets::FileData& file) {
+    return assets::ParseAnimations(file.Bytes());
+}
+
 class GltfFixture {
 public:
     GltfFixture() {
@@ -43,6 +59,10 @@ public:
                 0x27, {test::NamedEntry(0x27, "root", {}),
                        test::NamedEntry(0x27, "arm",
                                         test::Join({test::Bytes({0x2A}), test::Text("root")}))}));
+        WriteBytes(folder_.Path() / "gamedata" / "pelvis.adb", StillWalk());
+        WriteBytes(folder_.Path() / "gamedata" / "pelvis.glb",
+                   test::BuildGlb({.parentName = "root", .animation = "walk"}));
+        WriteBytes(folder_.Path() / "gamedata" / "kart.adb", StillWalk());
         Result<assets::FolderLayer> layer = assets::FolderLayer::Scan(folder_.Path());
         REQUIRE(layer.has_value());
         vfs_.Mount(std::make_unique<assets::FolderLayer>(std::move(*layer)));
@@ -65,8 +85,9 @@ private:
     GltfModels models_;
 };
 
-TEST_CASE("only gdb models have a glb sibling") {
+TEST_CASE("only gdb models and adb animations have a glb sibling") {
     CHECK(GlbSibling("GAMEDATA/COMMON/KART.GDB") == "GAMEDATA/COMMON/KART.GLB");
+    CHECK(GlbSibling("GAMEDATA/COMMON/KART.ADB") == "GAMEDATA/COMMON/KART.GLB");
     CHECK_FALSE(GlbSibling("GAMEDATA/COMMON/KART.MDB").has_value());
 }
 
@@ -90,6 +111,21 @@ TEST_CASE_FIXTURE(GltfFixture, "a driver model takes its joints from the shared 
     REQUIRE(driver.has_value());
     REQUIRE(driver->vertices.size() == 3);
     CHECK(driver->vertices[0].joint == 1);
+}
+
+TEST_CASE_FIXTURE(GltfFixture, "a glb with animations replaces the game's animation parts") {
+    const Result<assets::AnimationAsset> walk = Read("GAMEDATA/PELVIS.ADB").and_then(ParseFile);
+
+    REQUIRE(walk.has_value());
+    CHECK(walk->parts.at(0).frameCount == 30);
+    CHECK(walk->tracks.at(1).rotations.count == 2);
+}
+
+TEST_CASE_FIXTURE(GltfFixture, "a glb without animations leaves the game's animations") {
+    const Result<assets::AnimationAsset> kart = Read("GAMEDATA/KART.ADB").and_then(ParseFile);
+
+    REQUIRE(kart.has_value());
+    CHECK(kart->parts.at(0).frameCount == 0);
 }
 
 TEST_CASE_FIXTURE(GltfFixture, "a glb that can't be imported leaves the game model") {

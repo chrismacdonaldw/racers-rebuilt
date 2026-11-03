@@ -34,10 +34,9 @@ public:
     [[nodiscard]] Result<std::vector<JointSpace>> ForSkin(const cgltf_skin& skin) const;
 
     [[nodiscard]] bool HasJoints() const { return !nodes_.empty(); }
-
-private:
     [[nodiscard]] std::optional<std::size_t> IndexOf(const cgltf_node& node) const;
 
+private:
     std::vector<const cgltf_node*> nodes_;
 };
 

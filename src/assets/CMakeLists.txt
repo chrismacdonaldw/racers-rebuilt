@@ -1,6 +1,7 @@
 rr_add_module(assets
     SOURCES
         animation_database.cpp
+        animation_writer.cpp
         avi_file.cpp
         bmp_image.cpp
         brick_layout.cpp
@@ -24,6 +25,8 @@ rr_add_module(assets
         geometry_database.cpp
         geometry_writer.cpp
         ghost_run.cpp
+        gltf_animation.cpp
+        gltf_data.cpp
         gltf_joints.cpp
         gltf_model.cpp
         hazard_list.cpp

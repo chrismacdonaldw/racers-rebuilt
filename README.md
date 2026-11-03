@@ -147,7 +147,7 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `cheats.<plate>` | `false` | `true`, `false`. Keeps a license plate cheat on, such as `cheats.mxpmx`. Entered after the license's own cheats, from the next single race, versus race or test drive. Circuits and time trials ignore them, as the original does, and so does the attract demo. |
 | `mods.<id>.enabled` | The mod's `enabled` value | `true`, `false` |
 | `mods.hq_textures` | `true` | `true`, `false`. Uses PNG replacements for game images. Applies on **Apply now** or the next start. |
-| `mods.gltf_models` | `true` | `true`, `false`. Uses glTF replacements for game models. Applies on **Apply now** or the next start. |
+| `mods.gltf_models` | `true` | `true`, `false`. Uses glTF replacements for game models and animations. Applies on **Apply now** or the next start. |
 | `mods.overrides` | `true` | `true`, `false`. Loads `<data>/overrides/`. Applies on **Apply now** or the next start. |
 | `input.keys.<action>` | See below | The first keyboard set (arrows). Comma-separated SDL key names, such as `Up,W` or `Left Shift` |
 | `input.keys2.<action>` | See below | The second keyboard set (WASD), in the same form |
@@ -321,9 +321,13 @@ A glTF binary next to a game model's path, named like it but ending in `.glb`, r
 - A model with a skeleton (an `.SDB` of the same name, or `PELVIS.SDB` for drivers) is jointed. Name glTF nodes after the skeleton's nodes (case doesn't matter) and place them where the game's skeleton has them, since the game moves its own nodes.
   - A mesh belongs to the nearest named node at or above it, else to the skeleton's first node, and is stored relative to that node.
   - A skinned mesh gives each vertex the joint it's weighted to most. Every skin joint must be named after a skeleton node.
-- Animations are ignored for now.
-- A `.glb` that can't be read is skipped with a warning in the log, and the game's model is kept.
-- **glTF models** in the **Mods** menu (`mods.gltf_models`) turns replacements off. It applies on **Apply now** or the next start.
+- A `.glb` next to an animation file (`.ADB`) replaces its animations too, e.g. `PELVIS.glb` for the drivers' shared `PELVIS.ADB`. A model's `.glb` also replaces the animations of an `.ADB` with the same name, so actions in it that share a name with a game animation take effect.
+  - Each glTF animation (action) replaces the game animation with the same name (case doesn't matter). The others are kept.
+  - Rotations and moves of nodes named after the skeleton's nodes are used. Nodes and channels the animation doesn't key keep the game animation's keys. Linear and step keys work; cubic spline keys don't.
+  - Keys snap to the game animation's frame rate. The animation's speed, order and bounds are kept, so a part swung far outside the original's bounds may be culled.
+  - At most 4,000,000 keys are read from one file.
+- A `.glb` that can't be read is skipped with a warning in the log, and the game's model or animations are kept.
+- **glTF models** in the **Mods** menu (`mods.gltf_models`) turns replacements of both models and animations off. It applies on **Apply now** or the next start.
 
 ### Overrides
 
