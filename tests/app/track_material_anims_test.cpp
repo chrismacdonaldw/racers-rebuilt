@@ -109,7 +109,7 @@ TEST_CASE("a code lamp holds the frame its gate shows instead of looping") {
     anims.Bind(fixture.World(), lamp, slot, 0, fixture.Sources());
     std::vector<render::MeshDraw> draws(1);
 
-    anims.Apply(0.0F, {.areLampsRed = {false, true, true}}, draws.size(), draws);
+    anims.Apply(0.0F, {.areLampsRed = std::array{false, true, true}}, draws.size(), draws);
 
     CHECK(Textures(draws)[0] == kOff);
 }

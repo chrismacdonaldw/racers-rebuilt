@@ -123,9 +123,9 @@ struct ExplosionSnapshot {
     friend bool operator==(const ExplosionSnapshot&, const ExplosionSnapshot&) = default;
 };
 
-/// `lampsFlashing` and `sphinxBlowingUp` count up from the solve and the hit.
+/// `areLampsRed` is nothing without a code puzzle. The times count up from the solve and the hit.
 struct HazardMaterialsSnapshot {
-    std::array<bool, kCodeGates> areLampsRed{};
+    std::optional<std::array<bool, kCodeGates>> areLampsRed;
     std::optional<Milliseconds> lampsFlashing;
     std::optional<Milliseconds> sphinxBlowingUp;
 
