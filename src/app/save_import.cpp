@@ -156,10 +156,13 @@ Result<bool> ImportOriginalSave(const std::filesystem::path& saveFile,
         save.and_then([&](const assets::OriginalSave&) { return assets::RaceCatalog::Load(vfs); });
     Result<settings::Progress> progress = catalog.and_then(
         [&](const assets::RaceCatalog&) { return settings::LoadProgress(progressFile); });
-    Result<settings::RacerStore> racers = progress.and_then(
-        [&](const settings::Progress&) { return settings::LoadRacers(racersFile); });
+    if (!progress) {
+        return std::unexpected(std::move(progress.error()));
+    }
+    Result<settings::RacerStore> racers = settings::LoadRacers(racersFile);
     if (!racers) {
-        return std::unexpected(std::move(racers.error()));
+        return Fail(racers.error().code, std::format("{} not imported: {}", Utf8FromPath(saveFile),
+                                                     racers.error().message));
     }
     const bool progressChanged = MergeOriginalSave(*progress, *save, *catalog);
     const bool racersChanged = MergeSavedRacers(*racers, save->racers, *catalog);

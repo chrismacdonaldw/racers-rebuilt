@@ -30,11 +30,11 @@
 
 namespace rr::app {
 
-/// `effects` is `GENERAL.SBK`, `ambient` the track's own bank and `voices` its circuit bank.
+/// `effects` is `GENERAL.SBK` and `ambient` the track's own bank.
 struct RaceSoundSet {
     std::span<const audio::SoundId> effects;
     std::span<const audio::SoundId> ambient;
-    std::span<const audio::SoundId> voices;
+    VoiceBanks voices;
     std::vector<std::string> music;
     std::vector<assets::SoundResource> ambience;
 };
@@ -46,6 +46,7 @@ struct RaceAudioSetup {
     std::uint64_t seed = 0;
     std::span<const assets::SoundResource> ambience;
     std::span<const std::int32_t> voices;
+    VoiceChoice voiceChoice;
 };
 
 /// Only reads the session, so it never changes a race's outcome.

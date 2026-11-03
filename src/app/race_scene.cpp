@@ -76,7 +76,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     const std::vector<std::int32_t> voices =
         PerSlot(*racers, session->Racers().size(), &RacerGrid::Voice);
     std::unique_ptr<RaceAudio> audio =
-        LoadRaceAudio(outputs, vfs, track, AudioSetup(*raceTrack, voices, seed));
+        LoadRaceAudio(outputs, vfs, track, AudioSetup(setup, *raceTrack, voices, seed));
     std::optional<RaceParticles> particles =
         LoadRaceParticles(renderer, vfs, loader, track, raceTrack->collision.surfaces);
     return std::unique_ptr<RaceScene>(

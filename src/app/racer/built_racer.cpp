@@ -7,7 +7,9 @@
 #include <string_view>
 #include <utility>
 
+#include "app/racer/racer_light.hpp"
 #include "app/racer/racer_models.hpp"
+#include "sim/animation/skeleton_pose.hpp"
 #include "sim/physics/racer_chassis.hpp"
 
 namespace rr::app {
@@ -87,11 +89,17 @@ Result<RacerAssets> LoadBuiltRacer(const assets::Vfs& vfs, assets::TrackLoader& 
         return std::unexpected(std::move(models.error()));
     }
     GreyMinifigMaterials(models->materials, *parts, racer.look);
+    BakeBuiltRacerLight(body->geometry, models->materials, {});
     AddModel(*models, kCarModel, std::move(body->geometry));
-    AddModel(*models, kDriverModel, std::move(*driver));
     return LoadRacerJoints(vfs, {.files = BuiltFiles(racer, std::move(*chassis), body->build),
                                  .models = std::move(*models),
-                                 .build = body->build});
+                                 .build = body->build})
+        .transform([&](RacerAssets loaded) {
+            sim::SkeletonPose pose(loaded.driver.skeleton, 1.0F);
+            BakeBuiltRacerLight(*driver, loaded.models.materials, pose.Solve());
+            AddModel(loaded.models, kDriverModel, std::move(*driver));
+            return loaded;
+        });
 }
 
 }
