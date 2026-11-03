@@ -44,7 +44,9 @@ public:
 
     /// `camera` is the player's, in engine space.
     void Tick(const sim::RaceSession& session, const Transform& camera, Milliseconds elapsed);
-    void Update(const sim::RaceSession& session, const std::optional<SkidWheels>& skidding,
+    /// Each player's car is at slot `player` + its index in `skidding`.
+    void Update(const sim::RaceSession& session,
+                std::span<const std::optional<SkidWheels>> skidding,
                 render::FloatMilliseconds elapsed);
     void AppendQuads(const Transform& camera, std::vector<render::QuadDraw>& out) const;
 
@@ -57,6 +59,14 @@ private:
         std::optional<render::EmitterHandle> handle;
     };
 
+    struct PlayerEmitters {
+        std::array<WheelEmitter, sim::kWheelCount> wheels{};
+        CarParticles::Puffs puffs;
+    };
+
+    void UpdatePlayer(const sim::Racer& racer, const std::optional<SkidWheels>& skidding,
+                      PlayerEmitters& emitters);
+
     [[nodiscard]] std::optional<std::string_view> ParticleOf(const sim::WheelProbe& wheel) const;
     void UpdateWheel(WheelEmitter& wheel, std::optional<std::string_view> name,
                      const render::EmitterPlacement& placement);
@@ -65,7 +75,7 @@ private:
     std::array<render::ParticleBank, 2> banks_;
     std::span<const assets::SurfaceEntry> surfaces_;
     std::size_t player_;
-    std::array<WheelEmitter, sim::kWheelCount> wheels_{};
+    std::vector<PlayerEmitters> players_;
     CarParticles cars_;
     PowerupParticles powerups_;
     HazardParticles hazards_;

@@ -60,7 +60,7 @@ public:
 
     void Frames(int count, bool isRearKicking = false) {
         for (int i = 0; i < count; ++i) {
-            particles_.Update(racers_[0], std::nullopt, isRearKicking, {}, bank_);
+            particles_.Update(racers_[0], puffs_, std::nullopt, isRearKicking, {}, bank_);
             bank_.Update(kFrame);
         }
     }
@@ -95,6 +95,7 @@ private:
     std::vector<sim::Racer> racers_;
     render::ParticleBank bank_{Emitters()};
     CarParticles particles_;
+    CarParticles::Puffs puffs_;
 };
 
 std::size_t CountAbove(const std::vector<Vector3>& puffs, float z) {

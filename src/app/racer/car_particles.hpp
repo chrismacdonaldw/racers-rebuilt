@@ -14,13 +14,21 @@
 
 namespace rr::app {
 
-/// Dust, exhaust and tyre smoke follow the player's car; every car lands and sparks.
+/// Dust, exhaust and tyre smoke follow each player's car; every car lands and sparks.
 class CarParticles {
 public:
+    struct Puffs {
+        std::uint32_t turboCount = 0;
+        bool wasDrifting = false;
+        std::optional<render::EmitterHandle> dust;
+        std::optional<render::EmitterHandle> exhaust;
+        std::optional<render::EmitterHandle> tireSmoke;
+    };
+
     void Tick(std::span<const sim::Racer> racers, render::ParticleBank& bank);
 
     /// `velocity` is the one the player's wheel emitters get.
-    void Update(const sim::Racer& player, const std::optional<SkidWheels>& skidding,
+    void Update(const sim::Racer& player, Puffs& puffs, const std::optional<SkidWheels>& skidding,
                 bool isRearKicking, const Vector3& velocity, render::ParticleBank& bank);
 
 private:
@@ -29,19 +37,15 @@ private:
         int contacts = 0;
     };
 
-    void StartPuffs(const sim::Racer& player, bool isRearKicking,
-                    const render::EmitterPlacement& moving, render::ParticleBank& bank);
-    void UpdateTireSmoke(const sim::Racer& player, const std::optional<SkidWheels>& skidding,
+    static void StartPuffs(const sim::Racer& player, Puffs& puffs, bool isRearKicking,
+                           const render::EmitterPlacement& moving, render::ParticleBank& bank);
+    void UpdateTireSmoke(const sim::Racer& player, Puffs& puffs,
+                         const std::optional<SkidWheels>& skidding,
                          const render::EmitterPlacement& moving, render::ParticleBank& bank);
     static void Puff(std::optional<render::EmitterHandle>& handle, std::size_t puffs,
                      const render::EmitterPlacement& placement, render::ParticleBank& bank);
 
     std::vector<Landing> landings_;
-    std::uint32_t turboCount_ = 0;
-    bool wasDrifting_ = false;
-    std::optional<render::EmitterHandle> dust_;
-    std::optional<render::EmitterHandle> exhaust_;
-    std::optional<render::EmitterHandle> tireSmoke_;
     VisualRandom random_{1U};
 };
 

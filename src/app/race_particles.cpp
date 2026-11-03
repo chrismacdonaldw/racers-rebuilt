@@ -48,23 +48,32 @@ void RaceParticles::Tick(const sim::RaceSession& session, const Transform& camer
 }
 
 void RaceParticles::Update(const sim::RaceSession& session,
-                           const std::optional<SkidWheels>& skidding,
+                           std::span<const std::optional<SkidWheels>> skidding,
                            render::FloatMilliseconds elapsed) {
-    const sim::Racer& racer = session.Racers()[player_];
+    players_.resize(skidding.size());
+    for (std::size_t i = 0; i < skidding.size(); ++i) {
+        UpdatePlayer(session.Racers()[player_ + i], skidding[i], players_[i]);
+    }
+    for (render::ParticleBank& bank : banks_) {
+        bank.Update(elapsed);
+    }
+}
+
+void RaceParticles::UpdatePlayer(const sim::Racer& racer, const std::optional<SkidWheels>& skidding,
+                                 PlayerEmitters& emitters) {
     const sim::BodyState& body = racer.Body();
     const bool isRolling = !body.hover.isHovering && !racer.IsSpunOut() &&
                            !racer.Status().isGhost && body.derived.forwardSpeed > kMinSpeed;
     const Vector3 velocity = ToEngine(body.motion.velocity) * kVelocityScale;
-    for (std::size_t i = 0; i < wheels_.size(); ++i) {
+    std::array<WheelEmitter, sim::kWheelCount>& wheels = emitters.wheels;
+    for (std::size_t i = 0; i < wheels.size(); ++i) {
         const sim::WheelProbe& probe = body.motion.wheels[i];
-        UpdateWheel(wheels_[i], isRolling ? ParticleOf(probe) : std::nullopt,
+        UpdateWheel(wheels[i], isRolling ? ParticleOf(probe) : std::nullopt,
                     {.position = ToEngine(probe.position), .velocity = velocity});
     }
-    const bool isRearKicking = wheels_[kRearRight].handle || wheels_[kRearLeft].handle;
-    cars_.Update(racer, skidding, isRearKicking, velocity, Bank(ParticleFile::Common));
-    for (render::ParticleBank& bank : banks_) {
-        bank.Update(elapsed);
-    }
+    const bool isRearKicking = wheels[kRearRight].handle || wheels[kRearLeft].handle;
+    cars_.Update(racer, emitters.puffs, skidding, isRearKicking, velocity,
+                 Bank(ParticleFile::Common));
 }
 
 void RaceParticles::AppendQuads(const Transform& camera, std::vector<render::QuadDraw>& out) const {
