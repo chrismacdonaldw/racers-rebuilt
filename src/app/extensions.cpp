@@ -1,6 +1,7 @@
 #include "app/extensions.hpp"
 
 #include "app/free_camera.hpp"
+#include "app/hq_textures.hpp"
 #include "core/log.hpp"
 
 namespace rr::app {
@@ -11,6 +12,7 @@ Extensions LoadExtensions(const std::filesystem::path& modsFolder,
                           .overrides = mods::OverrideFolder(overridesFolder),
                           .enhancements = {}};
     extensions.enhancements.push_back(std::make_unique<FreeCamera>());
+    extensions.enhancements.push_back(std::make_unique<HqTextures>());
     return extensions;
 }
 

@@ -39,6 +39,7 @@ rr_add_module(app
         frame_loop.cpp
         ground_decal.cpp
         free_camera.cpp
+        hq_textures.cpp
         game_boot.cpp
         game_extraction.cpp
         hazard/ghost_trail.cpp
@@ -222,6 +223,7 @@ rr_add_module(app
         ui_text/text_layout.cpp
         ui_text/ui_font.cpp
         ui_text/ui_image.cpp
+        ui_text/ui_pixels.cpp
         video_settings.cpp
         viewer_scene.cpp
     DEPENDS
