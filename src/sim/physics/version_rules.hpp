@@ -12,7 +12,7 @@ struct SteeringRates {
     float centring = 8.25F;
 };
 
-/// Where the 1999 and 2001 releases drive differently. The defaults are 1999's.
+/// Where the 1999 and 2001 releases play differently. The defaults are 1999's.
 struct VersionRules {
     SteeringRates steeringPerSecond;
     bool squaresAxis = false;
@@ -27,6 +27,7 @@ struct VersionRules {
     bool allowsInputLag = false;
     bool keepsOneLapZone = false;
     bool dropsDriftLean = false;
+    bool tintsFinalFrameRed = false;
 };
 
 [[nodiscard]] const VersionRules& RulesFor(assets::GameVersion version);

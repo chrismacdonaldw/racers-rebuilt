@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "app/frame_loop.hpp"
+#include "app/game_settings.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_sounds.hpp"
@@ -176,6 +177,7 @@ void RaceSetupScene::ApplySettings(const settings::Registry& settings) {
     rules_.isTimeTrial = mode_ == RaceSetupMode::TimeTrial;
     if (preview_) {
         preview_->DrawFarScenery(settings.Get(kFarScenerySetting));
+        preview_->UseRules(sim::RulesFor(SelectedVersion(settings)));
     }
     if (!text_.Apply(*renderer_, *vfs_, settings)) {
         return;

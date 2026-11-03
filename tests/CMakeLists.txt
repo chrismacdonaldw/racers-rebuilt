@@ -100,6 +100,7 @@ add_executable(racers-rebuilt-tests
     app/menu/pause_menu_test.cpp
     app/menu/racer_edit_flow_test.cpp
     app/menu/preview_cycle_test.cpp
+    app/menu/race_preview_test.cpp
     app/menu/racer_pick_list_test.cpp
     app/menu/racer_pick_menu_test.cpp
     app/menu/race_setup_menu_test.cpp

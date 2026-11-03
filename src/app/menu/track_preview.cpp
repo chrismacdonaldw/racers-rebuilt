@@ -1,15 +1,21 @@
 #include "app/menu/track_preview.hpp"
 
 #include <cstddef>
+#include <optional>
+#include <string_view>
 #include <utility>
+#include <variant>
 
 #include "app/cutscene/cutscene_screen.hpp"
+#include "app/menu/menu_files.hpp"
+#include "app/menu/menu_widgets.hpp"
 #include "core/log.hpp"
 
 namespace rr::app {
 namespace {
 
 constexpr std::string_view kPreviewElement = "singrace";
+constexpr std::string_view kBorderElement = "brickbox";
 constexpr float kDimmerAlpha = 200.0F / 255.0F;
 constexpr std::size_t kLoaderWorkers = 2;
 
@@ -38,7 +44,33 @@ Result<std::unique_ptr<TrackPreview>> TrackPreview::Load(const RaceOutputs& outp
         return std::unexpected(std::move(view.error()));
     }
     return std::unique_ptr<TrackPreview>(
-        new TrackPreview(std::move(loading), std::move(*view), placed->rect));
+        new TrackPreview(std::move(loading), std::move(*view), placed->rect,
+                         LoadBorder(*outputs.renderer, vfs, layout)));
+}
+
+std::optional<TrackPreview::Border> TrackPreview::LoadBorder(render::Renderer& renderer,
+                                                             const assets::Vfs& vfs,
+                                                             std::string_view layout) {
+    const Result<MenuFiles> files = ReadMenuFiles(vfs, layout);
+    const Result<const assets::MenuElement*> element = files.and_then(
+        [&](const MenuFiles& read) { return FindMenuElement(read, layout, kBorderElement); });
+    if (!element) {
+        log::Warn("the race preview has no border: {}", element.error().message);
+        return std::nullopt;
+    }
+    const auto* frame = std::get_if<assets::FrameElement>(&(*element)->body);
+    if (frame == nullptr) {
+        log::Warn("the race preview has no border: {} isn't a frame", kBorderElement);
+        return std::nullopt;
+    }
+    MenuImageCache images(renderer, vfs, *files);
+    Result<MenuFrameLook> look = LoadMenuFrame(images, *frame);
+    if (!look) {
+        log::Warn("the race preview has no border: {}", look.error().message);
+        return std::nullopt;
+    }
+    return Border{.look = *look,
+                  .rect = SpanOf(OriginOf(files->layout, **element), (*element)->widget.rect)};
 }
 
 void TrackPreview::Show(std::span<const std::optional<RacePreview>> previews, PreviewStyle style,
@@ -58,6 +90,7 @@ void TrackPreview::Tick(Milliseconds elapsed) {
 
 render::RenderView TrackPreview::Render(std::span<const sim::EntityClock> clocks,
                                         std::vector<render::SpriteDraw>& sprites) {
+    DrawBorder(sprites);
     const render::RenderView view = view_->Render(clocks, sprites);
     if (isLocked_) {
         sprites.push_back(Shade(bounds_, kDimmerAlpha));
@@ -68,12 +101,24 @@ render::RenderView TrackPreview::Render(std::span<const sim::EntityClock> clocks
     return view;
 }
 
+void TrackPreview::DrawBorder(std::vector<render::SpriteDraw>& sprites) const {
+    if (!border_) {
+        return;
+    }
+    MenuFrameLook look = border_->look;
+    if (shown_) {
+        look.borderTint = FrameTintOf(*shown_, rules_).value_or(look.borderTint);
+    }
+    DrawMenuFrameBorder(look, border_->rect, sprites);
+}
+
 void TrackPreview::ShowRace(std::size_t race) {
     if (race >= previews_.size() || !previews_[race]) {
         cycle_.Shown(true);
         return;
     }
     const RacePreview& preview = *previews_[race];
+    shown_ = preview;
     const Result<void> dressed = preview.driver.empty()
                                      ? Result<void>{}
                                      : view_->ShowDriver(preview.driver, *loading_.loader);

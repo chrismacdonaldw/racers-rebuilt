@@ -144,6 +144,7 @@ rr_add_module(app
         menu/piece_models.cpp
         menu/pointer_buttons.cpp
         menu/preview_cycle.cpp
+        menu/race_preview.cpp
         menu/racer_edit_flow.cpp
         menu/racer_pick_list.cpp
         menu/racer_pick_look.cpp

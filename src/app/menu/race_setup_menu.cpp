@@ -73,9 +73,11 @@ Result<Catalogs> LoadCatalogs(const assets::Vfs& vfs) {
     return Catalogs{.races = std::move(*races), .racers = std::move(*racers)};
 }
 
-RacePreview PreviewOf(const assets::RaceEntry& race) {
+RacePreview PreviewOf(const assets::RaceEntry& race, std::size_t circuit) {
     return {.frame = race.previewScene.value_or(std::string()),
-            .driver = race.previewDriver.value_or(std::string())};
+            .driver = race.previewDriver.value_or(std::string()),
+            .circuit = circuit,
+            .position = race.position};
 }
 
 CourseChoice CircuitChoice(const Catalogs& catalogs, std::size_t circuit) {
@@ -86,8 +88,8 @@ CourseChoice CircuitChoice(const Catalogs& catalogs, std::size_t circuit) {
         choice.racers.push_back(ChoiceOf(catalogs.racers, code));
     }
     for (const std::optional<std::size_t>& slot : catalogs.races.RacesOf(circuit)) {
-        choice.previews.push_back(slot ? std::optional(PreviewOf(catalogs.races.Races()[*slot]))
-                                       : std::nullopt);
+        choice.previews.push_back(
+            slot ? std::optional(PreviewOf(catalogs.races.Races()[*slot], circuit)) : std::nullopt);
     }
     return choice;
 }
@@ -102,7 +104,7 @@ std::vector<CourseChoice> TrackChoicesOf(const Catalogs& catalogs, std::size_t c
             choice.track = assets::ToUpperAscii(race->folder);
             choice.race = *slot;
             choice.nameLine = race->nameLine.value_or(-1);
-            choice.previews = {PreviewOf(*race)};
+            choice.previews = {PreviewOf(*race, circuit)};
         }
     }
     return choices;

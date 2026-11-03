@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "app/cutscene/cutscene_view.hpp"
+#include "app/menu/menu_frame.hpp"
 #include "app/menu/preview_cycle.hpp"
 #include "app/menu/race_preview.hpp"
 #include "app/race_scene_parts.hpp"
@@ -17,11 +18,13 @@
 #include "core/duration.hpp"
 #include "core/result.hpp"
 #include "render/render_view.hpp"
+#include "sim/physics/version_rules.hpp"
 #include "sim/track/track_entities.hpp"
 
 namespace rr::app {
 
-/// The race pick screens' looping `SINGRACE/PST` preview, showing the chosen races' frames.
+/// The race pick screens' looping `SINGRACE/PST` preview, showing the chosen races' frames
+/// inside a border tinted per race.
 class TrackPreview {
 public:
     /// `layout` is the screen's `MIB`, whose `singrace` element places the preview.
@@ -37,11 +40,12 @@ public:
     void Tick(Milliseconds elapsed);
 
     void DrawFarScenery(bool isDrawn) { view_->DrawFarScenery(isDrawn); }
+    void UseRules(const sim::VersionRules& rules) { rules_ = rules; }
 
     [[nodiscard]] std::span<const sim::EntityClock> Clocks() const { return view_->Clocks(); }
     [[nodiscard]] const render::Rect& Bounds() const { return bounds_; }
 
-    /// Appends the preview's overlay, dimmer and fade to `sprites`, as `CutsceneView` does.
+    /// Appends the preview's border, overlay, dimmer and fade to `sprites`.
     [[nodiscard]] render::RenderView Render(std::span<const sim::EntityClock> clocks,
                                             std::vector<render::SpriteDraw>& sprites);
 
@@ -52,14 +56,28 @@ private:
         std::unique_ptr<assets::TrackLoader> loader;
     };
 
-    TrackPreview(Loading loading, std::unique_ptr<CutsceneView> view, render::Rect bounds)
-        : loading_(std::move(loading)), view_(std::move(view)), bounds_(bounds) {}
+    struct Border {
+        MenuFrameLook look;
+        render::Rect rect;
+    };
+
+    TrackPreview(Loading loading, std::unique_ptr<CutsceneView> view, render::Rect bounds,
+                 std::optional<Border> border)
+        : loading_(std::move(loading)), view_(std::move(view)), bounds_(bounds), border_(border) {}
+
+    [[nodiscard]] static std::optional<Border> LoadBorder(render::Renderer& renderer,
+                                                          const assets::Vfs& vfs,
+                                                          std::string_view layout);
+    void DrawBorder(std::vector<render::SpriteDraw>& sprites) const;
 
     void ShowRace(std::size_t race);
 
     Loading loading_;
     std::unique_ptr<CutsceneView> view_;
     render::Rect bounds_;
+    std::optional<Border> border_;
+    sim::VersionRules rules_;
+    std::optional<RacePreview> shown_;
     std::vector<std::optional<RacePreview>> previews_;
     bool isLocked_ = false;
     PreviewCycle cycle_;
