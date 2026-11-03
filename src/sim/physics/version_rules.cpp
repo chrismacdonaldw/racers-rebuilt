@@ -14,6 +14,9 @@ constexpr VersionRules kRules2001{
     .facingRatePerMs = 3.75F / 1024.0F,
     .separatesFloorHits = true,
     .unclampsHoverBank = true,
+    .hoversOnWheels = true,
+    .firstCircuitPace = -0.03F,
+    .racersStepFirst = true,
 };
 
 }

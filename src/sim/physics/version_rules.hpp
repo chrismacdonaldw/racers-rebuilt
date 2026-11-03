@@ -21,6 +21,9 @@ struct VersionRules {
     float facingRatePerMs = 0.0025F;
     bool separatesFloorHits = false;
     bool unclampsHoverBank = false;
+    bool hoversOnWheels = false;
+    float firstCircuitPace = 0.0F;
+    bool racersStepFirst = false;
 };
 
 [[nodiscard]] const VersionRules& RulesFor(assets::GameVersion version);

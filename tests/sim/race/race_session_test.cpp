@@ -15,6 +15,7 @@
 #include "../ai/straight_route.hpp"
 #include "../physics/plane_world.hpp"
 #include "../powerup/fake_effect.hpp"
+#include "assets/game_version.hpp"
 #include "checkpoint_ring.hpp"
 #include "sim/powerup/green_effects.hpp"
 #include "sim/powerup/red_effects.hpp"
@@ -274,6 +275,21 @@ TEST_CASE("after 15 s the rubber band slows a computer racer leading the player"
 
     Run(session, 10, {});
     CHECK(speed() == doctest::Approx(0.95F));
+}
+
+TEST_CASE("in 2001 the rubber band paces first circuit computer racers 3 percent slower") {
+    const Fixture fixture;
+    RaceSetup setup = TwoRacers();
+    setup.circuit = "c0";
+    setup.version = assets::GameVersion::Release2001;
+    RaceSession session = fixture.Start(setup);
+
+    Run(session, kTicksTo15Seconds + 10, {});
+    const float speed = session.Racers()[1]
+                            .Route()
+                            .transform([](const AiRacer& route) { return route.PlaybackSpeed(); })
+                            .value_or(0.0F);
+    CHECK(speed == doctest::Approx(0.92F));
 }
 
 TEST_CASE("a computer racer on a route never respawns") {

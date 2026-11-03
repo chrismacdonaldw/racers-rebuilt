@@ -47,8 +47,9 @@ std::vector<T> PerSlot(const RacerGrid& racers, std::size_t slots,
 [[nodiscard]] Result<sim::RaceTrack> LoadSceneTrack(const assets::Vfs& vfs,
                                                     const RaceSceneSetup& setup);
 
-[[nodiscard]] sim::RaceSetup GridSetup(const RaceSceneSetup& scene, const RacerGrid& racers,
-                                       std::uint64_t seed, std::size_t slots);
+[[nodiscard]] sim::RaceSetup GridSetup(const assets::Vfs& vfs, const RaceSceneSetup& scene,
+                                       const RacerGrid& racers, std::uint64_t seed,
+                                       std::size_t slots);
 
 [[nodiscard]] std::vector<SkidMarks> PlayerSkids(const assets::NameMap<render::Material>& materials,
                                                  const RacerGrid& racers, std::size_t players);

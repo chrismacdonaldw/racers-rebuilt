@@ -26,6 +26,7 @@
 #include "sim/physics/racer.hpp"
 #include "sim/physics/racer_contacts.hpp"
 #include "sim/physics/racer_controls.hpp"
+#include "sim/physics/version_rules.hpp"
 #include "sim/powerup/brick_field.hpp"
 #include "sim/powerup/explosions.hpp"
 #include "sim/powerup/powerup_inventory.hpp"
@@ -122,6 +123,7 @@ private:
     void ReactToPlaces();
     void TickTriggers(Milliseconds elapsed);
     void SwitchOnTriggerWorlds();
+    void TickHazards(Milliseconds elapsed, HazardContext& hazards);
     [[nodiscard]] RacerWorldView WorldsOf(std::size_t racer) const;
     [[nodiscard]] PowerupContext EffectContext();
     [[nodiscard]] HazardContext HazardsContext(Milliseconds elapsed, PowerupContext& effects);
@@ -132,6 +134,7 @@ private:
     Cheats cheats_;
     std::vector<bool> isPlayer_;
     bool isDemo_ = false;
+    const VersionRules* rules_ = nullptr;
     std::vector<Racer> racers_;
     std::vector<std::optional<RouteDriver>> drivers_;
     std::vector<RespawnWatch> respawns_;
