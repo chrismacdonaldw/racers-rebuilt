@@ -81,6 +81,9 @@ void DrawPictures(std::span<const MenuPicture> pictures, std::vector<render::Spr
 void DrawPicturesAround(std::span<const MenuPicture> pictures, const render::Rect& hole,
                         std::vector<render::SpriteDraw>& out);
 
+void DrawPicturesAround(std::span<const MenuPicture> pictures, std::span<const render::Rect> holes,
+                        std::vector<render::SpriteDraw>& out);
+
 /// Draws nothing when the state's font is missing.
 void DrawLabel(const MenuText& text, const MenuButtonState& state, std::u16string_view label,
                float x, float y, std::vector<render::SpriteDraw>& out);
