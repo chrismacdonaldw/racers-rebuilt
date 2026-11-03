@@ -22,6 +22,7 @@ struct CutscenePlay {
     std::string next;
     std::string driver;
     std::optional<settings::Racer> playerRacer;
+    bool showsChampionCar = false;
     std::vector<std::string> hiddenTexts;
 };
 

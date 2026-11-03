@@ -21,4 +21,8 @@ namespace rr::app {
                                                 const std::filesystem::path& racersFile,
                                                 std::string_view name);
 
+/// The game's `CHAMP` quick build on `chassis`, the car a champion hands over.
+[[nodiscard]] Result<settings::Racer> FindChampionCar(const assets::Vfs& vfs,
+                                                      std::string_view chassis);
+
 }

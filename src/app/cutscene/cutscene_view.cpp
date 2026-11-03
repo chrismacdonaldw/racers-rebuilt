@@ -5,6 +5,7 @@
 #include <optional>
 #include <utility>
 
+#include "app/cutscene/award_car.hpp"
 #include "app/cutscene/award_driver.hpp"
 #include "app/cutscene/cutscene_bindings.hpp"
 #include "app/cutscene/cutscene_particles.hpp"
@@ -87,6 +88,25 @@ std::optional<AwardDriver> LoadDriver(const assets::Vfs& vfs, assets::TrackLoade
         return std::nullopt;
     }
     return std::move(*driver);
+}
+
+void DressCar(const assets::Vfs& vfs, assets::TrackLoader& loader, const CutscenePlay& play,
+              assets::TrackAssets& assets) {
+    if (!HasCarBody(assets)) {
+        return;
+    }
+    Result<std::optional<AwardCar>> car = AwardCarRacer(vfs, play).and_then(
+        [&](const std::optional<settings::Racer>& racer) -> Result<std::optional<AwardCar>> {
+            if (!racer) {
+                return std::nullopt;
+            }
+            return LoadAwardCar(vfs, loader, *racer);
+        });
+    if (!car) {
+        log::Warn("{}, {} keeps its stand-in car", car.error().message, NameOf(play));
+    } else if (*car) {
+        DressAwardCar(**car, assets);
+    }
 }
 
 struct FrameSources {
@@ -197,12 +217,16 @@ struct LoadedWorlds {
 };
 
 Result<LoadedWorlds> LoadWorlds(render::Renderer& renderer, const assets::Vfs& vfs,
-                                assets::TrackLoader& loader, std::string_view folder,
+                                assets::TrackLoader& loader, const CutscenePlay& play,
                                 const assets::CutsceneTimelineAsset& timeline,
                                 const std::optional<AwardDriver>& driver) {
+    const std::string_view folder = play.folder;
     Result<assets::TrackAssets> assets = loader.LoadWorlds(folder, timeline.worlds);
     if (assets && driver) {
         DressAwardDriver(*driver, *assets);
+    }
+    if (assets) {
+        DressCar(vfs, loader, play, *assets);
     }
     Result<TrackModel> model = assets.and_then(
         [&](const assets::TrackAssets& loaded) { return UploadTrack(renderer, loaded); });
@@ -244,7 +268,7 @@ Result<std::unique_ptr<CutsceneView>> CutsceneView::Create(const RaceOutputs& ou
     const std::optional<assets::DriverLook> look =
         driver ? std::optional(driver->look) : std::nullopt;
     Result<LoadedWorlds> loaded =
-        LoadWorlds(*outputs.renderer, vfs, loader, play.folder, **timeline, driver);
+        LoadWorlds(*outputs.renderer, vfs, loader, play, **timeline, driver);
     Result<CutscenePlayer> player = loaded.and_then([&](const LoadedWorlds& world) {
         return PlayFrame({.vfs = &vfs,
                           .play = &play,

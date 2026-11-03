@@ -1,14 +1,17 @@
 #include "app/cutscene/award_driver.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <memory>
 #include <optional>
 #include <span>
 #include <string_view>
 #include <utility>
 
+#include "app/cutscene/cutscene_racer.hpp"
 #include "app/racer/racer_models.hpp"
 #include "assets/driver_parts.hpp"
 #include "assets/game_path.hpp"
@@ -22,26 +25,12 @@ constexpr std::string_view kDriverEntity = "GUY1";
 constexpr std::array<std::string_view, 2> kLegVariants{"SWAP", "PLEG"};
 constexpr std::size_t kLegsSlot = 1;
 
-std::uint8_t PartIndex(std::int32_t index) {
-    return static_cast<std::uint8_t>(index);
-}
-
-std::optional<std::string> ModelOf(const assets::TrackAssets& assets, std::string_view entity) {
-    for (const assets::AssetCache<assets::WorldAsset>::Handle& world : assets.worlds) {
-        for (const assets::WorldEntity& candidate : world->animatedEntities) {
-            const bool hasModel =
-                !candidate.lods.empty() && candidate.lods.front().model != assets::kNoIndex;
-            if (hasModel && assets::ToUpperAscii(candidate.name) == entity) {
-                return assets::ToUpperAscii(
-                    world->models.at(static_cast<std::size_t>(candidate.lods.front().model)));
-            }
-        }
-    }
-    return std::nullopt;
+bool IsPartIndex(std::int32_t index) {
+    return std::in_range<std::uint8_t>(index);
 }
 
 void GiveLegs(assets::TrackAssets& assets, std::string_view entity, const std::string& legs) {
-    const std::optional<std::string> name = ModelOf(assets, entity);
+    const std::optional<std::string> name = EntityModel(assets, entity);
     const auto model = name ? assets.models.find(*name) : assets.models.end();
     if (model == assets.models.end() || model->second->materials.empty()) {
         return;
@@ -53,12 +42,18 @@ void GiveLegs(assets::TrackAssets& assets, std::string_view entity, const std::s
 
 }
 
-assets::DriverLook DriverLookOf(const assets::DriverEntry& driver) {
-    return {.face = PartIndex(driver.faceIndex),
-            .hat = PartIndex(driver.hatIndex),
-            .legs = PartIndex(driver.legsIndex),
-            .torso = PartIndex(driver.torsoIndex),
-            .expression = PartIndex(driver.expressionIndex)};
+Result<assets::DriverLook> DriverLookOf(const assets::DriverEntry& driver) {
+    const std::array indices{driver.faceIndex, driver.hatIndex, driver.legsIndex, driver.torsoIndex,
+                             driver.expressionIndex};
+    if (!std::ranges::all_of(indices, IsPartIndex)) {
+        return Fail(ErrorCode::InvalidData,
+                    std::format("driver {} has a part index out of range", driver.name));
+    }
+    return assets::DriverLook{.face = static_cast<std::uint8_t>(driver.faceIndex),
+                              .hat = static_cast<std::uint8_t>(driver.hatIndex),
+                              .legs = static_cast<std::uint8_t>(driver.legsIndex),
+                              .torso = static_cast<std::uint8_t>(driver.torsoIndex),
+                              .expression = static_cast<std::uint8_t>(driver.expressionIndex)};
 }
 
 Result<assets::DriverLook> AwardLook(const assets::Vfs& vfs, const CutscenePlay& play) {
@@ -67,7 +62,7 @@ Result<assets::DriverLook> AwardLook(const assets::Vfs& vfs, const CutscenePlay&
     }
     return assets::RacerCatalog::Load(vfs)
         .and_then([&](const assets::RacerCatalog& catalog) { return catalog.Find(play.driver); })
-        .transform([](const assets::RacerFiles& racer) { return DriverLookOf(racer.driver); });
+        .and_then([](const assets::RacerFiles& racer) { return DriverLookOf(racer.driver); });
 }
 
 Result<AwardDriver> LoadAwardDriver(const assets::Vfs& vfs, assets::TrackLoader& loader,
@@ -94,7 +89,7 @@ Result<AwardDriver> LoadAwardDriver(const assets::Vfs& vfs, assets::TrackLoader&
 }
 
 void DressAwardDriver(const AwardDriver& driver, assets::TrackAssets& assets) {
-    if (const std::optional<std::string> model = ModelOf(assets, kDriverEntity)) {
+    if (const std::optional<std::string> model = EntityModel(assets, kDriverEntity)) {
         assets.models.insert_or_assign(
             *model, std::make_shared<const assets::GeometryAsset>(driver.minifig));
     }

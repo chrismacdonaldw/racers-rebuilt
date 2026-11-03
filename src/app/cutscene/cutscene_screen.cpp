@@ -216,6 +216,7 @@ Result<CutscenePlay> ScreenPlay(const assets::Vfs& vfs, std::string_view scene,
             .playerRacer = screen.showsRacer && !screen.namesChampion
                                ? playerRacer
                                : std::optional<settings::Racer>(),
+            .showsChampionCar = screen.namesChampion,
             .hiddenTexts = screen.namesChampion ? OtherChampionNames(setup->driver)
                                                 : std::vector<std::string>{}};
     });
