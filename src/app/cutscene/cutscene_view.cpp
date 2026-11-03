@@ -297,8 +297,10 @@ Result<std::unique_ptr<CutsceneView>> CutsceneView::Create(const RaceOutputs& ou
               (*timeline)->frames.size(), frame.models.size());
     return std::unique_ptr<CutsceneView>(
         new CutsceneView({.vfs = &vfs,
+                          .renderer = outputs.renderer,
                           .play = std::move(play),
                           .driver = look,
+                          .driverModel = DriverModelOf(loaded->assets),
                           .timeline = std::move(*timeline),
                           .assets = std::move(loaded->assets),
                           .model = std::move(loaded->model),
@@ -325,6 +327,56 @@ Result<bool> CutsceneView::SelectFrame(std::string_view name) {
     if (found == frames.end() || index == parts_.frame) {
         return false;
     }
+    return Replay(index).transform([] { return true; });
+}
+
+Result<void> CutsceneView::ShowDriver(std::string_view code, assets::TrackLoader& loader) {
+    std::string key = assets::ToUpperAscii(code);
+    if (key == parts_.shownDriver || !parts_.driverModel) {
+        return {};
+    }
+    parts_.shownDriver = key;
+    auto dressed = parts_.dressed.find(key);
+    if (dressed == parts_.dressed.end()) {
+        Result<DressedDriver> loaded = Dress(key, loader);
+        if (!loaded) {
+            return Fail(loaded.error().code, std::format("{} driver {}: {}", NameOf(parts_.play),
+                                                         key, loaded.error().message));
+        }
+        for (const auto& [name, material] : loaded->materials) {
+            parts_.model->materials.insert_or_assign(name, material);
+        }
+        dressed = parts_.dressed.emplace(std::move(key), std::move(*loaded)).first;
+    }
+    parts_.model->animatedModels.insert_or_assign(*parts_.driverModel, dressed->second.model);
+    parts_.jointed = TrackEntityDraws(parts_.model->animatedModels, *parts_.sources);
+    parts_.driver = dressed->second.look;
+    return Replay(parts_.frame);
+}
+
+Result<CutsceneView::DressedDriver> CutsceneView::Dress(const std::string& code,
+                                                        assets::TrackLoader& loader) const {
+    Result<AwardDriver> driver =
+        AwardLook(*parts_.vfs, {.driver = code}).and_then([&](const assets::DriverLook& look) {
+            return LoadAwardDriver(*parts_.vfs, loader, look);
+        });
+    Result<assets::NameMap<render::Material>> materials =
+        driver.and_then([&](const AwardDriver& loaded) {
+            return UploadMaterials(*parts_.renderer, loaded.looks, loaded.minifig.materials);
+        });
+    if (!materials) {
+        return std::unexpected(std::move(materials.error()));
+    }
+    return UploadJointedModel(*parts_.renderer, driver->minifig, *materials)
+        .transform([&](JointedModel model) {
+            return DressedDriver{.look = driver->look,
+                                 .model = std::move(model),
+                                 .materials = std::move(*materials)};
+        });
+}
+
+Result<void> CutsceneView::Replay(std::size_t frame) {
+    const assets::CutsceneFrame& shown = parts_.timeline->frames.at(frame);
     Result<CutscenePlayer> player = PlayFrame({.vfs = parts_.vfs,
                                                .play = &parts_.play,
                                                .assets = &parts_.assets,
@@ -332,15 +384,15 @@ Result<bool> CutsceneView::SelectFrame(std::string_view name) {
                                                .animations = &parts_.animations,
                                                .entities = parts_.sources.get(),
                                                .driver = &parts_.driver},
-                                              *found);
+                                              shown);
     if (!player) {
         return Fail(player.error().code, std::format("{} frame {}: {}", NameOf(parts_.play),
-                                                     found->name, player.error().message));
+                                                     shown.name, player.error().message));
     }
     parts_.player = std::move(*player);
-    parts_.effectPlayer.SetFrame(*found);
-    parts_.frame = index;
-    return true;
+    parts_.effectPlayer.SetFrame(shown);
+    parts_.frame = frame;
+    return {};
 }
 
 void CutsceneView::Advance(Milliseconds elapsed) {

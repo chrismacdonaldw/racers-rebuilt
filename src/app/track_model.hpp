@@ -60,6 +60,11 @@ struct TrackModel {
                                                                 const assets::TrackAssets& assets,
                                                                 std::string_view name);
 
+/// As `UploadTrack` keeps an animated entity's model. `materials` is keyed by uppercase name.
+[[nodiscard]] Result<JointedModel> UploadJointedModel(
+    render::Renderer& renderer, const assets::GeometryAsset& geometry,
+    const assets::NameMap<render::Material>& materials);
+
 /// Keyed by uppercase name. Names missing from `assets` are left out.
 [[nodiscard]] Result<assets::NameMap<render::Material>> UploadMaterials(
     render::Renderer& renderer, const assets::TrackAssets& assets,

@@ -26,6 +26,7 @@ constexpr std::string_view kDriverNames = "DRIVERS.SRF";
 constexpr std::string_view kRaceNamesFolder = "MENUDATA";
 constexpr std::string_view kRaceNames = "CIRCUIT.SRF";
 constexpr std::size_t kTrialCircuits = 3;
+constexpr std::string_view kTrialDriver = "VV";
 
 std::string CircuitStart(const RaceSceneSetup& race, std::span<const RacerChoice> racers) {
     std::string circuit = CircuitSceneName({.race = race});
@@ -71,8 +72,9 @@ Result<Catalogs> LoadCatalogs(const assets::Vfs& vfs) {
     return Catalogs{.races = std::move(*races), .racers = std::move(*racers)};
 }
 
-std::string PreviewOf(const assets::RaceEntry& race) {
-    return race.previewScene.value_or(std::string());
+RacePreview PreviewOf(const assets::RaceEntry& race) {
+    return {.frame = race.previewScene.value_or(std::string()),
+            .driver = race.previewDriver.value_or(std::string())};
 }
 
 CourseChoice CircuitChoice(const Catalogs& catalogs, std::size_t circuit) {
@@ -148,6 +150,11 @@ Result<std::vector<CourseChoice>> LoadTrialChoices(const assets::Vfs& vfs,
     for (std::size_t circuit = 0; circuit < circuits; ++circuit) {
         for (CourseChoice& choice : TrackChoicesOf(*catalogs, circuit)) {
             choice.isLocked = IsLocked(choice, unlocked);
+            for (std::optional<RacePreview>& preview : choice.previews) {
+                if (preview) {
+                    preview->driver = kTrialDriver;
+                }
+            }
             choices.push_back(std::move(choice));
         }
     }

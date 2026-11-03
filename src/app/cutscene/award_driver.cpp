@@ -88,8 +88,12 @@ Result<AwardDriver> LoadAwardDriver(const assets::Vfs& vfs, assets::TrackLoader&
         .look = look, .face = face, .minifig = std::move(*minifig), .looks = std::move(*looks)};
 }
 
+std::optional<std::string> DriverModelOf(const assets::TrackAssets& assets) {
+    return EntityModel(assets, kDriverEntity);
+}
+
 void DressAwardDriver(const AwardDriver& driver, assets::TrackAssets& assets) {
-    if (const std::optional<std::string> model = EntityModel(assets, kDriverEntity)) {
+    if (const std::optional<std::string> model = DriverModelOf(assets)) {
         assets.models.insert_or_assign(
             *model, std::make_shared<const assets::GeometryAsset>(driver.minifig));
     }

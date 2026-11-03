@@ -101,6 +101,16 @@ void AppendDraws(std::vector<render::MeshDraw>& draws, const UploadedModel& mode
     }
 }
 
+JointedModel ToJointed(const UploadedModel& model, const NameMap<render::Material>& materials) {
+    JointedModel jointed;
+    AppendDraws(jointed.draws, model, materials, {});
+    for (const assets::GeometryRange& range : model.geometry->ranges) {
+        jointed.joints.push_back(range.joint);
+        jointed.slots.push_back(range.material);
+    }
+    return jointed;
+}
+
 NameMap<render::Material> ToRenderMaterials(const NameMap<assets::MaterialAsset>& materials,
                                             const NameMap<render::TextureId>& textures) {
     NameMap<render::Material> converted;
@@ -138,14 +148,8 @@ public:
         }
         AddBounds(model->second, PlacementToEngine(entity.position, entity.forward, entity.up),
                   everything_);
-        if (animated_.contains(model->first)) {
-            return;
-        }
-        JointedModel& kept = animated_[model->first];
-        AppendDraws(kept.draws, model->second, materials_, {});
-        for (const assets::GeometryRange& range : model->second.geometry->ranges) {
-            kept.joints.push_back(range.joint);
-            kept.slots.push_back(range.material);
+        if (!animated_.contains(model->first)) {
+            animated_.emplace(model->first, ToJointed(model->second, materials_));
         }
     }
 
@@ -261,6 +265,14 @@ Result<std::vector<render::MeshDraw>> UploadModel(render::Renderer& renderer,
     std::vector<render::MeshDraw> draws;
     AppendDraws(draws, uploaded->begin()->second, *materials, {});
     return draws;
+}
+
+Result<JointedModel> UploadJointedModel(render::Renderer& renderer,
+                                        const assets::GeometryAsset& geometry,
+                                        const NameMap<render::Material>& materials) {
+    return renderer.UploadMesh(ToEngineGeometry(geometry)).transform([&](render::MeshId mesh) {
+        return ToJointed({.mesh = mesh, .geometry = &geometry}, materials);
+    });
 }
 
 Result<NameMap<render::Material>> UploadMaterials(render::Renderer& renderer,

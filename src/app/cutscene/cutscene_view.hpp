@@ -5,6 +5,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -48,6 +49,9 @@ public:
     /// Rewinds to frame `name`, in any case, and stops the effects. False if playing or missing.
     [[nodiscard]] Result<bool> SelectFrame(std::string_view name);
 
+    /// Puts driver `code` in for `guy1` and rewinds the frame, loading each driver only once.
+    [[nodiscard]] Result<void> ShowDriver(std::string_view code, assets::TrackLoader& loader);
+
     void Advance(Milliseconds elapsed);
 
     [[nodiscard]] bool IsComplete() const { return parts_.player.IsComplete(); }
@@ -61,10 +65,21 @@ public:
 
 private:
     // NOLINTNEXTLINE(bugprone-exception-escape)
+    struct DressedDriver {
+        assets::DriverLook look;
+        JointedModel model;
+        assets::NameMap<render::Material> materials;
+    };
+
+    // NOLINTNEXTLINE(bugprone-exception-escape)
     struct Parts {
         const assets::Vfs* vfs = nullptr;
+        render::Renderer* renderer = nullptr;
         CutscenePlay play;
         std::optional<assets::DriverLook> driver;
+        std::optional<std::string> driverModel;
+        std::string shownDriver;
+        assets::NameMap<DressedDriver> dressed;
         std::unique_ptr<assets::CutsceneTimelineAsset> timeline;
         std::size_t frame = 0;
         assets::TrackAssets assets;
@@ -79,6 +94,10 @@ private:
     };
 
     explicit CutsceneView(Parts parts) : parts_(std::move(parts)) {}
+
+    [[nodiscard]] Result<DressedDriver> Dress(const std::string& code,
+                                              assets::TrackLoader& loader) const;
+    [[nodiscard]] Result<void> Replay(std::size_t frame);
 
     Parts parts_;
     std::vector<render::MeshDraw> draws_;
