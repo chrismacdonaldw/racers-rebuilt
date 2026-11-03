@@ -32,20 +32,23 @@ inline void WritePng(const std::filesystem::path& path, const assets::ImageAsset
 }
 
 /// Uncompressed 32-bit, top row first.
+[[nodiscard]] inline std::vector<std::byte> TgaBytes(const assets::ImageAsset& image) {
+    std::vector<std::byte> bytes(kTgaHeaderBytes);
+    bytes[2] = std::byte{2};
+    bytes[12] = static_cast<std::byte>(image.widthPx);
+    bytes[14] = static_cast<std::byte>(image.heightPx);
+    bytes[16] = std::byte{32};
+    bytes[17] = std::byte{0x28};
+    for (std::size_t i = 0; i + 4 <= image.rgba.size(); i += 4) {
+        bytes.insert(bytes.end(),
+                     {image.rgba[i + 2], image.rgba[i + 1], image.rgba[i], image.rgba[i + 3]});
+    }
+    return bytes;
+}
+
 inline void WriteTga(const std::filesystem::path& path, const assets::ImageAsset& image) {
     std::filesystem::create_directories(path.parent_path());
-    std::vector<std::uint8_t> bytes(kTgaHeaderBytes);
-    bytes[2] = 2;
-    bytes[12] = static_cast<std::uint8_t>(image.widthPx);
-    bytes[14] = static_cast<std::uint8_t>(image.heightPx);
-    bytes[16] = 32;
-    bytes[17] = 0x28;
-    for (std::size_t i = 0; i + 4 <= image.rgba.size(); i += 4) {
-        bytes.insert(bytes.end(), {std::to_integer<std::uint8_t>(image.rgba[i + 2]),
-                                   std::to_integer<std::uint8_t>(image.rgba[i + 1]),
-                                   std::to_integer<std::uint8_t>(image.rgba[i]),
-                                   std::to_integer<std::uint8_t>(image.rgba[i + 3])});
-    }
+    const std::vector<std::byte> bytes = TgaBytes(image);
     std::ofstream(path, std::ios::binary)
         .write(reinterpret_cast<const char*>(bytes.data()), std::ssize(bytes));
 }

@@ -2,9 +2,11 @@
 
 #include <doctest/doctest.h>
 
+#include <cstddef>
 #include <vector>
 
 #include "assets/token_bytes.hpp"
+#include "image_files.hpp"
 
 namespace rr::assets {
 namespace {
@@ -70,14 +72,58 @@ TEST_CASE("data after the texture list fails") {
         ParseTextureDatabase(Bytes({0x27, 0x07, 0x0B, 0x00, 0x08, 0x05, 0x06, 0x06})).has_value());
 }
 
-TEST_CASE("a color key makes matching pixels transparent") {
+TEST_CASE("a color key makes matching pixels transparent in their neighbours' colour") {
     ImageAsset image{.widthPx = 2,
-                     .heightPx = 1,
-                     .rgba = Bytes({0x01, 0x02, 0x03, 0xFF, 0x01, 0x02, 0x04, 0xFF})};
+                     .heightPx = 2,
+                     .rgba = Bytes({0x01, 0x02, 0x03, 0xFF, 0x10, 0x20, 0x30, 0xFF, 0x30, 0x40,
+                                    0x50, 0xFF, 0x01, 0x02, 0x03, 0xFF})};
 
     ApplyColorKey(image, {.red = 1, .green = 2, .blue = 3});
 
-    CHECK(image.rgba == Bytes({0x01, 0x02, 0x03, 0x00, 0x01, 0x02, 0x04, 0xFF}));
+    CHECK(image.rgba == Bytes({0x20, 0x30, 0x40, 0x00, 0x10, 0x20, 0x30, 0xFF, 0x30, 0x40, 0x50,
+                               0xFF, 0x20, 0x30, 0x40, 0x00}));
+}
+
+TEST_CASE("a keyed pixel with no unkeyed neighbour takes the image's mean colour") {
+    ImageAsset image{.widthPx = 5,
+                     .heightPx = 1,
+                     .rgba = Join({Bytes({0x10, 0x10, 0x10, 0xFF}), Bytes({0x30, 0x30, 0x30, 0xFF}),
+                                   Bytes({0x01, 0x02, 0x03, 0xFF}), Bytes({0x01, 0x02, 0x03, 0xFF}),
+                                   Bytes({0x01, 0x02, 0x03, 0xFF})})};
+
+    ApplyColorKey(image, {.red = 1, .green = 2, .blue = 3});
+
+    CHECK(image.rgba == Join({Bytes({0x10, 0x10, 0x10, 0xFF}), Bytes({0x30, 0x30, 0x30, 0xFF}),
+                              Bytes({0x30, 0x30, 0x30, 0x00}), Bytes({0x20, 0x20, 0x20, 0x00}),
+                              Bytes({0x20, 0x20, 0x20, 0x00})}));
+}
+
+TEST_CASE("an image that is all key stays as it was but transparent") {
+    ImageAsset image{.widthPx = 1, .heightPx = 1, .rgba = Bytes({0x01, 0x02, 0x03, 0xFF})};
+
+    ApplyColorKey(image, {.red = 1, .green = 2, .blue = 3});
+
+    CHECK(image.rgba == Bytes({0x01, 0x02, 0x03, 0x00}));
+}
+
+TEST_CASE("full mip chains run down to one pixel") {
+    CHECK(FullMipLevels(256, 256) == 9);
+    CHECK(FullMipLevels(256, 64) == 9);
+    CHECK(FullMipLevels(3, 1) == 2);
+    CHECK(FullMipLevels(1, 1) == 1);
+}
+
+TEST_CASE("game textures get their database's mip levels only when square") {
+    const std::vector<std::byte> tga = test::TgaBytes(test::SolidImage(8, 8, std::byte{0xFF}));
+    const std::vector<std::byte> wide = test::TgaBytes(test::SolidImage(8, 4, std::byte{0xFF}));
+    TextureDefinition definition{.name = "SMOKE", .mipmapCount = 3};
+
+    CHECK(DecodeTexture(tga, definition).value_or(ImageAsset{}).mipLevels == 3);
+    CHECK(DecodeTexture(wide, definition).value_or(ImageAsset{}).mipLevels == 1);
+    definition.mipmapCount = 9;
+    CHECK(DecodeTexture(tga, definition).value_or(ImageAsset{}).mipLevels == 4);
+    definition.mipmapCount = 0;
+    CHECK(DecodeTexture(tga, definition).value_or(ImageAsset{}).mipLevels == 1);
 }
 
 }

@@ -47,7 +47,9 @@ Result<ImageAsset> DecodePng(std::span<const std::byte> bytes) {
     const auto* first = reinterpret_cast<const std::byte*>(pixels.get());
     return ImageAsset{.widthPx = static_cast<std::uint32_t>(width),
                       .heightPx = static_cast<std::uint32_t>(height),
-                      .rgba = std::vector<std::byte>(first, first + byteCount)};
+                      .rgba = std::vector<std::byte>(first, first + byteCount),
+                      .mipLevels = FullMipLevels(static_cast<std::uint32_t>(width),
+                                                 static_cast<std::uint32_t>(height))};
 }
 
 }
