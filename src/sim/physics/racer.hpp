@@ -78,7 +78,8 @@ struct RacerStatus {
 
 class Racer {
 public:
-    Racer(const ChassisSpec& chassis, const CarBuild& build, const RacerStart& start);
+    Racer(const ChassisSpec& chassis, const CarBuild& build, const RacerStart& start,
+          const VersionRules& rules = {});
 
     /// `elapsed` is a whole number of ms, at most the original's 40 ms substep.
     void Tick(Milliseconds elapsed, const RacerControls& controls, const CollisionQuery& world);

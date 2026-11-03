@@ -13,6 +13,7 @@ constexpr int kWallYawMs = 200;
 constexpr float kWallYawRate = 0.004F;
 constexpr float kBounce = 0.3F;
 constexpr float kVerticalBounce = 0.15F;
+constexpr float kFloorNormalZ = 0.7071068F;
 constexpr float kPushOffSpeed = 0.004F;
 constexpr float kMaxRiseSpeed = 0.3F;
 
@@ -80,14 +81,15 @@ void ApplyWallResponse(BodyState& body, const BodyConstants& constants, const Ve
         velocity -= normal * into;
     }
     const Basis& basis = body.motion.basis;
-    if (Dot(basis.forward, normal) < 0.0F) {
+    const bool isWall = !constants.rules.separatesFloorHits || normal.z < kFloorNormalZ;
+    if (isWall && Dot(basis.forward, normal) < 0.0F) {
         SetYawImpulse(body, constants, WallYawRate(Dot(basis.side, normal)), kWallYawMs);
         body.hasWallYaw = true;
     }
     if (into < 0.0F) {
         velocity.x -= kBounce * into * normal.x;
         velocity.y -= kBounce * into * normal.y;
-        velocity.z -= kVerticalBounce * into * normal.z;
+        velocity.z -= (isWall ? kVerticalBounce : kBounce) * into * normal.z;
     }
     velocity += normal * kPushOffSpeed;
     velocity.z = std::min(velocity.z, kMaxRiseSpeed);

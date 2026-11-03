@@ -390,6 +390,7 @@ Result<std::unique_ptr<RaceScene>> Application::LoadRace(RaceSceneSetup setup,
     setup.isMirrored = LoadsMirrored(setup);
     setup.cheats = RaceCheats(setup.cheats, cheats_);
     setup.carBody = CarBodyFrom(settings_);
+    setup.version = SelectedVersion(settings_);
     const std::string language = SelectedLanguage(settings_);
     const std::unique_ptr<RaceLoadingScreen> loading =
         OpenLoadingScreen(renderer_, vfs_, setup.track, language);

@@ -15,6 +15,15 @@ TEST_CASE("retail wheel positions give the retail track width and wheelbase") {
     CHECK(constants.wheelAnchor == Vector3{.x = 1.543F, .y = 1.989F, .z = 0.0F});
 }
 
+TEST_CASE("2001 places the wheels from the shadow size, swapping the anchor's axes") {
+    const BodyConstants constants =
+        MakeBodyConstants({}, {}, RulesFor(assets::GameVersion::Release2001));
+
+    CHECK(constants.trackWidth == 7.0F);
+    CHECK(constants.wheelbase == 5.0F);
+    CHECK(constants.wheelAnchor == Vector3{.x = 3.5F, .y = 2.5F, .z = 0.0F});
+}
+
 TEST_CASE("body points sit at the corners of the retail shadow") {
     const BodyConstants constants = MakeBodyConstants({}, {});
 

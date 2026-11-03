@@ -4,7 +4,7 @@
 
 namespace rr::sim {
 
-void UpdateFacing(BodyState& body, int dtMs);
+void UpdateFacing(BodyState& body, float slewRatePerMs, int dtMs);
 
 void UpdateDerivedMotion(BodyState& body);
 

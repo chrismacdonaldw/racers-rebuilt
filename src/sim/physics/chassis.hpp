@@ -3,6 +3,7 @@
 #include <array>
 
 #include "core/vector3.hpp"
+#include "sim/physics/version_rules.hpp"
 
 namespace rr::sim {
 
@@ -44,6 +45,7 @@ struct BodyConstants {
     std::array<Vector3, kBodyPointCount> bodyPoints{};
     float boundsRadius = 0.0F;
     bool ignoresSurfaces = false;
+    VersionRules rules;
 };
 
 struct StatMultipliers {
@@ -54,7 +56,8 @@ struct StatMultipliers {
 
 [[nodiscard]] Vector3 BoxInertia(float mass, const Vector3& size);
 
-[[nodiscard]] BodyConstants MakeBodyConstants(const ChassisSpec& chassis, const CarBuild& build);
+[[nodiscard]] BodyConstants MakeBodyConstants(const ChassisSpec& chassis, const CarBuild& build,
+                                              const VersionRules& rules = {});
 
 [[nodiscard]] StatMultipliers MakeStatMultipliers(const ChassisSpec& chassis,
                                                   const CarBuild& build);

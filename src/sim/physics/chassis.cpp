@@ -8,6 +8,30 @@ namespace {
 constexpr Vector3 kBoxSize{.x = 8.0F, .y = 5.0F, .z = 6.2F};
 constexpr float kBodyPointHeight = 3.5F;
 constexpr float kStatPerPiece = 0.05F;
+constexpr float kShadowTrackInset = 1.0F;
+constexpr float kShadowWheelbaseInset = 4.0F;
+
+struct WheelLayout {
+    Vector3 anchor;
+    float trackWidth = 0.0F;
+    float wheelbase = 0.0F;
+};
+
+WheelLayout ChassisWheelLayout(const ChassisSpec& chassis) {
+    const std::array<Vector3, kWheelCount>& wheels = chassis.wheelPositions;
+    return {.anchor = wheels[1],
+            .trackWidth = wheels[3].y - wheels[2].y,
+            .wheelbase = wheels[1].x - wheels[3].x};
+}
+
+WheelLayout ShadowWheelLayout(const ChassisSpec& chassis) {
+    const float trackWidth = chassis.shadowWidth - kShadowTrackInset;
+    const float wheelbase = chassis.shadowLength - kShadowWheelbaseInset;
+    return {
+        .anchor = {.x = trackWidth / 2.0F, .y = wheelbase / 2.0F, .z = chassis.wheelPositions[1].z},
+        .trackWidth = trackWidth,
+        .wheelbase = wheelbase};
+}
 
 std::array<Vector3, kBodyPointCount> BodyPoints(const ChassisSpec& chassis) {
     const float x = chassis.shadowLength / 2.0F;
@@ -28,20 +52,23 @@ float SpeedMultiplier(int stat) {
 
 }
 
-BodyConstants MakeBodyConstants(const ChassisSpec& chassis, const CarBuild& build) {
+BodyConstants MakeBodyConstants(const ChassisSpec& chassis, const CarBuild& build,
+                                const VersionRules& rules) {
     const float mass = chassis.baseMass + static_cast<float>(build.highPieceCount);
-    const std::array<Vector3, kWheelCount>& wheels = chassis.wheelPositions;
+    const WheelLayout wheels =
+        rules.placesWheelsByShadow ? ShadowWheelLayout(chassis) : ChassisWheelLayout(chassis);
     return {
         .mass = mass,
         .massScale = mass * 0.001F * 0.001F,
         .inertia = BoxInertia(mass, kBoxSize),
         .centreOfMass =
             chassis.centreOfMass + Vector3{.x = build.centroidOffsetX, .y = build.centroidOffsetY},
-        .wheelAnchor = wheels[1],
-        .trackWidth = wheels[3].y - wheels[2].y,
-        .wheelbase = wheels[1].x - wheels[3].x,
+        .wheelAnchor = wheels.anchor,
+        .trackWidth = wheels.trackWidth,
+        .wheelbase = wheels.wheelbase,
         .bodyPoints = BodyPoints(chassis),
         .boundsRadius = build.boundsRadius,
+        .rules = rules,
     };
 }
 

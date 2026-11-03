@@ -7,6 +7,7 @@
 
 #include "app/racer/champion_car.hpp"
 #include "app/racer/racer_ref.hpp"
+#include "assets/game_version.hpp"
 #include "core/result.hpp"
 #include "settings/racers.hpp"
 #include "sim/race/cheats.hpp"
@@ -23,8 +24,8 @@ inline constexpr int kMinAiPace = 50;
 inline constexpr int kMaxAiPace = 150;
 
 /// Players drive grid slots `racer` then `secondRacer`, two alone. Empty `circuit` means home.
-/// `playerRacer` and `secondPlayerRacer` resolve `player` and `secondPlayer`. They and `carBody`
-/// aren't named.
+/// `playerRacer` and `secondPlayerRacer` resolve `player` and `secondPlayer`. They, `carBody` and
+/// `version` aren't named.
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct RaceSceneSetup {
     std::string track;
@@ -47,6 +48,7 @@ struct RaceSceneSetup {
     RacerRef secondPlayer;
     std::optional<settings::Racer> secondPlayerRacer;
     CarBody carBody = CarBody::Bricks;
+    assets::GameVersion version = assets::GameVersion::Release1999;
     sim::Cheats cheats;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;

@@ -31,6 +31,7 @@ sim::RaceSetup GridSetup(const RaceSceneSetup& scene, const RacerGrid& racers, s
                          .aiPace = static_cast<float>(scene.aiPace) / kPercent,
                          .effects = sim::EveryEffect(),
                          .cheats = scene.cheats,
+                         .version = scene.version,
                          .isTestDrive = scene.isTestDrive,
                          .isDemo = scene.isDemo};
     setup.racers.resize(slots);

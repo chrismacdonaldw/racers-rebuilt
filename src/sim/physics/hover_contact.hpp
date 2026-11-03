@@ -9,7 +9,7 @@ namespace rr::sim {
 void UpdateHoverLift(HoverLift& lift, int dtMs);
 
 /// Leans into a turn of `turnRadius`, up to 45° on the tightest turns and none driving straight.
-[[nodiscard]] float HoverBankTarget(float turnRadius);
+[[nodiscard]] float HoverBankTarget(float turnRadius, const VersionRules& rules);
 
 /// Casts one ray per axle midpoint and holds the car the lift height above the higher hit.
 void UpdateHoverContact(BodyState& body, const BodyConstants& constants, int dtMs,

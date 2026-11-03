@@ -32,7 +32,7 @@ bool CountDown(int& timerMs, int dtMs) {
     return true;
 }
 
-int RunTimers(BodyState& body, int dtMs) {
+int RunTimers(BodyState& body, const BodyConstants& constants, int dtMs) {
     body.hasWallContact = false;
     CountDownSpinOut(body, dtMs);
     const Basis& basis = body.motion.basis;
@@ -50,7 +50,7 @@ int RunTimers(BodyState& body, int dtMs) {
         CancelAngularMomentum(body.motion, basis.side);
     }
     if (body.hover.isHovering) {
-        body.hover.lift.targetBank = HoverBankTarget(body.turnRadius);
+        body.hover.lift.targetBank = HoverBankTarget(body.turnRadius, constants.rules);
     }
     return dtMs;
 }
@@ -71,7 +71,7 @@ void RunPass(BodyState& body, const BodyConstants& constants, int dtMs,
     Integrate(body, constants, dtMs);
     LimitUprightTilt(body.motion);
     UpdateContacts(body, constants, dtMs, world);
-    UpdateFacing(body, dtMs);
+    UpdateFacing(body, constants.rules.facingRatePerMs, dtMs);
     UpdateDerivedMotion(body);
     UpdateWheelSurfaces(body.motion, constants.ignoresSurfaces);
 }
@@ -154,7 +154,7 @@ void SetTurnRadius(BodyState& body, float radius) {
 
 void StepBody(BodyState& body, const BodyConstants& constants, int dtMs,
               const CollisionQuery& world, SurfaceTouches* touches) {
-    const int stepMs = RunTimers(body, dtMs);
+    const int stepMs = RunTimers(body, constants, dtMs);
     body.saved = body.motion;
     RunPassesAgainstWalls(body, constants, stepMs, world, touches);
     body.airborneMs = IsGrounded(body.motion) ? 0 : body.airborneMs + dtMs;

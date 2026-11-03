@@ -10,7 +10,6 @@ namespace {
 
 constexpr float kMinFacingSpeed = 0.03F;
 constexpr float kSnapDot = 0.98F;
-constexpr float kSlewRatePerMs = 0.0025F;
 constexpr std::size_t kArccosTableSize = 1024;
 constexpr float kArccosTableScale = static_cast<float>(kArccosTableSize - 1) / 2.0F;
 
@@ -31,11 +30,11 @@ float AngleBetween(const Vector3& a, const Vector3& b) {
     return ArccosTable().at(static_cast<std::size_t>((cosine + 1.0F) * kArccosTableScale));
 }
 
-Vector3 SlewToward(const Vector3& facing, const Vector3& target, int dtMs) {
+Vector3 SlewToward(const Vector3& facing, const Vector3& target, float ratePerMs, int dtMs) {
     if (Dot(facing, target) > kSnapDot) {
         return target;
     }
-    const float step = kSlewRatePerMs * static_cast<float>(dtMs);
+    const float step = ratePerMs * static_cast<float>(dtMs);
     if (step > AngleBetween(facing, target)) {
         return target;
     }
@@ -60,17 +59,17 @@ Vector3 ProjectOntoPlane(const Vector3& v, const Vector3& normal, const Vector3&
 
 }
 
-void UpdateFacing(BodyState& body, int dtMs) {
+void UpdateFacing(BodyState& body, float slewRatePerMs, int dtMs) {
     const BodyMotion& motion = body.motion;
     const Vector3& forward = motion.basis.forward;
     const bool isMoving = IsGrounded(motion) && body.derived.forwardSpeed >= kMinFacingSpeed;
     if (isMoving && motion.contactCount <= 2) {
         const Vector3 target = ProjectOntoPlane(forward, motion.supportNormal, forward);
-        body.facing = SlewToward(body.facing, target, dtMs);
+        body.facing = SlewToward(body.facing, target, slewRatePerMs, dtMs);
     } else if (isMoving && body.steering.isSteering && body.thrust > 0.0F) {
         body.facing = TurnWithLag(body, dtMs);
     } else {
-        body.facing = SlewToward(body.facing, forward, dtMs);
+        body.facing = SlewToward(body.facing, forward, slewRatePerMs, dtMs);
     }
 }
 
