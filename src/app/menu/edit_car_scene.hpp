@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "app/menu/car_build_screen.hpp"
 #include "app/menu/car_edit.hpp"
 #include "app/menu/car_stand.hpp"
 #include "app/menu/edit_car_look.hpp"
@@ -36,7 +37,10 @@ public:
         const std::filesystem::path& racersFile, std::size_t racer,
         const std::set<std::int32_t>& partSets);
 
+    void OpenBuilder();
+
     void ApplySettings(const settings::Registry& settings) override;
+    void HandleEvent(const SDL_Event& event) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
     void Tick(const sim::InputFrame& input) override;
     [[nodiscard]] SceneMusic Music() const override { return {.start = MusicStart::Keep}; }
@@ -76,6 +80,9 @@ private:
                  EditCarLook look, Views views, Edit edit);
 
     void Handle(CarRequest request);
+    void TickBuild(const sim::InputFrame& input);
+    void CloseBuilder();
+    void RenderBuild();
     void TickDialog(MessageDialog& dialog, const sim::InputFrame& input);
     void Confirm(CarRequest request);
     void Apply(CarRequest request);
@@ -105,6 +112,8 @@ private:
     std::optional<MessageDialog> dialog_;
     std::optional<CarRequest> asked_;
     std::optional<std::string> opened_;
+    std::unique_ptr<CarBuildScreen> build_;
+    std::vector<render::RenderView> views3d_;
     float turn_ = 0.0F;
     std::vector<MenuPicture> under_;
     std::vector<render::SpriteDraw> sprites_;

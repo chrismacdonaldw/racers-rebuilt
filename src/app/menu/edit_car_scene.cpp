@@ -30,6 +30,7 @@ constexpr std::size_t kDoneLine = 0x72;
 constexpr std::size_t kBackLine = 0x1F;
 constexpr std::size_t kDiscardLine = 0x7B;
 constexpr std::size_t kContinueLine = 0x20;
+constexpr std::size_t kTooManyLine = 0xBA;
 constexpr std::size_t kDisabledState = 0;
 constexpr std::string_view kQuickBuildFile = "MENUDATA/QBUILD.LRS";
 constexpr std::uint64_t kColourSeed = 0xCA2C0102;
@@ -142,6 +143,25 @@ EditCarScene::EditCarScene(render::Renderer& renderer, const assets::Vfs& vfs, M
     }
 }
 
+void EditCarScene::OpenBuilder() {
+    if (!views_.stand) {
+        return;
+    }
+    Result<std::unique_ptr<CarBuildScreen>> build =
+        CarBuildScreen::Load(*renderer_, *vfs_, *views_.stand, car_.pieces, car_.built, car_.sets);
+    if (!build) {
+        log::Warn("{}, the car editor stays open", build.error().message);
+        return;
+    }
+    build_ = std::move(*build);
+}
+
+void EditCarScene::HandleEvent(const SDL_Event& event) {
+    if (build_ && !dialog_ && event.type == SDL_EVENT_KEY_DOWN) {
+        build_->HandleKey(event.key.key);
+    }
+}
+
 void EditCarScene::ApplySettings(const settings::Registry& settings) {
     static_cast<void>(text_.Apply(*renderer_, *vfs_, settings));
     if (dialog_) {
@@ -163,6 +183,10 @@ void EditCarScene::Tick(const sim::InputFrame& input) {
         TickDialog(*dialog_, input);
         return;
     }
+    if (build_) {
+        TickBuild(input);
+        return;
+    }
     const CarRow focusBefore = menu_.Focus();
     const CarRequest request = menu_.Tick(input);
     Handle(request);
@@ -182,6 +206,10 @@ void EditCarScene::Snapshot(sim::RenderSnapshot& out) const {
 
 void EditCarScene::Render(const sim::RenderSnapshot& interpolated) {
     sprites_.clear();
+    if (build_) {
+        RenderBuild();
+        return;
+    }
     render::RenderView view;
     const Transform car = interpolated.entities.empty() ? Transform{.position = kSpot}
                                                         : interpolated.entities.front().transform;
@@ -230,8 +258,51 @@ void EditCarScene::Handle(CarRequest request) {
             }
             break;
         case CarRequest::Build:
+            OpenBuilder();
+            break;
         case CarRequest::None:
             break;
+    }
+}
+
+void EditCarScene::TickBuild(const sim::InputFrame& input) {
+    switch (build_->Tick(input)) {
+        case BuildOutcome::CarChanged:
+            car_.built = build_->Car();
+            ShowCar();
+            break;
+        case BuildOutcome::TooManyPieces:
+            if (views_.dialog) {
+                dialog_.emplace(*views_.dialog, kTooManyLine,
+                                std::vector<DialogButton>{{.line = kDoneLine}});
+                dialog_->Measure(text_);
+            }
+            break;
+        case BuildOutcome::Done:
+            CloseBuilder();
+            break;
+        case BuildOutcome::None:
+            break;
+    }
+}
+
+void EditCarScene::CloseBuilder() {
+    car_.built = build_->Car();
+    build_.reset();
+    car_.isReplaceable =
+        car_.built.Pieces().size() <= 1 || car_.quickBuilds.Contains(car_.built.Save());
+    ShowCar();
+}
+
+void EditCarScene::RenderBuild() {
+    views3d_.clear();
+    build_->Render(views3d_, sprites_);
+    if (dialog_) {
+        dialog_->Draw(text_, sprites_);
+    }
+    views3d_.front().sprites = sprites_;
+    if (Result<void> drawn = renderer_->Draw(views3d_); !drawn) {
+        log::Error("{}", drawn.error().message);
     }
 }
 
@@ -319,7 +390,6 @@ void EditCarScene::Done() {
 void EditCarScene::ShowCar() {
     shown_.car = car_.built.Save();
     const bool hasBricks = car_.built.Pieces().size() > 1;
-    menu_.Enable(CarRow::Build, false);
     menu_.Enable(CarRow::RemoveBricks, hasBricks);
     menu_.Enable(CarRow::PartSet, !hasBricks || car_.isReplaceable);
     if (views_.stand) {

@@ -198,6 +198,13 @@ TEST_CASE("a rotated shape turns its footprint a quarter at a time") {
     CHECK(RotatedTops(shape, 5) == RotatedTops(shape, 1));
 }
 
+TEST_CASE("a shape fits an area if either turn does") {
+    CHECK(TwoByThree().FitsWithin({.width = 3, .height = 2}));
+    CHECK(PieceShape{.size = {.width = 4, .height = 8}}.FitsWithin(kBuildGridSize));
+    CHECK_FALSE(PieceShape{.size = {.width = 11, .height = 1}}.FitsWithin(kBuildGridSize));
+    CHECK_FALSE(PieceShape{.size = {.width = 7, .height = 7}}.FitsWithin(kBuildGridSize));
+}
+
 TEST_CASE("a piece library rejects pieces that point outside its streams") {
     CHECK_FALSE(
         ParsePieceLibrary(Library({{.name = "far", .type = 5001, .shape = 40}})).has_value());

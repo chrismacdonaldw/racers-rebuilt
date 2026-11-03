@@ -8,8 +8,8 @@
 
 namespace rr::sim {
 
-inline constexpr int kCarGridWidth = 10;
-inline constexpr int kCarGridDepth = 6;
+inline constexpr int kCarGridWidth = assets::kBuildGridSize.width;
+inline constexpr int kCarGridDepth = assets::kBuildGridSize.height;
 
 struct PiecePlacement {
     int x = 0;

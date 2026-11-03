@@ -27,7 +27,7 @@ CarouselView::CarouselView(CarouselLayout layout, const CarouselColors& colors)
     }
 }
 
-void CarouselView::Render(const PartCarousel& carousel, const DriverKit& kit, DriverSlot slot,
+void CarouselView::Render(const PartCarousel& carousel, std::span<const PartPreview> previews,
                           bool isHighlighted, std::span<const MenuPicture> under,
                           std::vector<render::RenderView>& out) {
     sides_.clear();
@@ -36,10 +36,10 @@ void CarouselView::Render(const PartCarousel& carousel, const DriverKit& kit, Dr
     const std::size_t slots = std::min(carousel.Shape().slots, layout_.slots.size());
     for (std::size_t place = 0; place < slots; ++place) {
         const std::optional<std::uint8_t> part = carousel.PartInSlot(place);
-        if (!part) {
+        if (!part || *part >= previews.size()) {
             continue;
         }
-        const PartPreview& preview = kit.Preview(slot, *part);
+        const PartPreview& preview = previews[*part];
         Vector3 position = SlotPosition(layout_, place, preview.bounds);
         if (const std::optional<std::size_t> from = carousel.CameFrom(place);
             from && *from < layout_.slots.size()) {

@@ -69,7 +69,9 @@ rr_add_module(app
         menu/best_time_panel.cpp
         menu/attract_demo.cpp
         menu/award_scene_name.cpp
+        menu/car_build_look.cpp
         menu/car_build_menu.cpp
+        menu/car_build_screen.cpp
         menu/car_builder.cpp
         menu/car_edit.cpp
         menu/car_stand.cpp
@@ -117,6 +119,7 @@ rr_add_module(app
         menu/options_scene.cpp
         menu/part_carousel.cpp
         menu/pause_menu.cpp
+        menu/piece_models.cpp
         menu/preview_cycle.cpp
         menu/racer_pick_list.cpp
         menu/racer_pick_look.cpp

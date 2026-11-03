@@ -243,4 +243,53 @@ Result<CarMesh> BuildCarMesh(const BuiltCar& car, const assets::PieceCatalog& ca
     return mesh;
 }
 
+Result<Vector3> CarMeshOffset(const BuiltCar& car, const assets::PieceCatalog& catalog) {
+    MeshInput input{.library = &catalog.library};
+    if (!car.Pieces().empty()) {
+        const CarPiece& chassis = car.Pieces().front();
+        const assets::PieceRecord* record =
+            catalog.library.Find(chassis.piece->type, kPieceVariant);
+        if (record == nullptr) {
+            return Fail(ErrorCode::NotFound,
+                        std::format("can't place chassis {}", chassis.piece->name));
+        }
+        input.pieces.push_back(
+            {.piece = record, .placement = chassis.placement, .height = chassis.height});
+    }
+    return ModelOffset(input);
+}
+
+Result<assets::GeometryAsset> BuildPieceMesh(const assets::PieceRecord& piece, std::uint8_t colour,
+                                             unsigned rotation,
+                                             const assets::PieceCatalog& catalog) {
+    const assets::PieceRecord* record = catalog.library.Find(piece.type, kPieceVariant);
+    Result<std::uint32_t> material =
+        ColourMaterials(catalog).and_then([&](const std::vector<std::uint32_t>& materials) {
+            return MaterialOfColour(materials, colour);
+        });
+    if (!material || record == nullptr) {
+        return Fail(ErrorCode::InvalidData, std::format("can't draw piece {}", piece.name));
+    }
+    MeshInput input{.library = &catalog.library};
+    input.pieces.push_back(
+        {.piece = record, .placement = {.rotation = rotation}, .colourMaterial = *material});
+    const assets::PieceRecord* stud = catalog.library.Find(assets::kStudPieceType, kPieceVariant);
+    const assets::CellSize footprint = record->shape.Footprint(rotation);
+    for (int x = 0; stud != nullptr && x < footprint.width; ++x) {
+        for (int y = 0; y < footprint.height; ++y) {
+            const assets::ShapeCell cell = record->shape.GetCell(x, y, rotation);
+            if (cell.Occupied()) {
+                input.studs.push_back({.piece = stud,
+                                       .placement = {.x = x, .y = y},
+                                       .height = cell.TopHeight(),
+                                       .colourMaterial = *material});
+            }
+        }
+    }
+    MeshPrimitives primitives;
+    return BuildFitting(input, primitives).and_then([&](const CarMesh&) {
+        return ToGeometry(primitives, {}, catalog.materials);
+    });
+}
+
 }

@@ -163,8 +163,9 @@ void EditDriverScene::Render(const sim::RenderSnapshot& interpolated) {
     }
     for (std::size_t row = 0; row < kDriverSlots; ++row) {
         const bool isFocused = menu_.Slot() == static_cast<DriverSlot>(row);
-        carouselViews_.at(row).Render(carousels_.at(row), *views_.kit, static_cast<DriverSlot>(row),
-                                      isFocused, under_, views3d_);
+        carouselViews_.at(row).Render(carousels_.at(row),
+                                      views_.kit->Previews(static_cast<DriverSlot>(row)), isFocused,
+                                      under_, views3d_);
     }
     DrawControls();
     if (dialog_) {

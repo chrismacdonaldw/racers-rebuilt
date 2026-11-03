@@ -17,6 +17,9 @@ namespace rr::app {
 
 inline constexpr std::string_view kEditCarScreen = "EDITCAR";
 inline constexpr std::size_t kCarTextButtons = 3;
+inline constexpr std::array<std::string_view, kPartSetCount> kSetImageStyles{
+    "bricks",  "race",     "space",  "castle", "pirate", "islander",
+    "magical", "adventur", "jungle", "alien",  "rr",     "vv"};
 
 struct EditCarLook {
     MenuPicture backdrop;

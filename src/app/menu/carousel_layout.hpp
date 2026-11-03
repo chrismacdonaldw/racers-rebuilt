@@ -12,6 +12,11 @@
 
 namespace rr::app {
 
+struct PartPreview {
+    std::vector<render::MeshDraw> draws;
+    BoundingSphere bounds;
+};
+
 struct CarouselSlot {
     float across = 0.0F;
     float fit = 0.0F;

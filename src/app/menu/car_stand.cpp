@@ -106,14 +106,9 @@ void CarStand::Tick(Milliseconds elapsed) {
 
 render::RenderView CarStand::Render(std::span<const sim::EntityClock> clocks,
                                     const Transform& car) {
-    draws_.assign(model_.draws.begin(), model_.draws.end());
+    DrawCar(car);
     if (shown_) {
         const CarModel& built = cars_.at(*shown_);
-        const Transform placed = TransformToEngine(car);
-        for (render::MeshDraw draw : built.model.draws) {
-            draw.transform = placed;
-            draws_.push_back(draw);
-        }
         scene_->sources.entities.at(scene_->driver).placement = {.position = Apply(car, built.seat),
                                                                  .rotation = car.rotation};
         jointed_.Update(clocks);
@@ -121,10 +116,36 @@ render::RenderView CarStand::Render(std::span<const sim::EntityClock> clocks,
             draws_.insert(draws_.end(), jointed_.Draws().begin(), jointed_.Draws().end());
         }
     }
+    light_.front().color = kGrey;
     return {.camera = scene_->camera,
             .lighting = {.lights = light_, .ambient = kGrey},
             .meshes = draws_,
             .viewport = render::UiViewport(framing_.interior)};
+}
+
+render::RenderView CarStand::Render(const Transform& car, const StandShot& shot) {
+    DrawCar(car);
+    for (render::MeshDraw draw : shot.extras) {
+        draw.transform = TransformToEngine(Compose(car, draw.transform));
+        draws_.push_back(draw);
+    }
+    light_.front().color = shot.light;
+    return {.camera = shot.camera,
+            .lighting = {.lights = light_, .ambient = kGrey},
+            .meshes = draws_,
+            .viewport = render::UiViewport(shot.interior)};
+}
+
+void CarStand::DrawCar(const Transform& car) {
+    draws_.assign(model_.draws.begin(), model_.draws.end());
+    if (!shown_) {
+        return;
+    }
+    const Transform placed = TransformToEngine(car);
+    for (render::MeshDraw draw : cars_.at(*shown_).model.draws) {
+        draw.transform = placed;
+        draws_.push_back(draw);
+    }
 }
 
 Result<void> CarStand::ShowDriver(const settings::Racer& racer) {
