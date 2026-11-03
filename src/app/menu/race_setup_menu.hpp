@@ -8,6 +8,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/menu/race_preview.hpp"
 #include "app/race_scene_name.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -29,7 +30,7 @@ struct CourseChoice {
     std::size_t race = 0;
     std::int32_t nameLine = -1;
     std::vector<RacerChoice> racers;
-    std::vector<std::optional<std::string>> previews;
+    std::vector<std::optional<RacePreview>> previews;
     bool isLocked = false;
 };
 

@@ -12,8 +12,6 @@
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/race_settings.hpp"
-#include "assets/loader_pool.hpp"
-#include "assets/track_loader.hpp"
 #include "core/log.hpp"
 
 namespace rr::app {
@@ -133,10 +131,8 @@ std::unique_ptr<TrackPreview> LoadPreview(const RaceOutputs& outputs, const asse
     if (mode == RaceSetupMode::Versus) {
         return nullptr;
     }
-    assets::LoaderPool pool(assets::LoaderPool::DefaultWorkerCount());
-    assets::TrackLoader loader(vfs, pool);
     Result<std::unique_ptr<TrackPreview>> preview =
-        TrackPreview::Load(outputs, vfs, loader, language, PreviewLayout(mode));
+        TrackPreview::Load(outputs, vfs, language, PreviewLayout(mode));
     if (!preview) {
         log::Warn("race setup shows no preview: {}", preview.error().message);
         return nullptr;

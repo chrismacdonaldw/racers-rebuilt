@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 
 #include "app/cutscene/cutscene_play.hpp"
@@ -30,6 +31,9 @@ struct AwardDriver {
 [[nodiscard]] Result<AwardDriver> LoadAwardDriver(const assets::Vfs& vfs,
                                                   assets::TrackLoader& loader,
                                                   const assets::DriverLook& look);
+
+/// The uppercase name of the model `guy1` shows, the one a driver replaces.
+[[nodiscard]] std::optional<std::string> DriverModelOf(const assets::TrackAssets& assets);
 
 /// Swaps the driver in for `guy1` and its legs onto `swap` and `pleg`. Its materials win on a name.
 void DressAwardDriver(const AwardDriver& driver, assets::TrackAssets& assets);

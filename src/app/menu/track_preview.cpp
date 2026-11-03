@@ -19,24 +19,27 @@ render::SpriteDraw Shade(const render::Rect& bounds, float alpha) {
 
 Result<std::unique_ptr<TrackPreview>> TrackPreview::Load(const RaceOutputs& outputs,
                                                          const assets::Vfs& vfs,
-                                                         assets::TrackLoader& loader,
                                                          std::string_view language,
                                                          std::string_view layout) {
+    auto pool = std::make_unique<assets::LoaderPool>(assets::LoaderPool::DefaultWorkerCount());
+    auto loader = std::make_unique<assets::TrackLoader>(vfs, *pool);
+    Loading loading{.pool = std::move(pool), .loader = std::move(loader)};
     Result<CutsceneScreenPlacement> placed =
         ReadCutsceneScreen(vfs, {.menu = kPreviewElement, .layout = layout});
     Result<std::unique_ptr<CutsceneView>> view =
         placed.and_then([&](const CutsceneScreenPlacement& placement) {
             return CutsceneView::Create(
-                outputs, vfs, loader, language,
+                outputs, vfs, *loading.loader, language,
                 {.folder = placement.folder, .file = placement.cutscene, .rect = placement.rect});
         });
     if (!view) {
         return std::unexpected(std::move(view.error()));
     }
-    return std::unique_ptr<TrackPreview>(new TrackPreview(std::move(*view), placed->rect));
+    return std::unique_ptr<TrackPreview>(
+        new TrackPreview(std::move(loading), std::move(*view), placed->rect));
 }
 
-void TrackPreview::Show(std::span<const std::optional<std::string>> previews, PreviewStyle style,
+void TrackPreview::Show(std::span<const std::optional<RacePreview>> previews, PreviewStyle style,
                         bool isLocked) {
     previews_.assign(previews.begin(), previews.end());
     isLocked_ = isLocked;
@@ -68,7 +71,14 @@ void TrackPreview::ShowRace(std::size_t race) {
         cycle_.Shown(true);
         return;
     }
-    const Result<bool> switched = view_->SelectFrame(*previews_[race]);
+    const RacePreview& preview = *previews_[race];
+    const Result<void> dressed = preview.driver.empty()
+                                     ? Result<void>{}
+                                     : view_->ShowDriver(preview.driver, *loading_.loader);
+    if (!dressed) {
+        log::Warn("the race preview keeps its last driver: {}", dressed.error().message);
+    }
+    const Result<bool> switched = view_->SelectFrame(preview.frame);
     if (!switched) {
         log::Warn("the race preview stays put: {}", switched.error().message);
     }
