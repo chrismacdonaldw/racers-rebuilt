@@ -4,6 +4,8 @@
 #include <cstddef>
 
 #include "app/circuit_awards.hpp"
+#include "app/intro/intro_video_scene.hpp"
+#include "app/intro/intro_videos.hpp"
 #include "app/menu/controls_scene.hpp"
 #include "app/menu/edit_car_scene.hpp"
 #include "app/menu/edit_driver_scene.hpp"
@@ -71,6 +73,11 @@ std::optional<Result<std::unique_ptr<Scene>>> CreateMenuScene(const MenuScenePar
     const auto sounds = [&] {
         return LoadMenuSounds(*parts.outputs.mixer, *parts.outputs.banks, vfs);
     };
+    if (const std::optional<std::size_t> video = ParseIntroVideoScene(scene)) {
+        std::unique_ptr<Scene> intro =
+            IntroVideoScene::Create(renderer, *parts.outputs.mixer, vfs, *video);
+        return intro;
+    }
     if (scene == kOptionsScene) {
         return OptionsScene::Create(renderer, vfs, sounds()).transform(ToScene<OptionsScene>);
     }

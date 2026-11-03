@@ -12,6 +12,7 @@ namespace {
 
 constexpr std::string_view kSetFlag = "--set";
 constexpr std::string_view kPlayersFlag = "--players";
+constexpr std::string_view kNoVideoFlag = "--novideo";
 
 struct TextFlag {
     std::string_view flag;
@@ -75,6 +76,10 @@ Result<SettingOverride> ParseOverride(std::string_view text) {
 Result<CommandLine> ParseCommandLine(std::span<const std::string_view> args) {
     CommandLine commandLine;
     for (std::size_t index = 0; index < args.size(); ++index) {
+        if (args[index] == kNoVideoFlag) {
+            commandLine.noVideo = true;
+            continue;
+        }
         Result<FlagValue> flag = TakeFlag(args, index);
         if (!flag) {
             return std::unexpected(std::move(flag.error()));

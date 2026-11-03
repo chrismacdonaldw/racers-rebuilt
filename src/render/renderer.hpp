@@ -44,6 +44,8 @@ public:
 
     [[nodiscard]] Result<MeshId> UploadMesh(const assets::GeometryAsset& geometry);
     [[nodiscard]] Result<TextureId> UploadTexture(const assets::ImageAsset& image);
+    /// `image` must be the size `texture` was uploaded at.
+    [[nodiscard]] Result<void> UpdateTexture(TextureId texture, const assets::ImageAsset& image);
     /// Invalidates every `MeshId` and `TextureId` handed out so far, except `kWhiteTexture`.
     void ReleaseAssets();
 
@@ -110,6 +112,9 @@ private:
     Result<GpuBuffer> CreateBuffer(SDL_GPUBufferUsageFlags usage, std::size_t sizeBytes);
     Result<StreamBuffer> CreateStream(std::size_t sizeBytes);
     Result<GpuTransferBuffer> Stage(std::span<const std::span<const std::byte>> parts);
+    static Result<void> CheckRgba(const assets::ImageAsset& image);
+    Result<void> CopyToTexture(SDL_GPUTexture* texture, const assets::ImageAsset& image,
+                               bool cycles);
     Result<void> UploadBuffers(std::span<const UploadPart> parts);
     void GatherViews(std::span<const RenderView> views);
     Result<void> UploadFrame(SDL_GPUCommandBuffer* commands, std::span<const RenderView> views);

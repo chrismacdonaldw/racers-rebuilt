@@ -59,6 +59,8 @@ rr_add_module(app
         hud/race_time_text.cpp
         hud/text_pool.cpp
         image_dump.cpp
+        intro/intro_video_scene.cpp
+        intro/intro_videos.cpp
         input_bindings.cpp
         install_discovery.cpp
         loop_sidecar.cpp
@@ -208,6 +210,7 @@ rr_add_module(app
         rr::render
         rr::settings
         rr::sim
+        rr::video
 )
 target_include_directories(rr_app SYSTEM PRIVATE
     $<TARGET_PROPERTY:tomlplusplus::tomlplusplus,INTERFACE_INCLUDE_DIRECTORIES>
