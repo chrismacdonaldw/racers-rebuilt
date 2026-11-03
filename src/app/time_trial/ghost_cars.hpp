@@ -8,6 +8,7 @@
 
 #include "app/hud/minimap.hpp"
 #include "app/powerup/powerup_models.hpp"
+#include "app/racer/far_cars.hpp"
 #include "app/racer/racer_grid.hpp"
 #include "app/time_trial/ghost_car.hpp"
 #include "assets/track_loader.hpp"
@@ -33,6 +34,9 @@ public:
 
     /// Best ghost first, as the original draws them.
     void AppendDraws(std::vector<render::MeshDraw>& out) const;
+
+    /// `firstDraw` is where `AppendDraws` starts in the scene's meshes.
+    void AddFarCars(const sim::GhostSnapshot& ghosts, std::size_t firstDraw, FarCars& out) const;
 
 private:
     GhostCars(std::unique_ptr<EffectAssets> recordAssets, GhostCar recordCar, GhostCar bestCar)

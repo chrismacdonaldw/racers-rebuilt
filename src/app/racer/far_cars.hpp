@@ -16,25 +16,36 @@ namespace rr::app {
 /// Squared, from the camera. The original draws a car and casts its shadow only within it.
 inline constexpr float kCarRangeSquared = 250000.0F;
 
-[[nodiscard]] std::vector<std::size_t> DrawsPerSlot(const RacerGrid& racers);
+/// `position` is in engine space. `draws` are the car's own, which give back its index counts.
+struct FarCar {
+    Vector3 position;
+    std::size_t firstDraw = 0;
+    std::span<const render::MeshDraw> draws;
+    float rangeSquared = kCarRangeSquared;
+};
 
 class FarCars {
 public:
-    explicit FarCars(std::vector<std::size_t> drawsPerSlot);
-
     void SetHidden(bool isHidden) { isHidden_ = isHidden; }
     [[nodiscard]] bool IsHidden() const { return isHidden_; }
 
-    /// `meshes` holds every slot's car draws from `firstCar`. The result lasts until the next call.
+    void Clear() { cars_.clear(); }
+    void Add(const FarCar& car) { cars_.push_back(car); }
+
+    /// The first view culls `meshes` itself and later views a copy, kept until their next call.
     [[nodiscard]] std::span<const render::MeshDraw> Cull(std::size_t view, const Vector3& camera,
-                                                         std::span<const sim::EntitySnapshot> poses,
-                                                         std::span<const render::MeshDraw> meshes,
-                                                         std::size_t firstCar);
+                                                         std::vector<render::MeshDraw>& meshes);
 
 private:
-    std::vector<std::size_t> drawsPerSlot_;
+    void Patch(const Vector3& camera, std::span<render::MeshDraw> meshes) const;
+
+    std::vector<FarCar> cars_;
     bool isHidden_ = false;
-    std::array<std::vector<render::MeshDraw>, sim::kMaxPlayers> views_;
+    std::array<std::vector<render::MeshDraw>, sim::kMaxPlayers> copies_;
 };
+
+/// The grid's draws start at `firstDraw` in the scene's meshes, in slot order.
+void AddGridCars(const RacerGrid& racers, std::span<const sim::EntitySnapshot> poses,
+                 std::size_t firstDraw, FarCars& out);
 
 }

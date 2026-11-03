@@ -1,41 +1,44 @@
 #include "app/racer/far_cars.hpp"
 
-#include <utility>
-
 namespace rr::app {
 
-std::vector<std::size_t> DrawsPerSlot(const RacerGrid& racers) {
-    std::vector<std::size_t> counts;
-    counts.reserve(racers.Count());
-    for (std::size_t slot = 0; slot < racers.Count(); ++slot) {
-        counts.push_back(racers.SlotDraws(slot).size());
-    }
-    return counts;
-}
-
-FarCars::FarCars(std::vector<std::size_t> drawsPerSlot) : drawsPerSlot_(std::move(drawsPerSlot)) {}
-
 std::span<const render::MeshDraw> FarCars::Cull(std::size_t view, const Vector3& camera,
-                                                std::span<const sim::EntitySnapshot> poses,
-                                                std::span<const render::MeshDraw> meshes,
-                                                std::size_t firstCar) {
+                                                std::vector<render::MeshDraw>& meshes) {
     if (!isHidden_) {
         return meshes;
     }
-    std::vector<render::MeshDraw>& culled = views_.at(view);
-    culled.assign(meshes.begin(), meshes.end());
-    std::size_t draw = firstCar;
-    for (std::size_t slot = 0; slot < drawsPerSlot_.size() && slot < poses.size(); ++slot) {
-        const Vector3 offset = poses[slot].transform.position - camera;
-        const bool isFar = Dot(offset, offset) > kCarRangeSquared;
-        for (std::size_t end = draw + drawsPerSlot_[slot]; draw < end && draw < culled.size();
+    if (view == 0) {
+        Patch(camera, meshes);
+        return meshes;
+    }
+    std::vector<render::MeshDraw>& copy = copies_.at(view);
+    copy.assign(meshes.begin(), meshes.end());
+    Patch(camera, copy);
+    return copy;
+}
+
+void FarCars::Patch(const Vector3& camera, std::span<render::MeshDraw> meshes) const {
+    for (const FarCar& car : cars_) {
+        const Vector3 offset = car.position - camera;
+        const bool isFar = Dot(offset, offset) > car.rangeSquared;
+        for (std::size_t draw = 0; draw < car.draws.size() && car.firstDraw + draw < meshes.size();
              ++draw) {
-            if (isFar) {
-                culled[draw].indexCount = 0;
-            }
+            meshes[car.firstDraw + draw].indexCount = isFar ? 0 : car.draws[draw].indexCount;
         }
     }
-    return culled;
+}
+
+void AddGridCars(const RacerGrid& racers, std::span<const sim::EntitySnapshot> poses,
+                 std::size_t firstDraw, FarCars& out) {
+    const std::span<const render::MeshDraw> draws = racers.Draws();
+    std::size_t first = 0;
+    for (std::size_t slot = 0; slot < racers.Count() && slot < poses.size(); ++slot) {
+        const std::size_t count = racers.SlotDraws(slot).size();
+        out.Add({.position = poses[slot].transform.position,
+                 .firstDraw = firstDraw + first,
+                 .draws = draws.subspan(first, count)});
+        first += count;
+    }
 }
 
 }

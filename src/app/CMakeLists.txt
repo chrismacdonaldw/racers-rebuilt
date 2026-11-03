@@ -64,6 +64,7 @@ rr_add_module(app
         hud/race_hud.cpp
         hud/race_hud_layer.cpp
         hud/race_hud_values.cpp
+        hud/race_map_view.cpp
         hud/race_results.cpp
         hud/race_time_text.cpp
         hud/text_pool.cpp
