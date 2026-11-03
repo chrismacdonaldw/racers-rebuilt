@@ -132,6 +132,8 @@ Result<void> Application::Run() {
         return std::unexpected(std::move(replay.error()));
     }
     seed_ = replay->Seed();
+    MenuPointer pointer(window_.Handle(), renderer_, LoadMenuCursor(renderer_, vfs_));
+    renderer_.PinTextures();
     Result<std::unique_ptr<overlay::Overlay>> menu = overlay::Overlay::Create(window_, renderer_);
     Result<void> opened = menu.and_then([&](const auto&) { return OpenScene(scene_); });
     if (!opened) {
@@ -140,9 +142,10 @@ Result<void> Application::Run() {
     events_.Observe([&menu](const SDL_Event& event) { (*menu)->HandleEvent(event); });
     platform::Gamepads gamepads;
     InputBindings bindings(settings_);
-    events_.Observe([this, &gamepads, &bindings](const SDL_Event& event) {
+    events_.Observe([this, &gamepads, &bindings, &pointer](const SDL_Event& event) {
         gamepads.Handle(event);
         bindings.Handle(event, frameLoop_.Input());
+        pointer.Handle(event, frameLoop_.Input());
         if (Scene* scene = frameLoop_.Scenes().Top(); scene != nullptr) {
             scene->HandleEvent(event);
         }
@@ -171,16 +174,18 @@ Result<void> Application::Run() {
     });
 
     frameLoop_.SetTickTap(replay->Tap());
-    RunFrames(**menu, music);
+    RunFrames(**menu, music, pointer);
     frameLoop_.SetTickTap(nullptr);
     replay->Finish();
     log::Info("quit requested, shutting down");
     return {};
 }
 
-void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
+void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music,
+                            MenuPointer& pointer) {
     const std::vector<overlay::MenuChoice> scenes = SceneChoices();
-    const std::vector<overlay::MenuChoice> saveImports = SaveImportChoices();
+    const std::vector<overlay::MenuChoice> saveImports =
+        SaveImportChoices(originalInstall_, ProgressFile(), vfs_);
     Nanoseconds lastFrame = platform::Now();
     FrameStats frame;
     SceneMusicFollower sceneMusic;
@@ -206,6 +211,7 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music) {
                             .startupSummary = startupSummary_},
                            scenes, saveImports, racerTools));
         lastFrame = now;
+        pointer.Show(!menu.IsVisible() && shown != nullptr && shown->ShowsPointer());
         frame = frameLoop_.RunFrame(now);
         StoreSceneSettings();
         SaveCapturedFrame(renderer_, settingsFile_.parent_path());
@@ -415,21 +421,6 @@ std::vector<overlay::MenuChoice> Application::SceneChoices() {
             choice(track, std::bind_front(&Application::CreateScene, this, std::optional(track))));
         choices.push_back(choice(std::format("{} race", track),
                                  std::bind_front(&Application::CreateRace, this, track)));
-    }
-    return choices;
-}
-
-std::vector<overlay::MenuChoice> Application::SaveImportChoices() {
-    std::vector<overlay::MenuChoice> choices;
-    for (std::filesystem::path& file : FindOriginalSaves(originalInstall_)) {
-        std::string name = Utf8FromPath(file.parent_path().lexically_relative(originalInstall_));
-        choices.push_back({.name = std::move(name), .choose = [this, file = std::move(file)] {
-                               const Result<bool> imported =
-                                   ImportOriginalSave(file, ProgressFile(), vfs_);
-                               if (!imported) {
-                                   log::Error("{}", imported.error().message);
-                               }
-                           }});
     }
     return choices;
 }

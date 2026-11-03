@@ -8,6 +8,7 @@
 #include "assets/race_catalog.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
+#include "overlay/overlay.hpp"
 #include "settings/progress.hpp"
 #include "settings/racers.hpp"
 
@@ -25,6 +26,11 @@ bool MergeSavedRacers(settings::RacerStore& store, std::span<const assets::Saved
 [[nodiscard]] Result<bool> ImportOriginalSave(const std::filesystem::path& saveFile,
                                               const std::filesystem::path& progressFile,
                                               const assets::Vfs& vfs);
+
+/// One choice per original save, importing it. `vfs` must outlive the choices.
+[[nodiscard]] std::vector<overlay::MenuChoice> SaveImportChoices(
+    const std::filesystem::path& install, const std::filesystem::path& progressFile,
+    const assets::Vfs& vfs);
 
 /// The `Save/<n>/LEGORac1` files under the original's `install` folder, by number.
 [[nodiscard]] std::vector<std::filesystem::path> FindOriginalSaves(

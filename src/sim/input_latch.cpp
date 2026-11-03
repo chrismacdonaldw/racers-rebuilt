@@ -30,6 +30,22 @@ void InputLatch::SetSteerLeftAxis(std::size_t player, std::int8_t value) {
     pending_.players.at(player).steerLeftAxis = value;
 }
 
+void InputLatch::MovePointer(float x, float y, bool isOver) {
+    MenuPointer& pointer = pending_.pointer;
+    pointer.moved = pointer.moved || x != pointer.x || y != pointer.y || isOver != pointer.isOver;
+    pointer.x = x;
+    pointer.y = y;
+    pointer.isOver = isOver;
+}
+
+void InputLatch::PressPointer() {
+    pending_.pointer.pressed = true;
+}
+
+void InputLatch::ReleasePointer() {
+    pending_.pointer.released = true;
+}
+
 void InputLatch::ReleaseAll() {
     for (PlayerInput& input : pending_.players) {
         input.released |= input.held;
@@ -45,6 +61,9 @@ InputFrame InputLatch::TakeFrame() {
         input.released.reset();
     }
     pending_.menuPressed.reset();
+    pending_.pointer.moved = false;
+    pending_.pointer.pressed = false;
+    pending_.pointer.released = false;
     return frame;
 }
 

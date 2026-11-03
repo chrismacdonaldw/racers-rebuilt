@@ -46,6 +46,9 @@ public:
     /// Read every frame, so it can change as the scene runs.
     [[nodiscard]] virtual SceneMusic Music() const { return {}; }
 
+    /// Read every frame. The game's cursor then stands in for the system's.
+    [[nodiscard]] virtual bool ShowsPointer() const { return false; }
+
     /// Scene time per real time, read every frame. Ticks stay kSimTick long; more of them run.
     [[nodiscard]] virtual double TimeScale() const { return 1.0; }
 

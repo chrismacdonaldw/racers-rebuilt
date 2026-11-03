@@ -225,6 +225,9 @@ void Renderer::GatherViews(std::span<const RenderView> views) {
             FirstAtMost(view.sprites, kMaxSprites - sprites_.size());
         sprites_.insert(sprites_.end(), sprites.begin(), sprites.end());
     }
+    if (pointer_ && sprites_.size() < kMaxSprites) {
+        sprites_.push_back(*pointer_);
+    }
     BatchSprites(sprites_, spriteVertices_, spriteBatches_);
 }
 

@@ -38,6 +38,18 @@ inline constexpr std::size_t kMenuActionCount = static_cast<std::size_t>(MenuAct
 
 inline constexpr std::size_t kMaxPlayers = 2;
 
+/// On the UI canvas. `pressed` and `released` cover every mouse button since the previous tick.
+struct MenuPointer {
+    float x = 0.0F;
+    float y = 0.0F;
+    bool isOver = false;
+    bool moved = false;
+    bool pressed = false;
+    bool released = false;
+
+    friend bool operator==(const MenuPointer&, const MenuPointer&) = default;
+};
+
 /// `pressed` and `released` cover everything since the previous tick.
 struct PlayerInput {
     std::bitset<kActionCount> held;
@@ -60,6 +72,7 @@ struct PlayerInput {
 struct InputFrame {
     std::array<PlayerInput, kMaxPlayers> players;
     std::bitset<kMenuActionCount> menuPressed;
+    MenuPointer pointer;
 
     [[nodiscard]] bool WasPressed(MenuAction action) const {
         return menuPressed.test(Index(action));

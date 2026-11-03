@@ -200,4 +200,22 @@ std::vector<std::filesystem::path> FindOriginalSaves(const std::filesystem::path
     return files;
 }
 
+std::vector<overlay::MenuChoice> SaveImportChoices(const std::filesystem::path& install,
+                                                   const std::filesystem::path& progressFile,
+                                                   const assets::Vfs& vfs) {
+    std::vector<overlay::MenuChoice> choices;
+    for (std::filesystem::path& file : FindOriginalSaves(install)) {
+        std::string name = Utf8FromPath(file.parent_path().lexically_relative(install));
+        // NOLINTNEXTLINE(bugprone-exception-escape)
+        auto import = [&vfs, progressFile, file = std::move(file)] {
+            const Result<bool> imported = ImportOriginalSave(file, progressFile, vfs);
+            if (!imported) {
+                log::Error("{}", imported.error().message);
+            }
+        };
+        choices.push_back({.name = std::move(name), .choose = std::move(import)});
+    }
+    return choices;
+}
+
 }
