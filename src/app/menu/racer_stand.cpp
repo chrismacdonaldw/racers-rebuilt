@@ -16,8 +16,6 @@
 namespace rr::app {
 namespace {
 
-constexpr Vector3 kLightTravel{.x = -1.0F, .y = -1.0F, .z = -1.0F};
-constexpr float kAmbient = 120.0F / 255.0F;
 constexpr std::size_t kLoaderWorkers = 2;
 constexpr std::uint64_t kIdleSeed = 0x5EED;
 
@@ -97,7 +95,7 @@ RacerStand::RacerStand(const assets::Vfs& vfs, render::Renderer& renderer, Loadi
       jointed_(model_.animatedModels, scene_->sources),
       random_(kIdleSeed) {
     entities_.Play(scene_->turntable, 0, true);
-    light_.front() = {.direction = ToEngine(Normalized(kLightTravel, kLightTravel))};
+    light_.front() = MenuSceneLight();
 }
 
 void RacerStand::Show(const settings::Racer& racer) {
@@ -160,11 +158,10 @@ render::RenderView RacerStand::Render(std::span<const sim::EntityClock> clocks,
         AppendSpan(jointed_, jointed_.SpanOf(entity), draws_);
     }
     DrawMenuFrameBorder(framing_.look, framing_.frame, sprites);
-    return {
-        .camera = scene_->camera,
-        .lighting = {.lights = light_, .ambient = {.r = kAmbient, .g = kAmbient, .b = kAmbient}},
-        .meshes = draws_,
-        .viewport = viewport};
+    return {.camera = scene_->camera,
+            .lighting = {.lights = light_, .ambient = kMenuSceneAmbient},
+            .meshes = draws_,
+            .viewport = viewport};
 }
 
 const RacerStand::Built& RacerStand::Build(const settings::Racer& racer) {

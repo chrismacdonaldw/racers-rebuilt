@@ -31,26 +31,35 @@ Result<std::optional<JointedModel>> UploadCar(render::Renderer& renderer, const 
 
 }
 
-Result<StandRacer> BuildStandRacer(render::Renderer& renderer, const assets::Vfs& vfs,
-                                   assets::TrackLoader& loader, const settings::Racer& racer) {
-    Result<AwardDriver> driver = LoadAwardDriver(vfs, loader, racer.look);
+Result<StandRacer> BuildStandDriver(render::Renderer& renderer, const assets::Vfs& vfs,
+                                    assets::TrackLoader& loader, const assets::DriverLook& look) {
+    Result<AwardDriver> driver = LoadAwardDriver(vfs, loader, look);
     Result<assets::SkeletonAsset> skeleton = driver.and_then([&](const AwardDriver&) {
         return LoadDriverParts(vfs).and_then([&](const assets::DriverPartCatalog& parts) {
-            return LoadMenuMinifigSkeleton(vfs, parts, racer.look);
+            return LoadMenuMinifigSkeleton(vfs, parts, look);
         });
     });
     Result<JointedModel> minifig = skeleton.and_then([&](const assets::SkeletonAsset&) {
         return Upload(renderer, driver->minifig, driver->looks);
     });
-    Result<std::optional<JointedModel>> car = minifig.and_then(
-        [&](const JointedModel&) { return UploadCar(renderer, vfs, loader, racer); });
-    if (!car) {
-        return std::unexpected(std::move(car.error()));
+    if (!minifig) {
+        return std::unexpected(std::move(minifig.error()));
     }
     return StandRacer{.skeleton = std::move(*skeleton),
                       .scale = driver->minifig.scale,
-                      .driver = std::move(*minifig),
-                      .car = std::move(*car)};
+                      .driver = std::move(*minifig)};
+}
+
+Result<StandRacer> BuildStandRacer(render::Renderer& renderer, const assets::Vfs& vfs,
+                                   assets::TrackLoader& loader, const settings::Racer& racer) {
+    return BuildStandDriver(renderer, vfs, loader, racer.look)
+        .and_then([&](StandRacer stand) -> Result<StandRacer> {
+            return UploadCar(renderer, vfs, loader, racer)
+                .transform([&](std::optional<JointedModel> car) {
+                    stand.car = std::move(car);
+                    return std::move(stand);
+                });
+        });
 }
 
 }

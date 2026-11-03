@@ -30,6 +30,7 @@ constexpr Vector3 kCarSpot{.x = -11.52F, .y = -6.767F, .z = 0.0F};
 constexpr Vector3 kDriverSpot{.x = -0.938F, .y = -0.898F, .z = 1.487F};
 constexpr Vector3 kDriverFacing{.x = 0.963631F, .y = -0.267238F, .z = 0.0F};
 constexpr Vector3 kUp{.z = 1.0F};
+constexpr Vector3 kLightTravel{.x = -1.0F, .y = -1.0F, .z = -1.0F};
 
 Quaternion Facing(const Vector3& forward, const Vector3& up) {
     return sim::ToQuaternion(sim::OrthonormalBasis(forward, up));
@@ -53,13 +54,7 @@ Result<render::Camera> StandCamera(const assets::TrackAssets& assets) {
     if (assets.worlds.empty() || assets.worlds.front()->cameras.empty()) {
         return Fail(ErrorCode::NotFound, std::format("{} has no camera", kFolder));
     }
-    const assets::WorldCamera& camera = assets.worlds.front()->cameras.front();
-    const Vector3 forward = camera.target ? *camera.target - camera.position : camera.forward;
-    return render::Camera{.transform = ViewToEngine({.position = camera.position,
-                                                     .rotation = Facing(forward, camera.up)}),
-                          .verticalFovDegrees = camera.fovDegrees,
-                          .nearPlane = camera.nearClip,
-                          .farPlane = camera.farClip};
+    return MenuSceneCamera(assets.worlds.front()->cameras.front());
 }
 
 Result<std::vector<std::size_t>> PartsNamed(const assets::AnimationAsset& animation,
@@ -105,6 +100,19 @@ Result<void> AddDriver(StandScene& scene, assets::AnimationAsset animations) {
     return {};
 }
 
+}
+
+render::DirectionalLight MenuSceneLight() {
+    return {.direction = ToEngine(Normalized(kLightTravel, kLightTravel))};
+}
+
+render::Camera MenuSceneCamera(const assets::WorldCamera& camera) {
+    const Vector3 forward = camera.target ? *camera.target - camera.position : camera.forward;
+    return {.transform =
+                ViewToEngine({.position = camera.position, .rotation = Facing(forward, camera.up)}),
+            .verticalFovDegrees = camera.fovDegrees,
+            .nearPlane = camera.nearClip,
+            .farPlane = camera.farClip};
 }
 
 Result<const assets::MenuElement*> FindShowcase(const MenuFiles& files, std::string_view screen) {

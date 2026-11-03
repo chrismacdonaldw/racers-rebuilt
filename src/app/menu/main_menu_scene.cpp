@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <string_view>
 #include <utility>
 
+#include "app/frame_loop.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_focus.hpp"
 #include "app/menu/menu_scenes.hpp"
@@ -21,6 +23,7 @@ constexpr std::size_t kYesLine = 0x73;
 constexpr std::size_t kNoLine = 0x74;
 constexpr std::size_t kQuitQuestionLine = 0x75;
 constexpr std::string_view kQuitButton = "quit";
+constexpr std::int32_t kGlassTapSound = 29;
 
 struct ButtonTarget {
     std::string_view button;
@@ -59,20 +62,33 @@ std::optional<DialogLook> MainMenuDialogLook(render::Renderer& renderer, const a
     return std::move(*look);
 }
 
+std::unique_ptr<MenuChampion> LoadChampion(render::Renderer& renderer, const assets::Vfs& vfs,
+                                           const MenuFiles& files, std::string_view champion) {
+    Result<std::unique_ptr<MenuChampion>> loaded =
+        MenuChampion::Load(renderer, vfs, files, champion);
+    if (!loaded) {
+        log::Warn("{}, the main menu shows no champion", loaded.error().message);
+        return nullptr;
+    }
+    return std::move(*loaded);
+}
+
 }
 
 Result<std::unique_ptr<MainMenuScene>> MainMenuScene::Create(render::Renderer& renderer,
                                                              const assets::Vfs& vfs,
                                                              MenuSounds sounds,
+                                                             std::string_view champion,
                                                              bool showsUnlockNotice) {
-    Result<MenuPage> page = ReadMenuFiles(vfs, kScreen).and_then([&](const MenuFiles& files) {
-        return BuildMenuPage(renderer, vfs, files, kButtonLines);
-    });
+    Result<MenuFiles> files = ReadMenuFiles(vfs, kScreen);
+    Result<MenuPage> page = files.and_then(
+        [&](const MenuFiles& read) { return BuildMenuPage(renderer, vfs, read, kButtonLines); });
     if (!page) {
         return std::unexpected(std::move(page.error()));
     }
     auto scene = std::unique_ptr<MainMenuScene>(new MainMenuScene(
-        renderer, vfs, sounds, std::move(*page), MainMenuDialogLook(renderer, vfs)));
+        renderer, vfs, sounds, std::move(*page), LoadChampion(renderer, vfs, *files, champion),
+        MainMenuDialogLook(renderer, vfs)));
     if (showsUnlockNotice) {
         scene->OpenDialog(kUnlockNoticeLine, {{.line = kOkLine}}, {});
     }
@@ -91,6 +107,9 @@ std::optional<std::string> MainMenuScene::TakeNextScene() {
 }
 
 void MainMenuScene::Tick(const sim::InputFrame& input) {
+    if (champion_ && champion_->Tick(kSimTick)) {
+        sounds_.Play(kGlassTapSound);
+    }
     if (dialog_) {
         TickDialog(*dialog_, input);
         return;
@@ -113,29 +132,42 @@ void MainMenuScene::Snapshot(sim::RenderSnapshot& out) const {
     out.entities.clear();
     out.camera = {};
     out.simStateHash = focus_;
+    out.entityClocks.clear();
+    if (champion_) {
+        out.entityClocks.assign(champion_->Clocks().begin(), champion_->Clocks().end());
+    }
 }
 
-void MainMenuScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpolated) {
+void MainMenuScene::Render(const sim::RenderSnapshot& interpolated) {
     sprites_.clear();
-    DrawPictures(page_.pictures, sprites_);
+    render::RenderView view;
+    if (champion_) {
+        DrawPicturesAround(page_.pictures, champion_->Bounds(), sprites_);
+        view = champion_->Render(interpolated.entityClocks, page_.pictures);
+    } else {
+        DrawPictures(page_.pictures, sprites_);
+    }
     for (std::size_t i = 0; i < page_.buttons.size(); ++i) {
         DrawButton(page_.buttons[i], i == focus_ ? kFocusedState : kNormalState);
     }
     if (dialog_) {
         dialog_->Draw(text_, sprites_);
     }
-    Result<void> drawn = renderer_->Draw({.sprites = sprites_});
+    view.sprites = sprites_;
+    Result<void> drawn = renderer_->Draw(view);
     if (!drawn) {
         log::Error("{}", drawn.error().message);
     }
 }
 
 MainMenuScene::MainMenuScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
-                             MenuPage page, std::optional<DialogLook> dialogLook)
+                             MenuPage page, std::unique_ptr<MenuChampion> champion,
+                             std::optional<DialogLook> dialogLook)
     : renderer_(&renderer),
       vfs_(&vfs),
       sounds_(sounds),
       page_(std::move(page)),
+      champion_(std::move(champion)),
       dialogLook_(std::move(dialogLook)) {
     for (const MenuButton& button : page_.buttons) {
         buttonBounds_.push_back(button.bounds);
