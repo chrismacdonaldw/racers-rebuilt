@@ -3,7 +3,9 @@
 #include <filesystem>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
+#include <vector>
 
 #include "app/extensions.hpp"
 #include "app/startup_timer.hpp"
@@ -26,7 +28,11 @@ struct GameBoot {
     platform::SdlContext sdl;
     assets::Vfs vfs;
     std::optional<settings::Racer> playerRacer;
+    std::vector<std::string> relaunch;
 };
+
+/// The player's own install, from `--game-path` or `game.path`, not the extracted copy.
+[[nodiscard]] std::filesystem::path OriginalInstall(const GameBoot& boot);
 
 /// `args` excludes the program name. `--racer` must name a racer in `racers.toml` or the game.
 [[nodiscard]] Result<GameBoot> BootGame(std::span<const std::string_view> args);

@@ -66,11 +66,6 @@ constexpr int kWindowWidthPx = 1280;
 constexpr int kWindowHeightPx = 720;
 constexpr std::string_view kMusicFolderName = "music";
 
-std::filesystem::path OriginalInstall(const GameBoot& boot) {
-    return PathFromUtf8(
-        boot.commandLine.gamePath.value_or(std::string(boot.settings.Get(kGamePath))));
-}
-
 }
 
 Result<Application> Application::Create(GameBoot boot) {
@@ -119,7 +114,8 @@ Result<Application> Application::Create(GameBoot boot) {
                         .recordFile = boot.commandLine.recordFile.transform(PathFromUtf8),
                         .replayFile = boot.commandLine.replayFile.transform(PathFromUtf8),
                         .startupSummary = std::move(startupSummary),
-                        .playerRacer = std::move(boot.playerRacer)});
+                        .playerRacer = std::move(boot.playerRacer),
+                        .relaunch = std::move(boot.relaunch)});
 }
 
 Result<void> Application::Run() {
@@ -212,7 +208,8 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music,
                            {.frameTime = std::chrono::duration_cast<FloatSeconds>(now - lastFrame),
                             .ticksPerFrame = frame.tickCount,
                             .startupSummary = startupSummary_},
-                           scenes, saveImports, racerTools));
+                           scenes, saveImports, racerTools,
+                           restart_.Choice(settings_, isQuitting_)));
         lastFrame = now;
         const bool pointsAtScene = !menu.IsVisible() && shown != nullptr;
         pointer.Show(pointsAtScene && shown->ShowsPointer(),
@@ -244,7 +241,8 @@ Application::Application(Parts parts)
       recordFile_(std::move(parts.recordFile)),
       replayFile_(std::move(parts.replayFile)),
       startupSummary_(std::move(parts.startupSummary)),
-      playerRacer_(std::move(parts.playerRacer)) {}
+      playerRacer_(std::move(parts.playerRacer)),
+      restart_(std::move(parts.relaunch), settings_) {}
 
 Result<std::unique_ptr<Scene>> Application::CreateScene(
     const std::optional<std::string>& requested) {

@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -55,7 +56,8 @@ public:
                                                  const DeveloperStats& stats,
                                                  std::span<const MenuChoice> scenes,
                                                  std::span<const MenuChoice> saveImports,
-                                                 const RacerTools& racerTools);
+                                                 const RacerTools& racerTools,
+                                                 const std::optional<MenuChoice>& restart);
 
     void Prepare(SDL_GPUCommandBuffer* commands) override;
     void Draw(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass) override;

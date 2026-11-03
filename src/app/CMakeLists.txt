@@ -174,6 +174,7 @@ rr_add_module(app
         race_scene_name.cpp
         race_scene_parts.cpp
         race_step.cpp
+        restart.cpp
         racer_effect_tools.cpp
         racer/animation_player.cpp
         racer/car_particles.cpp
