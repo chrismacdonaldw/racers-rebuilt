@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 namespace rr::app {
@@ -36,6 +37,31 @@ TEST_CASE("an empty surface gathers nothing") {
     surface.Gather({.maxX = 10.0F, .maxZ = 10.0F}, found);
 
     CHECK(found.empty());
+}
+
+TEST_CASE("triangles with non-finite corners are left out of the surface") {
+    constexpr float kInfinity = std::numeric_limits<float>::infinity();
+    const DecalSurface surface(std::vector<DecalTriangle>{
+        {Vector3{.x = 0.0F, .z = 0.0F}, Vector3{.x = 100.0F, .z = 0.0F},
+         Vector3{.x = 0.0F, .z = 100.0F}},
+        {Vector3{.x = std::numeric_limits<float>::quiet_NaN()}, Vector3{.x = 1.0F},
+         Vector3{.z = 1.0F}},
+        {Vector3{.x = kInfinity}, Vector3{.x = 1.0F}, Vector3{.z = 1.0F}}});
+    std::vector<std::uint32_t> found;
+
+    surface.Gather({.minX = -kInfinity, .minZ = -kInfinity, .maxX = kInfinity, .maxZ = kInfinity},
+                   found);
+
+    REQUIRE(surface.Triangles().size() == 1);
+    CHECK(found == std::vector<std::uint32_t>{0});
+}
+
+TEST_CASE("a surface too wide to measure takes no triangles") {
+    constexpr float kFar = std::numeric_limits<float>::max();
+    const DecalSurface surface(
+        std::vector<DecalTriangle>{{Vector3{.x = -kFar}, Vector3{.x = kFar}, Vector3{.z = 1.0F}}});
+
+    CHECK(surface.Triangles().empty());
 }
 
 }

@@ -4,6 +4,7 @@
 #include <cmath>
 #include <numeric>
 #include <utility>
+#include <vector>
 
 namespace rr::app {
 namespace {
@@ -28,9 +29,15 @@ bool Overlaps(const GroundArea& a, const GroundArea& b) {
     return a.minX <= b.maxX && b.minX <= a.maxX && a.minZ <= b.maxZ && b.minZ <= a.maxZ;
 }
 
+bool IsFinite(const DecalTriangle& triangle) {
+    return std::ranges::all_of(triangle, [](const Vector3& corner) {
+        return std::isfinite(corner.x) && std::isfinite(corner.y) && std::isfinite(corner.z);
+    });
+}
+
 std::size_t CellOf(float value, float min, float cellSize, std::size_t count) {
     const float cell = std::floor((value - min) / cellSize);
-    return std::min(static_cast<std::size_t>(std::max(cell, 0.0F)), count - 1);
+    return static_cast<std::size_t>(std::clamp(cell, 0.0F, static_cast<float>(count - 1)));
 }
 
 std::size_t CellCount(float span, float cellSize) {
@@ -41,6 +48,7 @@ std::size_t CellCount(float span, float cellSize) {
 
 DecalSurface::DecalSurface(std::vector<DecalTriangle> triangles)
     : triangles_(std::move(triangles)) {
+    std::erase_if(triangles_, [](const DecalTriangle& triangle) { return !IsFinite(triangle); });
     if (triangles_.empty()) {
         return;
     }
@@ -50,6 +58,10 @@ DecalSurface::DecalSurface(std::vector<DecalTriangle> triangles)
     }
     const float width = bounds_.maxX - bounds_.minX;
     const float depth = bounds_.maxZ - bounds_.minZ;
+    if (!std::isfinite(width) || !std::isfinite(depth)) {
+        triangles_.clear();
+        return;
+    }
     cellSize_ = std::max(kMinCellSize, std::max(width, depth) / kMaxCellsPerSide);
     columns_ = CellCount(width, cellSize_);
     rows_ = CellCount(depth, cellSize_);
