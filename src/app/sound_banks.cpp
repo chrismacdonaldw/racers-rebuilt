@@ -8,12 +8,12 @@
 
 #include "assets/game_path.hpp"
 #include "assets/sound_list.hpp"
+#include "assets/track_loader.hpp"
 
 namespace rr::app {
 namespace {
 
-constexpr std::size_t kTrackSuffixLength = 4;
-constexpr std::string_view kTestTrack = "TEST";
+constexpr std::string_view kAmbientPrefix = "LEV";
 
 Result<assets::SoundList> ReadList(const assets::Vfs& vfs, std::string_view path) {
     return vfs.Read(path).and_then(
@@ -62,11 +62,9 @@ Result<std::span<const audio::SoundId>> SoundBanks::Load(audio::Mixer& mixer,
 
 std::string AmbientBankPath(std::string_view track) {
     const std::string upper = assets::ToUpperAscii(track);
+    const std::string_view stem = assets::RaceTrackStem(upper);
     const std::string bank =
-        upper == kTestTrack || upper.size() < kTrackSuffixLength
-            ? upper
-            : std::format("LEV{}",
-                          std::string_view(upper).substr(upper.size() - kTrackSuffixLength));
+        stem.size() == upper.size() ? upper : std::format("{}{}", kAmbientPrefix, stem);
     return std::format("GAMEDATA/{}/{}.SBK", upper, bank);
 }
 

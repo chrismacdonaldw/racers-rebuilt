@@ -18,6 +18,10 @@ namespace {
 
 constexpr std::string_view kCommonFolder = "GAMEDATA/COMMON";
 constexpr std::string_view kMirroredKey = "|mirrored";
+constexpr std::string_view kRaceFolder = "GAMEDATA";
+constexpr std::string_view kStartGrid = "STARTPOS.SPB";
+constexpr std::string_view kCheckpoints = "RACE.CPB";
+constexpr std::string_view kRaceFolderPrefix = "RACE";
 
 using NameSet = std::set<std::string, std::less<>>;
 
@@ -403,13 +407,22 @@ void TrackLoader::Prune() {
 
 std::vector<std::string> ListRaceTracks(const Vfs& vfs) {
     std::vector<std::string> tracks;
-    for (VfsEntry& entry : vfs.List("GAMEDATA").value_or(std::vector<VfsEntry>{})) {
-        if (entry.kind == EntryKind::Directory && entry.name.starts_with("RACEC")) {
-            tracks.push_back(std::move(entry.name));
+    for (VfsEntry& entry : vfs.List(kRaceFolder).value_or(std::vector<VfsEntry>{})) {
+        if (entry.kind != EntryKind::Directory) {
+            continue;
+        }
+        const std::vector<VfsEntry> files = vfs.List(std::format("{}/{}", kRaceFolder, entry.name))
+                                                .value_or(std::vector<VfsEntry>{});
+        if (HasFile(files, kStartGrid) && HasFile(files, kCheckpoints)) {
+            tracks.push_back(ToUpperAscii(entry.name));
         }
     }
     std::ranges::sort(tracks);
     return tracks;
+}
+
+std::string_view RaceTrackStem(std::string_view track) {
+    return track.starts_with(kRaceFolderPrefix) ? track.substr(kRaceFolderPrefix.size()) : track;
 }
 
 void MergeTrackAssets(TrackAssets& into, TrackAssets from) {
