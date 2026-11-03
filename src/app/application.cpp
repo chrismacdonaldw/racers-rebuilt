@@ -21,6 +21,7 @@
 #include "app/cutscene/cutscene_screen.hpp"
 #include "app/enhancement_presets.hpp"
 #include "app/extensions.hpp"
+#include "app/fix_settings.hpp"
 #include "app/game_settings.hpp"
 #include "app/gameplay_fingerprint.hpp"
 #include "app/input_bindings.hpp"
@@ -327,7 +328,8 @@ Result<std::unique_ptr<Scene>> Application::CreateWorldScene(std::string_view sc
     if (IsCutsceneScene(scene)) {
         return CutsceneScene::Create(
                    {.renderer = &renderer_, .mixer = &mixer_, .banks = &soundBanks_}, vfs_, loader,
-                   SelectedLanguage(settings_), scene, AwardRacer())
+                   SelectedLanguage(settings_), scene,
+                   {.playerRacer = AwardRacer(), .carBody = CarBodyFrom(settings_)})
             .transform(ToScene<CutsceneScene>);
     }
     return CreateViewerScene(renderer_, vfs_, loader, scene, started);
@@ -386,6 +388,7 @@ Result<std::unique_ptr<RaceScene>> Application::LoadRace(RaceSceneSetup setup,
     }
     setup.isMirrored = LoadsMirrored(setup);
     setup.cheats = RaceCheats(setup.cheats, cheats_);
+    setup.carBody = CarBodyFrom(settings_);
     const std::string language = SelectedLanguage(settings_);
     const std::unique_ptr<RaceLoadingScreen> loading =
         OpenLoadingScreen(renderer_, vfs_, setup.track, language);

@@ -22,8 +22,8 @@ Result<JointedModel> Upload(render::Renderer& renderer, const assets::GeometryAs
 Result<std::optional<JointedModel>> BuildStandCar(render::Renderer& renderer,
                                                   const assets::Vfs& vfs,
                                                   assets::TrackLoader& loader,
-                                                  const settings::Racer& racer) {
-    return LoadAwardCar(vfs, loader, racer)
+                                                  const settings::Racer& racer, CarBody carBody) {
+    return LoadAwardCar(vfs, loader, racer, carBody)
         .and_then([&](const std::optional<AwardCar>& car) -> Result<std::optional<JointedModel>> {
             if (!car) {
                 return std::nullopt;
@@ -52,10 +52,11 @@ Result<StandRacer> BuildStandDriver(render::Renderer& renderer, const assets::Vf
 }
 
 Result<StandRacer> BuildStandRacer(render::Renderer& renderer, const assets::Vfs& vfs,
-                                   assets::TrackLoader& loader, const settings::Racer& racer) {
+                                   assets::TrackLoader& loader, const settings::Racer& racer,
+                                   CarBody carBody) {
     return BuildStandDriver(renderer, vfs, loader, racer.look)
         .and_then([&](StandRacer stand) -> Result<StandRacer> {
-            return BuildStandCar(renderer, vfs, loader, racer)
+            return BuildStandCar(renderer, vfs, loader, racer, carBody)
                 .transform([&](std::optional<JointedModel> car) {
                     stand.car = std::move(car);
                     return std::move(stand);

@@ -6,6 +6,7 @@
 #include <string_view>
 #include <utility>
 
+#include "app/fix_settings.hpp"
 #include "app/frame_loop.hpp"
 #include "app/menu/garage_racers.hpp"
 #include "app/menu/menu_files.hpp"
@@ -84,6 +85,9 @@ void GarageScene::ApplySettings(const settings::Registry& settings) {
         dialog_->Measure(text_);
     }
     rules_ = RaceRulesFrom(settings);
+    if (views_.stand && views_.stand->UseCarBody(CarBodyFrom(settings))) {
+        ShowRacer();
+    }
 }
 
 std::optional<std::string> GarageScene::TakeNextScene() {

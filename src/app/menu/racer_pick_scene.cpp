@@ -7,6 +7,7 @@
 #include <string_view>
 #include <utility>
 
+#include "app/fix_settings.hpp"
 #include "app/frame_loop.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_page.hpp"
@@ -101,6 +102,9 @@ Result<std::unique_ptr<RacerPickScene>> RacerPickScene::Create(render::Renderer&
 
 void RacerPickScene::ApplySettings(const settings::Registry& settings) {
     static_cast<void>(text_.Apply(*renderer_, *vfs_, settings));
+    if (stand_ && stand_->UseCarBody(CarBodyFrom(settings))) {
+        ShowPicked();
+    }
 }
 
 std::optional<std::string> RacerPickScene::TakeNextScene() {

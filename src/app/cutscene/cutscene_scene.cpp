@@ -38,11 +38,11 @@ Result<CutscenePlay> ViewerPlay(const assets::Vfs& vfs, std::string_view scene,
 
 Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(
     const RaceOutputs& outputs, const assets::Vfs& vfs, assets::TrackLoader& loader,
-    std::string_view language, std::string_view scene,
-    const std::optional<settings::Racer>& playerRacer) {
-    return (IsCutsceneScreen(scene) ? ScreenPlay(vfs, scene, playerRacer)
-                                    : ViewerPlay(vfs, scene, playerRacer))
+    std::string_view language, std::string_view scene, const AwardCast& cast) {
+    return (IsCutsceneScreen(scene) ? ScreenPlay(vfs, scene, cast.playerRacer)
+                                    : ViewerPlay(vfs, scene, cast.playerRacer))
         .and_then([&](CutscenePlay play) {
+            play.carBody = cast.carBody;
             return CutsceneView::Create(outputs, vfs, loader, language, std::move(play));
         })
         .transform([&](std::unique_ptr<CutsceneView> view) {

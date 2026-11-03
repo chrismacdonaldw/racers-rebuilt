@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "app/racer/champion_car.hpp"
 #include "app/scene.hpp"
 #include "render/render_view.hpp"
 #include "settings/racers.hpp"
@@ -23,7 +24,15 @@ struct CutscenePlay {
     std::string driver;
     std::optional<settings::Racer> playerRacer;
     bool showsChampionCar = false;
+    CarBody carBody = CarBody::Bricks;
     std::vector<std::string> hiddenTexts;
+};
+
+/// Who replaces `guy1` and `carbody` when a screen shows the player's racer.
+// NOLINTNEXTLINE(bugprone-exception-escape)
+struct AwardCast {
+    std::optional<settings::Racer> playerRacer;
+    CarBody carBody = CarBody::Bricks;
 };
 
 }

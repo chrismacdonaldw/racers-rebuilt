@@ -33,8 +33,7 @@ class CutsceneScene final : public Scene {
 public:
     [[nodiscard]] static Result<std::unique_ptr<CutsceneScene>> Create(
         const RaceOutputs& outputs, const assets::Vfs& vfs, assets::TrackLoader& loader,
-        std::string_view language, std::string_view scene,
-        const std::optional<settings::Racer>& playerRacer);
+        std::string_view language, std::string_view scene, const AwardCast& cast);
 
     [[nodiscard]] SceneMusic Music() const override { return view_->Play().music; }
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;

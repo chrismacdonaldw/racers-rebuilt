@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include "app/cutscene/cutscene_play.hpp"
+#include "app/racer/champion_car.hpp"
 #include "assets/chassis_database.hpp"
 #include "assets/geometry_asset.hpp"
 #include "assets/track_loader.hpp"
@@ -23,10 +24,12 @@ struct AwardCar {
 [[nodiscard]] Result<std::optional<settings::Racer>> AwardCarRacer(const assets::Vfs& vfs,
                                                                    const CutscenePlay& play);
 
-/// The menu car on its `PIECEDB` chassis frozen at rest, or none when the car has no pieces.
+/// The menu car on its `PIECEDB` chassis frozen at rest, or none when the car has no pieces. A
+/// champion's body takes the car's place.
 [[nodiscard]] Result<std::optional<AwardCar>> LoadAwardCar(const assets::Vfs& vfs,
                                                            assets::TrackLoader& loader,
-                                                           const settings::Racer& racer);
+                                                           const settings::Racer& racer,
+                                                           CarBody carBody = CarBody::Bricks);
 
 [[nodiscard]] Result<assets::ChassisEntry> FindMenuChassis(const assets::Vfs& vfs,
                                                            std::string_view name);

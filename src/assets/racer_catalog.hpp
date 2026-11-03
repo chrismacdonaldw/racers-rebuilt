@@ -30,6 +30,9 @@ public:
 
     [[nodiscard]] Result<ChassisEntry> FindChassis(std::string_view name) const;
 
+    /// The first champion whose car sits on `chassis`, matched in any case.
+    [[nodiscard]] Result<ChampionEntry> FindChampionOn(std::string_view chassis) const;
+
 private:
     std::vector<DriverEntry> drivers_;
     std::vector<ChampionEntry> champions_;

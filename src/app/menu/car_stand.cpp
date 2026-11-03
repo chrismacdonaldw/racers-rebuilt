@@ -85,7 +85,7 @@ void CarStand::ShowCar(const settings::Racer& racer) {
     }
     Result<assets::ChassisEntry> chassis = FindMenuChassis(*vfs_, racer.chassis);
     Result<std::optional<JointedModel>> model = chassis.and_then([&](const assets::ChassisEntry&) {
-        return BuildStandCar(*renderer_, *vfs_, *loading_.loader, racer);
+        return BuildStandCar(*renderer_, *vfs_, *loading_.loader, racer, CarBody::Bricks);
     });
     shown_.reset();
     if (!model || !*model) {

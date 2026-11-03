@@ -106,6 +106,24 @@ TEST_CASE("a retail champion's car loads on its menu chassis at rest") {
     CHECK(IsFrozenAndDressed(**car));
 }
 
+TEST_CASE("King Kahuka's quick build shows his body on the menu chassis") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    assets::LoaderPool pool(2);
+    assets::TrackLoader loader(*vfs, pool);
+    const std::optional<settings::Racer> racer = ChampionCar(*vfs, "KK");
+    REQUIRE(racer.has_value());
+    const Result<std::optional<AwardCar>> loaded =
+        LoadAwardCar(*vfs, loader, *racer, CarBody::Champion);
+    REQUIRE_MESSAGE(loaded.has_value(), loaded.error().message);
+    const AwardCar car = loaded->value_or(AwardCar{});
+    const bool isKingKahukas = std::ranges::contains(car.model.materials, std::string("kk_car"));
+    CHECK(IsFrozenAndDressed(car));
+    CHECK((isKingKahukas && car.model.scale == 1.0F));
+}
+
 TEST_CASE("a racer without pieces keeps the stand-in car") {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
