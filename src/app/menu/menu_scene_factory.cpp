@@ -5,6 +5,7 @@
 
 #include "app/circuit_awards.hpp"
 #include "app/menu/controls_scene.hpp"
+#include "app/menu/edit_driver_scene.hpp"
 #include "app/menu/garage_scene.hpp"
 #include "app/menu/language_scene.hpp"
 #include "app/menu/menu_scenes.hpp"
@@ -49,8 +50,18 @@ std::optional<Result<std::unique_ptr<Scene>>> CreateMenuScene(const MenuScenePar
         }
     }
     if (scene == kGarageScene) {
-        return GarageScene::Create(renderer, vfs, sounds(), parts.racersFile)
+        return GarageScene::Create(renderer, vfs, sounds(), parts.racersFile, 0)
             .transform(ToScene<GarageScene>);
+    }
+    if (const std::optional<std::size_t> racer = SceneRacer(scene, kGarageScene)) {
+        return GarageScene::Create(renderer, vfs, sounds(), parts.racersFile, *racer)
+            .transform(ToScene<GarageScene>);
+    }
+    if (const std::optional<std::size_t> racer = SceneRacer(scene, kEditDriverScene)) {
+        return EditDriverScene::Create(renderer, vfs, sounds(),
+                                       {.racers = parts.racersFile, .progress = parts.progressFile},
+                                       *racer)
+            .transform(ToScene<EditDriverScene>);
     }
     if (scene == kLanguageScene) {
         return LanguageScene::Create(renderer, vfs, sounds()).transform(ToScene<LanguageScene>);

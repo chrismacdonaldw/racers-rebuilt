@@ -25,10 +25,10 @@ namespace rr::app {
 /// The player's racers. NEW, COPY and DELETE save the racers file at once, unless it won't load.
 class GarageScene final : public Scene {
 public:
-    /// `renderer` and `vfs` must outlive the scene.
+    /// `renderer` and `vfs` must outlive the scene. It opens on `racer` when there's one.
     [[nodiscard]] static Result<std::unique_ptr<GarageScene>> Create(
         render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
-        std::filesystem::path racersFile);
+        std::filesystem::path racersFile, std::size_t racer);
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
@@ -43,6 +43,7 @@ private:
         std::filesystem::path file;
         bool isLoaded = false;
         settings::RacerStore store;
+        std::size_t shown = 0;
     };
 
     struct Views {

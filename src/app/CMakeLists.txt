@@ -74,6 +74,10 @@ rr_add_module(app
         menu/controls_scene.cpp
         menu/dialog_layout.cpp
         menu/driver_kit.cpp
+        menu/driver_stand.cpp
+        menu/edit_driver_look.cpp
+        menu/edit_driver_menu.cpp
+        menu/edit_driver_scene.cpp
         menu/language_look.cpp
         menu/language_menu.cpp
         menu/language_scene.cpp

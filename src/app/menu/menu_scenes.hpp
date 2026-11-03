@@ -1,9 +1,12 @@
 #pragma once
 
+#include <charconv>
+#include <cstddef>
 #include <format>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 namespace rr::app {
 
@@ -19,8 +22,30 @@ inline constexpr std::string_view kLanguageScene = "menu:language";
 inline constexpr std::string_view kPickRacerScene = "menu:pick_racer";
 inline constexpr std::string_view kPickSecondRacerScene = "menu:pick_racer2";
 inline constexpr std::string_view kGarageScene = "menu:garage";
+inline constexpr std::string_view kEditDriverScene = "menu:edit_driver";
 
 inline constexpr char kSceneChainMark = '>';
+inline constexpr char kSceneRacerMark = ':';
+
+[[nodiscard]] inline std::string RacerScene(std::string_view head, std::size_t racer) {
+    return std::format("{}{}{}", head, kSceneRacerMark, racer);
+}
+
+/// The racer index that follows `head`, or none when `scene` isn't `head` with one.
+[[nodiscard]] inline std::optional<std::size_t> SceneRacer(std::string_view scene,
+                                                           std::string_view head) {
+    if (!scene.starts_with(head) || scene.size() <= head.size() + 1 ||
+        scene[head.size()] != kSceneRacerMark) {
+        return std::nullopt;
+    }
+    const std::string_view digits = scene.substr(head.size() + 1);
+    std::size_t racer = 0;
+    const auto [end, error] = std::from_chars(digits.data(), digits.data() + digits.size(), racer);
+    if (error != std::errc{} || end != digits.data() + digits.size()) {
+        return std::nullopt;
+    }
+    return racer;
+}
 
 [[nodiscard]] inline std::string ChainedScene(std::string_view head, std::string_view next) {
     return std::format("{}{}{}", head, kSceneChainMark, next);

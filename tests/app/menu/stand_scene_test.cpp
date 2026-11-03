@@ -22,29 +22,36 @@ namespace {
 
 constexpr std::array kStandScreens{std::string_view("GARAGE"), std::string_view("PICKRCR")};
 
-StandScene LoadScene(const assets::Vfs& vfs, std::string_view screen) {
+StandScene LoadScene(const assets::Vfs& vfs, std::string_view screen,
+                     const StandSet& set = kRacerStandSet) {
     assets::LoaderPool pool(2);
     assets::TrackLoader loader(vfs, pool);
     const Result<MenuFiles> files = ReadMenuFiles(vfs, screen);
     REQUIRE(files.has_value());
-    Result<StandScene> scene = LoadStandScene(vfs, loader, *files, screen);
+    Result<StandScene> scene = LoadStandScene(vfs, loader, *files, screen, set);
     REQUIRE_MESSAGE(scene.has_value(), scene.error().message);
     return std::move(*scene);
 }
 
 Vector3 CarForward(const StandScene& scene, float frame) {
     const sim::EntityClock clock = sim::PartClock{.part = 0, .frame = frame};
-    return Rotate(StandCarPlacement(scene.sources, scene.turntable, clock).rotation, {.x = 1.0F});
+    return Rotate(StandCarPlacement(scene.sources, scene.turntable.value_or(0), clock).rotation,
+                  {.x = 1.0F});
+}
+
+void CheckActs(const StandScene& scene, std::size_t idles, std::size_t cheers) {
+    CHECK(std::set(scene.idles.begin(), scene.idles.end()).size() == idles);
+    CHECK(scene.cheers.size() == cheers);
 }
 
 void CheckScene(const assets::Vfs& vfs, std::string_view screen) {
     CAPTURE(screen);
     const StandScene scene = LoadScene(vfs, screen);
     CHECK(scene.camera.verticalFovDegrees == doctest::Approx(31.7687F));
-    CHECK(scene.sources.entities.at(scene.turntable).name == "crsdow");
+    REQUIRE(scene.turntable.has_value());
+    CHECK(scene.sources.entities.at(scene.turntable.value_or(0)).name == "crsdow");
     CHECK(scene.driver == scene.sources.entities.size() - 1);
-    CHECK(std::set(scene.idles.begin(), scene.idles.end()).size() == 7);
-    CHECK(scene.cheers.size() == 3);
+    CheckActs(scene, 7, 3);
 }
 
 void CheckRacerFile(const assets::Vfs& vfs, const assets::DriverPartCatalog& parts,
@@ -87,6 +94,23 @@ TEST_CASE("the stand's car turns once round with the turntable") {
     CHECK(start.z == doctest::Approx(0.0F));
     CHECK(Dot(start, half) == doctest::Approx(-1.0F).epsilon(0.001));
     CHECK(Dot(start, end) == doctest::Approx(1.0F).epsilon(0.001));
+}
+
+TEST_CASE("the driver editor's stand loads CB_SET with its idles, reactions and exits") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const StandScene scene = LoadScene(*vfs, "EDITDRVR", kBuilderStandSet);
+    CHECK_FALSE(scene.turntable.has_value());
+    CHECK(scene.camera.verticalFovDegrees == doctest::Approx(36.0F));
+    CheckActs(scene, 8, 2);
+    CHECK(std::set(scene.reactions.begin(), scene.reactions.end()).size() == 4);
+    const assets::AnimationAsset& poses =
+        scene.sources.animations.at(scene.sources.entities.at(scene.driver).animation);
+    const Result<assets::DriverPartCatalog> parts = LoadDriverParts(*vfs);
+    REQUIRE(parts.has_value());
+    CheckRacerFile(*vfs, *parts, poses, "MENUDATA/DEFAULT.LRS");
 }
 
 TEST_CASE("RSANIM poses the menu rig of every prebuilt racer") {
