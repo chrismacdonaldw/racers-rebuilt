@@ -31,6 +31,7 @@ void CheckDecodes(std::span<const std::byte> png, TextureFileKind kind, const Im
     CHECK(decoded->widthPx == image.widthPx);
     CHECK(decoded->heightPx == image.heightPx);
     CHECK(decoded->rgba == image.rgba);
+    CHECK(decoded->mipLevels == FullMipLevels(image.widthPx, image.heightPx));
 }
 
 TEST_CASE("a PNG decodes whichever kind the game expects, keeping its alpha") {
@@ -54,6 +55,7 @@ TEST_CASE("a PNG texture skips the colour key but still flips") {
     CHECK(decoded->rgba[0] == std::byte{0x10});
     CHECK(decoded->rgba[3] == std::byte{0xFF});
     CHECK(decoded->rgba[7] == std::byte{0xFF});
+    CHECK(decoded->mipLevels == 2);
 }
 
 TEST_CASE("bytes that aren't a whole PNG fail as invalid data") {
