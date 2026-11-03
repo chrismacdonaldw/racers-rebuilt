@@ -32,6 +32,7 @@ rr_add_module(app
         cutscene/cutscene_view.cpp
         extensions.cpp
         player_cameras.cpp
+        fov_swing.cpp
         gameplay_fingerprint.cpp
         frame_loop.cpp
         ground_decal.cpp

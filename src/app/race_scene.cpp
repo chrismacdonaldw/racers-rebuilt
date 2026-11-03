@@ -113,7 +113,8 @@ RaceScene::RaceScene(Parts parts)
       skids_(PlayerSkids(parts_.racerFx, parts_.racers, parts_.setup.players)),
       powerupVisuals_(parts_.powerups.models),
       powerupQuads_(PlayerPowerupQuads(parts_.powerups.quadMaterials, parts_.setup.players)),
-      cameras_(parts_.session, parts_.setup.players),
+      cameras_(parts_.session, parts_.setup.players,
+               PlayerLens(parts_.camera, parts_.setup.players).verticalFovDegrees),
       hud_(*parts_.renderer, *parts_.vfs, parts_.setup.players,
            PerSlot(parts_.racers, parts_.session.Racers().size(), &RacerGrid::Name)),
       controls_(parts_.session.Racers().size()),
@@ -318,7 +319,8 @@ void RaceScene::GatherCarMarks(const sim::RenderSnapshot& interpolated, float si
 render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated,
                                          std::size_t player, float simMs) {
     const std::size_t slot = kPlayerSlot + player;
-    const render::Camera lens = PlayerLens(parts_.camera, cameras_.Count());
+    render::Camera lens = PlayerLens(parts_.camera, cameras_.Count());
+    lens.verticalFovDegrees = cameras_.FovDegrees(player);
     const render::Viewport viewport = PlayerViewport(player, cameras_.Count());
     const sim::EffectSnapshot* flight =
         FindWarp(interpolated.effects, slot, sim::WarpPhase::Active);

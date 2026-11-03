@@ -4,6 +4,7 @@
 #include <span>
 #include <vector>
 
+#include "app/fov_swing.hpp"
 #include "app/race_camera.hpp"
 #include "core/transform.hpp"
 #include "core/vector3.hpp"
@@ -28,7 +29,7 @@ inline constexpr float kSplitFovCutDegrees = 25.0F;
 /// Follows the players, who drive the first racer slots in order.
 class PlayerCameras {
 public:
-    PlayerCameras(const sim::RaceSession& session, std::size_t players);
+    PlayerCameras(const sim::RaceSession& session, std::size_t players, float baseFovDegrees);
 
     [[nodiscard]] std::size_t Count() const { return cameras_.size(); }
 
@@ -46,11 +47,16 @@ public:
         return cameras_.at(player).ViewDirection();
     }
 
+    [[nodiscard]] float FovDegrees(std::size_t player) const {
+        return fovSwings_.at(player).Degrees();
+    }
+
     /// Needs the racers already in `out`.
     void Snapshot(sim::RenderSnapshot& out) const;
 
 private:
     std::vector<RaceCamera> cameras_;
+    std::vector<FovSwing> fovSwings_;
     std::vector<Transform> poses_;
 };
 
