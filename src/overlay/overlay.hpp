@@ -57,7 +57,7 @@ public:
                                                  std::span<const MenuChoice> scenes,
                                                  std::span<const MenuChoice> saveImports,
                                                  const RacerTools& racerTools,
-                                                 const std::optional<MenuChoice>& restart);
+                                                 std::span<const MenuChoice> modActions);
 
     void Prepare(SDL_GPUCommandBuffer* commands) override;
     void Draw(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass) override;

@@ -38,9 +38,35 @@ public:
     [[nodiscard]] std::optional<overlay::MenuChoice> Choice(const settings::Registry& registry,
                                                             bool& isQuitting) const;
 
+    void Rebase(const settings::Registry& registry) { changes_ = ModChanges(registry); }
+
 private:
     std::vector<std::string> command_;
     ModChanges changes_;
 };
+
+// NOLINTNEXTLINE(bugprone-exception-escape)
+class LiveRemount {
+public:
+    LiveRemount(bool isAllowed, const settings::Registry& registry)
+        : isAllowed_(isAllowed), changes_(registry) {}
+
+    /// Offered once a Mods setting changes, unless `isAllowed` was false. Choosing it only asks.
+    [[nodiscard]] std::optional<overlay::MenuChoice> Choice(const settings::Registry& registry);
+
+    [[nodiscard]] bool TakeRequest() { return std::exchange(isRequested_, false); }
+
+    void Rebase(const settings::Registry& registry) { changes_ = ModChanges(registry); }
+
+private:
+    bool isAllowed_;
+    bool isRequested_ = false;
+    ModChanges changes_;
+};
+
+[[nodiscard]] std::vector<overlay::MenuChoice> ModActions(LiveRemount& remount,
+                                                          const Restart& restart,
+                                                          const settings::Registry& registry,
+                                                          bool& isQuitting);
 
 }

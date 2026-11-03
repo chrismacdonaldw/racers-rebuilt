@@ -16,6 +16,12 @@ void Vfs::Mount(std::unique_ptr<VfsLayer> layer) {
     layers_.push_back(std::move(layer));
 }
 
+void Vfs::KeepLayers(std::size_t count) {
+    if (count < layers_.size()) {
+        layers_.resize(count);
+    }
+}
+
 void Vfs::SetResolver(AssetResolver resolver) {
     resolver_ = std::move(resolver);
 }

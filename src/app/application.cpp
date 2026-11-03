@@ -150,9 +150,7 @@ Result<void> Application::Run() {
             scene->HandleEvent(event);
         }
     });
-    audio::MusicPlayer music =
-        CreateMusicPlayer(mixer_, vfs_, settingsFile_.parent_path() / kMusicFolderName,
-                          extensions_.mods.Enabled(settings_));
+    audio::MusicPlayer music = CreateMusic();
     frameLoop_.Hooks().Subscribe<mods::SceneEntered>([this, &bindings](const mods::SceneEntered&) {
         bindings.SetPlayerCount(frameLoop_.Scenes().Top()->PlayerCount(), frameLoop_.Input());
     });
@@ -182,8 +180,8 @@ Result<void> Application::Run() {
 
 void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music,
                             MenuPointer& pointer) {
-    const std::vector<overlay::MenuChoice> scenes = SceneChoices();
-    const std::vector<overlay::MenuChoice> saveImports =
+    std::vector<overlay::MenuChoice> scenes = SceneChoices();
+    std::vector<overlay::MenuChoice> saveImports =
         SaveImportChoices(originalInstall_, ProgressFile(), vfs_);
     Nanoseconds lastFrame = platform::Now();
     FrameStats frame;
@@ -209,8 +207,14 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music,
                             .ticksPerFrame = frame.tickCount,
                             .startupSummary = startupSummary_},
                            scenes, saveImports, racerTools,
-                           restart_.Choice(settings_, isQuitting_)));
+                           ModActions(remount_, restart_, settings_, isQuitting_)));
         lastFrame = now;
+        if (remount_.TakeRequest()) {
+            RemountMods(music);
+            scenes = SceneChoices();
+            saveImports = SaveImportChoices(originalInstall_, ProgressFile(), vfs_);
+        }
+        shown = frameLoop_.Scenes().Top();
         const bool pointsAtScene = !menu.IsVisible() && shown != nullptr;
         pointer.Show(pointsAtScene && shown->ShowsPointer(),
                      pointsAtScene && shown->HoldsPointer());
@@ -242,7 +246,29 @@ Application::Application(Parts parts)
       replayFile_(std::move(parts.replayFile)),
       startupSummary_(std::move(parts.startupSummary)),
       playerRacer_(std::move(parts.playerRacer)),
-      restart_(std::move(parts.relaunch), settings_) {}
+      restart_(std::move(parts.relaunch), settings_),
+      remount_(!recordFile_ && !replayFile_, settings_) {}
+
+audio::MusicPlayer Application::CreateMusic() {
+    return CreateMusicPlayer(mixer_, vfs_, settingsFile_.parent_path() / kMusicFolderName,
+                             extensions_.mods.Enabled(settings_));
+}
+
+void Application::RemountMods(audio::MusicPlayer& music) {
+    music.Stop();
+    const Result<void> opened = SwitchScene([this, &music] {
+        trial_.reset();
+        soundBanks_ = SoundBanks();
+        RemountExtensions(extensions_, vfs_, settings_);
+        music = CreateMusic();
+        restart_.Rebase(settings_);
+        remount_.Rebase(settings_);
+        return CreateScene(std::string(kMainMenuScene));
+    });
+    if (!opened) {
+        log::Error("{}", opened.error().message);
+    }
+}
 
 Result<std::unique_ptr<Scene>> Application::CreateScene(
     const std::optional<std::string>& requested) {
@@ -447,52 +473,6 @@ void Application::OpenNextScene() {
     if (!opened) {
         log::Error("{}", opened.error().message);
     }
-}
-
-void Application::StoreSceneSettings() {
-    Scene* scene = frameLoop_.Scenes().Top();
-    if (scene == nullptr) {
-        return;
-    }
-    std::vector<std::string> keys;
-    for (SettingChange& change : scene->TakeSettingChanges()) {
-        const Result<void> stored = settings_.Assign(change.key, std::move(change.value));
-        if (!stored) {
-            log::Error("{}", stored.error().message);
-            continue;
-        }
-        keys.push_back(std::move(change.key));
-    }
-    Persist(keys);
-}
-
-void Application::CyclePacing() {
-    StorePacing(settings_, NextPacingPreset(PacingFromSettings(settings_)));
-    const std::array<std::string_view, 2> keys{kVsyncSetting.key, kFpsCapSetting.key};
-    PersistSettings(settingsFile_, settings_, keys);
-}
-
-void Application::Persist(const std::vector<std::string>& keys) {
-    if (!keys.empty()) {
-        const std::vector<std::string_view> views(keys.begin(), keys.end());
-        PersistSettings(settingsFile_, settings_, views);
-    }
-}
-
-void Application::ApplyVideo() {
-    ApplyRendererSettings(settings_, renderer_);
-    const platform::PacingConfig pacing = PacingFromSettings(settings_);
-    if (IsSamePacing(pacing, pacing_)) {
-        return;
-    }
-    Result<void> changed = renderer_.SetPresentMode(pacing.mode);
-    if (!changed) {
-        log::Error("{}", changed.error().message);
-        return;
-    }
-    pacer_.SetConfig(pacing);
-    pacing_ = pacing;
-    LogPacing(pacing);
 }
 
 }
