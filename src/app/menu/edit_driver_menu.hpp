@@ -17,6 +17,7 @@ public:
     DriverRequest Tick(const sim::InputFrame& input);
 
     [[nodiscard]] DriverRow Focus() const { return focus_; }
+    void FocusOn(DriverRow row) { focus_ = row; }
 
     [[nodiscard]] std::optional<DriverSlot> Slot() const;
 

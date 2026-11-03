@@ -181,6 +181,12 @@ void LicenceScene::Tick(const sim::InputFrame& input) {
     }
     TypeKeys();
     const LicenceRow focusBefore = menu_.Focus();
+    AimPointer();
+    const PointerChoice pointed = pointer_.Tick(input.pointer, targets_);
+    if (const std::optional<std::size_t> focus = pointed.Focus()) {
+        menu_.FocusOn(static_cast<LicenceRow>(*focus));
+    }
+    menuInput = WithClick(menuInput, pointed);
     const LicenceRequest request = menu_.Tick(menuInput);
     Handle(request);
     PlaySounds(menuInput, request, focusBefore);
@@ -373,6 +379,23 @@ void LicenceScene::LayOut() {
         under_.push_back({.texture = piece.texture, .bounds = piece.bounds, .tint = piece.tint});
     }
     sprites_.clear();
+}
+
+void LicenceScene::AimPointer() {
+    targets_.clear();
+    targets_.push_back({.area = look_.name.frameBounds,
+                        .control = static_cast<std::size_t>(LicenceRow::Name),
+                        .click = std::nullopt});
+    targets_.push_back(
+        {.area = LabelArea(text_, look_.expressionButton.at(StateOf(LicenceRow::Expression)),
+                           text_.Line(kExpressionLine), look_.expression),
+         .control = static_cast<std::size_t>(LicenceRow::Expression)});
+    targets_.push_back({.area = ImageButtonArea(text_, look_.done, StateOf(LicenceRow::Done),
+                                                text_.Line(buttons_.done.line), look_.donePlace),
+                        .control = static_cast<std::size_t>(LicenceRow::Done)});
+    targets_.push_back({.area = ImageButtonArea(text_, look_.back, StateOf(LicenceRow::Back),
+                                                text_.Line(buttons_.back.line), look_.backPlace),
+                        .control = static_cast<std::size_t>(LicenceRow::Back)});
 }
 
 void LicenceScene::DrawName() {

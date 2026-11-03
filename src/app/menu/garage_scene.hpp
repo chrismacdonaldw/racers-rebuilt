@@ -11,6 +11,7 @@
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/menu/message_dialog.hpp"
+#include "app/menu/pointer_buttons.hpp"
 #include "app/menu/racer_stand.hpp"
 #include "app/race_scene_name.hpp"
 #include "app/scene.hpp"
@@ -32,6 +33,7 @@ public:
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
+    [[nodiscard]] bool ShowsPointer() const override { return true; }
     void Tick(const sim::InputFrame& input) override;
     [[nodiscard]] SceneMusic Music() const override { return {.start = MusicStart::Keep}; }
     void Snapshot(sim::RenderSnapshot& out) const override;
@@ -67,6 +69,7 @@ private:
                     GarageButton focusBefore) const;
     [[nodiscard]] const assets::SoundIds& SoundsOf(GarageButton button) const;
     [[nodiscard]] std::size_t StateOf(GarageButton button) const;
+    void AimPointer();
     void DrawButtons();
     void DrawPicker();
 
@@ -83,6 +86,8 @@ private:
     std::optional<MessageDialog> dialog_;
     std::optional<std::string> opened_;
     std::vector<render::SpriteDraw> sprites_;
+    std::vector<PointerTarget> targets_;
+    PointerButtons pointer_;
 };
 
 }

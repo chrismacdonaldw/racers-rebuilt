@@ -64,6 +64,7 @@ public:
                                                   const RaceSceneSetup& rules);
 
     [[nodiscard]] RaceSetupRow Focus() const { return focus_; }
+    void FocusOn(RaceSetupRow row) { focus_ = row; }
     [[nodiscard]] const std::vector<CourseChoice>& Courses() const { return courses_; }
     [[nodiscard]] const CourseChoice& Course() const { return courses_[course_]; }
     [[nodiscard]] std::size_t CourseIndex() const { return course_; }

@@ -67,15 +67,6 @@ Result<void> LoadButtons(MenuImageCache& images, const MenuFiles& files, DialogL
     return {};
 }
 
-render::Rect Spanning(const render::Rect& a, const render::Rect& b) {
-    const float left = std::min(a.x, b.x);
-    const float top = std::min(a.y, b.y);
-    return {.x = left,
-            .y = top,
-            .width = std::max(a.x + a.width, b.x + b.width) - left,
-            .height = std::max(a.y + a.height, b.y + b.height) - top};
-}
-
 BoxSize MessageSize(const UiFont& font, std::span<const std::u16string_view> lines) {
     BoxSize size{.height = static_cast<float>(lines.size() * font.heightPx)};
     for (const std::u16string_view line : lines) {

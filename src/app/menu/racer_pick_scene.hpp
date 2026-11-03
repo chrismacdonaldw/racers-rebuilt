@@ -9,6 +9,7 @@
 
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
+#include "app/menu/pointer_buttons.hpp"
 #include "app/menu/racer_pick_look.hpp"
 #include "app/menu/racer_pick_menu.hpp"
 #include "app/menu/racer_stand.hpp"
@@ -41,6 +42,7 @@ public:
     [[nodiscard]] SceneMusic Music() const override { return {.start = MusicStart::Keep}; }
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
+    [[nodiscard]] bool ShowsPointer() const override { return true; }
 
 private:
     struct Racers {
@@ -62,6 +64,7 @@ private:
     void PlaySounds(const sim::InputFrame& input, RacerPickRequest request,
                     RacerPickRow focusBefore) const;
     [[nodiscard]] const assets::SoundIds& SoundsOf(RacerPickRow row) const;
+    void AimPointer();
     void DrawPicker();
     void DrawButtons();
 
@@ -78,6 +81,8 @@ private:
     std::optional<std::string> cheered_;
     std::optional<std::string> opened_;
     std::vector<render::SpriteDraw> sprites_;
+    std::vector<PointerTarget> targets_;
+    PointerButtons pointer_;
 };
 
 }

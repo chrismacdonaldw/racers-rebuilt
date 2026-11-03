@@ -176,6 +176,9 @@ void RaceSetupScene::ApplySettings(const settings::Registry& settings) {
     if (!text_.Apply(*renderer_, *vfs_, settings)) {
         return;
     }
+    if (mode_ == RaceSetupMode::Circuit) {
+        courseLabel_ = OneLine(text_.Line(kCircuitNumberLine));
+    }
 
     if (mode_ != RaceSetupMode::Circuit) {
         const Result<std::vector<std::u16string>> races = ReadRaceNames(*vfs_, text_.Language());
@@ -194,8 +197,14 @@ std::optional<std::string> RaceSetupScene::TakeNextScene() {
 void RaceSetupScene::Tick(const sim::InputFrame& input) {
     const RaceSetupRow focusBefore = menu_.Focus();
     const std::size_t courseBefore = menu_.CourseIndex();
-    std::optional<std::string> next = menu_.Tick(input, rules_);
-    PlaySounds(input, focusBefore);
+    AimPointer();
+    const PointerChoice pointed = pointer_.Tick(input.pointer, targets_);
+    if (const std::optional<std::size_t> focus = pointed.Focus()) {
+        menu_.FocusOn(static_cast<RaceSetupRow>(*focus));
+    }
+    const sim::InputFrame clicked = WithClick(input, pointed);
+    std::optional<std::string> next = menu_.Tick(clicked, rules_);
+    PlaySounds(clicked, focusBefore);
     if (menu_.CourseIndex() != courseBefore) {
         ShowBestTimes();
         ShowPreview();
@@ -232,19 +241,15 @@ void RaceSetupScene::Render(const sim::RenderSnapshot& interpolated) {
 
     DrawLabel(text_, {.font = std::string(kTitleFont)}, text_.Line(TitleLine(mode_)), kLeft,
               kTitleTop, sprites_);
-    DrawRow(RaceSetupRow::Course,
-            {.label = isCircuit ? OneLine(text_.Line(kCircuitNumberLine)) : u"TRACK",
-             .value = courseNames_.at(menu_.CourseIndex()),
-             .isGameText = isCircuit});
-
+    DrawRow(RaceSetupRow::Course);
     if (isCircuit) {
         DrawChampion();
     }
     if (mode_ == RaceSetupMode::TimeTrial) {
         DrawBestTimes();
     }
-    DrawRow(RaceSetupRow::Race, {.label = text_.Line(kRaceLine)});
-    DrawRow(RaceSetupRow::Back, {.label = text_.Line(kBackLine)});
+    DrawRow(RaceSetupRow::Race);
+    DrawRow(RaceSetupRow::Back);
     view.sprites = sprites_;
     Result<void> drawn = renderer_->Draw(view);
     if (!drawn) {
@@ -310,14 +315,63 @@ void RaceSetupScene::ShowPreview() {
         course.isLocked);
 }
 
-void RaceSetupScene::DrawRow(RaceSetupRow row, const RowText& text) {
-    const bool isFocused = menu_.Focus() == row;
-    std::size_t state = isFocused ? kFocusedState : kNormalState;
-    if (row == RaceSetupRow::Race && menu_.Course().isLocked) {
-        state = isFocused ? kDisabledFocusedState : kDisabledState;
+RaceSetupScene::RowText RaceSetupScene::TextOf(RaceSetupRow row) const {
+    switch (row) {
+        case RaceSetupRow::Course:
+            return {.label = courseLabel_,
+                    .value = courseNames_.at(menu_.CourseIndex()),
+                    .isGameText = mode_ == RaceSetupMode::Circuit};
+        case RaceSetupRow::Race:
+            return {.label = text_.Line(kRaceLine)};
+        default:
+            return {.label = text_.Line(kBackLine)};
     }
+}
+
+std::size_t RaceSetupScene::StateOf(RaceSetupRow row) const {
+    const bool isFocused = menu_.Focus() == row;
+    if (row == RaceSetupRow::Race && menu_.Course().isLocked) {
+        return isFocused ? kDisabledFocusedState : kDisabledState;
+    }
+    return isFocused ? kFocusedState : kNormalState;
+}
+
+MenuPoint RaceSetupScene::ValueAt(float top) const {
+    return preview_ ? MenuPoint{.x = kLeft, .y = top + kStackedValueDrop}
+                    : MenuPoint{.x = kValueLeft, .y = top};
+}
+
+render::Rect RaceSetupScene::RowArea(RaceSetupRow row) const {
+    const RowText text = TextOf(row);
+    const MenuButtonState& look = look_.states.at(StateOf(row));
+    const MenuPoint at{.x = kLeft, .y = kRowTops.at(static_cast<std::size_t>(row))};
+    if (preview_ && !text.isGameText && !text.value.empty()) {
+        return LabelArea(text_, look, text.value, at);
+    }
+    const render::Rect label = LabelArea(text_, look, text.label, at);
+    if (text.value.empty()) {
+        return label;
+    }
+    return Spanning(label, LabelArea(text_, look, text.value, ValueAt(at.y)));
+}
+
+void RaceSetupScene::AimPointer() {
+    targets_.clear();
+    for (const RaceSetupRow row : {RaceSetupRow::Course, RaceSetupRow::Race, RaceSetupRow::Back}) {
+        if (row == RaceSetupRow::Race && menu_.Course().isLocked) {
+            continue;
+        }
+        targets_.push_back({.area = RowArea(row),
+                            .control = static_cast<std::size_t>(row),
+                            .click = row == RaceSetupRow::Course ? sim::MenuAction::Right
+                                                                 : sim::MenuAction::Confirm});
+    }
+}
+
+void RaceSetupScene::DrawRow(RaceSetupRow row) {
+    const RowText text = TextOf(row);
     const float top = kRowTops.at(static_cast<std::size_t>(row));
-    const MenuButtonState& look = look_.states.at(state);
+    const MenuButtonState& look = look_.states.at(StateOf(row));
     if (preview_ && !text.isGameText && !text.value.empty()) {
         DrawLabel(text_, look, text.value, kLeft, top, sprites_);
         return;
@@ -327,11 +381,8 @@ void RaceSetupScene::DrawRow(RaceSetupRow row, const RowText& text) {
 }
 
 void RaceSetupScene::DrawValue(const MenuButtonState& state, std::u16string_view value, float top) {
-    if (preview_) {
-        DrawLabel(text_, state, value, kLeft, top + kStackedValueDrop, sprites_);
-    } else {
-        DrawLabel(text_, state, value, kValueLeft, top, sprites_);
-    }
+    const MenuPoint at = ValueAt(top);
+    DrawLabel(text_, state, value, at.x, at.y, sprites_);
 }
 
 void RaceSetupScene::DrawChampion() {

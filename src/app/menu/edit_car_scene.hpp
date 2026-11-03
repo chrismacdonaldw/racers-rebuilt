@@ -18,6 +18,7 @@
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/menu/message_dialog.hpp"
+#include "app/menu/pointer_buttons.hpp"
 #include "app/menu/racer_edit_flow.hpp"
 #include "app/scene.hpp"
 #include "assets/piece_catalog.hpp"
@@ -44,6 +45,7 @@ public:
     void ApplySettings(const settings::Registry& settings) override;
     void HandleEvent(const SDL_Event& event) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
+    [[nodiscard]] bool ShowsPointer() const override { return true; }
     void Tick(const sim::InputFrame& input) override;
     [[nodiscard]] SceneMusic Music() const override { return {.start = MusicStart::Keep}; }
     void Snapshot(sim::RenderSnapshot& out) const override;
@@ -98,6 +100,7 @@ private:
     [[nodiscard]] const assets::SoundIds& SoundsOf(CarRow row) const;
     [[nodiscard]] std::size_t StateOf(CarRow row) const;
     void LayOut();
+    void AimPointer();
     void DrawControls();
 
     render::Renderer* renderer_;
@@ -121,6 +124,8 @@ private:
     float turn_ = 0.0F;
     std::vector<MenuPicture> under_;
     std::vector<render::SpriteDraw> sprites_;
+    std::vector<PointerTarget> targets_;
+    PointerButtons pointer_;
 };
 
 }

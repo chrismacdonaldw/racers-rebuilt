@@ -31,6 +31,7 @@ constexpr std::size_t kDisabledState = 0;
 constexpr std::array<std::size_t, kGarageButtons> kButtonLines{0x28, 0x29, 0x2A, 0x2C,
                                                                0x2D, 9,    0x0A, 0x0B};
 constexpr std::string_view kTestTrack = "TEST";
+constexpr std::size_t kPickerControl = kGarageButtons + 1;
 
 std::unique_ptr<RacerStand> LoadStand(render::Renderer& renderer, const assets::Vfs& vfs,
                                       const MenuFiles& files) {
@@ -98,9 +99,16 @@ void GarageScene::Tick(const sim::InputFrame& input) {
         return;
     }
     const GarageButton focusBefore = menu_.Focus();
-    const GarageRequest request = menu_.Tick(input);
+    AimPointer();
+    PointerChoice pointed = pointer_.Tick(input.pointer, targets_);
+    if (const std::optional<std::size_t> focus = pointed.Focus();
+        focus && *focus < kPickerControl && !menu_.FocusOn(static_cast<GarageButton>(*focus))) {
+        pointed = {};
+    }
+    const sim::InputFrame clicked = WithClick(input, pointed);
+    const GarageRequest request = menu_.Tick(clicked);
     Handle(request);
-    PlaySounds(input, request, focusBefore);
+    PlaySounds(clicked, request, focusBefore);
 }
 
 void GarageScene::Snapshot(sim::RenderSnapshot& out) const {
@@ -290,6 +298,28 @@ std::size_t GarageScene::StateOf(GarageButton button) const {
 
 const assets::SoundIds& GarageScene::SoundsOf(GarageButton button) const {
     return button == GarageButton::Back ? look_.backButton.sounds : look_.buttonSounds;
+}
+
+void GarageScene::AimPointer() {
+    targets_.clear();
+    for (const GarageButton button : menu_.Buttons()) {
+        if (!menu_.IsEnabled(button)) {
+            continue;
+        }
+        const std::size_t state = StateOf(button);
+        const auto index = static_cast<std::size_t>(button);
+        const render::Rect area =
+            button == GarageButton::Back
+                ? ImageButtonArea(text_, look_.backButton, state,
+                                  text_.Line(menu_.IsEditing() ? kMainPageLine : kMainMenuLine),
+                                  look_.back)
+                : LabelArea(text_, look_.button.at(state), text_.Line(kButtonLines.at(index)),
+                            look_.buttons.at(index));
+        targets_.push_back({.area = area, .control = index});
+    }
+    if (!menu_.IsEditing()) {
+        AddSelectorTargets(look_.picker, kPickerControl, targets_);
+    }
 }
 
 void GarageScene::DrawButtons() {

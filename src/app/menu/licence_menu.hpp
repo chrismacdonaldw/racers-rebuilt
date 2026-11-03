@@ -15,6 +15,7 @@ public:
     LicenceRequest Tick(const sim::InputFrame& input);
 
     [[nodiscard]] LicenceRow Focus() const { return focus_; }
+    void FocusOn(LicenceRow row) { focus_ = row; }
 
 private:
     LicenceRow focus_ = LicenceRow::Name;

@@ -113,7 +113,12 @@ void ControlsScene::HandleEvent(const SDL_Event& event) {
 }
 
 void ControlsScene::Tick(const sim::InputFrame& input) {
-    switch (menu_.Tick(input)) {
+    AimPointer();
+    PointerChoice pointed = pointer_.Tick(input.pointer, targets_);
+    if (const std::optional<std::size_t> focus = pointed.Focus(); focus && !menu_.FocusOn(*focus)) {
+        pointed = {};
+    }
+    switch (menu_.Tick(WithClick(input, pointed))) {
         case ControlsRequest::Leave:
             Leave();
             return;
@@ -185,6 +190,26 @@ void ControlsScene::DrawDevicePicker() {
     sprites_.push_back({.texture = image.texture,
                         .bounds = SizedAt(look_.deviceImage, image),
                         .tint = isFocused ? render::Color{} : kDeviceColor});
+}
+
+void ControlsScene::AimPointer() {
+    targets_.clear();
+    AddSelectorTargets(look_.devicePicker, 0, targets_);
+    const std::array<std::u16string, kControlRows>& shownNames =
+        shown_.at(static_cast<std::size_t>(menu_.Set()));
+    for (std::size_t row = 0; row < kControlRows; ++row) {
+        if (!menu_.IsRowEnabled(row)) {
+            continue;
+        }
+        const std::u16string& shown = shownNames.at(row);
+        targets_.push_back({.area = LabelArea(text_, look_.bindingButton.at(kNormalState),
+                                              shown.empty() ? kUnbound : std::u16string_view(shown),
+                                              look_.bindings.at(row)),
+                            .control = row + 1});
+    }
+    targets_.push_back({.area = ImageButtonArea(text_, look_.finishButton, kNormalState,
+                                                text_.Line(kFinishLine), look_.finish),
+                        .control = kControlRows + 1});
 }
 
 void ControlsScene::DrawRows() {

@@ -165,4 +165,14 @@ TEST_CASE("a row turned back on can be chosen again") {
     CHECK(menu.Tick(Pressed(sim::MenuAction::Confirm)) == CarRequest::Build);
 }
 
+TEST_CASE("pointing at a row that's off leaves the focus") {
+    EditCarMenu menu;
+    menu.Enable(CarRow::RemoveBricks, false);
+
+    CHECK_FALSE(menu.FocusOn(CarRow::RemoveBricks));
+    CHECK(menu.Focus() == CarRow::Build);
+    CHECK(menu.FocusOn(CarRow::Done));
+    CHECK(menu.Focus() == CarRow::Done);
+}
+
 }

@@ -46,6 +46,9 @@ public:
     /// After the store changes: shows `racer` and moves focus to `focus`, or the first button on.
     void Refresh(std::size_t racers, std::size_t racer, GarageButton focus);
 
+    /// False, leaving the focus, for a button that's hidden or off.
+    [[nodiscard]] bool FocusOn(GarageButton button);
+
     [[nodiscard]] std::span<const GarageButton> Buttons() const;
     [[nodiscard]] bool IsEnabled(GarageButton button) const;
     [[nodiscard]] bool IsEditing() const { return isEditing_; }

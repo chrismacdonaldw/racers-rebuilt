@@ -21,6 +21,9 @@ public:
 
     [[nodiscard]] ControlsRequest Tick(const sim::InputFrame& input);
 
+    /// 0 is the device picker, then the rows, then FINISH. False while listening or for an off row.
+    [[nodiscard]] bool FocusOn(std::size_t focus);
+
     /// Also ignores the next tick's menu actions, which the same press latched.
     void StopListening();
 

@@ -9,6 +9,7 @@
 #include "app/menu/language_menu.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
+#include "app/menu/pointer_buttons.hpp"
 #include "app/scene.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -28,6 +29,7 @@ public:
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
     [[nodiscard]] std::vector<SettingChange> TakeSettingChanges() override;
+    [[nodiscard]] bool ShowsPointer() const override { return true; }
     void Tick(const sim::InputFrame& input) override;
     [[nodiscard]] SceneMusic Music() const override { return {.start = MusicStart::Keep}; }
     void Snapshot(sim::RenderSnapshot& out) const override;
@@ -39,6 +41,7 @@ private:
 
     void PlaySounds(const sim::InputFrame& input, LanguageRequest request, bool wasBackFocused,
                     bool isBackFocused);
+    void AimPointer(bool isBackFocused);
     void DrawPicker();
 
     render::Renderer* renderer_;
@@ -50,6 +53,8 @@ private:
     std::optional<std::string> next_;
     std::vector<SettingChange> changes_;
     std::vector<render::SpriteDraw> sprites_;
+    std::vector<PointerTarget> targets_;
+    PointerButtons pointer_;
 };
 
 }
