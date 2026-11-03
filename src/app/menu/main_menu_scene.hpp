@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/menu/menu_champion.hpp"
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_sounds.hpp"
@@ -22,10 +23,11 @@ namespace rr::app {
 
 class MainMenuScene final : public Scene {
 public:
-    /// `renderer` and `vfs` must outlive the scene.
+    /// `renderer` and `vfs` must outlive the scene. `champion` is a driver code.
     [[nodiscard]] static Result<std::unique_ptr<MainMenuScene>> Create(render::Renderer& renderer,
                                                                        const assets::Vfs& vfs,
                                                                        MenuSounds sounds,
+                                                                       std::string_view champion,
                                                                        bool showsUnlockNotice);
 
     void ApplySettings(const settings::Registry& settings) override;
@@ -39,7 +41,8 @@ public:
 
 private:
     MainMenuScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
-                  MenuPage page, std::optional<DialogLook> dialogLook);
+                  MenuPage page, std::unique_ptr<MenuChampion> champion,
+                  std::optional<DialogLook> dialogLook);
 
     void TickDialog(MessageDialog& dialog, const sim::InputFrame& input);
     void OpenDialog(std::size_t messageLine, std::vector<DialogButton> buttons,
@@ -52,6 +55,7 @@ private:
     const assets::Vfs* vfs_;
     MenuSounds sounds_;
     MenuPage page_;
+    std::unique_ptr<MenuChampion> champion_;
     std::vector<render::Rect> buttonBounds_;
     MenuText text_;
     std::size_t focus_ = 0;

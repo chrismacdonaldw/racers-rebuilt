@@ -54,6 +54,8 @@ add_executable(racers-rebuilt-tests
     app/menu/garage_menu_test.cpp
     app/menu/garage_racers_test.cpp
     app/menu/language_menu_test.cpp
+    app/menu/menu_backdrop_test.cpp
+    app/menu/menu_champion_test.cpp
     app/menu/menu_files_test.cpp
     app/menu/menu_focus_test.cpp
     app/menu/menu_sounds_test.cpp

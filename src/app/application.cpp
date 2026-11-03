@@ -244,6 +244,7 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(
     }
     if (!scene || *scene == kMainMenuScene) {
         return MainMenuScene::Create(renderer_, vfs_, LoadMenuSounds(mixer_, soundBanks_, vfs_),
+                                     SavedMenuChampion(ProgressFile()),
                                      std::exchange(unlockNotice_, false))
             .transform(ToScene<MainMenuScene>);
     }

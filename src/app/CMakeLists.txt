@@ -78,6 +78,8 @@ rr_add_module(app
         menu/garage_menu.cpp
         menu/garage_racers.cpp
         menu/garage_scene.cpp
+        menu/menu_backdrop.cpp
+        menu/menu_champion.cpp
         menu/menu_files.cpp
         menu/menu_focus.cpp
         menu/menu_page.cpp

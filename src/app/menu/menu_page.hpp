@@ -74,6 +74,9 @@ struct MenuPoint {
 
 void DrawPictures(std::span<const MenuPicture> pictures, std::vector<render::SpriteDraw>& out);
 
+/// The texture area `piece` shows of a picture drawn over `bounds`.
+[[nodiscard]] render::Rect PieceUv(const render::Rect& bounds, const render::Rect& piece);
+
 /// Leaves `hole` uncovered, so a scene drawn there shows through the sprites.
 void DrawPicturesAround(std::span<const MenuPicture> pictures, const render::Rect& hole,
                         std::vector<render::SpriteDraw>& out);

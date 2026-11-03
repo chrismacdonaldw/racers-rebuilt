@@ -141,10 +141,7 @@ void AppendPiece(const MenuPicture& picture, const render::Rect& piece,
     }
     out.push_back({.texture = picture.texture,
                    .bounds = piece,
-                   .uv = {.x = (piece.x - bounds.x) / bounds.width,
-                          .y = (piece.y - bounds.y) / bounds.height,
-                          .width = piece.width / bounds.width,
-                          .height = piece.height / bounds.height},
+                   .uv = PieceUv(bounds, piece),
                    .tint = picture.tint});
 }
 
@@ -214,6 +211,13 @@ void DrawPictures(std::span<const MenuPicture> pictures, std::vector<render::Spr
     for (const MenuPicture& picture : pictures) {
         out.push_back({.texture = picture.texture, .bounds = picture.bounds, .tint = picture.tint});
     }
+}
+
+render::Rect PieceUv(const render::Rect& bounds, const render::Rect& piece) {
+    return {.x = (piece.x - bounds.x) / bounds.width,
+            .y = (piece.y - bounds.y) / bounds.height,
+            .width = piece.width / bounds.width,
+            .height = piece.height / bounds.height};
 }
 
 void DrawPicturesAround(std::span<const MenuPicture> pictures, const render::Rect& hole,
