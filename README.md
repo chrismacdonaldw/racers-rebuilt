@@ -317,7 +317,11 @@ A glTF binary next to a game model's path, named like it but ending in `.glb`, r
 - Export it as **glTF Binary** with Y up, as Blender does by default. Node transforms are applied.
 - Each material's name picks the game material it's drawn with, so name it after one in the materials file (`.MDB`) the game loads with that model. Case doesn't matter.
 - Every mesh needs normals or vertex colours. Vertex colours make the whole model unlit, the way the game draws coloured models.
-- Skins and animations are ignored for now.
+- Units are the game's drawn units: the original model's scale is kept.
+- A model with a skeleton (an `.SDB` of the same name, or `PELVIS.SDB` for drivers) is jointed. Name glTF nodes after the skeleton's nodes (case doesn't matter) and place them where the game's skeleton has them, since the game moves its own nodes.
+  - A mesh belongs to the nearest named node at or above it, else to the skeleton's first node, and is stored relative to that node.
+  - A skinned mesh gives each vertex the joint it's weighted to most. Every skin joint must be named after a skeleton node.
+- Animations are ignored for now.
 - A `.glb` that can't be read is skipped with a warning in the log, and the game's model is kept.
 - **glTF models** in the **Mods** menu (`mods.gltf_models`) turns replacements off. It applies on **Apply now** or the next start.
 

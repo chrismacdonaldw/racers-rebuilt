@@ -24,6 +24,7 @@ rr_add_module(assets
         geometry_database.cpp
         geometry_writer.cpp
         ghost_run.cpp
+        gltf_joints.cpp
         gltf_model.cpp
         hazard_list.cpp
         image_list.cpp

@@ -15,6 +15,7 @@
 
 #include "assets/folder_layer.hpp"
 #include "assets/geometry_database.hpp"
+#include "assets/token_bytes.hpp"
 #include "gltf_files.hpp"
 #include "mods/hook_registry.hpp"
 #include "temp_folder.hpp"
@@ -34,6 +35,14 @@ public:
         WriteBytes(folder_.Path() / "gamedata" / "kart.glb", test::BuildGlb({}));
         WriteBytes(folder_.Path() / "gamedata" / "broken.glb", std::vector(8, std::byte{0x42}));
         WriteBytes(folder_.Path() / "gamedata" / "broken.gdb", std::vector(4, std::byte{0x07}));
+        WriteBytes(folder_.Path() / "gamedata" / "bbpelvis.glb",
+                   test::BuildGlb({.parentName = "arm"}));
+        WriteBytes(
+            folder_.Path() / "gamedata" / "pelvis.sdb",
+            test::NamedLibrary(
+                0x27, {test::NamedEntry(0x27, "root", {}),
+                       test::NamedEntry(0x27, "arm",
+                                        test::Join({test::Bytes({0x2A}), test::Text("root")}))}));
         Result<assets::FolderLayer> layer = assets::FolderLayer::Scan(folder_.Path());
         REQUIRE(layer.has_value());
         vfs_.Mount(std::make_unique<assets::FolderLayer>(std::move(*layer)));
@@ -70,6 +79,17 @@ TEST_CASE_FIXTURE(GltfFixture, "a glb is built into the gdb it shares a name wit
     REQUIRE(kart.has_value());
     CHECK(kart->vertices.size() == 3);
     CHECK(kart->materials == std::vector<std::string>{"STONE"});
+}
+
+TEST_CASE_FIXTURE(GltfFixture, "a driver model takes its joints from the shared pelvis skeleton") {
+    const Result<assets::GeometryAsset> driver =
+        Read("GAMEDATA/BBPELVIS.GDB").and_then([](const assets::FileData& file) {
+            return assets::ParseGeometry(file.Bytes());
+        });
+
+    REQUIRE(driver.has_value());
+    REQUIRE(driver->vertices.size() == 3);
+    CHECK(driver->vertices[0].joint == 1);
 }
 
 TEST_CASE_FIXTURE(GltfFixture, "a glb that can't be imported leaves the game model") {
