@@ -7,7 +7,7 @@
 #include <numbers>
 #include <utility>
 
-#include "app/powerup/powerup_models.hpp"
+#include "app/texture_scroll.hpp"
 #include "app/track_space.hpp"
 
 namespace rr::app {

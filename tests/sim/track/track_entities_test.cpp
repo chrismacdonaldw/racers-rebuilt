@@ -162,6 +162,16 @@ TEST_CASE("the RACEC2R2 entities all start on their first part") {
                               [](const TrackEntity& entity) { return entity.startPart == 0; }));
 }
 
+TEST_CASE("the RACEC2R0 cloud steam keeps its texture scroll") {
+    const std::optional<RaceTrack> track = RetailTrack("RACEC2R0");
+    if (!track) {
+        return;
+    }
+    const auto steam = std::ranges::find(track->entities.entities, "ktcldstm", &TrackEntity::name);
+    REQUIRE(steam != track->entities.entities.end());
+    CHECK(steam->textureScroll == assets::TextureScroll{.uPerSecond = 0.0F, .vPerSecond = -0.5F});
+}
+
 struct HammerSwing {
     Vector3 pivot;
     Vector3 rest;

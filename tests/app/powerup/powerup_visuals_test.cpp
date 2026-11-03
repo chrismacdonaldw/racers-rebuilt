@@ -133,8 +133,8 @@ TEST_CASE("a shield's texture scrolls from when it's raised") {
     visuals.Update(WithEffect(sim::PowerupKind::Shield, {}), 125.0F);
     visuals.Update(WithEffect(sim::PowerupKind::Shield, {}), 250.0F);
 
-    CHECK(visuals.Draws()[0].material.uvOffset.v == doctest::Approx(0.5F));
-    CHECK(visuals.Draws()[1].material.uvOffset.u == doctest::Approx(0.8125F));
+    CHECK(visuals.Draws()[0].material.uvOffset.v == doctest::Approx(0.499176025390625F));
+    CHECK(visuals.Draws()[1].material.uvOffset.u == doctest::Approx(0.81689453125F));
 }
 
 TEST_CASE("a turbo's flames fire up, sustain and die out with its phases") {

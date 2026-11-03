@@ -152,6 +152,7 @@ add_executable(racers-rebuilt-tests
     app/sound_banks_test.cpp
     app/startup_settings_test.cpp
     app/startup_timer_test.cpp
+    app/texture_scroll_test.cpp
     app/time_trial/ghost_car_test.cpp
     app/time_trial/ghost_cars_test.cpp
     app/time_trial/time_trial_run_test.cpp

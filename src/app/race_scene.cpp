@@ -24,6 +24,7 @@
 #include "app/race_step.hpp"
 #include "app/racer/far_cars.hpp"
 #include "app/racer/racer_fx.hpp"
+#include "app/texture_scroll.hpp"
 #include "app/track_map.hpp"
 #include "app/track_model.hpp"
 #include "app/track_space.hpp"
@@ -79,9 +80,6 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     if (!session) {
         return std::unexpected(std::move(session.error()));
     }
-    HiddenModels hiddenModels(raceTrack->events.table.modelDistances,
-                              session->TrackHazards().Models().Names(), model->entityDraws,
-                              raceTrack->entities);
     GhostTrail ghostTrail(model->draws, model->entityDraws, raceTrack->entities);
     const std::vector<std::int32_t> voices =
         PerSlot(*racers, session->Racers().size(), &RacerGrid::Voice);
@@ -106,9 +104,12 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                        .entityDraws = TrackEntityDraws(model->animatedModels, race.entities),
                        .farModels = FarModels(std::move(model->farModels)),
                        .sprites = std::move(model->sprites),
-                       .hiddenModels = std::move(hiddenModels),
+                       .hiddenModels = HiddenModels(race.events.table.modelDistances,
+                                                    session->TrackHazards().Models().Names(),
+                                                    model->entityDraws, race.entities),
                        .ghostTrail = std::move(ghostTrail),
                        .waterScroll = WaterScroll(race.hazards, model->entityDraws),
+                       .scrolledDraws = std::move(model->scrolledDraws),
                        .world = std::move(world),
                        .session = std::move(*session),
                        .audio = std::move(audio),
@@ -281,11 +282,13 @@ void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float simM
                       draws_.begin() + static_cast<std::ptrdiff_t>(parts_.trackDraws.size()));
     AddGridCars(parts_.racers, interpolated.entities, parts_.trackDraws.size(), parts_.farModels);
     parts_.entityDraws.Update(interpolated.entityClocks);
+    parts_.entityDraws.Scroll(shownMs_);
     draws_.insert(draws_.end(), parts_.entityDraws.Draws().begin(),
                   parts_.entityDraws.Draws().end());
     parts_.hiddenModels.Apply(interpolated.hiddenModels, parts_.trackDraws, parts_.entityDraws,
                               parts_.trackDraws.size() + parts_.racers.Draws().size(), draws_);
     parts_.ghostTrail.Append(parts_.session.TrackHazards(), interpolated.entityClocks, draws_);
+    ScrollDraws(parts_.scrolledDraws, shownMs_, draws_);
     parts_.waterScroll.Apply(draws_);
     parts_.bricks.AppendDraws(interpolated.bricks, draws_, parts_.farModels);
     powerupVisuals_.Update(interpolated, simMs);
@@ -359,7 +362,7 @@ render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated
     powerupQuads.Update(interpolated, camera.transform, simMs);
     quads.insert(quads.end(), powerupQuads.Quads().begin(), powerupQuads.Quads().end());
     std::vector<render::MeshDraw>& sky = skyDraws_.at(player);
-    parts_.sky.Place(parts_.session.Resources().Sky(), camera.transform.position, skyShownMs_, sky);
+    parts_.sky.Place(parts_.session.Resources().Sky(), camera.transform.position, shownMs_, sky);
     return {.camera = camera,
             .backdrop = sky,
             .meshes = parts_.farModels.Cull(player, camera.transform.position, draws_),
@@ -371,7 +374,7 @@ render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated
 void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     const float elapsedMs = MsSince(lastRender_) * static_cast<float>(TimeScale());
     const float simMs = pause_.IsOpen() || IsTrialAsking() ? 0.0F : elapsedMs;
-    skyShownMs_ += simMs;
+    shownMs_ += simMs;
     GatherMeshes(interpolated, simMs);
     DrawDebugLines();
     GatherCarMarks(interpolated, simMs);

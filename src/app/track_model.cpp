@@ -173,6 +173,9 @@ public:
             farModels_.push_back(
                 {.position = transform.position, .draws = span, .rangeSquared = range});
         }
+        if (entity.textureScroll) {
+            scrolled_.push_back({.draws = span, .scroll = *entity.textureScroll});
+        }
         AddBounds(model->second, transform, isSurface ? surface_ : everything_);
         if (isSurface) {
             AppendDecalTriangles(model->second, *assetMaterials_, transform, decalTriangles_);
@@ -210,6 +213,7 @@ public:
                 .drawSlots = std::move(slots_),
                 .entityDraws = std::move(named_),
                 .farModels = std::move(farModels_),
+                .scrolledDraws = std::move(scrolled_),
                 .animatedModels = std::move(animated_),
                 .skyModels = std::move(sky_),
                 .materials = std::move(materials_),
@@ -241,6 +245,7 @@ private:
     std::vector<std::uint32_t> slots_;
     std::vector<NamedDraws> named_;
     std::vector<FarModel> farModels_;
+    std::vector<ScrolledDraws> scrolled_;
     NameMap<JointedModel> animated_;
     std::vector<SkyModel> sky_;
     Bounds surface_;

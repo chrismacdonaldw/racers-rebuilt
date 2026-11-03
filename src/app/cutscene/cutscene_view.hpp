@@ -107,6 +107,7 @@ private:
     std::vector<render::QuadDraw> quads_;
     std::vector<render::DirectionalLight> lights_;
     bool isFarSceneryDrawn_ = true;
+    float scrollMs_ = 0.0F;
 };
 
 }

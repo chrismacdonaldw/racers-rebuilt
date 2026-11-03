@@ -43,6 +43,11 @@ struct FarModel {
     float rangeSquared = 0.0F;
 };
 
+struct ScrolledDraws {
+    DrawSpan draws;
+    assets::TextureScroll scroll;
+};
+
 /// A sky world model. Its draws hold the entity's rotation; the race moves them to the camera.
 struct SkyModel {
     std::vector<render::MeshDraw> draws;
@@ -56,6 +61,7 @@ struct TrackModel {
     std::vector<std::uint32_t> drawSlots;
     std::vector<NamedDraws> entityDraws;
     std::vector<FarModel> farModels;
+    std::vector<ScrolledDraws> scrolledDraws;
     assets::NameMap<JointedModel> animatedModels;
     std::vector<SkyModel> skyModels;
     TrackSprites sprites;

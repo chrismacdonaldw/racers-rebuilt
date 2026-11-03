@@ -107,6 +107,7 @@ private:
         HiddenModels hiddenModels;
         GhostTrail ghostTrail;
         WaterScroll waterScroll;
+        std::vector<ScrolledDraws> scrolledDraws;
         std::unique_ptr<sim::WorldList> world;
         sim::RaceSession session;
         std::unique_ptr<RaceAudio> audio;
@@ -159,7 +160,7 @@ private:
     std::array<std::vector<render::QuadDraw>, sim::kMaxPlayers> playerQuads_;
     std::array<std::vector<render::MeshDraw>, sim::kMaxPlayers> tubeDraws_;
     std::array<std::vector<render::MeshDraw>, sim::kMaxPlayers> skyDraws_;
-    float skyShownMs_ = 0.0F;
+    float shownMs_ = 0.0F;
     std::vector<render::RenderView> views_;
     std::array<std::vector<MapMarker>, sim::kMaxPlayers> mapMarkers_;
     std::array<MapView, sim::kMaxPlayers> mapViews_;
