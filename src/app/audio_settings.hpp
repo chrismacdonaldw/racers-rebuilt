@@ -31,6 +31,12 @@ inline constexpr settings::SettingSpec<double> kVoiceVolume{.key = "audio.voice_
 inline constexpr settings::SettingSpec<bool> kStereo{
     .key = "audio.stereo", .defaultValue = true, .label = "Stereo", .category = "Audio"};
 
+/// Mixes with headroom and a limiter instead of clipping as the original does.
+inline constexpr settings::SettingSpec<bool> kPreventClipping{.key = "audio.prevent_clipping",
+                                                              .defaultValue = true,
+                                                              .label = "Prevent clipping",
+                                                              .category = "Audio"};
+
 /// A game path such as `GAMEDATA/COMMON/321.PCM` or `THEME.TUN`, played once audio starts.
 inline constexpr settings::SettingSpec<std::string_view> kDevPlaySound{
     .key = "dev.play_sound", .defaultValue = "", .label = "Play sound", .category = "Developer"};

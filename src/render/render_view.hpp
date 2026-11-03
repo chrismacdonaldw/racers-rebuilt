@@ -23,6 +23,12 @@ inline constexpr std::uint32_t kWholeMesh = std::numeric_limits<std::uint32_t>::
 /// Opaque draws come first. Blended draws follow in submission order and don't write depth.
 enum class BlendMode : std::uint8_t { Opaque, Alpha, Additive };
 
+enum class TextureFilter : std::uint8_t { Linear, Point };
+enum class TextureAddress : std::uint8_t { Repeat, Clamp };
+
+/// Flat takes the whole triangle's normal and vertex color from its first vertex.
+enum class Shading : std::uint8_t { Gouraud, Flat };
+
 struct Color {
     float r = 1.0F;
     float g = 1.0F;
@@ -52,11 +58,14 @@ struct VertexColorTransform {
 /// a vertex has no normal. Without `modulates`, the texture is drawn unlit as is.
 struct Material {
     TextureId texture = kWhiteTexture;
+    TextureFilter filter = TextureFilter::Linear;
+    TextureAddress address = TextureAddress::Repeat;
     Color tint;
     Color ambient{.r = 0.35F, .g = 0.35F, .b = 0.35F};
     float alphaCutoff = 0.5F;
     BlendMode blend = BlendMode::Opaque;
     bool modulates = true;
+    Shading shading = Shading::Gouraud;
     UvOffset uvOffset;
     VertexColorTransform vertexColors;
 };

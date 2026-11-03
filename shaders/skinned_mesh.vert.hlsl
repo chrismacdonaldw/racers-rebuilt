@@ -24,6 +24,8 @@ struct VertexOutput
     float3 normal : TEXCOORD0;
     float2 uv : TEXCOORD1;
     float4 color : TEXCOORD2;
+    nointerpolation float3 flatNormal : TEXCOORD3;
+    nointerpolation float4 flatColor : TEXCOORD4;
 };
 
 VertexOutput main(VertexInput input)
@@ -34,5 +36,7 @@ VertexOutput main(VertexInput input)
     output.normal = mul((float3x3)placed, input.normal);
     output.uv = input.uv;
     output.color = input.color;
+    output.flatNormal = output.normal;
+    output.flatColor = input.color;
     return output;
 }

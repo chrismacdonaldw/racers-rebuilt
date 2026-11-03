@@ -81,6 +81,7 @@ public:
 
 private:
     static constexpr std::size_t kBlendModeCount = 3;
+    static constexpr std::size_t kSamplerCount = 4;
 
     struct DeviceDeleter {
         SDL_Window* window = nullptr;
@@ -135,6 +136,7 @@ private:
     Result<void> CopyToTexture(SDL_GPUTexture* texture, const assets::ImageAsset& image,
                                std::span<const std::byte> pixels, bool cycles);
     [[nodiscard]] SDL_GPUTexture* Shown(TextureId texture) const;
+    [[nodiscard]] SDL_GPUSampler* Sampler(TextureFilter filter, TextureAddress address) const;
     Result<void> UploadBuffers(std::span<const UploadPart> parts);
     void GatherViews(std::span<const RenderView> views);
     Result<void> UploadFrame(SDL_GPUCommandBuffer* commands, std::span<const RenderView> views);
@@ -166,8 +168,7 @@ private:
     std::array<GpuPipeline, kBlendModeCount> quadPipelines_;
     std::array<GpuPipeline, kBlendModeCount> spritePipelines_;
     GpuPipeline linePipeline_;
-    GpuSampler sampler_;
-    GpuSampler uiSampler_;
+    std::array<GpuSampler, kSamplerCount> samplers_;
     SDL_GPUTextureFormat colorFormat_ = SDL_GPU_TEXTUREFORMAT_INVALID;
     float resolutionScale_ = 1.0F;
     UiFit uiFit_ = UiFit::Centered;

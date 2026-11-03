@@ -10,6 +10,7 @@ cbuffer MaterialUniforms : register(b0, space3)
     float2 uvOffset;
     float4 vertexScale;
     float4 vertexOffset;
+    float flatWeight;
 };
 
 static const uint kMaxLights = 7;
@@ -44,10 +45,21 @@ float3 Shade(float3 normal, float4 vertexColor)
     return saturate(lit);
 }
 
-float4 main(float4 position : SV_Position, float3 normal : TEXCOORD0, float2 uv : TEXCOORD1,
-            float4 vertexColor : TEXCOORD2) : SV_Target0
+struct PixelInput
 {
-    float4 texel = baseTexture.Sample(baseSampler, uv + uvOffset);
+    float4 position : SV_Position;
+    float3 normal : TEXCOORD0;
+    float2 uv : TEXCOORD1;
+    float4 color : TEXCOORD2;
+    nointerpolation float3 flatNormal : TEXCOORD3;
+    nointerpolation float4 flatColor : TEXCOORD4;
+};
+
+float4 main(PixelInput input) : SV_Target0
+{
+    float3 normal = lerp(input.normal, input.flatNormal, flatWeight);
+    float4 vertexColor = lerp(input.color, input.flatColor, flatWeight);
+    float4 texel = baseTexture.Sample(baseSampler, input.uv + uvOffset);
     float alpha = texel.a * tint.a;
     clip(alpha - alphaCutoff);
     float vertexAlpha = IsPrelit(normal) ? vertexColor.a : 1.0;
