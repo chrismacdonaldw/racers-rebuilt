@@ -21,9 +21,11 @@ const Transform& PlayerCameraPose(const sim::RenderSnapshot& snapshot, std::size
                        : snapshot.otherPlayerCameras.at(player - 1).transform;
 }
 
-PlayerCameras::PlayerCameras(const sim::RaceSession& session, std::size_t players) {
+PlayerCameras::PlayerCameras(const sim::RaceSession& session, std::size_t players,
+                             float baseFovDegrees) {
     for (std::size_t slot = 0; slot < players; ++slot) {
         RaceCamera& camera = cameras_.emplace_back(SubjectOf(session.Racers()[slot]));
+        fovSwings_.emplace_back(baseFovDegrees, sim::Random(slot));
         if (players > 1) {
             camera.SetView(CameraView::Standard, true);
         }
@@ -56,6 +58,7 @@ void PlayerCameras::Follow(const sim::RaceSession& session) {
             camera.SetView(CameraView::Finish, isSplitScreen);
         }
         camera.Follow(SubjectOf(racer), static_cast<float>(kSimTick.count()));
+        fovSwings_[slot].Tick(kSimTick, racer.Status().isCursed, racer.Status().isGhost);
         poses_[slot] = camera.Pose();
     }
 }

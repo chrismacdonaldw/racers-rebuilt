@@ -21,6 +21,7 @@ add_executable(racers-rebuilt-tests
     app/cutscene/cutscene_timeline_test.cpp
     app/collision_wireframe_test.cpp
     app/frame_loop_test.cpp
+    app/fov_swing_test.cpp
     app/game_extraction_test.cpp
     app/gameplay_fingerprint_test.cpp
     app/hazard/ghost_trail_test.cpp
