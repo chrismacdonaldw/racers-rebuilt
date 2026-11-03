@@ -33,6 +33,8 @@ public:
     [[nodiscard]] BuildPointing Tick(const sim::InputFrame& input, const CarBuildLook& look,
                                      CarBuildMenu& menu);
 
+    void TickIdle(const sim::MenuPointer& pointer);
+
     void DrawPressed(const CarBuildLook& look, std::vector<render::SpriteDraw>& sprites) const;
 
 private:

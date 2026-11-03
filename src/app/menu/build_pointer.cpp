@@ -17,13 +17,21 @@ bool Contains(const render::Rect& area, const sim::MenuPointer& pointer) {
            pointer.x < area.x + area.width && pointer.y < area.y + area.height;
 }
 
+std::optional<PadPress> SpotOn(const CarBuildLook& look, BuildPad pad,
+                               const sim::MenuPointer& pointer) {
+    const std::vector<PadSpot>& spots = look.pads.at(static_cast<std::size_t>(pad)).spots;
+    for (std::size_t spot = 0; spot < spots.size(); ++spot) {
+        if (Contains(spots[spot].area, pointer)) {
+            return PadPress{.pad = pad, .spot = spot};
+        }
+    }
+    return std::nullopt;
+}
+
 std::optional<PadPress> SpotAt(const CarBuildLook& look, const sim::MenuPointer& pointer) {
     for (std::size_t pad = 0; pad < kBuildPads; ++pad) {
-        const std::vector<PadSpot>& spots = look.pads.at(pad).spots;
-        for (std::size_t spot = 0; spot < spots.size(); ++spot) {
-            if (Contains(spots[spot].area, pointer)) {
-                return PadPress{.pad = static_cast<BuildPad>(pad), .spot = spot};
-            }
+        if (std::optional<PadPress> hit = SpotOn(look, static_cast<BuildPad>(pad), pointer)) {
+            return hit;
         }
     }
     return std::nullopt;
@@ -85,6 +93,12 @@ BuildPointing BuildPointer::Tick(const sim::InputFrame& input, const CarBuildLoo
     return pointing;
 }
 
+void BuildPointer::TickIdle(const sim::MenuPointer& pointer) {
+    if (pointer.released) {
+        press_.reset();
+    }
+}
+
 BuildRequest BuildPointer::Press(const sim::MenuPointer& pointer, const CarBuildLook& look) {
     if (pointer.pressed) {
         press_ = SpotAt(look, pointer);
@@ -99,7 +113,7 @@ BuildRequest BuildPointer::Press(const sim::MenuPointer& pointer, const CarBuild
         return {};
     }
     repeatIn_ = kRepeat;
-    const std::optional<PadPress> under = SpotAt(look, pointer);
+    const std::optional<PadPress> under = SpotOn(look, press_->pad, pointer);
     if (!under) {
         return {};
     }

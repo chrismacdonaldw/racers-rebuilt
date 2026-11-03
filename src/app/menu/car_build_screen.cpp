@@ -142,7 +142,12 @@ BuildOutcome CarBuildScreen::Tick(const sim::InputFrame& input) {
     setStrip_.Tick(kSimTick);
     spin_ = std::fmod(spin_ + (look_.spinPerMs * static_cast<float>(kSimTick.count())), kFullTurn);
     const bool pressed = !keys_.empty() || input.menuPressed.any();
-    BuildOutcome outcome = motion_.IsBusy() ? BuildOutcome::None : ApplyInput(input);
+    BuildOutcome outcome = BuildOutcome::None;
+    if (motion_.IsBusy()) {
+        pointer_.TickIdle(input.pointer);
+    } else {
+        outcome = ApplyInput(input);
+    }
     keys_.clear();
     outcome = std::max(outcome, Animate());
     TickHelp(pressed);
