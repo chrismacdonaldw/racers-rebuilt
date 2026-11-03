@@ -7,7 +7,9 @@
 #include <string>
 #include <vector>
 
+#include "app/device_assignment.hpp"
 #include "app/menu/control_bindings.hpp"
+#include "app/menu/controls_devices.hpp"
 #include "app/menu/controls_look.hpp"
 #include "app/menu/controls_menu.hpp"
 #include "app/menu/menu_text.hpp"
@@ -19,7 +21,7 @@
 
 namespace rr::app {
 
-/// The original's controls screen, rebinding one player's race keys and buttons.
+/// The original's controls screen: one player picks a device and rebinds its set.
 class ControlsScene final : public Scene {
 public:
     /// `renderer` and `vfs` must outlive the scene. Finishing opens `back`.
@@ -41,7 +43,9 @@ private:
     ControlsScene(render::Renderer& renderer, const assets::Vfs& vfs, ControlsLook look,
                   std::size_t player, std::string back);
 
-    [[nodiscard]] const ControlNames& DeviceNames() const;
+    [[nodiscard]] const DeviceEntry& Entry() const;
+    void ShowDevices(std::vector<AttachedPad> pads, InputSet set);
+    void Leave();
     void DrawDevicePicker();
     void DrawRows();
 
@@ -52,10 +56,11 @@ private:
     std::string back_;
     ControlsMenu menu_;
     MenuText text_;
-    ControlNames keyboardNames_;
-    ControlNames gamepadNames_;
-    std::array<std::u16string, kControlRows> keyboardShown_;
-    std::array<std::u16string, kControlRows> gamepadShown_;
+    std::vector<AttachedPad> pads_;
+    std::vector<DeviceEntry> entries_;
+    std::optional<PlayerSets> chosen_;
+    std::array<ControlNames, kInputSets.size()> names_;
+    std::array<std::array<std::u16string, kControlRows>, kInputSets.size()> shown_;
     std::optional<std::string> next_;
     std::vector<SettingChange> changes_;
     std::vector<render::SpriteDraw> sprites_;

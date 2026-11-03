@@ -19,8 +19,6 @@ constexpr std::string_view kLabelStyle = "menufont";
 constexpr std::string_view kFinish = "goback";
 constexpr std::string_view kDevicePicker = "contcon";
 constexpr std::string_view kDeviceImage = "imagebox";
-constexpr std::string_view kKeyboardImage = "keyboard";
-constexpr std::string_view kGamepadImage = "gamepad";
 
 constexpr std::array<std::string_view, kControlRows> kBindingElements{
     "turnleft", "turnrght", "acceler", "brake", "fire", "camera", "map", "slide", "lookback"};
@@ -67,8 +65,17 @@ private:
             .transform([&](const SelectorArrows& arrows) { look_.arrows = arrows; })
             .and_then([&] { return LoadImageButton(images_, *files_, kFinishStyle); })
             .transform([&](const ImageButtonLook& finish) { look_.finishButton = finish; })
-            .and_then([&] { return Upload(kKeyboardImage, look_.keyboard); })
-            .and_then([&] { return Upload(kGamepadImage, look_.gamepad); });
+            .and_then([&] { return LoadDeviceImages(); });
+    }
+
+    Result<void> LoadDeviceImages() {
+        for (std::size_t image = 0; image < kDeviceImageNames.size(); ++image) {
+            Result<void> loaded = Upload(kDeviceImageNames.at(image), look_.deviceImages.at(image));
+            if (!loaded) {
+                return loaded;
+            }
+        }
+        return {};
     }
 
     Result<void> LoadTexts() {

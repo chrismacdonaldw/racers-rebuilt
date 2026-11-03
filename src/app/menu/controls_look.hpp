@@ -3,6 +3,7 @@
 #include <array>
 
 #include "app/menu/control_bindings.hpp"
+#include "app/menu/controls_devices.hpp"
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_parts.hpp"
 #include "app/menu/menu_widgets.hpp"
@@ -28,8 +29,7 @@ struct ControlsLook {
     SelectorArrows arrows;
     SelectorPlace devicePicker;
     MenuPoint deviceImage;
-    UiImage keyboard;
-    UiImage gamepad;
+    std::array<UiImage, kDeviceImageNames.size()> deviceImages;
 };
 
 [[nodiscard]] Result<ControlsLook> LoadControlsLook(render::Renderer& renderer,

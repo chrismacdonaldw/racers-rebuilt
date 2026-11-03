@@ -203,7 +203,6 @@ void InputBindings::Rebind(const settings::Registry& registry, sim::InputLatch& 
     heldButtons_.clear();
     heldTriggers_.clear();
     latch.ReleaseAll();
-    CentreSticks(latch);
 }
 
 void InputBindings::SetPlayerCount(std::size_t count, sim::InputLatch& latch) {
@@ -230,7 +229,7 @@ void InputBindings::Handle(const SDL_Event& event, sim::InputLatch& latch) {
             HandleAxis(event.gaxis, latch);
             return;
         case SDL_EVENT_GAMEPAD_ADDED:
-            AddPad(event.gdevice.which);
+            AddPad(event.gdevice.which, latch);
             LatchHeldActions(latch);
             return;
         case SDL_EVENT_GAMEPAD_REMOVED:
@@ -252,7 +251,7 @@ void InputBindings::HandleKey(const SDL_KeyboardEvent& event, sim::InputLatch& l
 }
 
 void InputBindings::HandleButton(const SDL_GamepadButtonEvent& event, sim::InputLatch& latch) {
-    AddPad(event.which);
+    AddPad(event.which, latch);
     const auto button = static_cast<SDL_GamepadButton>(event.button);
     if (event.down) {
         PressMenuMatches(menu_.buttons, button, latch);
@@ -263,7 +262,7 @@ void InputBindings::HandleButton(const SDL_GamepadButtonEvent& event, sim::Input
 }
 
 void InputBindings::HandleAxis(const SDL_GamepadAxisEvent& event, sim::InputLatch& latch) {
-    AddPad(event.which);
+    AddPad(event.which, latch);
     const auto axis = static_cast<SDL_GamepadAxis>(event.axis);
     if (axis == SDL_GAMEPAD_AXIS_LEFTX) {
         if (const std::optional<std::size_t> player = PlayerOfPad(event.which)) {
@@ -286,10 +285,15 @@ void InputBindings::HandleAxis(const SDL_GamepadAxisEvent& event, sim::InputLatc
     LatchHeldActions(latch);
 }
 
-void InputBindings::AddPad(SDL_JoystickID pad) {
-    if (!std::ranges::contains(pads_, pad)) {
-        pads_.push_back(pad);
-        AssignSets();
+void InputBindings::AddPad(SDL_JoystickID pad, sim::InputLatch& latch) {
+    if (std::ranges::contains(pads_, pad)) {
+        return;
+    }
+    pads_.push_back(pad);
+    const PlayerSets before = assigned_;
+    AssignSets();
+    if (assigned_ != before) {
+        CentreSticks(latch);
     }
 }
 

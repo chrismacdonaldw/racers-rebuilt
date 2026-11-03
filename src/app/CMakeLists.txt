@@ -80,6 +80,7 @@ rr_add_module(app
         menu/carousel_view.cpp
         menu/control_bindings.cpp
         menu/controls_look.cpp
+        menu/controls_devices.cpp
         menu/controls_menu.cpp
         menu/controls_scene.cpp
         menu/dialog_layout.cpp
