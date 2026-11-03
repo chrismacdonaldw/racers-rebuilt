@@ -15,7 +15,6 @@
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_widgets.hpp"
-#include "assets/game_path.hpp"
 #include "core/log.hpp"
 #include "core/quaternion.hpp"
 
@@ -32,7 +31,6 @@ constexpr std::size_t kDiscardLine = 0x7B;
 constexpr std::size_t kContinueLine = 0x20;
 constexpr std::size_t kTooManyLine = 0xBA;
 constexpr std::size_t kDisabledState = 0;
-constexpr std::string_view kQuickBuildFile = "MENUDATA/QBUILD.LRS";
 constexpr std::uint64_t kColourSeed = 0xCA2C0102;
 constexpr std::uint32_t kChassisColours = 10;
 constexpr float kTurnPerMs = 0.001F;
@@ -41,23 +39,6 @@ constexpr Vector3 kSpot{.z = 1.0F};
 constexpr Vector3 kUp{.z = 1.0F};
 constexpr sim::EntityId kCarId{1};
 constexpr std::uint64_t kStateBase = 256;
-
-Result<QuickBuilds> LoadQuickBuilds(const assets::Vfs& vfs) {
-    return vfs.Read(kQuickBuildFile)
-        .and_then([](const assets::FileData& data) { return assets::ParseRacerFile(data.Bytes()); })
-        .transform(
-            [](std::vector<assets::SavedRacer> builds) { return QuickBuilds(std::move(builds)); });
-}
-
-std::size_t SetOf(const assets::PieceCatalog& pieces, std::string_view chassis) {
-    const std::string wanted = assets::ToUpperAscii(chassis);
-    const auto found = std::ranges::find_if(pieces.partSets, [&](const auto& set) {
-        return assets::ToUpperAscii(set.chassisName) == wanted;
-    });
-    return found == pieces.partSets.end()
-               ? 0
-               : static_cast<std::size_t>(found - pieces.partSets.begin());
-}
 
 std::unique_ptr<CarStand> LoadStand(render::Renderer& renderer, const assets::Vfs& vfs,
                                     const MenuFiles& files, const settings::Racer& racer) {
@@ -107,7 +88,8 @@ Result<std::unique_ptr<EditCarScene>> EditCarScene::Create(render::Renderer& ren
     const settings::Racer& record = store->racers.at(racer.index);
     sim::BuiltCar built = LoadEditedCar(record.car, pieces->library);
     std::vector<std::size_t> sets = AvailablePartSets(partSets, built, *pieces);
-    const std::size_t chassisSet = built.Pieces().empty() ? 0 : SetOf(*pieces, record.chassis);
+    const std::size_t chassisSet =
+        built.Pieces().empty() ? 0 : PartSetOfChassis(*pieces, record.chassis);
     const auto set = std::ranges::find(sets, chassisSet);
     const bool isReplaceable = built.Pieces().size() <= 1 || quickBuilds->Contains(record.car);
     Car car{.pieces = std::move(*pieces),
@@ -198,13 +180,20 @@ void EditCarScene::Tick(const sim::InputFrame& input) {
         return;
     }
     const CarRow focusBefore = menu_.Focus();
-    CarRequest request = menu_.Tick(input);
+    AimPointer();
+    PointerChoice pointed = pointer_.Tick(input.pointer, targets_);
+    if (const std::optional<std::size_t> focus = pointed.Focus();
+        focus && !menu_.FocusOn(static_cast<CarRow>(*focus))) {
+        pointed = {};
+    }
+    const sim::InputFrame clicked = WithClick(input, pointed);
+    CarRequest request = menu_.Tick(clicked);
     const bool isSet = request == CarRequest::PreviousSet || request == CarRequest::NextSet;
     if (isSet && !setStrip_.Slide(request == CarRequest::NextSet ? 1 : -1, car_.sets.size())) {
         request = CarRequest::None;
     }
     Handle(request);
-    PlaySounds(input, request, focusBefore);
+    PlaySounds(clicked, request, focusBefore);
 }
 
 void EditCarScene::Snapshot(sim::RenderSnapshot& out) const {
@@ -465,6 +454,28 @@ void EditCarScene::LayOut() {
         under_.push_back({.texture = border.texture, .bounds = border.bounds, .tint = border.tint});
     }
     sprites_.clear();
+}
+
+void EditCarScene::AimPointer() {
+    targets_.clear();
+    if (menu_.IsEnabled(CarRow::PartSet)) {
+        AddSelectorTargets(look_.picker, static_cast<std::size_t>(CarRow::PartSet), targets_);
+    }
+    for (std::size_t button = 0; button < kCarTextButtons; ++button) {
+        const CarRow row = kTextRows.at(button);
+        if (menu_.IsEnabled(row)) {
+            targets_.push_back(
+                {.area = LabelArea(text_, look_.textButton.at(StateOf(row)),
+                                   text_.Line(kTextLines.at(button)), look_.textPlaces.at(button)),
+                 .control = static_cast<std::size_t>(row)});
+        }
+    }
+    targets_.push_back({.area = ImageButtonArea(text_, look_.done, StateOf(CarRow::Done),
+                                                text_.Line(buttons_.done.line), look_.donePlace),
+                        .control = static_cast<std::size_t>(CarRow::Done)});
+    targets_.push_back({.area = ImageButtonArea(text_, look_.back, StateOf(CarRow::Back),
+                                                text_.Line(buttons_.back.line), look_.backPlace),
+                        .control = static_cast<std::size_t>(CarRow::Back)});
 }
 
 void EditCarScene::DrawControls() {

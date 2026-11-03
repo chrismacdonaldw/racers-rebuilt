@@ -11,6 +11,7 @@
 #include "assets/car_data.hpp"
 #include "assets/original_save.hpp"
 #include "assets/piece_catalog.hpp"
+#include "assets/vfs.hpp"
 #include "core/result.hpp"
 #include "sim/car_build/built_car.hpp"
 
@@ -28,6 +29,10 @@ inline constexpr std::size_t kPartSetCount = 12;
 
 [[nodiscard]] std::optional<std::size_t> PartSetOfType(const assets::PieceCatalog& catalog,
                                                        std::uint16_t partType);
+
+/// The first set when none has that chassis.
+[[nodiscard]] std::size_t PartSetOfChassis(const assets::PieceCatalog& catalog,
+                                           std::string_view chassis);
 
 /// An empty car, with a warning, when `data` doesn't load, so the editor can start it afresh.
 [[nodiscard]] sim::BuiltCar LoadEditedCar(const assets::CarData& data,
@@ -50,5 +55,7 @@ private:
     std::vector<assets::SavedRacer> builds_;
     std::size_t next_ = 0;
 };
+
+[[nodiscard]] Result<QuickBuilds> LoadQuickBuilds(const assets::Vfs& vfs);
 
 }

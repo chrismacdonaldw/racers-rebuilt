@@ -13,7 +13,25 @@ namespace rr::app {
 namespace {
 
 constexpr std::size_t kStarterPartSets = 4;
+constexpr std::string_view kQuickBuildFile = "MENUDATA/QBUILD.LRS";
 
+}
+
+Result<QuickBuilds> LoadQuickBuilds(const assets::Vfs& vfs) {
+    return vfs.Read(kQuickBuildFile)
+        .and_then([](const assets::FileData& data) { return assets::ParseRacerFile(data.Bytes()); })
+        .transform(
+            [](std::vector<assets::SavedRacer> builds) { return QuickBuilds(std::move(builds)); });
+}
+
+std::size_t PartSetOfChassis(const assets::PieceCatalog& catalog, std::string_view chassis) {
+    const std::string wanted = assets::ToUpperAscii(chassis);
+    const auto found = std::ranges::find_if(catalog.partSets, [&](const auto& set) {
+        return assets::ToUpperAscii(set.chassisName) == wanted;
+    });
+    return found == catalog.partSets.end()
+               ? 0
+               : static_cast<std::size_t>(found - catalog.partSets.begin());
 }
 
 sim::BuiltCar LoadEditedCar(const assets::CarData& data, const assets::PieceLibrary& library) {

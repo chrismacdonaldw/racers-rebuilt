@@ -41,6 +41,14 @@ bool EditCarMenu::IsEnabled(CarRow row) const {
     return enabled_.at(IndexOf(row));
 }
 
+bool EditCarMenu::FocusOn(CarRow row) {
+    if (!IsEnabled(row)) {
+        return false;
+    }
+    focus_ = row;
+    return true;
+}
+
 void EditCarMenu::MoveFocus(int step) {
     const auto count = static_cast<int>(kCarRows);
     int at = static_cast<int>(IndexOf(focus_));

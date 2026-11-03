@@ -13,6 +13,7 @@
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
+#include "app/menu/pointer_buttons.hpp"
 #include "app/menu/race_setup_menu.hpp"
 #include "app/menu/track_preview.hpp"
 #include "app/race_scene_parts.hpp"
@@ -50,6 +51,7 @@ public:
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] SceneMusic Music() const override { return {.start = MusicStart::Keep}; }
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
+    [[nodiscard]] bool ShowsPointer() const override { return true; }
     void Tick(const sim::InputFrame& input) override;
     void Snapshot(sim::RenderSnapshot& out) const override;
     void Render(const sim::RenderSnapshot& interpolated) override;
@@ -68,7 +70,12 @@ private:
         bool isGameText = false;
     };
 
-    void DrawRow(RaceSetupRow row, const RowText& text);
+    [[nodiscard]] RowText TextOf(RaceSetupRow row) const;
+    [[nodiscard]] std::size_t StateOf(RaceSetupRow row) const;
+    [[nodiscard]] MenuPoint ValueAt(float top) const;
+    [[nodiscard]] render::Rect RowArea(RaceSetupRow row) const;
+    void AimPointer();
+    void DrawRow(RaceSetupRow row);
     void DrawValue(const MenuButtonState& state, std::u16string_view value, float top);
     void DrawChampion();
     void ShowBestTimes();
@@ -83,12 +90,15 @@ private:
     MenuText text_;
     std::vector<std::u16string> raceNames_;
     std::vector<std::u16string> courseNames_;
+    std::u16string courseLabel_ = u"TRACK";
     settings::Progress progress_;
     BestTimePanel bestTimes_;
     RaceSceneSetup rules_;
     std::unique_ptr<TrackPreview> preview_;
     std::optional<std::string> next_;
     std::vector<render::SpriteDraw> sprites_;
+    std::vector<PointerTarget> targets_;
+    PointerButtons pointer_;
 };
 
 }

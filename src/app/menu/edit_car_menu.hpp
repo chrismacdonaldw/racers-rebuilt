@@ -32,6 +32,8 @@ public:
 
     [[nodiscard]] bool IsEnabled(CarRow row) const;
     [[nodiscard]] CarRow Focus() const { return focus_; }
+    /// False, leaving the focus, for a row that's off.
+    [[nodiscard]] bool FocusOn(CarRow row);
 
 private:
     void MoveFocus(int step);

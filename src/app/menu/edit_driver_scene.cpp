@@ -137,10 +137,16 @@ void EditDriverScene::Tick(const sim::InputFrame& input) {
         return;
     }
     const DriverRow focusBefore = menu_.Focus();
-    const DriverRequest request = menu_.Tick(input);
+    AimPointer();
+    const PointerChoice pointed = pointer_.Tick(input.pointer, targets_);
+    if (const std::optional<std::size_t> focus = pointed.Focus()) {
+        menu_.FocusOn(static_cast<DriverRow>(*focus));
+    }
+    const sim::InputFrame clicked = WithClick(input, pointed);
+    const DriverRequest request = menu_.Tick(clicked);
     const CarouselStep step = request == DriverRequest::Step ? Step() : CarouselStep::Ignored;
     Handle(request);
-    PlaySounds(input, request, focusBefore, step);
+    PlaySounds(clicked, request, focusBefore, step);
 }
 
 void EditDriverScene::Snapshot(sim::RenderSnapshot& out) const {
@@ -338,6 +344,22 @@ void EditDriverScene::LayOut() {
     if (views_.stand) {
         holes_.push_back(views_.stand->Framing().interior);
     }
+}
+
+void EditDriverScene::AimPointer() {
+    targets_.clear();
+    for (std::size_t row = 0; row < kDriverSlots; ++row) {
+        AddSelectorTargets(look_.rows.at(row).selector, row, targets_);
+    }
+    targets_.push_back({.area = LabelArea(text_, look_.mixButton.at(StateOf(DriverRow::Mix)),
+                                          text_.Line(kMixLine), look_.mix),
+                        .control = static_cast<std::size_t>(DriverRow::Mix)});
+    targets_.push_back({.area = ImageButtonArea(text_, look_.done, StateOf(DriverRow::Done),
+                                                text_.Line(buttons_.done.line), look_.donePlace),
+                        .control = static_cast<std::size_t>(DriverRow::Done)});
+    targets_.push_back({.area = ImageButtonArea(text_, look_.back, StateOf(DriverRow::Back),
+                                                text_.Line(buttons_.back.line), look_.backPlace),
+                        .control = static_cast<std::size_t>(DriverRow::Back)});
 }
 
 void EditDriverScene::DrawControls() {

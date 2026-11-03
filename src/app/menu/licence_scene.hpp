@@ -20,6 +20,7 @@
 #include "app/menu/menu_text.hpp"
 #include "app/menu/message_dialog.hpp"
 #include "app/menu/name_field.hpp"
+#include "app/menu/pointer_buttons.hpp"
 #include "app/menu/racer_edit_flow.hpp"
 #include "app/menu/stand_racer.hpp"
 #include "app/scene.hpp"
@@ -48,6 +49,7 @@ public:
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
     void HandleEvent(const SDL_Event& event) override;
+    [[nodiscard]] bool ShowsPointer() const override { return true; }
     void Tick(const sim::InputFrame& input) override;
     [[nodiscard]] SceneMusic Music() const override { return {.start = MusicStart::Keep}; }
     void Snapshot(sim::RenderSnapshot& out) const override;
@@ -86,6 +88,7 @@ private:
     [[nodiscard]] const assets::SoundIds& SoundsOf(LicenceRow row) const;
     [[nodiscard]] std::size_t StateOf(LicenceRow row) const;
     void LayOut();
+    void AimPointer();
     void DrawName();
 
     render::Renderer* renderer_;
@@ -111,6 +114,8 @@ private:
     std::optional<std::string> opened_;
     std::vector<MenuPicture> under_;
     std::vector<render::SpriteDraw> sprites_;
+    std::vector<PointerTarget> targets_;
+    PointerButtons pointer_;
 };
 
 }
