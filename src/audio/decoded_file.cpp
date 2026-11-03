@@ -98,7 +98,11 @@ Result<std::unique_ptr<PcmStream>> DecodeFile(const std::filesystem::path& path)
     if (samples.empty()) {
         return Fail(ErrorCode::InvalidData, std::format("{} has no audio", Utf8FromPath(path)));
     }
-    return std::make_unique<DecodedPcm>(decoder.Format(), std::move(samples));
+    return SampleStream(decoder.Format(), std::move(samples));
+}
+
+std::unique_ptr<PcmStream> SampleStream(PcmFormat format, std::vector<std::int16_t> samples) {
+    return std::make_unique<DecodedPcm>(format, std::move(samples));
 }
 
 }

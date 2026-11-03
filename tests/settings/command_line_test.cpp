@@ -21,6 +21,16 @@ TEST_CASE("the command line takes a game path and setting overrides") {
     CHECK(commandLine->overrides[1].value.empty());
 }
 
+TEST_CASE("--novideo takes no value") {
+    constexpr std::array<std::string_view, 3> kArgs{"--novideo", "--track", "RACEC0R0"};
+
+    Result<CommandLine> commandLine = ParseCommandLine(kArgs);
+
+    REQUIRE(commandLine.has_value());
+    CHECK(commandLine->noVideo);
+    CHECK(commandLine->track == "RACEC0R0");
+}
+
 TEST_CASE("the command line takes an image dump folder") {
     constexpr std::array<std::string_view, 1> kArgs{"--dump-images=dumps/images"};
 

@@ -124,6 +124,7 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 |---|---|---|
 | `game.path` | Empty | The LEGO Racers folder |
 | `game.language` | From the original installer, else `ENGLISH` | `ENGLISH`, `GERMAN`, `FRENCH`, `SPANISH`, `ITALIAN`, `DUTCH`, `DANISH`, `NORWEGI`, `SWEDISH` |
+| `startup.intro_videos` | `true` | `true`, `false`. Plays the original's three intro videos at launch. Any key skips the second and third. |
 | `video.vsync` | `true` | `true`, `false` |
 | `video.fps_cap` | `144` | `30` to `360`, or `0` for uncapped. Applies only with VSync off. |
 | `video.resolution_scale` | `1.0` | `0.25` to `2.0`. Renders the scene at this fraction of the window size. |
@@ -197,6 +198,7 @@ Out-of-range values are clamped. Unknown keys are kept when the file is saved.
 | Option | Effect |
 |---|---|
 | `--game-path <folder>` | Use this LEGO Racers folder and skip detection |
+| `--novideo` | Skip the intro videos this run, as in the original |
 | `--set <key>=<value>` | Override a setting for this run only. Repeatable. |
 | `--track <folder>` | Open a race track instead of the main menu, by its `GAMEDATA` folder, e.g. `RACEC0R0` |
 | `--race <folder>` | Start a race on a track instead of the main menu, by its `GAMEDATA` folder. Can't be combined with `--track`. |

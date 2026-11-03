@@ -31,9 +31,10 @@ struct CommandLine {
     std::optional<std::string> replayFile;
     std::optional<std::string> importSaveFile;
     std::vector<SettingOverride> overrides;
+    bool noVideo = false;
 };
 
-/// Parses the flags the README lists, each also as --flag=value; args excludes the program name.
+/// Parses the flags the README lists, valued ones also as --flag=value; args excludes argv[0].
 [[nodiscard]] Result<CommandLine> ParseCommandLine(std::span<const std::string_view> args);
 
 [[nodiscard]] Result<void> ApplyOverrides(Registry& registry,

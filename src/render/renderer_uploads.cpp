@@ -50,11 +50,8 @@ Result<MeshId> Renderer::UploadMesh(const assets::GeometryAsset& geometry) {
 }
 
 Result<TextureId> Renderer::UploadTexture(const assets::ImageAsset& image) {
-    const std::size_t pixelCount = std::size_t{image.widthPx} * image.heightPx;
-    if (pixelCount == 0 || image.rgba.size() != pixelCount * 4) {
-        return Fail(ErrorCode::InvalidData,
-                    std::format("a {}x{} image needs {} bytes of RGBA, not {}", image.widthPx,
-                                image.heightPx, pixelCount * 4, image.rgba.size()));
+    if (Result<void> valid = CheckRgba(image); !valid) {
+        return std::unexpected(std::move(valid.error()));
     }
     const SDL_GPUTextureCreateInfo info{.type = SDL_GPU_TEXTURETYPE_2D,
                                         .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
@@ -67,12 +64,38 @@ Result<TextureId> Renderer::UploadTexture(const assets::ImageAsset& image) {
     if (texture.Get() == nullptr) {
         return GpuFailure("can't create texture");
     }
+    return CopyToTexture(texture.Get(), image, false).transform([&] {
+        return textures_.Add(std::move(texture));
+    });
+}
+
+Result<void> Renderer::UpdateTexture(TextureId texture, const assets::ImageAsset& image) {
+    if (Result<void> valid = CheckRgba(image); !valid) {
+        return valid;
+    }
+    if (!textures_.Contains(texture)) {
+        return Fail(ErrorCode::InvalidData, "can't update a texture that doesn't exist");
+    }
+    return CopyToTexture(textures_.Get(texture).Get(), image, true);
+}
+
+Result<void> Renderer::CheckRgba(const assets::ImageAsset& image) {
+    const std::size_t pixelCount = std::size_t{image.widthPx} * image.heightPx;
+    if (pixelCount == 0 || image.rgba.size() != pixelCount * 4) {
+        return Fail(ErrorCode::InvalidData,
+                    std::format("a {}x{} image needs {} bytes of RGBA, not {}", image.widthPx,
+                                image.heightPx, pixelCount * 4, image.rgba.size()));
+    }
+    return {};
+}
+
+Result<void> Renderer::CopyToTexture(SDL_GPUTexture* texture, const assets::ImageAsset& image,
+                                     bool cycles) {
     const std::array<std::span<const std::byte>, 1> parts{image.rgba};
     Result<GpuTransferBuffer> staged = Stage(parts);
     if (!staged) {
         return std::unexpected(std::move(staged.error()));
     }
-
     SDL_GPUCommandBuffer* commands = SDL_AcquireGPUCommandBuffer(device_.get());
     if (commands == nullptr) {
         return GpuFailure("can't start a texture upload");
@@ -80,13 +103,13 @@ Result<TextureId> Renderer::UploadTexture(const assets::ImageAsset& image) {
     SDL_GPUCopyPass* copy = SDL_BeginGPUCopyPass(commands);
     const SDL_GPUTextureTransferInfo source{.transfer_buffer = staged->Get()};
     const SDL_GPUTextureRegion destination{
-        .texture = texture.Get(), .w = image.widthPx, .h = image.heightPx, .d = 1};
-    SDL_UploadToGPUTexture(copy, &source, &destination, false);
+        .texture = texture, .w = image.widthPx, .h = image.heightPx, .d = 1};
+    SDL_UploadToGPUTexture(copy, &source, &destination, cycles);
     SDL_EndGPUCopyPass(copy);
     if (!SDL_SubmitGPUCommandBuffer(commands)) {
         return GpuFailure("can't submit a texture upload");
     }
-    return textures_.Add(std::move(texture));
+    return {};
 }
 
 Result<GpuBuffer> Renderer::CreateBuffer(SDL_GPUBufferUsageFlags usage, std::size_t sizeBytes) {

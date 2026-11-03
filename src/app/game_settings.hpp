@@ -25,9 +25,15 @@ inline constexpr settings::SettingSpec<std::string_view> kGameLanguage{
     return language;
 }
 
+inline constexpr settings::SettingSpec<bool> kIntroVideosSetting{.key = "startup.intro_videos",
+                                                                 .defaultValue = true,
+                                                                 .label = "Intro videos",
+                                                                 .category = "Game"};
+
 inline void DeclareGameSettings(settings::Registry& registry) {
     registry.Declare(kGamePath);
     registry.Declare(kGameLanguage);
+    registry.Declare(kIntroVideosSetting);
 }
 
 }

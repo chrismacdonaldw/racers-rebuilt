@@ -7,7 +7,8 @@
 
 #include "app/car_viewer_scene.hpp"
 #include "app/cutscene/cutscene_scene.hpp"
-#include "app/cutscene/cutscene_screen.hpp"
+#include "app/game_settings.hpp"
+#include "app/intro/intro_videos.hpp"
 #include "app/race_scene_name.hpp"
 #include "app/race_settings.hpp"
 
@@ -69,8 +70,8 @@ Result<std::optional<std::string>> StartupScene(const settings::CommandLine& com
                        .cheats = *cheats},
                       settings));
     }
-    return std::optional(
-        commandLine.track.value_or(CutsceneScreenName({.menu = std::string(kLegalScreen)})));
+    return std::optional(commandLine.track.value_or(
+        FirstStartupScene(settings.Get(kIntroVideosSetting) && !commandLine.noVideo)));
 }
 
 }
