@@ -144,7 +144,12 @@ struct SpriteDraw {
     SpriteAnchor anchor = SpriteAnchor::Center;
 };
 
-/// Corners go top left, top right, bottom left, bottom right, matching `uv`.
+struct TexturePoint {
+    float u = 0.0F;
+    float v = 0.0F;
+};
+
+/// Corners go top left, top right, bottom left, bottom right, matching `uv` or else `cornerUvs`.
 struct QuadDraw {
     TextureId texture = kWhiteTexture;
     std::array<Vector3, 4> corners{};
@@ -153,6 +158,7 @@ struct QuadDraw {
     std::array<Color, 4> cornerTints{};
     BlendMode blend = BlendMode::Alpha;
     TextureSampling sampling;
+    std::optional<std::array<TexturePoint, 4>> cornerUvs;
 };
 
 /// In fractions of the window's width and height, from its top left, or of the UI canvas's.

@@ -1,7 +1,5 @@
 #include "app/racer/skid_trail.hpp"
 
-#include "app/ground_decal.hpp"
-
 namespace rr::app {
 namespace {
 
@@ -9,14 +7,14 @@ constexpr float kShortestSegment = 0.1F;
 constexpr float kSegmentsPerLife = 4.0F;
 
 void AppendSegment(const QuadLook& look, float width, const SkidSegment& segment,
-                   const sim::CollisionQuery& ground, std::vector<render::QuadDraw>& out) {
+                   GroundDecals& ground, std::vector<render::QuadDraw>& out) {
     const Vector3 along = segment.to - segment.from;
-    AppendGroundDecal(look, ground,
-                      {.centre = (segment.from + segment.to) * 0.5F,
-                       .forward = along,
-                       .length = Length(along),
-                       .width = width},
-                      out);
+    ground.Append(look,
+                  {.centre = (segment.from + segment.to) * 0.5F,
+                   .forward = along,
+                   .length = Length(along),
+                   .width = width},
+                  out);
 }
 
 }
@@ -63,8 +61,7 @@ void SkidTrail::Fade(float elapsedMs) {
     isGone_ = fadedMs_ >= *fadeMs_;
 }
 
-void SkidTrail::Append(const sim::CollisionQuery& ground,
-                       std::vector<render::QuadDraw>& out) const {
+void SkidTrail::Append(GroundDecals& ground, std::vector<render::QuadDraw>& out) const {
     if (isGone_) {
         return;
     }

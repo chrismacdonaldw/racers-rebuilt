@@ -66,7 +66,7 @@ constexpr std::array kMaterialFields{
     Field<&MaterialAsset::rotatesVertices>(0x47),
     FlagField<&MaterialAsset::address, TextureAddress::Wrap>(0x48),
     FlagField<&MaterialAsset::address, TextureAddress::Clamp>(0x49),
-    Field<&MaterialAsset::hasFlag4A>(0x4A),
+    Field<&MaterialAsset::receivesDecals>(0x4A),
     Field<&MaterialAsset::hasFlag4B>(0x4B),
     Field<&MaterialAsset::hasFlag4C>(0x4C),
     Field<&MaterialAsset::transparency>(0x4D),

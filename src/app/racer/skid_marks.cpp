@@ -86,8 +86,7 @@ void SkidMarks::Update(const sim::EntitySnapshot& pose, const sim::RacerSnapshot
     wasGhost_ = racer.isGhost;
 }
 
-void SkidMarks::Append(const sim::CollisionQuery& ground,
-                       std::vector<render::QuadDraw>& out) const {
+void SkidMarks::Append(GroundDecals& ground, std::vector<render::QuadDraw>& out) const {
     if (wasGhost_) {
         return;
     }

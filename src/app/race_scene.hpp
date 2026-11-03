@@ -13,6 +13,8 @@
 
 #include "app/brick_models.hpp"
 #include "app/circuit_leg.hpp"
+#include "app/decal_surface.hpp"
+#include "app/ground_decal.hpp"
 #include "app/hazard/ghost_trail.hpp"
 #include "app/hazard/water_scroll.hpp"
 #include "app/hidden_models.hpp"
@@ -87,6 +89,7 @@ private:
         const assets::Vfs* vfs = nullptr;
         RaceSceneSetup setup;
         std::vector<render::MeshDraw> trackDraws;
+        DecalSurface decalSurface;
         RacerGrid racers;
         assets::NameMap<render::Material> racerFx;
         BrickModels bricks;
@@ -125,6 +128,7 @@ private:
     void DrawDebugLines();
 
     Parts parts_;
+    GroundDecals groundDecals_;
     CarShadows shadows_;
     std::vector<SkidMarks> skids_;
     std::array<std::optional<SkidWheels>, sim::kMaxPlayers> skidding_{};

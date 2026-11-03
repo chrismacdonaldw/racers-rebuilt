@@ -84,7 +84,7 @@ struct MaterialAsset {
     std::optional<BlendFactors> blend;
     std::optional<std::uint8_t> transparency;
     bool rotatesVertices = false;
-    bool hasFlag4A = false;
+    bool receivesDecals = false;
     bool hasFlag4B = false;
     bool hasFlag4C = false;
 };

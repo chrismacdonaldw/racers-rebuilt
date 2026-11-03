@@ -32,6 +32,8 @@ rr_add_module(app
         cutscene/cutscene_tints.cpp
         cutscene/cutscene_timeline.cpp
         cutscene/cutscene_view.cpp
+        decal_clip.cpp
+        decal_surface.cpp
         enhancement_presets.cpp
         extensions.cpp
         player_cameras.cpp

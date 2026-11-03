@@ -1,11 +1,12 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
 
+#include "app/decal_surface.hpp"
 #include "app/quad_shapes.hpp"
 #include "core/vector3.hpp"
 #include "render/render_view.hpp"
-#include "sim/physics/collision_query.hpp"
 
 namespace rr::app {
 
@@ -17,8 +18,16 @@ struct GroundDecal {
     float width = 0.0F;
 };
 
-/// Projects `decal` straight down onto the ground under its centre.
-void AppendGroundDecal(const QuadLook& look, const sim::CollisionQuery& ground,
-                       const GroundDecal& decal, std::vector<render::QuadDraw>& out);
+/// Casts decals straight down onto `surface`, clipping each triangle they cover as the original.
+class GroundDecals {
+public:
+    explicit GroundDecals(const DecalSurface& surface) : surface_(&surface) {}
+
+    void Append(const QuadLook& look, const GroundDecal& decal, std::vector<render::QuadDraw>& out);
+
+private:
+    const DecalSurface* surface_;
+    std::vector<std::uint32_t> nearby_;
+};
 
 }
