@@ -48,6 +48,8 @@ public:
     /// In the game's numbering, as from `DriverVoice`.
     [[nodiscard]] std::int32_t Voice(std::size_t slot) const;
 
+    [[nodiscard]] float EnginePitch(std::size_t slot) const;
+
     /// Each span holds one entry per slot, poses in engine space. Ghosts are hidden.
     void Update(std::span<const sim::EntitySnapshot> poses,
                 std::span<const sim::RacerSnapshot> motion, std::span<const CarLook> looks,

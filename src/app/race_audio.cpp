@@ -132,6 +132,14 @@ std::vector<std::int32_t> Voices(const RaceAudioSetup& setup) {
     return voices;
 }
 
+std::vector<float> EnginePitches(const RaceAudioSetup& setup) {
+    std::vector<float> pitches(setup.racerCount, 1.0F);
+    std::ranges::copy(
+        setup.enginePitches.first(std::min(setup.enginePitches.size(), pitches.size())),
+        pitches.begin());
+    return pitches;
+}
+
 std::vector<std::optional<std::size_t>> Taunts(std::span<const std::int32_t> voices) {
     std::vector<std::optional<std::size_t>> taunts(voices.size());
     std::ranges::transform(voices, taunts.begin(), TauntSound);
@@ -183,6 +191,7 @@ RaceAudio::RaceAudio(audio::Mixer& mixer, RaceSoundSet sounds, const RaceAudioSe
     : mixer_(&mixer),
       sounds_(std::move(sounds)),
       player_(setup.player),
+      enginePitches_(EnginePitches(setup)),
       variants_(setup.seed),
       music_(std::move(sounds_.music), variants_.Next()),
       surfaces_(setup.racerCount),
@@ -351,7 +360,8 @@ void RaceAudio::HearEngine(const sim::RaceSession& session, Milliseconds elapsed
                         .hasTurbo = racer.ActiveTurbo().has_value(),
                         .speed = body.derived.speed,
                         .airborneMs = body.airborneMs,
-                        .hasFinished = session.Progress().OfRacer(player_).finishPlace.has_value()},
+                        .hasFinished = session.Progress().OfRacer(player_).finishPlace.has_value(),
+                        .pitchScale = enginePitches_[player_]},
                        elapsed);
     for (std::size_t i = 0; i < kEngineLoopCount; ++i) {
         if (mixes.at(i).volume > 0.0F) {
@@ -404,24 +414,25 @@ void RaceAudio::HearShields(const sim::RaceSession& session) {
 
 void RaceAudio::HearNearestOpponent(const sim::RaceSession& session) {
     const Vector3& player = session.Racers()[player_].Body().motion.position;
-    const sim::BodyState* nearest = nullptr;
+    std::optional<std::size_t> nearestSlot;
     float nearestDistance = kOpponentRange.max * kOpponentRange.max;
     for (std::size_t i = 0; i < session.Racers().size(); ++i) {
-        const sim::BodyState& body = session.Racers()[i].Body();
-        const Vector3 offset = body.motion.position - player;
+        const Vector3 offset = session.Racers()[i].Body().motion.position - player;
         if (i != player_ && Dot(offset, offset) < nearestDistance) {
-            nearest = &body;
+            nearestSlot = i;
             nearestDistance = Dot(offset, offset);
         }
     }
-    if (nearest == nullptr || !session.Clock().IsRunning() || listener_.earCount > 1) {
+    if (!nearestSlot || !session.Clock().IsRunning() || listener_.earCount > 1) {
         opponentLoop_.Stop(*mixer_);
         return;
     }
-    const float pitch = OpponentEnginePitch(nearest->derived.speed, nearest->airborneMs, 1.0F);
+    const sim::BodyState& nearest = session.Racers()[*nearestSlot].Body();
+    const float pitch = OpponentEnginePitch(nearest.derived.speed, nearest.airborneMs,
+                                            enginePitches_[*nearestSlot]);
     opponentLoop_.Play(
         *mixer_, sounds_.effects[kOpponentEngine],
-        PlaceSound(listener_, nearest->motion.position,
+        PlaceSound(listener_, nearest.motion.position,
                    {.volume = kOpponentEngineVolume, .pitch = pitch}, kOpponentRange));
 }
 

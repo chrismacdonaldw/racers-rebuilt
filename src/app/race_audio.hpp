@@ -46,6 +46,7 @@ struct RaceAudioSetup {
     std::uint64_t seed = 0;
     std::span<const assets::SoundResource> ambience;
     std::span<const std::int32_t> voices;
+    std::span<const float> enginePitches;
     VoiceChoice voiceChoice;
 };
 
@@ -93,6 +94,7 @@ private:
     audio::Mixer* mixer_;
     RaceSoundSet sounds_;
     std::size_t player_;
+    std::vector<float> enginePitches_;
     sim::Random variants_;
     RaceMusic music_;
     Listener listener_;
