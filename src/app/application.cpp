@@ -19,6 +19,7 @@
 #include "app/circuit_leg.hpp"
 #include "app/cutscene/cutscene_scene.hpp"
 #include "app/cutscene/cutscene_screen.hpp"
+#include "app/enhancement_presets.hpp"
 #include "app/extensions.hpp"
 #include "app/game_settings.hpp"
 #include "app/gameplay_fingerprint.hpp"
@@ -135,7 +136,8 @@ Result<void> Application::Run() {
     seed_ = replay->Seed();
     MenuPointer pointer(window_.Handle(), renderer_, LoadMenuCursor(renderer_, vfs_));
     renderer_.PinTextures();
-    Result<std::unique_ptr<overlay::Overlay>> menu = overlay::Overlay::Create(window_, renderer_);
+    Result<std::unique_ptr<overlay::Overlay>> menu =
+        overlay::Overlay::Create(window_, renderer_, EnhancementPresets());
     Result<void> opened = menu.and_then([&](const auto&) { return OpenScene(scene_); });
     if (!opened) {
         return opened;

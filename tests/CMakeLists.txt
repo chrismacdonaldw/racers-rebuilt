@@ -21,6 +21,7 @@ add_executable(racers-rebuilt-tests
     app/cutscene/cutscene_sounds_test.cpp
     app/cutscene/cutscene_timeline_test.cpp
     app/collision_wireframe_test.cpp
+    app/enhancement_presets_test.cpp
     app/frame_loop_test.cpp
     app/fov_swing_test.cpp
     app/game_extraction_test.cpp
@@ -255,6 +256,7 @@ add_executable(racers-rebuilt-tests
     settings/progress_test.cpp
     settings/racers_test.cpp
     settings/registry_test.cpp
+    settings/setting_preset_test.cpp
     settings/settings_file_test.cpp
     sim/ai/ai_grid_test.cpp
     sim/ai/ai_powerups_test.cpp

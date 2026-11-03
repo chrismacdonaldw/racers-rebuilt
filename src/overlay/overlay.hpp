@@ -7,6 +7,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "core/duration.hpp"
@@ -17,6 +18,7 @@
 #include "render/overlay_pass.hpp"
 #include "render/renderer.hpp"
 #include "settings/registry.hpp"
+#include "settings/setting_preset.hpp"
 
 namespace rr::overlay {
 
@@ -34,8 +36,9 @@ struct MenuChoice {
 /// ImGui state is global, so only one may exist. `window` and `renderer` must outlive it.
 class Overlay final : public render::OverlayPass {
 public:
-    [[nodiscard]] static Result<std::unique_ptr<Overlay>> Create(const platform::Window& window,
-                                                                 render::Renderer& renderer);
+    [[nodiscard]] static Result<std::unique_ptr<Overlay>> Create(
+        const platform::Window& window, render::Renderer& renderer,
+        std::vector<settings::SettingPreset> presets);
 
     Overlay(const Overlay&) = delete;
     Overlay& operator=(const Overlay&) = delete;
@@ -58,9 +61,11 @@ public:
     void Draw(SDL_GPUCommandBuffer* commands, SDL_GPURenderPass* pass) override;
 
 private:
-    explicit Overlay(render::Renderer& renderer) : renderer_(&renderer) {}
+    Overlay(render::Renderer& renderer, std::vector<settings::SettingPreset> presets)
+        : renderer_(&renderer), presets_(std::move(presets)) {}
 
     render::Renderer* renderer_;
+    std::vector<settings::SettingPreset> presets_;
     InputGate input_;
     bool hasFrame_ = false;
     Nanoseconds frameCost_{0};
