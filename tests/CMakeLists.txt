@@ -2,6 +2,7 @@ add_executable(racers-rebuilt-tests
     main.cpp
     allocation_counter.cpp
     app/ambient_sounds_test.cpp
+    app/binding_grid_test.cpp
     app/car_sounds_test.cpp
     app/cheat_settings_test.cpp
     app/restart_test.cpp

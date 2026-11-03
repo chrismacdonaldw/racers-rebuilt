@@ -25,12 +25,15 @@ public:
     HeadlessUi& operator=(HeadlessUi&&) = delete;
     ~HeadlessUi() { ImGui::DestroyContext(); }
 
-    std::vector<std::string> Frame(settings::Registry& registry, const SettingMenu& menu) {
+    using Draw = std::vector<std::string> (*)(settings::Registry&, const SettingMenu&);
+
+    std::vector<std::string> Frame(settings::Registry& registry, const SettingMenu& menu,
+                                   Draw draw = DrawSettingItems) {
         ImGui::NewFrame();
         ImGui::SetNextWindowPos({0.0F, 0.0F});
         ImGui::SetNextWindowSize({400.0F, 200.0F});
         ImGui::Begin("menu");
-        std::vector<std::string> finished = DrawSettingItems(registry, menu);
+        std::vector<std::string> finished = draw(registry, menu);
         itemMin_ = ImGui::GetItemRectMin();
         itemMax_ = ImGui::GetItemRectMax();
         ImGui::End();
@@ -38,9 +41,9 @@ public:
         return finished;
     }
 
-    void MoveMouse(float fraction) const {
+    void MoveMouse(float fraction, float heightFraction = 0.5F) const {
         ImGui::GetIO().AddMousePosEvent(itemMin_.x + ((itemMax_.x - itemMin_.x) * fraction),
-                                        (itemMin_.y + itemMax_.y) / 2.0F);
+                                        itemMin_.y + ((itemMax_.y - itemMin_.y) * heightFraction));
     }
 
 private:

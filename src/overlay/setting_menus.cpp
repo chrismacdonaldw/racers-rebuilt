@@ -18,6 +18,7 @@ namespace rr::overlay {
 namespace {
 
 constexpr std::size_t kMaxTextBytes = 512;
+constexpr float kMinCellEms = 6.0F;
 constexpr const char* kGameplayTooltip =
     "Changes gameplay. Replays record it and warn when played back without it.";
 
@@ -93,39 +94,95 @@ Menu& FindOrAddMenu(std::vector<Menu>& menus, std::string_view category) {
     return *menu;
 }
 
+std::string_view LabelOf(std::string_view key, const settings::Registry::Declaration& declaration) {
+    return declaration.label.empty() ? key : std::string_view(declaration.label);
+}
+
+void DrawItem(settings::Registry& registry, std::string_view key, std::string label,
+              std::vector<std::string>& finished) {
+    const settings::Registry::Declaration& declaration =
+        registry.AllDeclarations().find(key)->second;
+    if (declaration.changesGameplay) {
+        label += " *";
+    }
+    const Item item{.key = key, .label = label.c_str(), .declaration = declaration};
+    const settings::SettingValue value = registry.AllValues().find(key)->second;
+    ImGui::PushID(key.data(), key.data() + key.size());
+    const bool isFinished = std::visit(
+        [&]<typename V>(const V& current) {
+            if constexpr (std::same_as<V, bool>) {
+                return DrawBool(registry, item, current);
+            } else if constexpr (std::same_as<V, std::int64_t>) {
+                return DrawInt(registry, item, current);
+            } else if constexpr (std::same_as<V, double>) {
+                return DrawDouble(registry, item, current);
+            } else {
+                return DrawText(registry, item, current);
+            }
+        },
+        value);
+    if (declaration.changesGameplay && ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("%s", kGameplayTooltip);
+    }
+    ImGui::PopID();
+    if (isFinished) {
+        finished.emplace_back(key);
+    }
+}
+
 void DrawItems(settings::Registry& registry, std::span<const std::string_view> keys,
                std::vector<std::string>& finished) {
     for (const std::string_view key : keys) {
-        const settings::Registry::Declaration& declaration =
-            registry.AllDeclarations().find(key)->second;
-        std::string label = declaration.label.empty() ? std::string(key) : declaration.label;
-        if (declaration.changesGameplay) {
-            label += " *";
+        DrawItem(registry, key,
+                 std::string(LabelOf(key, registry.AllDeclarations().find(key)->second)), finished);
+    }
+}
+
+float CellWidth(const settings::Registry& registry, std::string_view column,
+                std::span<const SettingGridRow> rows, std::size_t index) {
+    float width = std::max(ImGui::CalcTextSize(column.data(), column.data() + column.size()).x,
+                           ImGui::GetFontSize() * kMinCellEms);
+    for (const SettingGridRow& row : rows) {
+        const std::string_view key = row.keys[index];
+        if (key.empty()) {
+            continue;
         }
-        const Item item{.key = key, .label = label.c_str(), .declaration = declaration};
-        const settings::SettingValue value = registry.AllValues().find(key)->second;
-        ImGui::PushID(key.data(), key.data() + key.size());
-        const bool isFinished = std::visit(
-            [&]<typename V>(const V& current) {
-                if constexpr (std::same_as<V, bool>) {
-                    return DrawBool(registry, item, current);
-                } else if constexpr (std::same_as<V, std::int64_t>) {
-                    return DrawInt(registry, item, current);
-                } else if constexpr (std::same_as<V, double>) {
-                    return DrawDouble(registry, item, current);
-                } else {
-                    return DrawText(registry, item, current);
-                }
-            },
-            value);
-        if (declaration.changesGameplay && ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("%s", kGameplayTooltip);
-        }
-        ImGui::PopID();
-        if (isFinished) {
-            finished.emplace_back(key);
+        if (const auto* text = std::get_if<std::string>(&registry.AllValues().find(key)->second)) {
+            width = std::max(width, ImGui::CalcTextSize(text->c_str()).x);
         }
     }
+    return width + (ImGui::GetStyle().FramePadding.x * 2.0F) + ImGui::GetFontSize();
+}
+
+void DrawGridTable(settings::Registry& registry, const SettingGrid& grid,
+                   std::vector<std::string>& finished) {
+    const auto columnCount = static_cast<int>(grid.columns.size() + 1);
+    if (!ImGui::BeginTable("grid", columnCount,
+                           ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+                               ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoHostExtendX)) {
+        return;
+    }
+    ImGui::TableSetupColumn("");
+    std::vector<float> widths;
+    for (std::size_t index = 0; index < grid.columns.size(); ++index) {
+        ImGui::TableSetupColumn(std::string(grid.columns[index]).c_str());
+        widths.push_back(CellWidth(registry, grid.columns[index], grid.rows, index));
+    }
+    ImGui::TableHeadersRow();
+    for (const SettingGridRow& row : grid.rows) {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(row.label.data(), row.label.data() + row.label.size());
+        for (std::size_t index = 0; index < row.keys.size(); ++index) {
+            ImGui::TableNextColumn();
+            if (!row.keys[index].empty()) {
+                ImGui::SetNextItemWidth(widths[index]);
+                DrawItem(registry, row.keys[index], "##cell", finished);
+            }
+        }
+    }
+    ImGui::EndTable();
 }
 
 }
@@ -181,6 +238,39 @@ std::vector<std::string> DrawSettingItems(settings::Registry& registry, const Se
         }
     }
     DrawItems(registry, menu.keys, finished);
+    return finished;
+}
+
+SettingGrid GroupSettingGrid(const settings::Registry::Declarations& declarations,
+                             const SettingMenu& menu) {
+    SettingGrid grid;
+    const std::size_t columnCount = menu.submenus.size();
+    for (std::size_t index = 0; index < columnCount; ++index) {
+        const SettingSubmenu& column = menu.submenus[index];
+        grid.columns.push_back(column.category);
+        for (const std::string_view key : column.keys) {
+            const std::string_view label = LabelOf(key, declarations.find(key)->second);
+            auto row = std::ranges::find(grid.rows, label, &SettingGridRow::label);
+            if (row == grid.rows.end()) {
+                row = grid.rows.insert(
+                    grid.rows.end(),
+                    {.label = label, .keys = std::vector<std::string_view>(columnCount)});
+            }
+            row->keys[index] = key;
+        }
+    }
+    std::ranges::sort(grid.rows, {}, &SettingGridRow::label);
+    return grid;
+}
+
+std::vector<std::string> DrawSettingGrid(settings::Registry& registry, const SettingMenu& menu) {
+    std::vector<std::string> finished;
+    DrawItems(registry, menu.keys, finished);
+    const SettingGrid grid = GroupSettingGrid(registry.AllDeclarations(), menu);
+    if (!grid.columns.empty()) {
+        ImGui::Separator();
+        DrawGridTable(registry, grid, finished);
+    }
     return finished;
 }
 

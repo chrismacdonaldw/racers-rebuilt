@@ -76,5 +76,38 @@ TEST_CASE("settings without a category get no menu") {
     CHECK(GroupSettingMenus(registry.AllDeclarations()).empty());
 }
 
+TEST_CASE("a grid has a column per submenu and a row per label, blank where a column lacks it") {
+    settings::Registry registry;
+    constexpr SettingSpec<std::string_view> kKeysBrake{
+        .key = "input.keys.brake", .defaultValue = "Down", .label = "Brake", .category = "B/Keys"};
+    constexpr SettingSpec<std::string_view> kKeysBack{.key = "input.keys.menu_back",
+                                                      .defaultValue = "Escape",
+                                                      .label = "Menu back",
+                                                      .category = "B/Keys"};
+    constexpr SettingSpec<std::string_view> kPadBrake{
+        .key = "input.pad.brake", .defaultValue = "b", .label = "Brake", .category = "B/Pad"};
+    constexpr SettingSpec<std::string_view> kPadAccelerate{.key = "input.pad.accelerate",
+                                                           .defaultValue = "a",
+                                                           .label = "Accelerate",
+                                                           .category = "B/Pad"};
+    registry.Declare(kKeysBrake);
+    registry.Declare(kKeysBack);
+    registry.Declare(kPadBrake);
+    registry.Declare(kPadAccelerate);
+    const SettingMenu menu = GroupSettingMenus(registry.AllDeclarations()).front();
+
+    const SettingGrid grid = GroupSettingGrid(registry.AllDeclarations(), menu);
+
+    CHECK(grid.columns == std::vector<std::string_view>{"Keys", "Pad"});
+    REQUIRE(grid.rows.size() == 3);
+    CHECK(grid.rows[0].label == "Accelerate");
+    CHECK(grid.rows[0].keys == std::vector<std::string_view>{"", "input.pad.accelerate"});
+    CHECK(grid.rows[1].label == "Brake");
+    CHECK(grid.rows[1].keys ==
+          std::vector<std::string_view>{"input.keys.brake", "input.pad.brake"});
+    CHECK(grid.rows[2].label == "Menu back");
+    CHECK(grid.rows[2].keys == std::vector<std::string_view>{"input.keys.menu_back", ""});
+}
+
 }
 }

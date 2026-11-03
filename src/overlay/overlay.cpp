@@ -16,6 +16,7 @@
 namespace rr::overlay {
 namespace {
 
+constexpr std::string_view kBindingsCategory = "Bindings";
 constexpr std::string_view kDeveloperCategory = "Developer";
 constexpr std::string_view kModsCategory = "Mods";
 
@@ -118,7 +119,9 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
                     DrawModActions(modActions);
                 }
                 Append(finished, DrawPresets(registry, presets_, menu.category));
-                Append(finished, DrawSettingItems(registry, menu));
+                Append(finished, menu.category == kBindingsCategory
+                                     ? DrawSettingGrid(registry, menu)
+                                     : DrawSettingItems(registry, menu));
                 ImGui::EndMenu();
             }
         }
