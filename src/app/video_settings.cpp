@@ -10,6 +10,7 @@ void DeclareVideoSettings(settings::Registry& registry) {
     registry.Declare(kWidescreenSetting);
     registry.Declare(kSmoothTexturesSetting);
     registry.Declare(kFarCarsSetting);
+    registry.Declare(kFarScenerySetting);
 }
 
 platform::PacingConfig PacingFromSettings(const settings::Registry& registry) {

@@ -1,9 +1,12 @@
 #include "app/time_trial/ghost_cars.hpp"
 
+#include <algorithm>
 #include <format>
+#include <initializer_list>
 #include <string_view>
 #include <utility>
 
+#include "app/racer/far_cars.hpp"
 #include "app/track_space.hpp"
 #include "core/log.hpp"
 #include "core/vector3.hpp"
@@ -18,7 +21,6 @@ constexpr std::string_view kRecordDriver = "GHOSTDR";
 constexpr Vector3 kRecordSeat{.x = -2.131681F, .y = 0.01123F, .z = 1.608F};
 constexpr std::size_t kRecordDriverPart = 12;
 constexpr std::size_t kBestDriverPart = 13;
-constexpr float kRecordGhostRangeSquared = 160000.0F;
 
 Result<GhostCarModels> RecordModels(const EffectModels& models) {
     const auto chassis = models.find(kRecordChassis);
@@ -35,6 +37,14 @@ Result<GhostCarModels> RecordModels(const EffectModels& models) {
                           .driverJoints = driver->second.jointed,
                           .seat = kRecordSeat,
                           .driverPart = kRecordDriverPart};
+}
+
+float RecordRangeSquared(const EffectModels& models) {
+    float range = 0.0F;
+    for (const std::string_view part : {kRecordChassis, kRecordBody, kRecordDriver}) {
+        range = std::max(range, models.find(part)->second.rangeSquared);
+    }
+    return range;
 }
 
 GhostCarModels BestModels(const RacerGrid& racers, std::size_t playerSlot) {
@@ -64,7 +74,8 @@ std::optional<GhostCars> GhostCars::Load(render::Renderer& renderer, const asset
         log::Warn("ghost cars: {}", bestCar.error().message);
         return std::nullopt;
     }
-    return GhostCars(std::move(record->assets), std::move(*recordCar), std::move(*bestCar));
+    return GhostCars(std::move(record->assets), std::move(*recordCar), std::move(*bestCar),
+                     RecordRangeSquared(record->models));
 }
 
 void GhostCars::Update(const sim::GhostSnapshot& ghosts, float elapsedMs) {
@@ -78,17 +89,17 @@ void GhostCars::AppendDraws(std::vector<render::MeshDraw>& out) const {
 }
 
 void GhostCars::AddFarCars(const sim::GhostSnapshot& ghosts, std::size_t firstDraw,
-                           FarCars& out) const {
+                           FarModels& out) const {
     if (ghosts.best) {
-        out.Add({.position = ToEngine(ghosts.best->pose.position),
-                 .firstDraw = firstDraw,
-                 .draws = bestCar_.Draws()});
+        out.AddCar({.position = ToEngine(ghosts.best->pose.position),
+                    .draws = {.first = firstDraw, .count = bestCar_.Draws().size()},
+                    .rangeSquared = kCarRangeSquared});
     }
     if (ghosts.record) {
-        out.Add({.position = ToEngine(ghosts.record->pose.position),
-                 .firstDraw = firstDraw + bestCar_.Draws().size(),
-                 .draws = recordCar_.Draws(),
-                 .rangeSquared = kRecordGhostRangeSquared});
+        out.AddCar({.position = ToEngine(ghosts.record->pose.position),
+                    .draws = {.first = firstDraw + bestCar_.Draws().size(),
+                              .count = recordCar_.Draws().size()},
+                    .rangeSquared = recordRangeSquared_});
     }
 }
 

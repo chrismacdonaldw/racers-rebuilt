@@ -67,7 +67,8 @@ Result<void> AddEntity(const assets::Vfs& vfs, const assets::WorldAsset& world,
                            .placement = {.position = entity.position,
                                          .rotation = sim::ToQuaternion(
                                              sim::OrthonormalBasis(entity.forward, entity.up))},
-                           .scroll = entity.textureScroll.value_or(assets::TextureScroll{})};
+                           .scroll = entity.textureScroll.value_or(assets::TextureScroll{}),
+                           .rangeSquared = assets::DrawRangeSquared(entity)};
     if (const std::string* node = NameAt(world.sceneNodes, lod.sceneNode)) {
         Result<JointedAssets> jointed = LoadJointed(vfs, *node, *node);
         if (!jointed) {
@@ -132,7 +133,8 @@ Result<EffectModels> UploadEffectModels(render::Renderer& renderer, const Effect
                        EffectModel{.draws = FollowJoints(*geometry->second, std::move(*draws)),
                                    .jointed = files.jointed ? &*files.jointed : nullptr,
                                    .placement = files.placement,
-                                   .scroll = files.scroll});
+                                   .scroll = files.scroll,
+                                   .rangeSquared = files.rangeSquared});
     }
     return models;
 }

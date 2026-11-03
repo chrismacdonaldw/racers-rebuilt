@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -21,6 +22,7 @@ struct EffectModelFiles {
     std::optional<JointedAssets> jointed;
     Transform placement;
     assets::TextureScroll scroll;
+    float rangeSquared = std::numeric_limits<float>::infinity();
 };
 
 /// Entities are keyed by uppercase name, or by model name for the one unnamed entity.
@@ -43,6 +45,7 @@ struct EffectModel {
     const JointedAssets* jointed = nullptr;
     Transform placement;
     assets::TextureScroll scroll;
+    float rangeSquared = std::numeric_limits<float>::infinity();
 };
 
 using EffectModels = assets::NameMap<EffectModel>;

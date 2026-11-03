@@ -28,6 +28,7 @@ add_executable(racers-rebuilt-tests
     app/collision_wireframe_test.cpp
     app/enhancement_presets_test.cpp
     app/extensions_test.cpp
+    app/far_models_test.cpp
     app/frame_loop_test.cpp
     app/fov_swing_test.cpp
     app/game_boot_test.cpp
@@ -130,7 +131,6 @@ add_executable(racers-rebuilt-tests
     app/racer/animation_player_test.cpp
     app/racer/car_particles_test.cpp
     app/racer/car_shadows_test.cpp
-    app/racer/far_cars_test.cpp
     app/racer/body_lean_test.cpp
     app/racer/car_look_test.cpp
     app/racer/champion_car_test.cpp

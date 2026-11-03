@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <limits>
 #include <optional>
 #include <span>
 #include <string>
@@ -25,6 +26,7 @@ struct TrackEntity {
     Transform placement;
     float scale = 1.0F;
     float radius = 0.0F;
+    float drawRangeSquared = std::numeric_limits<float>::infinity();
 };
 
 /// `placement` is in game space.

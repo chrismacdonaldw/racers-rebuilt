@@ -5,6 +5,7 @@
 #include <span>
 #include <vector>
 
+#include "app/far_models.hpp"
 #include "app/track_model.hpp"
 #include "sim/track/track_entities.hpp"
 
@@ -22,6 +23,9 @@ public:
     [[nodiscard]] std::span<const render::MeshDraw> Draws() const { return draws_; }
     [[nodiscard]] std::span<const std::uint32_t> Slots() const { return slots_; }
     [[nodiscard]] DrawSpan SpanOf(std::size_t entity) const { return spans_[entity]; }
+
+    /// The entities' draws start at `firstDraw` in the scene's meshes.
+    void AddFarModels(std::size_t firstDraw, FarModels& out) const;
 
 private:
     const sim::TrackEntitySources* sources_;

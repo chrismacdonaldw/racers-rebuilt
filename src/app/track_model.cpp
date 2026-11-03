@@ -1,5 +1,6 @@
 #include "app/track_model.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -166,8 +167,12 @@ public:
         for (const assets::GeometryRange& range : model->second.geometry->ranges) {
             slots_.push_back(range.material);
         }
-        named_.push_back(
-            {.entity = entity.name, .span = {.first = first, .count = draws_.size() - first}});
+        const DrawSpan span{.first = first, .count = draws_.size() - first};
+        named_.push_back({.entity = entity.name, .span = span});
+        if (const float range = assets::DrawRangeSquared(entity); std::isfinite(range)) {
+            farModels_.push_back(
+                {.position = transform.position, .draws = span, .rangeSquared = range});
+        }
         AddBounds(model->second, transform, isSurface ? surface_ : everything_);
         if (isSurface) {
             AppendDecalTriangles(model->second, *assetMaterials_, transform, decalTriangles_);
@@ -204,6 +209,7 @@ public:
         return {.draws = std::move(draws_),
                 .drawSlots = std::move(slots_),
                 .entityDraws = std::move(named_),
+                .farModels = std::move(farModels_),
                 .animatedModels = std::move(animated_),
                 .skyModels = std::move(sky_),
                 .materials = std::move(materials_),
@@ -234,6 +240,7 @@ private:
     std::vector<render::MeshDraw> draws_;
     std::vector<std::uint32_t> slots_;
     std::vector<NamedDraws> named_;
+    std::vector<FarModel> farModels_;
     NameMap<JointedModel> animated_;
     std::vector<SkyModel> sky_;
     Bounds surface_;

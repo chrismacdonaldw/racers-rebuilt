@@ -22,6 +22,7 @@
 #include "app/powerup_tools.hpp"
 #include "app/race_scene_parts.hpp"
 #include "app/race_step.hpp"
+#include "app/racer/far_cars.hpp"
 #include "app/racer/racer_fx.hpp"
 #include "app/track_map.hpp"
 #include "app/track_model.hpp"
@@ -56,7 +57,6 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                                                      const RaceSceneSetup& setup,
                                                      std::uint64_t seed, Nanoseconds started) {
     render::Renderer& renderer = *outputs.renderer;
-    const std::string& track = setup.track;
     Result<TrackModel> model = LoadTrackModel(renderer, loader, setup);
     Result<sim::RaceTrack> loaded =
         model.and_then([&](const TrackModel&) { return LoadSceneTrack(vfs, setup); });
@@ -87,9 +87,9 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     const std::vector<std::int32_t> voices =
         PerSlot(*racers, session->Racers().size(), &RacerGrid::Voice);
     std::unique_ptr<RaceAudio> audio =
-        LoadRaceAudio(outputs, vfs, track, AudioSetup(setup, *raceTrack, voices, seed));
+        LoadRaceAudio(outputs, vfs, setup.track, AudioSetup(setup, *raceTrack, voices, seed));
     std::optional<RaceParticles> particles =
-        LoadRaceParticles(renderer, vfs, loader, track, raceTrack->collision.surfaces);
+        LoadRaceParticles(renderer, vfs, loader, setup.track, raceTrack->collision.surfaces);
     return std::unique_ptr<RaceScene>(
         new RaceScene({.renderer = &renderer,
                        .vfs = &vfs,
@@ -105,6 +105,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                        .camera = TrackCamera(model->bounds),
                        .raceTrack = std::move(raceTrack),
                        .entityDraws = std::move(entityDraws),
+                       .farModels = FarModels(std::move(model->farModels)),
                        .hiddenModels = std::move(hiddenModels),
                        .ghostTrail = std::move(ghostTrail),
                        .waterScroll = std::move(waterScroll),
@@ -112,7 +113,7 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
                        .session = std::move(*session),
                        .audio = std::move(audio),
                        .particles = std::move(particles),
-                       .map = LoadTrackMap(vfs, track, setup.isMirrored, model->textures),
+                       .map = LoadTrackMap(vfs, setup.track, setup.isMirrored, model->textures),
                        .started = started}));
 }
 
@@ -132,6 +133,7 @@ RaceScene::RaceScene(Parts parts)
       triggerRings_(parts_.session.Triggers()) {
     draws_ = parts_.trackDraws;
     draws_.insert(draws_.end(), parts_.racers.Draws().begin(), parts_.racers.Draws().end());
+    parts_.entityDraws.AddFarModels(draws_.size(), parts_.farModels);
     hud_.SetMap(parts_.map);
     if (parts_.setup.isDemo) {
         hud_.ShowDemo();
@@ -142,7 +144,7 @@ void RaceScene::ApplySettings(const settings::Registry& settings) {
     showsCheckpoints_ = settings.Get(kShowCheckpoints);
     showsCollision_ = settings.Get(kCollisionWireframe);
     showsTriggers_ = settings.Get(kShowTriggerSpheres);
-    farCars_.SetHidden(!settings.Get(kFarCarsSetting));
+    parts_.farModels.SetHidden(!settings.Get(kFarCarsSetting), !settings.Get(kFarScenerySetting));
     hud_.SetLanguage(SelectedLanguage(settings));
 }
 
@@ -270,14 +272,14 @@ void RaceScene::Snapshot(sim::RenderSnapshot& out) const {
 }
 
 void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float simMs) {
+    parts_.farModels.Reset(draws_);
     carLooks_.resize(parts_.racers.Count());
     LookCars(interpolated, parts_.raceTrack->events.table.colorTransforms, carLooks_);
     parts_.racers.Update(interpolated.entities, interpolated.racers, carLooks_, simMs);
     draws_.resize(parts_.trackDraws.size() + parts_.racers.Draws().size());
     std::ranges::copy(parts_.racers.Draws(),
                       draws_.begin() + static_cast<std::ptrdiff_t>(parts_.trackDraws.size()));
-    farCars_.Clear();
-    AddGridCars(parts_.racers, interpolated.entities, parts_.trackDraws.size(), farCars_);
+    AddGridCars(parts_.racers, interpolated.entities, parts_.trackDraws.size(), parts_.farModels);
     parts_.entityDraws.Update(interpolated.entityClocks);
     draws_.insert(draws_.end(), parts_.entityDraws.Draws().begin(),
                   parts_.entityDraws.Draws().end());
@@ -290,7 +292,7 @@ void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float simM
     draws_.insert(draws_.end(), powerupVisuals_.Draws().begin(), powerupVisuals_.Draws().end());
     if (ghostCars_) {
         ghostCars_->Update(interpolated.ghosts, simMs);
-        ghostCars_->AddFarCars(interpolated.ghosts, draws_.size(), farCars_);
+        ghostCars_->AddFarCars(interpolated.ghosts, draws_.size(), parts_.farModels);
         ghostCars_->AppendDraws(draws_);
     }
 }
@@ -312,7 +314,7 @@ void RaceScene::GatherCarMarks(const sim::RenderSnapshot& interpolated, float si
         cameras.at(player) = PlayerCameraPose(interpolated, player).position;
     }
     shadows_.Append(interpolated.entities, interpolated.racers, carLooks_,
-                    std::span(cameras).first(farCars_.IsHidden() ? cameras_.Count() : 0),
+                    std::span(cameras).first(parts_.farModels.HidesCars() ? cameras_.Count() : 0),
                     groundDecals_, carMarks_);
     for (std::size_t player = 0; player < skids_.size(); ++player) {
         const std::size_t slot = kPlayerSlot + player;
@@ -358,7 +360,7 @@ render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated
     parts_.sky.Place(parts_.session.Resources().Sky(), camera.transform.position, skyShownMs_, sky);
     return {.camera = camera,
             .backdrop = sky,
-            .meshes = farCars_.Cull(player, camera.transform.position, draws_),
+            .meshes = parts_.farModels.Cull(player, camera.transform.position, draws_),
             .quads = quads,
             .lines = debugLines_,
             .viewport = viewport};
