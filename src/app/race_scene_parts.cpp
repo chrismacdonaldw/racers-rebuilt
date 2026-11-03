@@ -24,7 +24,8 @@ sim::RaceSetup GridSetup(const RaceSceneSetup& scene, const RacerGrid& racers, s
                          .respawn = scene.respawn,
                          .aiDriving = scene.aiDriving,
                          .effects = sim::EveryEffect(),
-                         .cheats = scene.cheats};
+                         .cheats = scene.cheats,
+                         .isTestDrive = scene.isTestDrive};
     setup.racers.resize(slots);
     for (std::size_t i = 0; i < slots; ++i) {
         setup.racers[i].chassis = racers.Chassis(i);

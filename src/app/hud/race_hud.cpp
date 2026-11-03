@@ -66,7 +66,8 @@ void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progr
     out.clear();
     pool_.Clear();
     const HudValues values = ReadHudValues(clock, progress, racer.slot, racer.trial);
-    if (!racer.isGhost) {
+    const bool showsRaceInfo = !racer.isGhost && !racer.hidesRaceInfo;
+    if (showsRaceInfo) {
         AddLap(values, out);
         if (values.total) {
             AddLabelledTime(strings_.total, kBestLabelGap, *values.total, totalY_, out);
@@ -74,7 +75,7 @@ void RaceHud::Layout(const sim::RaceClock& clock, const sim::RaceProgress& progr
             AddPlace(values.place, out);
         }
     }
-    if (values.isWrongWay && !racer.isGhost) {
+    if (values.isWrongWay && showsRaceInfo) {
         const float wrongWayY =
             placement_.top + ((placement_.bottom - placement_.top) * kWrongWayFraction);
         out.push_back(Centered(strings_.wrongWay, wrongWayY, {}, placement_.textScale));

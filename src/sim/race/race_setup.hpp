@@ -39,6 +39,7 @@ struct RaceSetup {
     AiDriving aiDriving = AiDriving::Route;
     EffectFactories effects;
     Cheats cheats;
+    bool isTestDrive = false;
 };
 
 }

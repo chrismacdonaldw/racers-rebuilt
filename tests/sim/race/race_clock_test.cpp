@@ -35,6 +35,17 @@ TEST_CASE("a race runs intro, countdown, racing, finished and results in order")
     CHECK(clock.Phase() == RacePhase::Results);
 }
 
+TEST_CASE("a test drive skips the countdown and leaves a second after the finish") {
+    RaceClock clock(true);
+    RunUntilPhaseChanges(clock);
+
+    CHECK(RunUntilPhaseChanges(clock) == kTick);
+    CHECK(clock.Phase() == RacePhase::Racing);
+    RunUntilPhaseChanges(clock, true);
+    CHECK(RunUntilPhaseChanges(clock) == Milliseconds{1008});
+    CHECK(clock.Phase() == RacePhase::Results);
+}
+
 TEST_CASE("racing lasts until a player finishes") {
     RaceClock clock;
     RunUntilPhaseChanges(clock);

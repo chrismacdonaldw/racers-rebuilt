@@ -413,6 +413,12 @@ bool RaceScene::IsTrialAsking() const {
 
 void RaceScene::LeaveAfterResults(const sim::InputFrame& input) {
     const sim::RaceClock& clock = parts_.session.Clock();
+    if (clock.IsTestDrive()) {
+        if (clock.Phase() == sim::RacePhase::Results) {
+            next_ = MenuAfter(parts_.setup);
+        }
+        return;
+    }
     if (parts_.setup.players > 1) {
         if (clock.Phase() == sim::RacePhase::Results) {
             next_ = std::string(kMainMenuScene);

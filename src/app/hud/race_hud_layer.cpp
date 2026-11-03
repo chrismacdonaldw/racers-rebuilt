@@ -128,7 +128,11 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(
             RaceHud& hud = huds_[player];
             const bool isGhost = racers[player].isGhost;
             hud.Layout(session.Clock(), session.Progress(),
-                       {.slot = player, .isGhost = isGhost, .trial = trial_}, texts_);
+                       {.slot = player,
+                        .isGhost = isGhost,
+                        .hidesRaceInfo = session.Clock().IsTestDrive(),
+                        .trial = trial_},
+                       texts_);
             DrawHudText(texts_, hud.Fonts(), sprites_);
             if (!isGhost) {
                 LayoutPowerupPanel(racers[player], images_, sprites_, placement.bottom);
@@ -151,7 +155,7 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(
     }
     RaceHud& first = huds_.front();
     texts_.clear();
-    if (players_ == 1 && trial_ == nullptr) {
+    if (players_ == 1 && trial_ == nullptr && !session.Clock().IsTestDrive()) {
         first.LayoutResults(session.Clock(), session.Progress(), 0, names_, circuitPoints_, texts_);
     }
     DrawHudText(texts_, first.Fonts(), sprites_);

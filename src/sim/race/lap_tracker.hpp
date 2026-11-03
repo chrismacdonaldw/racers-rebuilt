@@ -12,6 +12,7 @@ namespace rr::sim {
 class LapTracker {
 public:
     void Cross(const CheckpointGraph& graph, const GateCrossing& crossing);
+    void ReachFinish(int lapCount);
 
     /// `facing` is the racer's facing direction in game space.
     void Update(const CheckpointGraph& graph, Milliseconds elapsed, const Vector3& facing);

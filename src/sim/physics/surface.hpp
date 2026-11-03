@@ -17,6 +17,7 @@ struct Surface {
     Vector3 force;
     std::optional<std::int32_t> soundId;
     std::optional<std::int32_t> touchEvent;
+    bool isFinish = false;
     std::optional<std::size_t> tableEntry;
 
     friend constexpr bool operator==(const Surface&, const Surface&) = default;

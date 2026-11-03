@@ -79,6 +79,9 @@ float SignedDistance(const assets::Checkpoint& gate, const Vector3& point) {
 }
 
 Result<CheckpointGraph> CheckpointGraph::Create(assets::CheckpointsAsset asset) {
+    if (asset.checkpoints.empty()) {
+        return CheckpointGraph({}, {});
+    }
     return MainLoop(asset.checkpoints)
         .and_then([&](const std::vector<std::size_t>& loop) {
             return LapFractions(asset.checkpoints, loop);

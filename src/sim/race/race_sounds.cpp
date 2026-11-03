@@ -116,8 +116,11 @@ void RaceSounds::BeginTick() {
 
 void RaceSounds::HearClock(const RaceClock& before, const RaceClock& after,
                            const std::vector<bool>& isPlayer) {
+    const bool hasCountdown = !after.IsTestDrive();
     if (before.Phase() == RacePhase::Intro && after.Phase() == RacePhase::Countdown) {
-        Add(RaceSound::CountdownBeep, 0);
+        if (hasCountdown) {
+            Add(RaceSound::CountdownBeep, 0);
+        }
         for (std::size_t racer = 0; racer < isPlayer.size(); ++racer) {
             if (isPlayer[racer]) {
                 Add(RaceSound::EngineStart, racer);
@@ -129,7 +132,8 @@ void RaceSounds::HearClock(const RaceClock& before, const RaceClock& after,
                             [&](Milliseconds mark) { return HasCrossed(mark, before, after); })) {
         Add(RaceSound::CountdownBeep, 0);
     }
-    if (before.Phase() == RacePhase::Countdown && after.Phase() == RacePhase::Racing) {
+    if (hasCountdown && before.Phase() == RacePhase::Countdown &&
+        after.Phase() == RacePhase::Racing) {
         Add(RaceSound::Go, 0);
     }
 }

@@ -20,6 +20,9 @@ float ShrinkingScale(Milliseconds left) {
 }
 
 std::optional<BannerView> ReadBanner(const sim::RaceClock& clock, bool hasFinished) {
+    if (clock.IsTestDrive() && clock.Phase() != sim::RacePhase::Finished) {
+        return std::nullopt;
+    }
     switch (clock.Phase()) {
         case sim::RacePhase::Intro:
         case sim::RacePhase::Results:

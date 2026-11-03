@@ -17,6 +17,7 @@ struct RacerMove {
     Vector3 from;
     Vector3 to;
     Vector3 facing;
+    bool isAtFinish = false;
 };
 
 struct RacerProgress {

@@ -52,7 +52,7 @@ void PlayerCameras::Follow(const sim::RaceSession& session) {
         }
         const bool hasFinished = session.Progress().OfRacer(slot).finishPlace.has_value();
         if (hasFinished && camera.View() != CameraView::Finish && !racer.Status().isGhost &&
-            !racer.Status().isWarping) {
+            !racer.Status().isWarping && !session.Clock().IsTestDrive()) {
             camera.SetView(CameraView::Finish, isSplitScreen);
         }
         camera.Follow(SubjectOf(racer), static_cast<float>(kSimTick.count()));

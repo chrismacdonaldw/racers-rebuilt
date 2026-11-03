@@ -34,6 +34,10 @@ void LapTracker::Cross(const CheckpointGraph& graph, const GateCrossing& crossin
     lastSide_ = crossing.side;
 }
 
+void LapTracker::ReachFinish(int lapCount) {
+    completedLaps_ = std::max(completedLaps_, lapCount);
+}
+
 void LapTracker::Update(const CheckpointGraph& graph, Milliseconds elapsed, const Vector3& facing) {
     if (last_) {
         const assets::Checkpoint& gate = graph.Checkpoints()[*last_];

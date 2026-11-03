@@ -123,6 +123,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       positions_(setup.racers.size()),
       places_(setup.racers.size()),
       progress_(setup.racers.size(), setup.lapCount),
+      clock_(setup.isTestDrive),
       sounds_(setup.racers.size(), BrickCount(course), WeaponEventCount(setup, course)),
       random_(setup.seed),
       surfaces_(SurfacesFor(course)),
@@ -387,8 +388,11 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     } else {
         const bool hadFinished = progress_.OfRacer(racer).finishPlace.has_value();
         progress_.Move(*course_.checkpoints, racer,
-                       {.from = from, .to = motion.position, .facing = car.Body().facing}, elapsed,
-                       clock_.IsRunning());
+                       {.from = from,
+                        .to = motion.position,
+                        .facing = car.Body().facing,
+                        .isAtFinish = car.Events().touches.HasReachedFinish()},
+                       elapsed, clock_.IsRunning());
         if (!hadFinished && progress_.OfRacer(racer).finishPlace) {
             sounds_.HearFinish(racer);
         }

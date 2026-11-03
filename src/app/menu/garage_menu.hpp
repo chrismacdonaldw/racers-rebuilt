@@ -36,7 +36,7 @@ enum class GarageRequest : std::uint8_t {
     Leave,
 };
 
-/// Left and right step the racer on the main page. TEST DRIVE stays off until TEST races.
+/// Left and right step the racer on the main page.
 class GarageMenu {
 public:
     explicit GarageMenu(std::size_t racers);

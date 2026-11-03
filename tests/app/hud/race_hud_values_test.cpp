@@ -56,6 +56,18 @@ TEST_CASE("go holds for a second, shrinks over the next, then clears") {
     CHECK_FALSE(ReadHudValues(race.clock, race.progress, 0).banner.has_value());
 }
 
+TEST_CASE("a test drive starts racing with no countdown or go") {
+    RingRace race(1, 3);
+    race.clock = sim::RaceClock(true);
+    race.clock.Advance(Milliseconds{2001}, false);
+    const HudValues counting = ReadHudValues(race.clock, race.progress, 0);
+    race.clock.Advance(Milliseconds{12}, false);
+
+    CHECK_FALSE(counting.banner.has_value());
+    CHECK(race.clock.Phase() == sim::RacePhase::Racing);
+    CHECK_FALSE(ReadHudValues(race.clock, race.progress, 0).banner.has_value());
+}
+
 TEST_CASE("before the race the HUD reads lap 1 at no time and no best lap") {
     const RingRace race(2, 3);
 

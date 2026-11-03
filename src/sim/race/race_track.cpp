@@ -22,6 +22,7 @@ namespace {
 constexpr std::string_view kRacerTriggers = "MAINTRIG.TRB";
 constexpr std::string_view kRenamedRacerTriggers = "NEWTRIG.TRB";
 constexpr std::string_view kEventTable = "EVENT.EVB";
+constexpr std::string_view kCheckpoints = "RACE.CPB";
 
 template <typename Parse>
 auto ReadParsed(const assets::Vfs& vfs, std::string_view track, std::string_view file,
@@ -118,9 +119,16 @@ float LowestPoint(const CollisionWorld& world) {
 
 Result<CheckpointGraph> LoadCheckpoints(const assets::Vfs& vfs, std::string_view track,
                                         bool isMirrored) {
-    return ReadParsed(vfs, track, "RACE.CPB", assets::MirroredIf(isMirrored, assets::ParseCpb))
-        .and_then([](assets::CheckpointsAsset asset) {
-            return CheckpointGraph::Create(std::move(asset));
+    return vfs.List(std::format("GAMEDATA/{}", track))
+        .and_then([&](const std::vector<assets::VfsEntry>& folder) {
+            if (!assets::HasFile(folder, kCheckpoints)) {
+                return CheckpointGraph::Create({});
+            }
+            return ReadParsed(vfs, track, kCheckpoints,
+                              assets::MirroredIf(isMirrored, assets::ParseCpb))
+                .and_then([](assets::CheckpointsAsset asset) {
+                    return CheckpointGraph::Create(std::move(asset));
+                });
         });
 }
 
