@@ -83,39 +83,37 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
     GhostTrail ghostTrail(model->draws, model->entityDraws, raceTrack->entities);
     const std::vector<std::int32_t> voices =
         PerSlot(*racers, session->Racers().size(), &RacerGrid::Voice);
-    std::unique_ptr<RaceAudio> audio =
-        LoadRaceAudio(outputs, vfs, setup.track, AudioSetup(setup, *raceTrack, voices, seed));
-    std::optional<RaceParticles> particles =
-        LoadRaceParticles(renderer, vfs, loader, setup.track, raceTrack->collision.surfaces);
-    return std::unique_ptr<RaceScene>(
-        new RaceScene({.renderer = &renderer,
-                       .vfs = &vfs,
-                       .setup = setup,
-                       .trackDraws = std::move(model->draws),
-                       .decalSurface = std::move(model->decalSurface),
-                       .racers = std::move(*racers),
-                       .racerFx = LoadRacerFxMaterials(renderer, loader),
-                       .bricks = std::move(*bricks),
-                       .powerups = LoadPowerupModels(renderer, vfs, loader),
-                       .warpTube = WarpTube::Load(renderer, vfs, loader),
-                       .sky = std::move(*sky),
-                       .camera = TrackCamera(model->bounds),
-                       .raceTrack = std::move(raceTrack),
-                       .entityDraws = TrackEntityDraws(model->animatedModels, race.entities),
-                       .farModels = FarModels(std::move(model->farModels)),
-                       .sprites = std::move(model->sprites),
-                       .hiddenModels = HiddenModels(race.events.table.modelDistances,
-                                                    session->TrackHazards().Models().Names(),
-                                                    model->entityDraws, race.entities),
-                       .ghostTrail = std::move(ghostTrail),
-                       .waterScroll = WaterScroll(race.hazards, model->entityDraws),
-                       .scrolledDraws = std::move(model->scrolledDraws),
-                       .world = std::move(world),
-                       .session = std::move(*session),
-                       .audio = std::move(audio),
-                       .particles = std::move(particles),
-                       .map = LoadTrackMap(vfs, setup.track, setup.isMirrored, model->textures),
-                       .started = started}));
+    return std::unique_ptr<RaceScene>(new RaceScene(
+        {.renderer = &renderer,
+         .vfs = &vfs,
+         .setup = setup,
+         .trackDraws = std::move(model->draws),
+         .decalSurface = std::move(model->decalSurface),
+         .racers = std::move(*racers),
+         .racerFx = LoadRacerFxMaterials(renderer, loader),
+         .bricks = std::move(*bricks),
+         .powerups = LoadPowerupModels(renderer, vfs, loader),
+         .warpTube = WarpTube::Load(renderer, vfs, loader),
+         .sky = std::move(*sky),
+         .camera = TrackCamera(model->bounds),
+         .raceTrack = std::move(raceTrack),
+         .entityDraws = TrackEntityDraws(model->animatedModels, race.entities),
+         .farModels = FarModels(std::move(model->farModels)),
+         .sprites = std::move(model->sprites),
+         .materialAnims = std::move(model->materialAnims),
+         .hiddenModels = HiddenModels(race.events.table.modelDistances,
+                                      session->TrackHazards().Models().Names(), model->entityDraws,
+                                      race.entities),
+         .ghostTrail = std::move(ghostTrail),
+         .waterScroll = WaterScroll(race.hazards, model->entityDraws),
+         .scrolledDraws = std::move(model->scrolledDraws),
+         .world = std::move(world),
+         .session = std::move(*session),
+         .audio = LoadRaceAudio(outputs, vfs, setup.track, AudioSetup(setup, race, voices, seed)),
+         .particles =
+             LoadRaceParticles(renderer, vfs, loader, setup.track, race.collision.surfaces),
+         .map = LoadTrackMap(vfs, setup.track, setup.isMirrored, model->textures),
+         .started = started}));
 }
 
 RaceScene::RaceScene(Parts parts)
@@ -135,6 +133,7 @@ RaceScene::RaceScene(Parts parts)
     draws_ = parts_.trackDraws;
     draws_.insert(draws_.end(), parts_.racers.Draws().begin(), parts_.racers.Draws().end());
     parts_.entityDraws.AddFarModels(draws_.size(), parts_.farModels);
+    parts_.materialAnims.FindEntities(parts_.raceTrack->entities, parts_.entityDraws);
     hud_.SetMap(parts_.map);
     if (parts_.setup.isDemo) {
         hud_.ShowDemo();
@@ -283,10 +282,12 @@ void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float simM
     AddGridCars(parts_.racers, interpolated.entities, parts_.trackDraws.size(), parts_.farModels);
     parts_.entityDraws.Update(interpolated.entityClocks);
     parts_.entityDraws.Scroll(shownMs_);
+    const std::size_t entityFirst = draws_.size();
     draws_.insert(draws_.end(), parts_.entityDraws.Draws().begin(),
                   parts_.entityDraws.Draws().end());
+    parts_.materialAnims.Apply(shownMs_, entityFirst, draws_);
     parts_.hiddenModels.Apply(interpolated.hiddenModels, parts_.trackDraws, parts_.entityDraws,
-                              parts_.trackDraws.size() + parts_.racers.Draws().size(), draws_);
+                              entityFirst, draws_);
     parts_.ghostTrail.Append(parts_.session.TrackHazards(), interpolated.entityClocks, draws_);
     ScrollDraws(parts_.scrolledDraws, shownMs_, draws_);
     parts_.waterScroll.Apply(draws_);

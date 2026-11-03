@@ -310,6 +310,7 @@ struct TrackLoader::Names {
     NameSet skyModels;
     NameSet materialLibraries;
     NameSet textureDatabases;
+    NameSet materialAnimations;
 };
 
 Result<TrackAssets> TrackLoader::Load(std::string_view folder, bool isMirrored) {
@@ -364,6 +365,7 @@ Result<TrackAssets> TrackLoader::LoadWorldFiles(const NameResolver& resolver,
         InsertAllUpper(names.models, world->models);
         InsertAllUpper(names.materialLibraries, world->materialLibraries);
         InsertAllUpper(names.textureDatabases, world->textureLists);
+        InsertAllUpper(names.materialAnimations, world->materialAnimations);
         if (IsMirroredWorld(files[i].path)) {
             placed.push_back(std::move(world));
         } else {
@@ -410,13 +412,20 @@ Result<TrackAssets> TrackLoader::LoadNamed(const NameResolver& resolver, Handles
         return LoadTextures(loading, textureDatabases_, images_, names.textureDatabases,
                             missingTextures);
     });
-    if (!textures) {
-        return std::unexpected(std::move(textures.error()));
+    Result<NameMap<AssetCache<MaterialAnimationAsset>::Handle>> animations =
+        textures.and_then([&](const auto&) {
+            return LoadByName<MaterialAnimationAsset>(loading, materialAnimations_,
+                                                      names.materialAnimations, ".MAB",
+                                                      ParseMaterialAnimation);
+        });
+    if (!animations) {
+        return std::unexpected(std::move(animations.error()));
     }
     return TrackAssets{.worlds = std::move(worlds),
                        .models = std::move(*models),
                        .materials = std::move(*materials),
                        .textures = std::move(*textures),
+                       .materialAnimations = std::move(*animations),
                        .missingTextures = std::move(missingTextures)};
 }
 
@@ -426,6 +435,7 @@ void TrackLoader::Prune() {
     materialLibraries_.Prune();
     textureDatabases_.Prune();
     images_.Prune();
+    materialAnimations_.Prune();
 }
 
 std::vector<std::string> ListRaceTracks(const Vfs& vfs) {
@@ -452,6 +462,7 @@ void MergeTrackAssets(TrackAssets& into, TrackAssets from) {
     into.models.merge(from.models);
     into.materials.merge(from.materials);
     into.textures.merge(from.textures);
+    into.materialAnimations.merge(from.materialAnimations);
     std::ranges::move(from.missingTextures, std::back_inserter(into.missingTextures));
 }
 
