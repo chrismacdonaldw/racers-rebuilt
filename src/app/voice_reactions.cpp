@@ -14,6 +14,7 @@ namespace rr::app {
 namespace {
 
 constexpr std::int32_t kFirstCircuitVoice = 1100;
+constexpr std::string_view kTimeTrialVoices = "voice29";
 constexpr std::int32_t kLinesPerDriver = 12;
 constexpr std::int32_t kBuiltVoicePerSlot = 100;
 constexpr std::size_t kCircuitDrivers = 6;
@@ -32,6 +33,25 @@ std::optional<std::string> CircuitVoicesName(const assets::Vfs& vfs, std::string
         return std::nullopt;
     }
     return std::move(*name);
+}
+
+std::span<const audio::SoundId> LoadVoices(audio::Mixer& mixer, SoundBanks& banks,
+                                           const assets::Vfs& vfs,
+                                           const std::optional<std::string>& name) {
+    if (!name) {
+        return {};
+    }
+    const std::string path = std::format("GAMEDATA/VOICES/{}.SBK", assets::ToUpperAscii(*name));
+    Result<std::span<const audio::SoundId>> bank = banks.Load(mixer, vfs, path);
+    if (!bank) {
+        log::Warn("{}, racing without those voices", bank.error().message);
+        return {};
+    }
+    return *bank;
+}
+
+std::optional<std::string> PlayerVoicesName(std::optional<std::uint8_t> builtFace) {
+    return builtFace.transform([](std::uint8_t face) { return std::format("voice{:02}", face); });
 }
 
 }
@@ -53,19 +73,22 @@ std::optional<std::size_t> CircuitDriver(std::int32_t voice) {
     return driver < kCircuitDrivers ? std::optional(driver) : std::nullopt;
 }
 
-std::span<const audio::SoundId> LoadCircuitVoices(audio::Mixer& mixer, SoundBanks& banks,
-                                                  const assets::Vfs& vfs, std::string_view track) {
-    const std::optional<std::string> name = CircuitVoicesName(vfs, track);
-    if (!name) {
-        return {};
+VoiceBanks LoadRaceVoices(audio::Mixer& mixer, SoundBanks& banks, const assets::Vfs& vfs,
+                          std::string_view track, VoiceChoice choice) {
+    const std::optional<std::string> others =
+        choice.isTimeTrial ? std::string(kTimeTrialVoices) : CircuitVoicesName(vfs, track);
+    return {.player = LoadVoices(mixer, banks, vfs, PlayerVoicesName(choice.builtFace)),
+            .others = LoadVoices(mixer, banks, vfs, others)};
+}
+
+std::optional<audio::SoundId> VoiceSound(const VoiceBanks& banks, std::int32_t voice) {
+    const bool isPlayer = voice < kFirstCircuitVoice;
+    const std::int32_t index = voice - (isPlayer ? kBuiltCarVoice : kFirstCircuitVoice);
+    const std::span<const audio::SoundId> bank = isPlayer ? banks.player : banks.others;
+    if (index < 0 || static_cast<std::size_t>(index) >= bank.size()) {
+        return std::nullopt;
     }
-    const std::string path = std::format("GAMEDATA/VOICES/{}.SBK", assets::ToUpperAscii(*name));
-    Result<std::span<const audio::SoundId>> bank = banks.Load(mixer, vfs, path);
-    if (!bank) {
-        log::Warn("{}, racing without voices", bank.error().message);
-        return {};
-    }
-    return *bank;
+    return bank[static_cast<std::size_t>(index)];
 }
 
 ReactionTimers::ReactionTimers(std::size_t racerCount, sim::Random random)
@@ -95,9 +118,9 @@ Milliseconds ReactionTimers::Roll() {
     return kShortestQuiet + Milliseconds{random_.Below(sim::kRollRange) * kQuietPerRoll};
 }
 
-VoiceReactions::VoiceReactions(std::span<const audio::SoundId> lines,
-                               std::vector<std::int32_t> voices, sim::Random random)
-    : lines_(lines), voices_(std::move(voices)), timers_(voices_.size(), random) {}
+VoiceReactions::VoiceReactions(VoiceBanks banks, std::vector<std::int32_t> voices,
+                               sim::Random random)
+    : banks_(banks), voices_(std::move(voices)), timers_(voices_.size(), random) {}
 
 void VoiceReactions::Hear(const sim::RaceSession& session, const Listener& listener,
                           Milliseconds elapsed, audio::Mixer& mixer) {
@@ -108,16 +131,16 @@ void VoiceReactions::Hear(const sim::RaceSession& session, const Listener& liste
             event.racer >= voices_.size()) {
             continue;
         }
-        const std::optional<std::size_t> driver = CircuitDriver(voices_[event.racer]);
         const std::optional<std::size_t> line = timers_.React(
             event.racer, isPositive ? sim::VoiceReaction::Positive : sim::VoiceReaction::Negative);
-        const std::size_t sound =
-            (driver.value_or(0) * static_cast<std::size_t>(kLinesPerDriver)) + line.value_or(0);
-        if (!driver || !line || sound >= lines_.size()) {
+        const std::optional<audio::SoundId> sound = line.and_then([&](std::size_t said) {
+            return VoiceSound(banks_, voices_[event.racer] + static_cast<std::int32_t>(said));
+        });
+        if (!sound) {
             continue;
         }
         const std::array cue{audio::SoundCue{
-            .sound = lines_[sound],
+            .sound = *sound,
             .mix = PlaceSound(listener, session.Racers()[event.racer].Body().motion.position, {},
                               kReactionRange)}};
         mixer.Play(cue);

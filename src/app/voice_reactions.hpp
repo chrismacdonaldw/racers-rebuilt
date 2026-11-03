@@ -28,11 +28,23 @@ inline constexpr std::int32_t kBuiltCarVoice = 1000;
 /// Nothing for a built car's voice or one past the bank's six drivers.
 [[nodiscard]] std::optional<std::size_t> CircuitDriver(std::int32_t voice);
 
-/// Empty when the track has no circuit voices.
-[[nodiscard]] std::span<const audio::SoundId> LoadCircuitVoices(audio::Mixer& mixer,
-                                                                SoundBanks& banks,
-                                                                const assets::Vfs& vfs,
-                                                                std::string_view track);
+/// Voices 1000 to 1099 play from `player` and the rest from `others`, as the game numbers them.
+struct VoiceBanks {
+    std::span<const audio::SoundId> player;
+    std::span<const audio::SoundId> others;
+};
+
+struct VoiceChoice {
+    std::optional<std::uint8_t> builtFace;
+    bool isTimeTrial = false;
+};
+
+/// A built player says `VOICE<face>` lines; others say a time trial's `VOICE29` or the circuit's.
+[[nodiscard]] VoiceBanks LoadRaceVoices(audio::Mixer& mixer, SoundBanks& banks,
+                                        const assets::Vfs& vfs, std::string_view track,
+                                        VoiceChoice choice);
+
+[[nodiscard]] std::optional<audio::SoundId> VoiceSound(const VoiceBanks& banks, std::int32_t voice);
 
 /// Keeps each racer quiet for 5 to 9 s after a reaction, and from the start.
 class ReactionTimers {
@@ -51,17 +63,16 @@ private:
     std::vector<Milliseconds> quiet_;
 };
 
-/// `lines` is the track's circuit bank and must outlive it. `voices` has one entry per racer.
+/// `banks` must outlive it. `voices` has one entry per racer.
 class VoiceReactions {
 public:
-    VoiceReactions(std::span<const audio::SoundId> lines, std::vector<std::int32_t> voices,
-                   sim::Random random);
+    VoiceReactions(VoiceBanks banks, std::vector<std::int32_t> voices, sim::Random random);
 
     void Hear(const sim::RaceSession& session, const Listener& listener, Milliseconds elapsed,
               audio::Mixer& mixer);
 
 private:
-    std::span<const audio::SoundId> lines_;
+    VoiceBanks banks_;
     std::vector<std::int32_t> voices_;
     ReactionTimers timers_;
 };

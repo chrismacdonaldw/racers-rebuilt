@@ -173,7 +173,7 @@ Result<std::unique_ptr<RaceAudio>> RaceAudio::Load(audio::Mixer& mixer, SoundBan
         mixer,
         RaceSoundSet{.effects = *effects,
                      .ambient = LoadOptionalBank(mixer, banks, vfs, AmbientBankPath(track)),
-                     .voices = LoadCircuitVoices(mixer, banks, vfs, track),
+                     .voices = LoadRaceVoices(mixer, banks, vfs, track, setup.voiceChoice),
                      .music = std::move(music).value_or(std::vector<std::string>{}),
                      .ambience = {setup.ambience.begin(), setup.ambience.end()}},
         setup);

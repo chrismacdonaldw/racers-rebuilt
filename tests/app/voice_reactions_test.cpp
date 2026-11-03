@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstddef>
 #include <optional>
 
@@ -34,6 +35,23 @@ TEST_CASE("prebuilt drivers speak with one of the circuit bank's six drivers") {
     CHECK_FALSE(CircuitDriver(kBuiltCarVoice));
     CHECK_FALSE(CircuitDriver(DriverVoice(6)));
     CHECK_FALSE(CircuitDriver(DriverVoice(2) + 1));
+}
+
+TEST_CASE("built players speak from their own bank and the rest from the others'") {
+    std::array<audio::SoundId, 12> player{};
+    std::array<audio::SoundId, 72> others{};
+    player[11] = {.index = 3};
+    others[25] = {.index = 7};
+    const VoiceBanks banks{.player = player, .others = others};
+    const auto index = [&](std::int32_t voice) {
+        return VoiceSound(banks, voice).transform([](audio::SoundId sound) { return sound.index; });
+    };
+
+    CHECK(index(BuiltCarVoice(0) + 11) == 3U);
+    CHECK(index(DriverVoice(2) + 1) == 7U);
+    CHECK_FALSE(VoiceSound(banks, BuiltCarVoice(0) + 12));
+    CHECK_FALSE(VoiceSound(banks, DriverVoice(6)));
+    CHECK_FALSE(VoiceSound(banks, BuiltCarVoice(0) - 1));
 }
 
 TEST_CASE("racers stay quiet for the first 5 s of a race") {
