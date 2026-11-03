@@ -1,8 +1,10 @@
 #include "settings/progress.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -145,6 +147,12 @@ bool AwardTrophy(Trophies& trophies, const std::string& circuit, Trophy trophy) 
     }
     held->second = trophy;
     return true;
+}
+
+bool HasBeatenEveryRecord(const Progress& progress) {
+    return std::ranges::all_of(
+        std::views::iota(std::int32_t{0}, static_cast<std::int32_t>(kRecordRaces)),
+        [&](std::int32_t record) { return progress.beatenRecords.contains(record); });
 }
 
 Result<Progress> LoadProgress(const std::filesystem::path& path) {

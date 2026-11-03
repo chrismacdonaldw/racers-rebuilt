@@ -145,6 +145,54 @@ void AppendPiece(const MenuPicture& picture, const render::Rect& piece,
                    .tint = picture.tint});
 }
 
+struct Uncut {
+    render::Rect piece;
+    std::size_t hole = 0;
+};
+
+constexpr std::size_t kMaxHoles = 8;
+constexpr std::size_t kSidesPerCut = 4;
+
+std::array<render::Rect, kSidesPerCut> SidesAround(const render::Rect& piece,
+                                                   const render::Rect& hole) {
+    const float right = piece.x + piece.width;
+    const float bottom = piece.y + piece.height;
+    const float holeLeft = std::clamp(hole.x, piece.x, right);
+    const float holeRight = std::clamp(hole.x + hole.width, piece.x, right);
+    const float holeTop = std::clamp(hole.y, piece.y, bottom);
+    const float holeBottom = std::clamp(hole.y + hole.height, piece.y, bottom);
+    if (holeLeft >= holeRight || holeTop >= holeBottom) {
+        return {piece};
+    }
+    const float middle = holeBottom - holeTop;
+    return {
+        render::Rect{.x = piece.x, .y = piece.y, .width = piece.width, .height = holeTop - piece.y},
+        render::Rect{
+            .x = piece.x, .y = holeBottom, .width = piece.width, .height = bottom - holeBottom},
+        render::Rect{.x = piece.x, .y = holeTop, .width = holeLeft - piece.x, .height = middle},
+        render::Rect{.x = holeRight, .y = holeTop, .width = right - holeRight, .height = middle}};
+}
+
+void AppendAround(const MenuPicture& picture, std::span<const render::Rect> holes,
+                  std::vector<render::SpriteDraw>& out) {
+    const std::span<const render::Rect> cut = holes.first(std::min(holes.size(), kMaxHoles));
+    std::array<Uncut, (kMaxHoles * (kSidesPerCut - 1)) + 1> stack{};
+    std::size_t size = 0;
+    stack.at(size++) = {.piece = picture.bounds};
+    while (size > 0) {
+        const Uncut next = stack.at(--size);
+        if (next.hole == cut.size()) {
+            AppendPiece(picture, next.piece, out);
+            continue;
+        }
+        for (const render::Rect& side : SidesAround(next.piece, cut[next.hole])) {
+            if (side.width > 0.0F && side.height > 0.0F) {
+                stack.at(size++) = {.piece = side, .hole = next.hole + 1};
+            }
+        }
+    }
+}
+
 }
 
 MenuPoint OriginOf(const assets::MenuLayout& layout, const assets::MenuElement& element) {
@@ -222,34 +270,13 @@ render::Rect PieceUv(const render::Rect& bounds, const render::Rect& piece) {
 
 void DrawPicturesAround(std::span<const MenuPicture> pictures, const render::Rect& hole,
                         std::vector<render::SpriteDraw>& out) {
+    DrawPicturesAround(pictures, std::span(&hole, 1), out);
+}
+
+void DrawPicturesAround(std::span<const MenuPicture> pictures, std::span<const render::Rect> holes,
+                        std::vector<render::SpriteDraw>& out) {
     for (const MenuPicture& picture : pictures) {
-        const render::Rect& bounds = picture.bounds;
-        const float right = bounds.x + bounds.width;
-        const float bottom = bounds.y + bounds.height;
-        const float holeLeft = std::clamp(hole.x, bounds.x, right);
-        const float holeRight = std::clamp(hole.x + hole.width, bounds.x, right);
-        const float holeTop = std::clamp(hole.y, bounds.y, bottom);
-        const float holeBottom = std::clamp(hole.y + hole.height, bounds.y, bottom);
-        AppendPiece(
-            picture,
-            {.x = bounds.x, .y = bounds.y, .width = bounds.width, .height = holeTop - bounds.y},
-            out);
-        AppendPiece(
-            picture,
-            {.x = bounds.x, .y = holeBottom, .width = bounds.width, .height = bottom - holeBottom},
-            out);
-        AppendPiece(picture,
-                    {.x = bounds.x,
-                     .y = holeTop,
-                     .width = holeLeft - bounds.x,
-                     .height = holeBottom - holeTop},
-                    out);
-        AppendPiece(picture,
-                    {.x = holeRight,
-                     .y = holeTop,
-                     .width = right - holeRight,
-                     .height = holeBottom - holeTop},
-                    out);
+        AppendAround(picture, holes, out);
     }
 }
 

@@ -48,6 +48,7 @@ add_executable(racers-rebuilt-tests
     app/menu/attract_demo_test.cpp
     app/menu/award_scene_name_test.cpp
     app/menu/best_time_panel_test.cpp
+    app/menu/carousel_layout_test.cpp
     app/menu/control_bindings_test.cpp
     app/menu/controls_menu_test.cpp
     app/scene_music_test.cpp
@@ -63,6 +64,7 @@ add_executable(racers-rebuilt-tests
     app/menu/message_dialog_test.cpp
     app/menu/option_settings_test.cpp
     app/menu/options_menu_test.cpp
+    app/menu/part_carousel_test.cpp
     app/menu/pause_menu_test.cpp
     app/menu/preview_cycle_test.cpp
     app/menu/racer_pick_list_test.cpp

@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <numeric>
 #include <optional>
-#include <ranges>
 #include <span>
 #include <string_view>
 #include <utility>
@@ -63,9 +62,7 @@ bool BeatRecord(settings::Progress& progress, std::size_t race) {
         !progress.beatenRecords.insert(static_cast<std::int32_t>(race)).second) {
         return false;
     }
-    const bool isLast = std::ranges::all_of(
-        std::views::iota(std::int32_t{0}, static_cast<std::int32_t>(settings::kRecordRaces)),
-        [&](std::int32_t record) { return progress.beatenRecords.contains(record); });
+    const bool isLast = settings::HasBeatenEveryRecord(progress);
     if (isLast) {
         progress.partSets.insert(kRecordsPartSet);
     }

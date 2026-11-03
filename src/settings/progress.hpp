@@ -48,6 +48,8 @@ struct Progress {
 /// Keeps whichever of the held and new trophy is better. Returns whether it changed.
 bool AwardTrophy(Trophies& trophies, const std::string& circuit, Trophy trophy);
 
+[[nodiscard]] bool HasBeatenEveryRecord(const Progress& progress);
+
 /// A missing file is a fresh game. Values that don't parse are logged and skipped.
 [[nodiscard]] Result<Progress> LoadProgress(const std::filesystem::path& path);
 

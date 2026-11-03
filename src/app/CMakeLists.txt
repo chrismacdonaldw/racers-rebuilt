@@ -66,11 +66,14 @@ rr_add_module(app
         menu/best_time_panel.cpp
         menu/attract_demo.cpp
         menu/award_scene_name.cpp
+        menu/carousel_layout.cpp
+        menu/carousel_view.cpp
         menu/control_bindings.cpp
         menu/controls_look.cpp
         menu/controls_menu.cpp
         menu/controls_scene.cpp
         menu/dialog_layout.cpp
+        menu/driver_kit.cpp
         menu/language_look.cpp
         menu/language_menu.cpp
         menu/language_scene.cpp
@@ -94,6 +97,7 @@ rr_add_module(app
         menu/options_look.cpp
         menu/options_menu.cpp
         menu/options_scene.cpp
+        menu/part_carousel.cpp
         menu/pause_menu.cpp
         menu/preview_cycle.cpp
         menu/racer_pick_list.cpp
