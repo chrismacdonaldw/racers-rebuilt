@@ -7,6 +7,8 @@
 #include <string_view>
 #include <utility>
 
+#include "app/frame_loop.hpp"
+#include "app/menu/menu_files.hpp"
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_widgets.hpp"
@@ -46,6 +48,17 @@ std::string_view SetupSceneOf(std::string_view scenes) {
     return kSingleRaceScene;
 }
 
+std::unique_ptr<RacerStand> LoadStand(render::Renderer& renderer, const assets::Vfs& vfs,
+                                      const MenuFiles& files) {
+    Result<std::unique_ptr<RacerStand>> stand =
+        RacerStand::Load(renderer, vfs, files, kRacerPickScreen);
+    if (!stand) {
+        log::Warn("the racer pick shows no racer: {}", stand.error().message);
+        return nullptr;
+    }
+    return std::move(*stand);
+}
+
 std::vector<settings::Racer> DefaultRacers(const assets::Vfs& vfs) {
     Result<std::vector<settings::Racer>> racers = ReadDefaultRacers(vfs);
     if (!racers) {
@@ -62,7 +75,9 @@ Result<std::unique_ptr<RacerPickScene>> RacerPickScene::Create(render::Renderer&
                                                                MenuSounds sounds,
                                                                std::filesystem::path racersFile,
                                                                RacerPickRoute route) {
-    Result<RacerPickLook> look = LoadRacerPickLook(renderer, vfs);
+    Result<MenuFiles> files = ReadMenuFiles(vfs, kRacerPickScreen);
+    Result<RacerPickLook> look = files.and_then(
+        [&](const MenuFiles& read) { return LoadRacerPickLook(renderer, vfs, read); });
     if (!look) {
         return std::unexpected(std::move(look.error()));
     }
@@ -77,8 +92,11 @@ Result<std::unique_ptr<RacerPickScene>> RacerPickScene::Create(render::Renderer&
     for (const settings::Racer& racer : racers.pickable) {
         racers.names.push_back(Utf16FromUtf8(racer.name));
     }
-    return std::unique_ptr<RacerPickScene>(new RacerPickScene(
+    auto scene = std::unique_ptr<RacerPickScene>(new RacerPickScene(
         renderer, vfs, sounds, std::move(*look), std::move(route), std::move(racers)));
+    scene->stand_ = LoadStand(renderer, vfs, *files);
+    scene->ShowPicked();
+    return scene;
 }
 
 void RacerPickScene::ApplySettings(const settings::Registry& settings) {
@@ -90,6 +108,15 @@ std::optional<std::string> RacerPickScene::TakeNextScene() {
 }
 
 void RacerPickScene::Tick(const sim::InputFrame& input) {
+    if (stand_) {
+        stand_->Tick(kSimTick);
+    }
+    if (cheered_) {
+        if (!stand_ || !stand_->IsCheering()) {
+            opened_ = std::exchange(cheered_, std::nullopt);
+        }
+        return;
+    }
     const RacerPickRow focusBefore = menu_.Focus();
     const RacerPickRequest request = menu_.Tick(input);
     switch (request) {
@@ -104,6 +131,8 @@ void RacerPickScene::Tick(const sim::InputFrame& input) {
             opened_ = Left();
             break;
         case RacerPickRequest::Step:
+            ShowPicked();
+            break;
         case RacerPickRequest::None:
             break;
     }
@@ -114,16 +143,27 @@ void RacerPickScene::Snapshot(sim::RenderSnapshot& out) const {
     out.entities.clear();
     out.camera = {};
     out.simStateHash = menu_.StateHash();
+    out.entityClocks.clear();
+    if (stand_) {
+        out.entityClocks.assign(stand_->Clocks().begin(), stand_->Clocks().end());
+    }
 }
 
-void RacerPickScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpolated) {
+void RacerPickScene::Render(const sim::RenderSnapshot& interpolated) {
     sprites_.clear();
-    DrawPictures(std::span(&look_.backdrop, 1), sprites_);
+    render::RenderView view;
+    if (stand_) {
+        DrawPicturesAround(std::span(&look_.backdrop, 1), stand_->Bounds(), sprites_);
+        view = stand_->Render(interpolated.entityClocks, sprites_);
+    } else {
+        DrawPictures(std::span(&look_.backdrop, 1), sprites_);
+    }
     const std::size_t title = isVersus_ ? kFirstPlayerTitleLine + route_.player : kTitleLine;
     DrawBanner(text_, look_.banner, text_.Line(title), look_.backdrop, look_.bannerTop, sprites_);
     DrawPicker();
     DrawButtons();
-    Result<void> drawn = renderer_->Draw({.sprites = sprites_});
+    view.sprites = sprites_;
+    Result<void> drawn = renderer_->Draw(view);
     if (!drawn) {
         log::Error("{}", drawn.error().message);
     }
@@ -147,7 +187,7 @@ void RacerPickScene::Start() {
     const std::size_t picked = menu_.Racer();
     const RacerRef ref = RefOf(racers_.pickable.at(picked));
     if (route_.player != 0) {
-        opened_ = WithSecondPlayer(route_.next, ref);
+        CheerInto(WithSecondPlayer(route_.next, ref));
         return;
     }
     if (racers_.isLoaded) {
@@ -156,7 +196,20 @@ void RacerPickScene::Start() {
             log::Warn("{}, the pick isn't saved", saved.error().message);
         }
     }
-    opened_ = WithPlayer(route_.next, ref);
+    CheerInto(WithPlayer(route_.next, ref));
+}
+
+void RacerPickScene::CheerInto(std::string next) {
+    if (stand_) {
+        stand_->Cheer();
+    }
+    cheered_ = std::move(next);
+}
+
+void RacerPickScene::ShowPicked() {
+    if (stand_ && !racers_.pickable.empty()) {
+        stand_->Show(racers_.pickable.at(menu_.Racer()));
+    }
 }
 
 std::string RacerPickScene::Reopened() const {

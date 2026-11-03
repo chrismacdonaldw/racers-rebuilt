@@ -11,6 +11,7 @@
 #include "app/menu/menu_text.hpp"
 #include "app/menu/racer_pick_look.hpp"
 #include "app/menu/racer_pick_menu.hpp"
+#include "app/menu/racer_stand.hpp"
 #include "app/scene.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -54,6 +55,8 @@ private:
                    RacerPickLook look, RacerPickRoute route, Racers racers);
 
     void Start();
+    void CheerInto(std::string next);
+    void ShowPicked();
     [[nodiscard]] std::string Reopened() const;
     [[nodiscard]] std::string Left() const;
     void PlaySounds(const sim::InputFrame& input, RacerPickRequest request,
@@ -71,6 +74,8 @@ private:
     Racers racers_;
     RacerPickMenu menu_;
     MenuText text_;
+    std::unique_ptr<RacerStand> stand_;
+    std::optional<std::string> cheered_;
     std::optional<std::string> opened_;
     std::vector<render::SpriteDraw> sprites_;
 };
