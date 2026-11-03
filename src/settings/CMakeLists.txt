@@ -4,6 +4,7 @@ rr_add_module(settings
         registry.cpp
         progress.cpp
         racers.cpp
+        setting_preset.cpp
         settings_file.cpp
         toml_file.cpp
         trophy_table.cpp
