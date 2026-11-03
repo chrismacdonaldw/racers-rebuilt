@@ -23,7 +23,7 @@
 namespace rr::render {
 namespace {
 
-constexpr SDL_FColor kClearColor{.r = 0.08F, .g = 0.09F, .b = 0.12F, .a = 1.0F};
+constexpr SDL_FColor kClearColor{.r = 0.0F, .g = 0.0F, .b = 0.0F, .a = 1.0F};
 constexpr std::size_t kLineVertexBytes = kMaxDebugLines * 2 * sizeof(LineVertex);
 constexpr std::size_t kSpriteVertexBytes = kMaxSprites * kVerticesPerSprite * sizeof(SpriteVertex);
 constexpr std::size_t kQuadVertexBytes = kMaxQuads * kVerticesPerSprite * sizeof(QuadVertex);
