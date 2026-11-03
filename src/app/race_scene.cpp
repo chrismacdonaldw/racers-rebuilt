@@ -17,6 +17,7 @@
 #include "app/collision_wireframe.hpp"
 #include "app/frame_loop.hpp"
 #include "app/game_settings.hpp"
+#include "app/hud/race_map_view.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/powerup_tools.hpp"
 #include "app/race_scene_parts.hpp"
@@ -35,7 +36,6 @@ namespace {
 
 constexpr std::uint64_t kHashPrime = 1099511628211ULL;
 constexpr Milliseconds kCircuitResultsTime{5000};
-constexpr std::size_t kChampionSlot = 1;
 constexpr double kFastForwardScale = 1.75;
 
 std::string MenuAfter(const RaceSceneSetup& setup) {
@@ -298,22 +298,9 @@ void RaceScene::GatherMeshes(const sim::RenderSnapshot& interpolated, float simM
 std::span<const MapView> RaceScene::PlayerMapViews(const sim::RenderSnapshot& interpolated) {
     const std::size_t players = cameras_.Count();
     for (std::size_t player = 0; player < players; ++player) {
-        const std::size_t own = kPlayerSlot + player;
-        std::vector<MapMarker>& markers = mapMarkers_.at(player);
-        markers.clear();
-        for (std::size_t slot = interpolated.racers.size(); slot-- > 0;) {
-            if (slot != own) {
-                markers.push_back(
-                    {.position = ToGame(interpolated.entities[slot].transform.position),
-                     .isChampion = slot == kChampionSlot && slot >= kPlayerSlot + players});
-            }
-        }
-        AppendGhostMarkers(interpolated.ghosts, markers);
-        const Transform racer = TransformToGame(interpolated.entities[own].transform);
-        mapViews_.at(player) = {.player = racer.position,
-                                .playerForward = Rotate(racer.rotation, {.x = 1.0F}),
-                                .viewDirection = cameras_.ViewDirection(player),
-                                .markers = markers};
+        mapViews_.at(player) =
+            PlayerMapView(interpolated, kPlayerSlot + player, players,
+                          cameras_.ViewDirection(player), mapMarkers_.at(player));
     }
     return std::span(mapViews_).first(players);
 }
