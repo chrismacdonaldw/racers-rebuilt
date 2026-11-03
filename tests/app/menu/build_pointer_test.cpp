@@ -75,6 +75,29 @@ TEST_CASE("a held pad fires on the press, after 500 ms and then every 250 ms") {
     CHECK(Hold(pointer, look, menu, 100) == 0);
 }
 
+TEST_CASE("a held pad repeats only on its own spots") {
+    const CarBuildLook look = PadsLook();
+    CarBuildMenu menu;
+    BuildPointer pointer;
+
+    static_cast<void>(pointer.Tick(Pressed(kViewSpot), look, menu));
+    for (int tick = 0; tick < 100; ++tick) {
+        CHECK(pointer.Tick(Over(kMoveSpot), look, menu).pad.command == BuildCommand::None);
+    }
+}
+
+TEST_CASE("a release while the builder is busy lets go of the pad") {
+    const CarBuildLook look = PadsLook();
+    CarBuildMenu menu;
+    BuildPointer pointer;
+
+    static_cast<void>(pointer.Tick(Pressed(kMoveSpot), look, menu));
+    sim::InputFrame released = Over(kMoveSpot);
+    released.pointer.released = true;
+    pointer.TickIdle(released.pointer);
+    CHECK(Hold(pointer, look, menu, 100) == 0);
+}
+
 TEST_CASE("the view pad's reset spot resets the view") {
     const CarBuildLook look = PadsLook();
     CarBuildMenu menu;
