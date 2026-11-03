@@ -74,6 +74,10 @@ rr_add_module(app
         menu/language_menu.cpp
         menu/language_scene.cpp
         menu/main_menu_scene.cpp
+        menu/garage_look.cpp
+        menu/garage_menu.cpp
+        menu/garage_racers.cpp
+        menu/garage_scene.cpp
         menu/menu_files.cpp
         menu/menu_focus.cpp
         menu/menu_page.cpp

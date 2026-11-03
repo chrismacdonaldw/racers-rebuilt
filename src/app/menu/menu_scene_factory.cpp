@@ -5,6 +5,7 @@
 
 #include "app/circuit_awards.hpp"
 #include "app/menu/controls_scene.hpp"
+#include "app/menu/garage_scene.hpp"
 #include "app/menu/language_scene.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_sounds.hpp"
@@ -46,6 +47,10 @@ std::optional<Result<std::unique_ptr<Scene>>> CreateMenuScene(const MenuScenePar
                                           {.next = std::string(*next), .player = player})
                 .transform(ToScene<RacerPickScene>);
         }
+    }
+    if (scene == kGarageScene) {
+        return GarageScene::Create(renderer, vfs, sounds(), parts.racersFile)
+            .transform(ToScene<GarageScene>);
     }
     if (scene == kLanguageScene) {
         return LanguageScene::Create(renderer, vfs, sounds()).transform(ToScene<LanguageScene>);

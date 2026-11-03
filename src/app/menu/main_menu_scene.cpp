@@ -35,6 +35,7 @@ constexpr std::array kButtonLines{
 };
 
 constexpr std::array kButtonTargets{
+    ButtonTarget{.button = "garage", .scene = kGarageScene},
     ButtonTarget{.button = "circuit", .scene = kCircuitRaceScene},
     ButtonTarget{.button = "single", .scene = kSingleRaceScene},
     ButtonTarget{.button = "vs", .scene = kVersusRaceScene},
