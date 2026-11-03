@@ -5,6 +5,14 @@
 
 namespace rr::render {
 
+Viewport UiViewport(const Rect& rect) {
+    return {.x = rect.x / kUiWidth,
+            .y = rect.y / kUiHeight,
+            .width = rect.width / kUiWidth,
+            .height = rect.height / kUiHeight,
+            .isOnUiCanvas = true};
+}
+
 PixelRect FitUiArea(std::uint32_t widthPx, std::uint32_t heightPx, UiFit fit) {
     if (fit == UiFit::Stretched) {
         return {.widthPx = widthPx, .heightPx = heightPx};

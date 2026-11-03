@@ -80,6 +80,7 @@ rr_add_module(app
         menu/menu_scene_factory.cpp
         menu/menu_sounds.cpp
         menu/menu_text.cpp
+        menu/menu_frame.cpp
         menu/menu_widgets.cpp
         menu/message_dialog.cpp
         menu/option_settings.cpp
@@ -94,6 +95,9 @@ rr_add_module(app
         menu/racer_pick_scene.cpp
         menu/race_setup_menu.cpp
         menu/race_setup_scene.cpp
+        menu/racer_stand.cpp
+        menu/stand_racer.cpp
+        menu/stand_scene.cpp
         menu/track_preview.cpp
         music_folder_source.cpp
         pacing_presets.cpp

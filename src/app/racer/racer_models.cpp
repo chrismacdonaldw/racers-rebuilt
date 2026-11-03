@@ -14,6 +14,7 @@
 #include "assets/game_path.hpp"
 #include "assets/geometry_database.hpp"
 #include "assets/part_library.hpp"
+#include "assets/skeleton_database.hpp"
 #include "assets/texture_database.hpp"
 #include "sim/car_build/built_car.hpp"
 #include "sim/car_build/car_mesh.hpp"
@@ -99,6 +100,17 @@ Result<assets::GeometryAsset> BuildMinifig(const assets::Vfs& vfs,
     return body.and_then([&](const assets::GeometryAsset& geometry) {
         return assets::BuildDriverGeometry(parts, *heads, geometry, look, detail);
     });
+}
+
+Result<assets::SkeletonAsset> LoadMenuMinifigSkeleton(const assets::Vfs& vfs,
+                                                      const assets::DriverPartCatalog& parts,
+                                                      const assets::DriverLook& look) {
+    return assets::DriverBodyName(parts, look, assets::DriverDetail::Menu)
+        .and_then([&](const std::string& name) {
+            return ReadParsed(
+                vfs, std::format("{}/{}.SDB", kMenuMinifig.folder, assets::ToUpperAscii(name)),
+                assets::ParseSkeleton);
+        });
 }
 
 Result<assets::TrackAssets> LoadExpressionFaces(

@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "render/render_view.hpp"
+
 namespace rr::render {
 
 /// UI coordinates span this 4:3 canvas, origin top left.
@@ -28,6 +30,8 @@ struct UiToClip {
 
 /// `Centered` is the largest whole-pixel 4:3 area that fits.
 [[nodiscard]] PixelRect FitUiArea(std::uint32_t widthPx, std::uint32_t heightPx, UiFit fit);
+
+[[nodiscard]] Viewport UiViewport(const Rect& rect);
 
 [[nodiscard]] UiToClip UiToClipTransform(const PixelRect& area, std::uint32_t widthPx,
                                          std::uint32_t heightPx);
