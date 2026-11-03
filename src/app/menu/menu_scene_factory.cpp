@@ -8,6 +8,7 @@
 #include "app/menu/edit_driver_scene.hpp"
 #include "app/menu/garage_scene.hpp"
 #include "app/menu/language_scene.hpp"
+#include "app/menu/licence_scene.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/options_scene.hpp"
@@ -20,6 +21,10 @@ namespace {
 constexpr std::size_t kVersusPlayers = 2;
 constexpr std::array kControls{kControlsScene, kPlayer2ControlsScene};
 constexpr std::array kPicks{kPickRacerScene, kPickSecondRacerScene};
+
+bool ClearsCheats(RaceSetupMode mode) {
+    return mode == RaceSetupMode::Circuit || mode == RaceSetupMode::TimeTrial;
+}
 
 }
 
@@ -63,10 +68,19 @@ std::optional<Result<std::unique_ptr<Scene>>> CreateMenuScene(const MenuScenePar
                                        *racer)
             .transform(ToScene<EditDriverScene>);
     }
+    if (const std::optional<std::size_t> racer = SceneRacer(scene, kLicenceScene);
+        racer && parts.cheats != nullptr) {
+        return LicenceScene::Create(renderer, vfs, sounds(), parts.racersFile, *racer,
+                                    *parts.cheats)
+            .transform(ToScene<LicenceScene>);
+    }
     if (scene == kLanguageScene) {
         return LanguageScene::Create(renderer, vfs, sounds()).transform(ToScene<LanguageScene>);
     }
     if (const std::optional<RaceSetupMode> mode = RaceSetupModeOf(scene)) {
+        if (ClearsCheats(*mode) && parts.cheats != nullptr) {
+            *parts.cheats = {};
+        }
         return RaceSetupScene::Create(parts.outputs, vfs, sounds(), *mode,
                                       ReadProgress(parts.progressFile), parts.language)
             .transform(ToScene<RaceSetupScene>);

@@ -253,7 +253,8 @@ Result<std::unique_ptr<Scene>> Application::CreateScene(
              .vfs = &vfs_,
              .progressFile = ProgressFile(),
              .racersFile = RacersFile(),
-             .language = SelectedLanguage(settings_)},
+             .language = SelectedLanguage(settings_),
+             .cheats = &cheats_},
             *scene)) {
         return std::move(*menu);
     }
@@ -343,6 +344,7 @@ Result<std::unique_ptr<RaceScene>> Application::LoadRace(RaceSceneSetup setup,
         return std::unexpected(std::move(resolved.error()));
     }
     setup.isMirrored = LoadsMirrored(setup);
+    setup.cheats = setup.cheats.IsEmpty() ? cheats_ : setup.cheats;
     const std::string language = SelectedLanguage(settings_);
     const std::unique_ptr<RaceLoadingScreen> loading =
         OpenLoadingScreen(renderer_, vfs_, setup.track, language);

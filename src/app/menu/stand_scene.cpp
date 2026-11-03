@@ -26,8 +26,9 @@ constexpr std::array<std::string_view, 8> kBuilderIdles{"breath1", "breath2", "s
                                                         "look",    "kick",    "watch", "hips"};
 constexpr std::array<std::string_view, 2> kBuilderCheers{"jump", "kiss"};
 constexpr std::array<std::string_view, 4> kBuilderReactions{"head1", "chest", "leg", "shaking"};
+constexpr std::array<std::string_view, 1> kLicencePoses{"a0"};
+constexpr float kLevel = 1.0F / 255.0F;
 constexpr Vector3 kCarSpot{.x = -11.52F, .y = -6.767F, .z = 0.0F};
-constexpr Vector3 kUp{.z = 1.0F};
 constexpr Vector3 kLightTravel{.x = -1.0F, .y = -1.0F, .z = -1.0F};
 
 Quaternion Facing(const Vector3& forward, const Vector3& up) {
@@ -118,10 +119,10 @@ Result<void> AddDriver(StandScene& scene, assets::AnimationAsset animations, con
     }
     sim::TrackEntitySources& sources = scene.sources;
     sources.animations.push_back(std::move(animations));
-    sources.entities.push_back(
-        {.name = std::string(kDriverEntity),
-         .animation = sources.animations.size() - 1,
-         .placement = {.position = set.driverSpot, .rotation = Facing(set.driverFacing, kUp)}});
+    sources.entities.push_back({.name = std::string(kDriverEntity),
+                                .animation = sources.animations.size() - 1,
+                                .placement = {.position = set.driverSpot,
+                                              .rotation = Facing(set.driverFacing, set.driverUp)}});
     scene.driver = sources.entities.size() - 1;
     return {};
 }
@@ -148,7 +149,8 @@ const StandSet kRacerStandSet{.folder = "MENUDATA/RS_SET",
                               .cheers = kRacerCheers,
                               .turntable = "crsdow",
                               .driverSpot = {.x = -0.938F, .y = -0.898F, .z = 1.487F},
-                              .driverFacing = {.x = 0.963631F, .y = -0.267238F, .z = 0.0F}};
+                              .driverFacing = {.x = 0.963631F, .y = -0.267238F, .z = 0.0F},
+                              .ambient = 120.0F * kLevel};
 
 const StandSet kBuilderStandSet{.folder = "MENUDATA/CB_SET",
                                 .element = "platform",
@@ -157,7 +159,18 @@ const StandSet kBuilderStandSet{.folder = "MENUDATA/CB_SET",
                                 .cheers = kBuilderCheers,
                                 .reactions = kBuilderReactions,
                                 .driverSpot = {.x = -5.359F, .y = -3.15F, .z = 0.026F},
-                                .driverFacing = {.x = 1.0F}};
+                                .driverFacing = {.x = 1.0F},
+                                .ambient = 128.0F * kLevel};
+
+const StandSet kLicenceStandSet{.folder = "MENUDATA",
+                                .element = "platform",
+                                .animations = "MENUDATA/CMAMAN.ADB",
+                                .idles = kLicencePoses,
+                                .driverSpot = {.x = -5.359F, .y = -3.15F, .z = 0.0F},
+                                .driverFacing = {.x = 1.0F},
+                                .driverUp = {.y = -0.0349F, .z = 0.99939F},
+                                .ambient = 120.0F * kLevel,
+                                .light = 180.0F * kLevel};
 
 Result<const assets::MenuElement*> FindStandElement(const MenuFiles& files, std::string_view screen,
                                                     const StandSet& set) {

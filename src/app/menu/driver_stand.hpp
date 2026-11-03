@@ -26,14 +26,12 @@
 
 namespace rr::app {
 
-/// The minifig in `CB_SET`, idling, reacting to changes and leaving.
+/// A menu minifig in its stand set, idling, reacting to changes and leaving.
 class DriverStand {
 public:
-    [[nodiscard]] static Result<std::unique_ptr<DriverStand>> Load(render::Renderer& renderer,
-                                                                   const assets::Vfs& vfs,
-                                                                   assets::TrackLoader& loader,
-                                                                   const MenuFiles& files,
-                                                                   std::string_view screen);
+    [[nodiscard]] static Result<std::unique_ptr<DriverStand>> Load(
+        render::Renderer& renderer, const assets::Vfs& vfs, assets::TrackLoader& loader,
+        const MenuFiles& files, std::string_view screen, const StandSet& set);
 
     DriverStand(const DriverStand&) = delete;
     DriverStand& operator=(const DriverStand&) = delete;
@@ -65,7 +63,8 @@ private:
         std::size_t index = 0;
     };
 
-    DriverStand(std::unique_ptr<StandScene> scene, TrackModel model, const StandFraming& framing);
+    DriverStand(std::unique_ptr<StandScene> scene, TrackModel model, const StandFraming& framing,
+                const StandSet& set);
 
     [[nodiscard]] Result<std::size_t> SkeletonOf(const assets::SkeletonAsset& skeleton);
     void PlayNext();
@@ -82,6 +81,7 @@ private:
     bool isLeaving_ = false;
     std::vector<render::MeshDraw> draws_;
     std::array<render::DirectionalLight, 1> light_{};
+    render::Color ambient_;
 };
 
 }

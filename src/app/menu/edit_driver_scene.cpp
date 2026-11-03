@@ -31,7 +31,7 @@ constexpr std::uint64_t kStateBase = 256;
 std::unique_ptr<DriverStand> LoadStand(render::Renderer& renderer, const assets::Vfs& vfs,
                                        assets::TrackLoader& loader, const MenuFiles& files) {
     Result<std::unique_ptr<DriverStand>> stand =
-        DriverStand::Load(renderer, vfs, loader, files, kEditDriverScreen);
+        DriverStand::Load(renderer, vfs, loader, files, kEditDriverScreen, kBuilderStandSet);
     if (!stand) {
         log::Warn("{}, the driver editor shows no minifig", stand.error().message);
         return nullptr;

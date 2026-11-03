@@ -28,6 +28,7 @@
 #include "render/renderer.hpp"
 #include "settings/racers.hpp"
 #include "settings/registry.hpp"
+#include "sim/race/cheats.hpp"
 
 namespace rr::app {
 
@@ -116,6 +117,7 @@ private:
     std::optional<std::filesystem::path> replayFile_;
     std::string startupSummary_;
     std::optional<settings::Racer> playerRacer_;
+    sim::Cheats cheats_;
     FrameLoop frameLoop_;
 };
 

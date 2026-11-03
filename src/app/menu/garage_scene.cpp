@@ -173,6 +173,8 @@ void GarageScene::Handle(GarageRequest request) {
             opened_ = RacerScene(kEditDriverScene, menu_.Racer());
             break;
         case GarageRequest::Licence:
+            opened_ = RacerScene(kLicenceScene, menu_.Racer());
+            break;
         case GarageRequest::Car:
             log::Info("garage: that editor isn't built yet");
             break;

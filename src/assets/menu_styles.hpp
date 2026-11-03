@@ -64,8 +64,16 @@ struct SelectorStyle {
     std::optional<std::array<MenuColor, kSelectorItemStates>> itemColors;
 };
 
+struct FrameStyle {
+    std::string name;
+    std::array<std::string, 8> images;
+    std::optional<MenuColor> color;
+    std::optional<MenuColor> fillColor;
+};
+
 struct MenuStyles {
     std::vector<ImageStyle> images;
+    std::vector<FrameStyle> frames;
     std::vector<TextStyle> texts;
     std::vector<CarouselStyle> carousels;
     std::vector<SelectorStyle> selectors;
@@ -73,12 +81,13 @@ struct MenuStyles {
 
     [[nodiscard]] const ImageStyle* FindImage(std::string_view name) const;
     [[nodiscard]] const TextStyle* FindText(std::string_view name) const;
+    [[nodiscard]] const FrameStyle* FindFrame(std::string_view name) const;
     [[nodiscard]] const CarouselStyle* FindCarousel(std::string_view name) const;
     [[nodiscard]] const SelectorStyle* FindSelector(std::string_view name) const;
     [[nodiscard]] const GameButtonStyle* FindGameButton(std::string_view name) const;
 };
 
-/// Sections other than image, text, carousel, selector and game button styles are skipped.
+/// Sections other than image, text, frame, carousel, selector and game button styles are skipped.
 [[nodiscard]] Result<MenuStyles> ParseMenuStyles(std::span<const std::byte> bytes);
 
 }

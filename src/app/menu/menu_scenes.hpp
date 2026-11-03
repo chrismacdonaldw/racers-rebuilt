@@ -23,6 +23,7 @@ inline constexpr std::string_view kPickRacerScene = "menu:pick_racer";
 inline constexpr std::string_view kPickSecondRacerScene = "menu:pick_racer2";
 inline constexpr std::string_view kGarageScene = "menu:garage";
 inline constexpr std::string_view kEditDriverScene = "menu:edit_driver";
+inline constexpr std::string_view kLicenceScene = "menu:licence";
 
 inline constexpr char kSceneChainMark = '>';
 inline constexpr char kSceneRacerMark = ':';

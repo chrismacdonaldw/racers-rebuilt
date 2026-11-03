@@ -81,6 +81,9 @@ rr_add_module(app
         menu/language_look.cpp
         menu/language_menu.cpp
         menu/language_scene.cpp
+        menu/licence_look.cpp
+        menu/licence_menu.cpp
+        menu/licence_scene.cpp
         menu/main_menu_scene.cpp
         menu/garage_look.cpp
         menu/garage_menu.cpp
@@ -97,6 +100,7 @@ rr_add_module(app
         menu/menu_frame.cpp
         menu/menu_widgets.cpp
         menu/message_dialog.cpp
+        menu/name_field.cpp
         menu/option_settings.cpp
         menu/options_look.cpp
         menu/options_menu.cpp
