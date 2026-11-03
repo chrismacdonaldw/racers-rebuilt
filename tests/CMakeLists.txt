@@ -51,6 +51,8 @@ add_executable(racers-rebuilt-tests
     app/menu/attract_demo_test.cpp
     app/menu/award_scene_name_test.cpp
     app/menu/best_time_panel_test.cpp
+    app/menu/build_camera_test.cpp
+    app/menu/build_help_test.cpp
     app/menu/car_build_menu_test.cpp
     app/menu/car_builder_test.cpp
     app/menu/carousel_layout_test.cpp
@@ -64,6 +66,7 @@ add_executable(racers-rebuilt-tests
     app/menu/licence_menu_test.cpp
     app/menu/garage_menu_test.cpp
     app/menu/garage_racers_test.cpp
+    app/menu/held_piece_motion_test.cpp
     app/menu/language_menu_test.cpp
     app/menu/menu_backdrop_test.cpp
     app/menu/menu_champion_test.cpp

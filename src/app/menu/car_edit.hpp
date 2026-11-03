@@ -18,7 +18,7 @@ namespace rr::app {
 
 inline constexpr std::size_t kPartSetCount = 12;
 
-/// The four starter sets, those `partSets` unlocks, and any set the car's pieces come from.
+/// The starter sets, those `partSets` unlocks and those the car's pieces use, if they have choices.
 [[nodiscard]] std::vector<std::size_t> AvailablePartSets(const std::set<std::int32_t>& partSets,
                                                          const sim::BuiltCar& car,
                                                          const assets::PieceCatalog& catalog);

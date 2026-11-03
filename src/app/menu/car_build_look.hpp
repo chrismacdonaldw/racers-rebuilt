@@ -19,7 +19,7 @@ namespace rr::app {
 
 inline constexpr std::string_view kCarBuildScreen = "CARBUILD";
 
-inline constexpr std::size_t kBuildButtons = 5;
+inline constexpr std::size_t kBuildButtons = 6;
 
 struct StateButton {
     std::array<render::TextureId, assets::kControlStates> images{};

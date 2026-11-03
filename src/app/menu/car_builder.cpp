@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <expected>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -32,6 +33,15 @@ std::size_t FindChoice(const assets::PieceCatalog& catalog, std::size_t set, std
         }
     }
     return 0;
+}
+
+template <typename Value>
+PlaceResult ResultOf(const std::expected<Value, sim::PlacementFailure>& placed) {
+    if (placed) {
+        return PlaceResult::Placed;
+    }
+    return placed.error() == sim::PlacementFailure::TooManyPieces ? PlaceResult::TooManyPieces
+                                                                  : PlaceResult::Refused;
 }
 
 }
@@ -87,13 +97,15 @@ PlaceResult CarBuilder::Place() {
     if (cursor_.Piece() == nullptr) {
         return PlaceResult::Refused;
     }
-    const auto placed =
-        car_.Place(*cursor_.Piece(), cursor_.Placement(), colour_, PartTypeOf(*catalog_, set_));
-    if (placed) {
-        return PlaceResult::Placed;
+    return ResultOf(
+        car_.Place(*cursor_.Piece(), cursor_.Placement(), colour_, PartTypeOf(*catalog_, set_)));
+}
+
+PlaceResult CarBuilder::Check() const {
+    if (cursor_.Piece() == nullptr) {
+        return PlaceResult::Refused;
     }
-    return placed.error() == sim::PlacementFailure::TooManyPieces ? PlaceResult::TooManyPieces
-                                                                  : PlaceResult::Refused;
+    return ResultOf(car_.Test(*cursor_.Piece(), cursor_.Placement()));
 }
 
 bool CarBuilder::Undo() {

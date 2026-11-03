@@ -148,7 +148,13 @@ void EditCarScene::OpenBuilder() {
         return;
     }
     Result<std::unique_ptr<CarBuildScreen>> build =
-        CarBuildScreen::Load(*renderer_, *vfs_, *views_.stand, car_.pieces, car_.built, car_.sets);
+        CarBuildScreen::Load(*renderer_, *vfs_,
+                             {.vfs = vfs_,
+                              .stand = views_.stand.get(),
+                              .catalog = &car_.pieces,
+                              .text = &text_,
+                              .sounds = sounds_},
+                             car_.built, car_.sets);
     if (!build) {
         log::Warn("{}, the car editor stays open", build.error().message);
         return;

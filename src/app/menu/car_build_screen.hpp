@@ -7,14 +7,20 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
+#include "app/menu/build_camera.hpp"
+#include "app/menu/build_help.hpp"
 #include "app/menu/car_build_look.hpp"
 #include "app/menu/car_build_menu.hpp"
 #include "app/menu/car_builder.hpp"
 #include "app/menu/car_stand.hpp"
 #include "app/menu/carousel_view.hpp"
+#include "app/menu/held_piece_motion.hpp"
 #include "app/menu/menu_parts.hpp"
+#include "app/menu/menu_sounds.hpp"
+#include "app/menu/menu_text.hpp"
 #include "app/menu/part_carousel.hpp"
 #include "app/menu/piece_models.hpp"
 #include "assets/piece_catalog.hpp"
@@ -31,12 +37,20 @@ namespace rr::app {
 
 enum class BuildOutcome : std::uint8_t { None, CarChanged, TooManyPieces, Done };
 
-/// Draws over the edit car stand. `stand` and `catalog` must outlive it.
+struct BuildServices {
+    const assets::Vfs* vfs = nullptr;
+    CarStand* stand = nullptr;
+    const assets::PieceCatalog* catalog = nullptr;
+    const MenuText* text = nullptr;
+    MenuSounds sounds;
+};
+
+/// Draws over the edit car stand. What `services` points to must outlive it.
 class CarBuildScreen {
 public:
     [[nodiscard]] static Result<std::unique_ptr<CarBuildScreen>> Load(
-        render::Renderer& renderer, const assets::Vfs& vfs, CarStand& stand,
-        const assets::PieceCatalog& catalog, sim::BuiltCar car, std::vector<std::size_t> sets);
+        render::Renderer& renderer, const assets::Vfs& vfs, BuildServices services,
+        sim::BuiltCar car, std::vector<std::size_t> sets);
 
     void HandleKey(SDL_Keycode key);
     [[nodiscard]] BuildOutcome Tick(const sim::InputFrame& input);
@@ -51,23 +65,32 @@ private:
         float radius = 0.0F;
     };
 
-    CarBuildScreen(CarStand& stand, const assets::PieceCatalog& catalog, CarBuildLook look,
-                   PieceModels models, CarBuilder builder, std::vector<std::size_t> sets);
+    CarBuildScreen(BuildServices services, CarBuildLook look, PieceModels models,
+                   CarBuilder builder, std::vector<std::size_t> sets);
 
+    [[nodiscard]] BuildOutcome ApplyInput(const sim::InputFrame& input);
     [[nodiscard]] BuildOutcome Apply(const BuildRequest& request);
     void StepSet(int direction);
     void ShowSet();
+    void Move(std::size_t direction);
+    void View(bool moved) const;
     [[nodiscard]] BuildOutcome Place();
+    [[nodiscard]] BuildOutcome Land();
     bool Undo();
     [[nodiscard]] bool Refit();
-    [[nodiscard]] int RestHeight() const;
+    [[nodiscard]] float RestHeight() const;
+    [[nodiscard]] BuildOutcome Animate();
+    void PadSounds(std::optional<BuildPad> before) const;
+    void TickHelp(bool pressed);
+    [[nodiscard]] render::Rect RowBounds(std::size_t row) const;
     void AddPiece(float height, std::optional<float> alpha);
-    [[nodiscard]] render::Camera BuildCamera() const;
+    [[nodiscard]] render::Camera ViewCamera() const;
     void DrawControls(std::vector<render::SpriteDraw>& sprites) const;
 
-    CarStand* stand_;
-    const assets::PieceCatalog* catalog_;
+    BuildServices services_;
     CarBuildLook look_;
+    std::string helpLanguage_;
+    std::vector<std::u16string> helpLines_;
     PieceModels models_;
     CarBuilder builder_;
     std::vector<std::size_t> sets_;
@@ -75,6 +98,11 @@ private:
     PartCarousel carousel_;
     CarouselView carouselView_;
     CarBuildMenu menu_;
+    BuildCamera camera_;
+    HeldPieceMotion motion_;
+    HelpTimer help_;
+    std::optional<HelpBox> helpBox_;
+    std::size_t helpRow_ = 0;
     Fit fit_;
     std::vector<BuildRequest> keys_;
     std::vector<MenuPicture> under_;

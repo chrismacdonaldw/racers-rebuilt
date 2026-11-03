@@ -44,7 +44,8 @@ std::vector<std::size_t> AvailablePartSets(const std::set<std::int32_t>& partSet
     }
     std::vector<std::size_t> sets;
     for (std::size_t set = 0; set < kPartSetCount; ++set) {
-        if (isAvailable.at(set)) {
+        if (isAvailable.at(set) && set < catalog.partSets.size() &&
+            !catalog.partSets[set].choices.empty()) {
             sets.push_back(set);
         }
     }

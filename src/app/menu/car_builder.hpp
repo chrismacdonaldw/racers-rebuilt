@@ -27,6 +27,9 @@ public:
     void Rotate();
     PlaceResult Place();
 
+    /// What `Place` would do, without placing.
+    [[nodiscard]] PlaceResult Check() const;
+
     /// Puts the newest piece back in the cursor, reselecting the set and choice it came from.
     bool Undo();
 

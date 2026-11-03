@@ -70,6 +70,8 @@ rr_add_module(app
         menu/best_time_panel.cpp
         menu/attract_demo.cpp
         menu/award_scene_name.cpp
+        menu/build_camera.cpp
+        menu/build_help.cpp
         menu/car_build_look.cpp
         menu/car_build_menu.cpp
         menu/car_build_screen.cpp
@@ -103,6 +105,7 @@ rr_add_module(app
         menu/garage_menu.cpp
         menu/garage_racers.cpp
         menu/garage_scene.cpp
+        menu/held_piece_motion.cpp
         menu/menu_backdrop.cpp
         menu/menu_champion.cpp
         menu/menu_files.cpp

@@ -22,11 +22,12 @@ assets::SoundIds SoundsOf(const assets::IconStyle& icon) {
 
 }
 
-void MenuSounds::Play(std::int32_t id) const {
+void MenuSounds::Play(std::int32_t id, float volume) const {
     if (mixer_ == nullptr || id <= 0 || static_cast<std::size_t>(id) > bank_.size()) {
         return;
     }
-    const std::array cue{audio::SoundCue{.sound = bank_[static_cast<std::size_t>(id) - 1]}};
+    const std::array cue{audio::SoundCue{.sound = bank_[static_cast<std::size_t>(id) - 1],
+                                         .mix = {.volume = volume}}};
     mixer_->Play(cue);
 }
 

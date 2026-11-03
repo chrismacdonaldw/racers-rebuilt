@@ -22,7 +22,7 @@ public:
     MenuSounds(audio::Mixer& mixer, std::span<const audio::SoundId> bank)
         : mixer_(&mixer), bank_(bank) {}
 
-    void Play(std::int32_t id) const;
+    void Play(std::int32_t id, float volume = 1.0F) const;
 
     /// The old control's deselect sound, then the new one's select sound.
     void MoveHighlight(const assets::SoundIds& from, const assets::SoundIds& to) const;
