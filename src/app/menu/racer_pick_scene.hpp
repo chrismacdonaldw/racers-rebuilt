@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -19,13 +20,19 @@
 
 namespace rr::app {
 
-/// START saves the pick as selected, unless the racers file won't load, then opens `next`.
+/// `player` 1 picks player 2's racer, in versus.
+struct RacerPickRoute {
+    std::string next;
+    std::size_t player = 0;
+};
+
+/// START saves player 1's pick as selected, unless the racers file won't load, then opens `next`.
 class RacerPickScene final : public Scene {
 public:
     /// `renderer` and `vfs` must outlive the scene.
     [[nodiscard]] static Result<std::unique_ptr<RacerPickScene>> Create(
         render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
-        std::filesystem::path racersFile, std::string next);
+        std::filesystem::path racersFile, RacerPickRoute route);
 
     void ApplySettings(const settings::Registry& settings) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
@@ -44,9 +51,11 @@ private:
     };
 
     RacerPickScene(render::Renderer& renderer, const assets::Vfs& vfs, MenuSounds sounds,
-                   RacerPickLook look, std::string next, Racers racers);
+                   RacerPickLook look, RacerPickRoute route, Racers racers);
 
     void Start();
+    [[nodiscard]] std::string Reopened() const;
+    [[nodiscard]] std::string Left() const;
     void PlaySounds(const sim::InputFrame& input, RacerPickRequest request,
                     RacerPickRow focusBefore) const;
     [[nodiscard]] const assets::SoundIds& SoundsOf(RacerPickRow row) const;
@@ -57,7 +66,8 @@ private:
     const assets::Vfs* vfs_;
     MenuSounds sounds_;
     RacerPickLook look_;
-    std::string next_;
+    RacerPickRoute route_;
+    bool isVersus_;
     Racers racers_;
     RacerPickMenu menu_;
     MenuText text_;

@@ -20,7 +20,6 @@ namespace {
 constexpr std::string_view kScreen = "MAINMENU";
 constexpr std::string_view kTitleFont = "fontmenu";
 constexpr std::string_view kCourseSelector = "imagecon";
-constexpr std::string_view kRacerSelector = "textcont";
 constexpr std::string_view kRaceButton = "buttonch";
 constexpr std::string_view kBackButton = "buttonla";
 constexpr std::string_view kPicker = "picker";
@@ -28,8 +27,6 @@ constexpr std::size_t kCircuitTitleLine = 13;
 constexpr std::size_t kSingleRaceTitleLine = 14;
 constexpr std::size_t kVersusTitleLine = 0x19;
 constexpr std::size_t kTimeTrialTitleLine = 0x0F;
-constexpr std::size_t kPlayerOneLine = 0x56;
-constexpr std::size_t kPlayerTwoLine = 0x57;
 constexpr std::size_t kVersusPlayers = 2;
 constexpr std::size_t kBackLine = 26;
 constexpr std::size_t kRaceLine = 27;
@@ -43,8 +40,7 @@ constexpr float kLeft = 3.0F;
 constexpr float kValueLeft = 230.0F;
 constexpr float kTitleTop = 118.0F;
 constexpr float kChampionTop = 278.0F;
-constexpr std::array kRowTops{178.0F, 218.0F, 258.0F, 358.0F, 418.0F};
-constexpr std::array kPreviewRowTops{178.0F, 226.0F, 258.0F, 358.0F, 418.0F};
+constexpr std::array kRowTops{178.0F, 358.0F, 418.0F};
 constexpr float kBestTypeTop = 268.0F;
 constexpr float kBestTimeTop = 308.0F;
 constexpr float kTrialStatusLeft = 251.0F;
@@ -74,18 +70,6 @@ std::u16string Lookup(const std::vector<std::u16string>& names, std::int32_t ind
     return index >= 0 && at < names.size() ? names[at] : Widen(fallback);
 }
 
-std::vector<std::vector<std::u16string>> RacerNames(const std::vector<CourseChoice>& courses,
-                                                    const std::vector<std::u16string>& names) {
-    std::vector<std::vector<std::u16string>> racerNames;
-    for (const CourseChoice& course : courses) {
-        std::vector<std::u16string>& row = racerNames.emplace_back();
-        for (const RacerChoice& racer : course.racers) {
-            row.push_back(Lookup(names, racer.nameIndex, racer.code));
-        }
-    }
-    return racerNames;
-}
-
 std::size_t TitleLine(RaceSetupMode mode) {
     switch (mode) {
         case RaceSetupMode::Circuit:
@@ -104,8 +88,7 @@ RaceSetupLook LookOf(const MenuFiles& files, std::vector<MenuPicture> pictures) 
     return {
         .pictures = std::move(pictures),
         .states = TextButtonStates(files),
-        .rowSounds = {SelectorSounds(files, kCourseSelector), SelectorSounds(files, kRacerSelector),
-                      SelectorSounds(files, kRacerSelector), GameButtonSounds(files, kRaceButton),
+        .rowSounds = {SelectorSounds(files, kCourseSelector), GameButtonSounds(files, kRaceButton),
                       GameButtonSounds(files, kBackButton)},
         .scrollSounds = ScrollSounds(files, kPicker)};
 }
@@ -193,11 +176,7 @@ void RaceSetupScene::ApplySettings(const settings::Registry& settings) {
     if (!text_.Apply(*renderer_, *vfs_, settings)) {
         return;
     }
-    const Result<std::vector<std::u16string>> names = ReadDriverNames(*vfs_, text_.Language());
-    if (!names) {
-        log::Warn("racers show their codes: {}", names.error().message);
-    }
-    racerNames_ = RacerNames(menu_.Courses(), names.value_or(std::vector<std::u16string>{}));
+
     if (mode_ != RaceSetupMode::Circuit) {
         const Result<std::vector<std::u16string>> races = ReadRaceNames(*vfs_, text_.Language());
         if (!races) {
@@ -250,21 +229,14 @@ void RaceSetupScene::Render(const sim::RenderSnapshot& interpolated) {
         DrawPictures(look_.pictures, sprites_);
     }
     const bool isCircuit = mode_ == RaceSetupMode::Circuit;
-    const bool isVersus = mode_ == RaceSetupMode::Versus;
+
     DrawLabel(text_, {.font = std::string(kTitleFont)}, text_.Line(TitleLine(mode_)), kLeft,
               kTitleTop, sprites_);
     DrawRow(RaceSetupRow::Course,
             {.label = isCircuit ? OneLine(text_.Line(kCircuitNumberLine)) : u"TRACK",
              .value = courseNames_.at(menu_.CourseIndex()),
              .isGameText = isCircuit});
-    if (isVersus) {
-        DrawRow(RaceSetupRow::Racer, {.label = OneLine(text_.Line(kPlayerOneLine)),
-                                      .value = RacerName(menu_.Racer()),
-                                      .isGameText = true});
-        DrawRow(RaceSetupRow::SecondRacer, {.label = OneLine(text_.Line(kPlayerTwoLine)),
-                                            .value = RacerName(menu_.SecondRacer()),
-                                            .isGameText = true});
-    }
+
     if (isCircuit) {
         DrawChampion();
     }
@@ -304,8 +276,7 @@ void RaceSetupScene::PlaySounds(const sim::InputFrame& input, RaceSetupRow focus
     if (focus != focusBefore) {
         sounds_.MoveHighlight(soundsOf(focusBefore), soundsOf(focus));
     }
-    if (focus == RaceSetupRow::Course || focus == RaceSetupRow::Racer ||
-        focus == RaceSetupRow::SecondRacer) {
+    if (focus == RaceSetupRow::Course) {
         for (const auto& [action, step] : kScrollSteps) {
             if (input.WasPressed(action)) {
                 sounds_.Scroll(look_.scrollSounds, step);
@@ -345,7 +316,7 @@ void RaceSetupScene::DrawRow(RaceSetupRow row, const RowText& text) {
     if (row == RaceSetupRow::Race && menu_.Course().isLocked) {
         state = isFocused ? kDisabledFocusedState : kDisabledState;
     }
-    const float top = (preview_ ? kPreviewRowTops : kRowTops).at(static_cast<std::size_t>(row));
+    const float top = kRowTops.at(static_cast<std::size_t>(row));
     const MenuButtonState& look = look_.states.at(state);
     if (preview_ && !text.isGameText && !text.value.empty()) {
         DrawLabel(text_, look, text.value, kLeft, top, sprites_);
@@ -361,11 +332,6 @@ void RaceSetupScene::DrawValue(const MenuButtonState& state, std::u16string_view
     } else {
         DrawLabel(text_, state, value, kValueLeft, top, sprites_);
     }
-}
-
-std::u16string_view RaceSetupScene::RacerName(std::size_t racer) const {
-    return racerNames_.empty() ? std::u16string_view{}
-                               : racerNames_.at(menu_.CourseIndex()).at(racer);
 }
 
 void RaceSetupScene::DrawChampion() {
@@ -391,5 +357,4 @@ void RaceSetupScene::DrawBestTimes() {
     DrawValue(state, rows.time, preview_ ? kBestTypeTop + kStackedValueDrop : kBestTimeTop);
     DrawLabel(text_, state, rows.status, kTrialStatusLeft, kTrialStatusTop, sprites_);
 }
-
 }

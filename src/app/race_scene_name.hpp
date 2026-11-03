@@ -18,7 +18,7 @@ inline constexpr int kDefaultLapCount = 3;
 inline constexpr std::size_t kDefaultOpponentCount = 5;
 
 /// Players drive grid slots `racer` then `secondRacer`, two alone. Empty `circuit` means home.
-/// `player` names player 1's own racer. `playerRacer`, resolved from it, isn't in the name.
+/// `playerRacer` and `secondPlayerRacer` resolve `player` and `secondPlayer`, and aren't named.
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct RaceSceneSetup {
     std::string track;
@@ -35,6 +35,8 @@ struct RaceSceneSetup {
     std::size_t firstSlot = 0;
     RacerRef player;
     std::optional<settings::Racer> playerRacer;
+    RacerRef secondPlayer;
+    std::optional<settings::Racer> secondPlayerRacer;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
 };
@@ -48,9 +50,14 @@ struct RaceSceneSetup {
 [[nodiscard]] bool IsRaceScene(std::string_view scene);
 
 [[nodiscard]] RacerRef ScenePlayer(std::string_view scene);
+[[nodiscard]] RacerRef SceneSecondPlayer(std::string_view scene);
 
 /// Names `player` in each race, circuit or time trial scene of a `>` chain.
 [[nodiscard]] std::string WithPlayer(std::string_view scenes, const RacerRef& player);
+
+/// Names player 2's racer in each versus race of a `>` chain.
+[[nodiscard]] std::string WithSecondPlayer(std::string_view scenes, const RacerRef& player);
+
 [[nodiscard]] Result<RaceSceneSetup> ParseRaceScene(std::string_view scene);
 
 [[nodiscard]] bool IsTrialScene(std::string_view scene);

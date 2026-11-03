@@ -33,6 +33,7 @@ constexpr std::string_view kOpponentsKey = "opponents";
 constexpr std::string_view kRaceKey = "race";
 constexpr std::string_view kPointsKey = "points";
 constexpr std::string_view kPlayerKey = "player";
+constexpr std::string_view kSecondPlayerKey = "player2";
 constexpr std::string_view kHexDigits = "0123456789ABCDEF";
 constexpr int kHexBase = 16;
 constexpr char kHashMark = '@';
@@ -174,6 +175,10 @@ bool ReadRaceField(Field field, RaceSceneSetup& setup) {
         setup.secondRacer = ParseNumber<std::size_t>(field.value).value_or(assets::kGridSlots);
         return setup.secondRacer < assets::kGridSlots;
     }
+    if (field.key == kSecondPlayerKey) {
+        setup.secondPlayer = ParseRef(field.value).value_or(RacerRef{});
+        return !setup.secondPlayer.name.empty();
+    }
     if (field.key == kLapsKey) {
         setup.lapCount = ParseNumber<int>(field.value).value_or(0);
         return setup.lapCount >= 1 && setup.lapCount <= kMaxLaps;
@@ -276,6 +281,9 @@ std::string RaceSceneName(const RaceSceneSetup& setup) {
     if (setup.players > 1) {
         name += std::format(":{}={}:{}={}", kPlayersKey, setup.players, kSecondRacerKey,
                             setup.secondRacer);
+        if (!setup.secondPlayer.name.empty()) {
+            name += std::format(":{}={}", kSecondPlayerKey, RefText(setup.secondPlayer));
+        }
     }
     if (setup.lapCount != kDefaultLapCount) {
         name += std::format(":{}={}", kLapsKey, setup.lapCount);
@@ -299,47 +307,64 @@ bool IsRaceScene(std::string_view scene) {
 
 namespace {
 
-std::string NamingPlayer(std::string_view scene, const RacerRef& player) {
+using PlayerSlot = RacerRef RaceSceneSetup::*;
+
+std::string NamingPlayer(std::string_view scene, PlayerSlot slot, const RacerRef& player) {
     if (IsCircuitScene(scene)) {
         Result<CircuitSceneSetup> circuit = ParseCircuitScene(scene);
         if (circuit) {
-            circuit->race.player = player;
+            circuit->race.*slot = player;
             return CircuitSceneName(*circuit);
         }
     } else if (IsRaceScene(scene) || IsTrialScene(scene)) {
         Result<RaceSceneSetup> race =
             IsTrialScene(scene) ? ParseTrialScene(scene) : ParseRaceScene(scene);
         if (race) {
-            race->player = player;
+            (*race).*slot = player;
             return RaceSceneName(*race);
         }
     }
     return std::string(scene);
 }
 
-}
-
-RacerRef ScenePlayer(std::string_view scene) {
+RacerRef PlayerIn(std::string_view scene, PlayerSlot slot) {
     if (IsCircuitScene(scene)) {
         const Result<CircuitSceneSetup> circuit = ParseCircuitScene(scene);
-        return circuit ? circuit->race.player : RacerRef{};
+        return circuit ? circuit->race.*slot : RacerRef{};
     }
     const Result<RaceSceneSetup> race =
         IsTrialScene(scene) ? ParseTrialScene(scene) : ParseRaceScene(scene);
-    return race ? race->player : RacerRef{};
+    return race ? (*race).*slot : RacerRef{};
 }
 
-std::string WithPlayer(std::string_view scenes, const RacerRef& player) {
+std::string NamingInChain(std::string_view scenes, PlayerSlot slot, const RacerRef& player) {
     std::string out;
     for (const auto part : std::views::split(scenes, kChainMark)) {
         if (!out.empty()) {
             out += kChainMark;
         }
-        out += NamingPlayer(std::string_view(part), player);
+        out += NamingPlayer(std::string_view(part), slot, player);
     }
     return out;
 }
 
+}
+
+RacerRef ScenePlayer(std::string_view scene) {
+    return PlayerIn(scene, &RaceSceneSetup::player);
+}
+
+RacerRef SceneSecondPlayer(std::string_view scene) {
+    return PlayerIn(scene, &RaceSceneSetup::secondPlayer);
+}
+
+std::string WithPlayer(std::string_view scenes, const RacerRef& player) {
+    return NamingInChain(scenes, &RaceSceneSetup::player, player);
+}
+
+std::string WithSecondPlayer(std::string_view scenes, const RacerRef& player) {
+    return NamingInChain(scenes, &RaceSceneSetup::secondPlayer, player);
+}
 Result<RaceSceneSetup> ParseRaceScene(std::string_view scene) {
     return ParseScene(scene, kRacePrefix, &RaceSceneSetup::track, ReadRaceField);
 }

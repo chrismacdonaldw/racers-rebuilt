@@ -69,6 +69,22 @@ Result<settings::Racer> FindRacer(const assets::Vfs& vfs, const std::filesystem:
     return FindGameRacer(vfs, ref);
 }
 
+Result<void> ResolvePlayers(const assets::Vfs& vfs, const std::filesystem::path& racersFile,
+                            RaceSceneSetup& setup) {
+    for (const auto& [ref, racer] : {std::pair{&setup.player, &setup.playerRacer},
+                                     std::pair{&setup.secondPlayer, &setup.secondPlayerRacer}}) {
+        if (ref->name.empty()) {
+            continue;
+        }
+        Result<settings::Racer> found = FindRacer(vfs, racersFile, *ref);
+        if (!found) {
+            return std::unexpected(std::move(found.error()));
+        }
+        *racer = std::move(*found);
+    }
+    return {};
+}
+
 Result<std::vector<settings::Racer>> ReadDefaultRacers(const assets::Vfs& vfs) {
     return ReadRacerFile(vfs, kDefaultFile)
         .transform([](const std::vector<assets::SavedRacer>& saved) {

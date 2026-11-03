@@ -196,7 +196,6 @@ Result<std::vector<std::u16string>> ReadRaceNames(const assets::Vfs& vfs,
 RaceSetupMenu::RaceSetupMenu(std::vector<CourseChoice> courses, std::size_t players)
     : courses_(std::move(courses)), players_(players) {
     RR_VERIFY(!courses_.empty());
-    secondRacer_ = std::min<std::size_t>(1, Course().racers.size() - 1);
 }
 
 std::optional<std::string> RaceSetupMenu::Tick(const sim::InputFrame& input,
@@ -205,53 +204,28 @@ std::optional<std::string> RaceSetupMenu::Tick(const sim::InputFrame& input,
         return std::string(kMainMenuScene);
     }
     if (input.WasPressed(sim::MenuAction::Up)) {
-        MoveFocus(-1);
+        focus_ = Stepped(focus_, -1);
     }
     if (input.WasPressed(sim::MenuAction::Down)) {
-        MoveFocus(1);
+        focus_ = Stepped(focus_, 1);
     }
-    if (input.WasPressed(sim::MenuAction::Left)) {
-        Change(-1);
+    if (focus_ == RaceSetupRow::Course && input.WasPressed(sim::MenuAction::Left)) {
+        course_ = Wrap(course_, -1, courses_.size());
     }
-    if (input.WasPressed(sim::MenuAction::Right)) {
-        Change(1);
+    if (focus_ == RaceSetupRow::Course && input.WasPressed(sim::MenuAction::Right)) {
+        course_ = Wrap(course_, 1, courses_.size());
     }
     return input.WasPressed(sim::MenuAction::Confirm) ? Confirm(rules) : std::nullopt;
 }
 
 std::uint64_t RaceSetupMenu::StateHash() const {
-    return (((((course_ * kHashBase) + racer_) * kHashBase) + secondRacer_) * kHashBase) +
-           static_cast<std::uint64_t>(focus_);
+    return (course_ * kHashBase) + static_cast<std::uint64_t>(focus_);
 }
 
-void RaceSetupMenu::MoveFocus(int step) {
-    focus_ = Stepped(focus_, step);
-    while (players_ == 1 &&
-           (focus_ == RaceSetupRow::Racer || focus_ == RaceSetupRow::SecondRacer)) {
-        focus_ = Stepped(focus_, step);
-    }
-}
-
-void RaceSetupMenu::Change(int step) {
-    switch (focus_) {
-        case RaceSetupRow::Course:
-            course_ = Wrap(course_, step, courses_.size());
-            racer_ = std::min(racer_, Course().racers.size() - 1);
-            secondRacer_ = std::min(secondRacer_, Course().racers.size() - 1);
-            return;
-        case RaceSetupRow::Racer:
-            racer_ = Wrap(racer_, step, Course().racers.size());
-            return;
-        case RaceSetupRow::SecondRacer:
-            secondRacer_ = Wrap(secondRacer_, step, Course().racers.size());
-            return;
-        default:
-            return;
-    }
-}
-
-std::string RaceSetupMenu::PickedRacer(std::string_view scenes) const {
-    return players_ == 1 ? ChainedScene(kPickRacerScene, scenes) : std::string(scenes);
+std::string RaceSetupMenu::PickingRacers(std::string_view scenes) const {
+    const std::string picks =
+        players_ == 1 ? std::string(scenes) : ChainedScene(kPickSecondRacerScene, scenes);
+    return ChainedScene(kPickRacerScene, picks);
 }
 
 std::optional<std::string> RaceSetupMenu::Confirm(const RaceSceneSetup& rules) {
@@ -263,15 +237,13 @@ std::optional<std::string> RaceSetupMenu::Confirm(const RaceSceneSetup& rules) {
             }
             race.track = Course().track;
             race.circuit = Course().circuit;
-            race.racer = racer_;
             race.players = players_;
-            race.secondRacer = secondRacer_;
-            return PickedRacer(race.track.empty() ? CircuitStart(race, Course().racers)
-                                                  : RaceSceneName(race));
+            return PickingRacers(race.track.empty() ? CircuitStart(race, Course().racers)
+                                                    : RaceSceneName(race));
         case RaceSetupRow::Back:
             return std::string(kMainMenuScene);
         default:
-            MoveFocus(1);
+            focus_ = Stepped(focus_, 1);
             return std::nullopt;
     }
 }

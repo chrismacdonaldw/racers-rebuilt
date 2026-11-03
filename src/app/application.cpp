@@ -123,8 +123,10 @@ Result<Application> Application::Create(GameBoot boot) {
 Result<void> Application::Run() {
     Result<ReplaySession> replay =
         ReplaySession::Start(recordFile_, replayFile_, scene_, [this](std::string_view scene) {
-            return GameplayFingerprint(settings_, extensions_.mods,
-                                       FindPlayerRacer(vfs_, RacersFile(), ScenePlayer(scene)));
+            return GameplayFingerprint(
+                settings_, extensions_.mods,
+                {.first = FindPlayerRacer(vfs_, RacersFile(), ScenePlayer(scene)),
+                 .second = FindPlayerRacer(vfs_, RacersFile(), SceneSecondPlayer(scene))});
         });
     if (!replay) {
         return std::unexpected(std::move(replay.error()));
@@ -336,12 +338,8 @@ std::string Application::EndTimeTrial() {
 Result<std::unique_ptr<RaceScene>> Application::LoadRace(RaceSceneSetup setup,
                                                          assets::TrackLoader& loader,
                                                          Nanoseconds started) {
-    if (!setup.player.name.empty()) {
-        Result<settings::Racer> racer = FindRacer(vfs_, RacersFile(), setup.player);
-        if (!racer) {
-            return std::unexpected(std::move(racer.error()));
-        }
-        setup.playerRacer = std::move(*racer);
+    if (Result<void> resolved = ResolvePlayers(vfs_, RacersFile(), setup); !resolved) {
+        return std::unexpected(std::move(resolved.error()));
     }
     const std::string language = SelectedLanguage(settings_);
     const std::unique_ptr<RaceLoadingScreen> loading =

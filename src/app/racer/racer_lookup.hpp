@@ -5,6 +5,7 @@
 #include <string_view>
 #include <vector>
 
+#include "app/race_scene_name.hpp"
 #include "app/racer/racer_ref.hpp"
 #include "assets/original_save.hpp"
 #include "assets/vfs.hpp"
@@ -27,6 +28,11 @@ namespace rr::app {
 /// None for a nameless `ref`, or one nobody has.
 [[nodiscard]] std::optional<settings::Racer> FindPlayerRacer(
     const assets::Vfs& vfs, const std::filesystem::path& racersFile, const RacerRef& ref);
+
+/// Fills `setup`'s player racers from its refs, failing on a ref nobody has.
+[[nodiscard]] Result<void> ResolvePlayers(const assets::Vfs& vfs,
+                                          const std::filesystem::path& racersFile,
+                                          RaceSceneSetup& setup);
 
 [[nodiscard]] Result<std::vector<settings::Racer>> ReadDefaultRacers(const assets::Vfs& vfs);
 

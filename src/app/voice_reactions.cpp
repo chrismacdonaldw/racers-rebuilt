@@ -75,8 +75,10 @@ std::optional<std::size_t> CircuitDriver(std::int32_t voice) {
 
 VoiceBanks LoadRaceVoices(audio::Mixer& mixer, SoundBanks& banks, const assets::Vfs& vfs,
                           std::string_view track, VoiceChoice choice) {
-    const std::optional<std::string> others =
-        choice.isTimeTrial ? std::string(kTimeTrialVoices) : CircuitVoicesName(vfs, track);
+    std::optional<std::string> others = PlayerVoicesName(choice.secondBuiltFace);
+    if (!others) {
+        others = choice.isTimeTrial ? std::string(kTimeTrialVoices) : CircuitVoicesName(vfs, track);
+    }
     return {.player = LoadVoices(mixer, banks, vfs, PlayerVoicesName(choice.builtFace)),
             .others = LoadVoices(mixer, banks, vfs, others)};
 }

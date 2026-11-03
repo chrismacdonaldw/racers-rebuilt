@@ -51,12 +51,12 @@ struct CourseChoice {
 [[nodiscard]] Result<std::vector<std::u16string>> ReadDriverNames(const assets::Vfs& vfs,
                                                                   std::string_view language);
 
-enum class RaceSetupRow : std::uint8_t { Course, Racer, SecondRacer, Race, Back, Count };
+enum class RaceSetupRow : std::uint8_t { Course, Race, Back, Count };
 
-/// Versus players pick drivers here, but a lone player goes on to pick their own racer.
+/// A single race, versus or circuit setup's course, then each player picks their own racer.
 class RaceSetupMenu {
 public:
-    /// `courses` must not be empty, nor any course's racers. Two `players` each pick a racer.
+    /// `courses` must not be empty, nor any course's racers.
     explicit RaceSetupMenu(std::vector<CourseChoice> courses, std::size_t players = 1);
 
     /// A chosen race keeps `rules` but for its course and racers. A locked course can't start.
@@ -67,20 +67,15 @@ public:
     [[nodiscard]] const std::vector<CourseChoice>& Courses() const { return courses_; }
     [[nodiscard]] const CourseChoice& Course() const { return courses_[course_]; }
     [[nodiscard]] std::size_t CourseIndex() const { return course_; }
-    [[nodiscard]] std::size_t Racer() const { return racer_; }
-    [[nodiscard]] std::size_t SecondRacer() const { return secondRacer_; }
+
     [[nodiscard]] std::uint64_t StateHash() const;
 
 private:
-    void MoveFocus(int step);
-    void Change(int step);
     [[nodiscard]] std::optional<std::string> Confirm(const RaceSceneSetup& rules);
-    [[nodiscard]] std::string PickedRacer(std::string_view scenes) const;
+    [[nodiscard]] std::string PickingRacers(std::string_view scenes) const;
 
     std::vector<CourseChoice> courses_;
     std::size_t course_ = 0;
-    std::size_t racer_ = 0;
-    std::size_t secondRacer_ = 0;
     std::size_t players_ = 1;
     RaceSetupRow focus_ = RaceSetupRow::Course;
 };

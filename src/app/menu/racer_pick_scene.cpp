@@ -1,5 +1,6 @@
 #include "app/menu/racer_pick_scene.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <ranges>
 #include <span>
@@ -20,13 +21,21 @@ namespace rr::app {
 namespace {
 
 constexpr std::size_t kTitleLine = 0x14;
+constexpr std::size_t kFirstPlayerTitleLine = 0x15;
 constexpr std::size_t kConfigLine = 0xB9;
 constexpr std::size_t kStartLine = 0x72;
 constexpr std::size_t kBackLine = 0x1F;
 
+bool IsVersus(std::string_view scene) {
+    return IsRaceScene(scene) && ParseRaceScene(scene).value_or(RaceSceneSetup{}).players > 1;
+}
+
 std::string_view SetupSceneOf(std::string_view scenes) {
     for (const auto part : std::views::split(scenes, kSceneChainMark)) {
         const std::string_view scene(part.begin(), part.end());
+        if (IsVersus(scene)) {
+            return kVersusRaceScene;
+        }
         if (IsTrialScene(scene)) {
             return kTimeTrialScene;
         }
@@ -52,7 +61,7 @@ Result<std::unique_ptr<RacerPickScene>> RacerPickScene::Create(render::Renderer&
                                                                const assets::Vfs& vfs,
                                                                MenuSounds sounds,
                                                                std::filesystem::path racersFile,
-                                                               std::string next) {
+                                                               RacerPickRoute route) {
     Result<RacerPickLook> look = LoadRacerPickLook(renderer, vfs);
     if (!look) {
         return std::unexpected(std::move(look.error()));
@@ -69,7 +78,7 @@ Result<std::unique_ptr<RacerPickScene>> RacerPickScene::Create(render::Renderer&
         racers.names.push_back(Utf16FromUtf8(racer.name));
     }
     return std::unique_ptr<RacerPickScene>(new RacerPickScene(
-        renderer, vfs, sounds, std::move(*look), std::move(next), std::move(racers)));
+        renderer, vfs, sounds, std::move(*look), std::move(route), std::move(racers)));
 }
 
 void RacerPickScene::ApplySettings(const settings::Registry& settings) {
@@ -88,10 +97,11 @@ void RacerPickScene::Tick(const sim::InputFrame& input) {
             Start();
             break;
         case RacerPickRequest::Config:
-            opened_ = ChainedScene(kControlsScene, ChainedScene(kPickRacerScene, next_));
+            opened_ = ChainedScene(route_.player == 0 ? kControlsScene : kPlayer2ControlsScene,
+                                   Reopened());
             break;
         case RacerPickRequest::Leave:
-            opened_ = std::string(SetupSceneOf(next_));
+            opened_ = Left();
             break;
         case RacerPickRequest::Step:
         case RacerPickRequest::None:
@@ -109,8 +119,8 @@ void RacerPickScene::Snapshot(sim::RenderSnapshot& out) const {
 void RacerPickScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpolated) {
     sprites_.clear();
     DrawPictures(std::span(&look_.backdrop, 1), sprites_);
-    DrawBanner(text_, look_.banner, text_.Line(kTitleLine), look_.backdrop, look_.bannerTop,
-               sprites_);
+    const std::size_t title = isVersus_ ? kFirstPlayerTitleLine + route_.player : kTitleLine;
+    DrawBanner(text_, look_.banner, text_.Line(title), look_.backdrop, look_.bannerTop, sprites_);
     DrawPicker();
     DrawButtons();
     Result<void> drawn = renderer_->Draw({.sprites = sprites_});
@@ -120,25 +130,42 @@ void RacerPickScene::Render([[maybe_unused]] const sim::RenderSnapshot& interpol
 }
 
 RacerPickScene::RacerPickScene(render::Renderer& renderer, const assets::Vfs& vfs,
-                               MenuSounds sounds, RacerPickLook look, std::string next,
+                               MenuSounds sounds, RacerPickLook look, RacerPickRoute route,
                                Racers racers)
     : renderer_(&renderer),
       vfs_(&vfs),
       sounds_(sounds),
       look_(std::move(look)),
-      next_(std::move(next)),
+      route_(std::move(route)),
+      isVersus_(
+          std::ranges::any_of(std::views::split(route_.next, kSceneChainMark),
+                              [](const auto part) { return IsVersus(std::string_view(part)); })),
       racers_(std::move(racers)),
-      menu_(racers_.pickable.size(), racers_.store.selected.value_or(0)) {}
+      menu_(racers_.pickable.size(), route_.player == 0 ? racers_.store.selected.value_or(0) : 0) {}
 
 void RacerPickScene::Start() {
     const std::size_t picked = menu_.Racer();
+    const RacerRef ref = RefOf(racers_.pickable.at(picked));
+    if (route_.player != 0) {
+        opened_ = WithSecondPlayer(route_.next, ref);
+        return;
+    }
     if (racers_.isLoaded) {
         SelectPicked(racers_.store, racers_.pickable, picked);
         if (Result<void> saved = settings::SaveRacers(racers_.store, racers_.file); !saved) {
             log::Warn("{}, the pick isn't saved", saved.error().message);
         }
     }
-    opened_ = WithPlayer(next_, RefOf(racers_.pickable.at(picked)));
+    opened_ = WithPlayer(route_.next, ref);
+}
+
+std::string RacerPickScene::Reopened() const {
+    return ChainedScene(route_.player == 0 ? kPickRacerScene : kPickSecondRacerScene, route_.next);
+}
+
+std::string RacerPickScene::Left() const {
+    return route_.player == 0 ? std::string(SetupSceneOf(route_.next))
+                              : ChainedScene(kPickRacerScene, Reopened());
 }
 
 void RacerPickScene::PlaySounds(const sim::InputFrame& input, RacerPickRequest request,
