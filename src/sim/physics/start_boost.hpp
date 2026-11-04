@@ -18,6 +18,9 @@ class StartBoost {
 public:
     void HoldAtStart();
 
+    /// From now on `Go` always grants a strong boost.
+    void MakePerfect() { isPerfect_ = true; }
+
     [[nodiscard]] std::optional<TurboLevel> Go();
 
     [[nodiscard]] std::optional<TurboLevel> Update(const RacerControls& controls, int dtMs);
@@ -28,6 +31,7 @@ private:
     [[nodiscard]] std::optional<TurboLevel> TakeWindow();
 
     StartBoostState state_;
+    bool isPerfect_ = false;
 };
 
 }

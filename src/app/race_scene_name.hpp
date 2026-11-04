@@ -13,6 +13,7 @@
 #include "settings/racers.hpp"
 #include "sim/race/cheats.hpp"
 #include "sim/race/circuit_run.hpp"
+#include "sim/race/player_cheats.hpp"
 #include "sim/race/race_setup.hpp"
 #include "sim/race/respawn.hpp"
 
@@ -26,7 +27,7 @@ inline constexpr int kMaxAiPace = 150;
 
 /// Players drive grid slots `racer` then `secondRacer`, two alone. Empty `circuit` means home.
 /// `playerRacer` and `secondPlayerRacer` resolve `player` and `secondPlayer`. They, `carBody`,
-/// `version`, `lagsInput` and `modifiers` aren't named.
+/// `version`, `lagsInput`, `modifiers` and `playerCheats` aren't named.
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct RaceSceneSetup {
     std::string track;
@@ -53,6 +54,7 @@ struct RaceSceneSetup {
     bool lagsInput = false;
     sim::Cheats cheats;
     RaceModifiers modifiers;
+    sim::PlayerCheats playerCheats;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
 };

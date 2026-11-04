@@ -25,7 +25,7 @@ constexpr float kSpiralRadiansPerSecond = 10.0F;
 constexpr Vector3 kUp{.z = 1.0F};
 
 bool CanTarget(const Racer& racer) {
-    return !racer.IsSpunOut() && !racer.IsShielded() && !racer.Status().isGhost;
+    return !racer.IsSpunOut() && !racer.IsProtected() && !racer.Status().isGhost;
 }
 
 std::optional<std::size_t> FindTarget(std::span<const Racer> racers, std::size_t owner,

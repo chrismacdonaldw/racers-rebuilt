@@ -23,6 +23,19 @@ int TicksToFinish(TurboLevel level) {
     return ticks;
 }
 
+int TicksUntilStalledHoverFades(int boostScale) {
+    Turbo turbo{.level = TurboLevel::Hover, .phaseMs = 400, .boostScale = boostScale};
+    int ticks = 0;
+    while (turbo.phase != TurboPhase::Fade) {
+        REQUIRE(AdvanceTurbo(turbo, kTickMs));
+        if (CanFadeEarly(turbo)) {
+            FadeTurbo(turbo);
+        }
+        ++ticks;
+    }
+    return ticks;
+}
+
 void Drive(Racer& racer, const RacerControls& controls, int durationMs,
            const CollisionQuery& world) {
     for (int elapsed = 0; elapsed < durationMs; elapsed += kTickMs) {
@@ -45,9 +58,20 @@ TEST_CASE("a hover turbo can fade early once 500 ms of its boost have passed") {
     CHECK_FALSE(CanFadeEarly(turbo));
 
     turbo.level = TurboLevel::Hover;
+    turbo.boostScale = 3;
+    turbo.phaseMs = 14500;
+    CHECK_FALSE(CanFadeEarly(turbo));
+    turbo.phaseMs = 14499;
+    CHECK(CanFadeEarly(turbo));
+
     FadeTurbo(turbo);
     CHECK(turbo.phase == TurboPhase::Fade);
     CHECK(turbo.phaseMs == 700);
+}
+
+TEST_CASE("a stalled hover fades 500 ms into its boost however long the boost is") {
+    CHECK(TicksUntilStalledHoverFades(1) == 34 + 42);
+    CHECK(TicksUntilStalledHoverFades(3) == 34 + 42);
 }
 
 TEST_CASE("a hover turbo halts the racer until it ends, and a new turbo lets it go") {

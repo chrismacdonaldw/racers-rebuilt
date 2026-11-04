@@ -116,8 +116,10 @@ private:
                                            std::span<const RacerControls> controls);
     [[nodiscard]] bool WantsPowerup(std::size_t racer, Milliseconds elapsed,
                                     const RacerControls& controls);
+    void UsePowerup(std::size_t racer);
     void Taunt(std::size_t racer);
     void StartRacing();
+    void ReleaseComputerRacers(Milliseconds elapsed);
     void AdvanceClock(Milliseconds elapsed);
     void StartBoosts();
     void ResolveContacts();
@@ -125,6 +127,8 @@ private:
     void MeasureReaches();
     void TickBricks(Milliseconds elapsed);
     void RollChaosBrick(PowerupInventory& inventory);
+    void KeepWhitesFull();
+    [[nodiscard]] PlayerCheats CheatsOf(std::size_t racer) const;
     void ReactToPlaces();
     void TickTriggers(Milliseconds elapsed);
     void SwitchOnTriggerWorlds();
@@ -138,6 +142,8 @@ private:
     RespawnRule respawn_;
     Cheats cheats_;
     Modifiers modifiers_;
+    PlayerCheats playerCheats_;
+    Milliseconds headStartLeft_{0};
     std::vector<bool> isPlayer_;
     bool isDemo_ = false;
     const VersionRules* rules_ = nullptr;
@@ -178,6 +184,7 @@ private:
     Explosions spikes_{kSpikeExplosion, kSpikeExplosionCount};
     std::vector<BoundingSphere> localBounds_;
     std::vector<BoundingSphere> reaches_;
+    std::vector<BoundingSphere> pickupReaches_;
     std::vector<ContactBody> contactBodies_;
     std::vector<RacerWorldView> contactWorlds_;
     RacerContacts contacts_;

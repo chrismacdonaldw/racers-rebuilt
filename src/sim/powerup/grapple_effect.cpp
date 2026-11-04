@@ -176,7 +176,7 @@ void GrappleEffect::HoldOrRelease(PowerupContext& context) {
     Racer& owner = context.racers[owner_];
     Racer& victim = context.racers[victim_];
     const Vector3 pull = victim.Body().motion.position - owner.Body().motion.position;
-    if (victim.IsShielded() || Dot(pull, pull) < kReleaseDistanceSquared ||
+    if (victim.IsProtected() || Dot(pull, pull) < kReleaseDistanceSquared ||
         Dot(pull, owner.Body().motion.basis.forward) < 0.0F) {
         Release(victim.Body().motion.position, context);
         return;

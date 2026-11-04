@@ -111,7 +111,7 @@ void Explosions::Blast(const Explosion& explosion, std::span<Racer> racers,
                                       0.0F, 1.0F);
     for (std::size_t i = 0; i < racers.size(); ++i) {
         Racer& racer = racers[i];
-        const bool isSkipped = explosion.owner == i || racer.IsShielded() ||
+        const bool isSkipped = explosion.owner == i || racer.IsProtected() ||
                                racer.Status().isGhost || (!racer.Route() && racer.IsSpunOut());
         if (!isSkipped && Touches(blast, reaches[i])) {
             racer.LaunchHit(strength);

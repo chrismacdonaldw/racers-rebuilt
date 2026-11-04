@@ -59,7 +59,7 @@ void UfoGrabber::Grab(std::size_t racer, HazardContext& context) {
     const float frame = context.entities->Frame(*entity);
     Racer& car = context.racers[racer];
     if (phase == GrabPhase::Lockout || (lowFrame < frame && frame < highFrame) ||
-        car.IsShielded() || (held && *held != racer)) {
+        car.IsProtected() || (held && *held != racer)) {
         return;
     }
     if (!held) {

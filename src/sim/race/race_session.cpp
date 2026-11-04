@@ -9,6 +9,7 @@
 #include "sim/ai/ai_aim.hpp"
 #include "sim/physics/body_state.hpp"
 #include "sim/physics/contact_effects.hpp"
+#include "sim/race/player_cheats.hpp"
 #include "sim/race/session_parts.hpp"
 
 namespace rr::sim {
@@ -37,6 +38,8 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       respawn_(setup.respawn),
       cheats_(setup.cheats),
       modifiers_(setup.modifiers),
+      playerCheats_(setup.playerCheats),
+      headStartLeft_(setup.playerCheats.headStart),
       isDemo_(setup.isDemo),
       rules_(&RulesFor(setup.version)),
       lagsInput_(setup.lagsInput && rules_->allowsInputLag),
@@ -74,6 +77,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
                 setup.modifiers.onlyPowerup),
       weapons_(WeaponEventCount(setup, course)),
       reaches_(setup.racers.size()),
+      pickupReaches_(setup.racers.size()),
       contactBodies_(setup.racers.size()) {
     racers_.reserve(setup.racers.size());
     contactWorlds_.reserve(setup.racers.size());
@@ -88,6 +92,9 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
         }
         racer.ScaleGravity(setup.modifiers.gravityScale);
         racer.ScaleSpeed(setup.modifiers.speedScale);
+        if (entry.isPlayer) {
+            GiveRacerCheats(racer, setup.playerCheats);
+        }
         const std::span<const assets::RaceRoute> routes = RoutesFor(course, setup.firstSlot + i);
         drivers_.emplace_back();
         if (!entry.isPlayer && !routes.empty()) {
@@ -145,6 +152,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     sounds_.HearWeapons(weapons_.Events());
     progress_.Rank(*course_.checkpoints, positions_);
     ReactToPlaces();
+    ReleaseComputerRacers(elapsed);
     AdvanceClock(elapsed);
     for (Racer& racer : racers_) {
         racer.UpdateTimers(elapsed);
@@ -158,6 +166,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
     tints_.Apply(triggers_.Events());
     progress_.EnterZones(triggers_.Events(), EventSourcesFor(course_).table.lapZones);
     targets_.Hear(triggers_.Events());
+    KeepWhitesFull();
 }
 
 void RaceSession::AdvanceClock(Milliseconds elapsed) {
@@ -187,6 +196,9 @@ bool RaceSession::WantsPowerup(std::size_t racer, Milliseconds elapsed,
     if (isPlayer_[racer]) {
         return controls.isUsePressed;
     }
+    if (racers_[racer].Boost().isHeldAtStart) {
+        return false;
+    }
     return aiPowerups_[racer].Tick(elapsed,
                                    {.racers = racers_,
                                     .racer = racer,
@@ -198,11 +210,30 @@ bool RaceSession::WantsPowerup(std::size_t racer, Milliseconds elapsed,
 }
 
 void RaceSession::StartRacing() {
-    for (Racer& racer : racers_) {
-        racer.Go();
+    for (std::size_t i = 0; i < racers_.size(); ++i) {
+        if (isPlayer_[i] || headStartLeft_ == Milliseconds{0}) {
+            racers_[i].Go();
+        }
     }
     progress_.StartZones();
-    StartBoosts();
+    if (headStartLeft_ == Milliseconds{0}) {
+        StartBoosts();
+    }
+}
+
+void RaceSession::ReleaseComputerRacers(Milliseconds elapsed) {
+    if (headStartLeft_ == Milliseconds{0} || !clock_.IsRunning()) {
+        return;
+    }
+    headStartLeft_ = std::max(Milliseconds{0}, headStartLeft_ - elapsed);
+    if (headStartLeft_ == Milliseconds{0}) {
+        for (std::size_t i = 0; i < racers_.size(); ++i) {
+            if (!isPlayer_[i]) {
+                racers_[i].Go();
+            }
+        }
+        StartBoosts();
+    }
 }
 
 void RaceSession::StartBoosts() {
@@ -308,7 +339,10 @@ PowerupContext RaceSession::EffectContext() {
 }
 
 void RaceSession::TickBricks(Milliseconds elapsed) {
-    bricks_.Tick(elapsed, reaches_, inventories_);
+    for (std::size_t i = 0; i < racers_.size(); ++i) {
+        pickupReaches_[i] = PickupReach(reaches_[i], CheatsOf(i));
+    }
+    bricks_.Tick(elapsed, pickupReaches_, inventories_);
     sounds_.HearBricks(bricks_.Events(), AreBricksAudible(clock_));
     for (const BrickEvent& event : bricks_.Events()) {
         if (event.kind == BrickEventKind::WhiteCollected && event.whiteCount == kMaxPowerupLevel) {
@@ -327,6 +361,18 @@ void RaceSession::RollChaosBrick(PowerupInventory& inventory) {
     const auto colour = static_cast<assets::BrickColour>(
         random_.Below(static_cast<std::uint32_t>(kBrickColourCount)));
     inventory.Grant(colour, random_.Below(kMaxPowerupLevel + 1));
+}
+
+void RaceSession::KeepWhitesFull() {
+    for (std::size_t i = 0; i < racers_.size(); ++i) {
+        if (CheatsOf(i).keepsFullWhite) {
+            inventories_[i].FillWhites();
+        }
+    }
+}
+
+PlayerCheats RaceSession::CheatsOf(std::size_t racer) const {
+    return isPlayer_[racer] ? playerCheats_ : PlayerCheats{};
 }
 
 void RaceSession::ReactToPlaces() {
@@ -357,7 +403,8 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     const bool hasFallen =
         !car.Route() && respawns_[racer].Update(respawn_, elapsed, IsGrounded(motion),
                                                 motion.position.z, course_.lowestTrackZ);
-    const bool hasStalled = driver && clock_.IsRunning() && driver->IsStalled(elapsed);
+    const bool hasStalled =
+        driver && clock_.IsRunning() && !car.Boost().isHeldAtStart && driver->IsStalled(elapsed);
     wasRespawned_[racer] = hasFallen || hasStalled;
     if (wasRespawned_[racer]) {
         car.Place(driver ? driver->Rejoin()
@@ -378,24 +425,34 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
     }
     positions_[racer] = car.Body().motion.position;
     if (clock_.IsRunning() && WantsPowerup(racer, elapsed, controls)) {
-        PowerupContext effects = EffectContext();
-        if (isPlayer_[racer]) {
-            effects.targets = targets_.Left();
-        }
-        const std::optional<assets::BrickColour> colour = inventories_[racer].Colour();
-        if ((colour == assets::BrickColour::Yellow || colour == assets::BrickColour::Blue) &&
-            !cheats_.Has(Cheat::RedOnly)) {
-            car.React(VoiceReaction::Positive);
-        }
-        const bool isEmptyHanded = !colour;
-        powerups_.Use(racer, inventories_[racer], bricks_, effects);
-        if (isEmptyHanded) {
-            Taunt(racer);
-        }
+        UsePowerup(racer);
     }
     if (clock_.IsRunning() && !isPlayer_[racer] &&
         taunts_[racer].Tick(elapsed, racers_, racer, random_)) {
         Taunt(racer);
+    }
+}
+
+void RaceSession::UsePowerup(std::size_t racer) {
+    PowerupContext effects = EffectContext();
+    if (isPlayer_[racer]) {
+        effects.targets = targets_.Left();
+    }
+    const std::optional<assets::BrickColour> colour = inventories_[racer].Colour();
+    const std::size_t whites = inventories_[racer].WhiteCount();
+    if ((colour == assets::BrickColour::Yellow || colour == assets::BrickColour::Blue) &&
+        !cheats_.Has(Cheat::RedOnly)) {
+        racers_[racer].React(VoiceReaction::Positive);
+    }
+    const PlayerCheats cheats = CheatsOf(racer);
+    if (cheats.hasFreeWarp && colour == assets::BrickColour::Green) {
+        GivePowerup(racer, *colour, kMaxPowerupLevel);
+    }
+    powerups_.Use(racer, inventories_[racer], bricks_, effects);
+    if (!colour) {
+        Taunt(racer);
+    } else if (cheats.hasBottomlessBrick) {
+        GivePowerup(racer, *colour, static_cast<std::uint8_t>(whites));
     }
 }
 

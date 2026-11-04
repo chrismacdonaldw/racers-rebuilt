@@ -18,6 +18,7 @@ struct Turbo {
     TurboPhase phase = TurboPhase::Ignition;
     int phaseMs = 0;
     bool hasTouchedWall = false;
+    int boostScale = 1;
 };
 
 [[nodiscard]] Turbo StartTurbo(BodyState& body, const BodyConstants& constants,
