@@ -59,7 +59,7 @@ TEST_CASE("the player cheat settings carry into the race") {
     CHECK(cheats.hasSkipAhead);
 }
 
-TEST_CASE("the original preset turns every player cheat off and the enhanced one keeps them") {
+TEST_CASE("the default preset turns every player cheat off and the enhanced one keeps them") {
     settings::Registry registry = DeclaredRegistry();
     TurnEverythingOn(registry);
     const std::vector<settings::SettingPreset> presets = EnhancementPresets();

@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <iterator>
 #include <limits>
 #include <span>
 #include <string>
@@ -234,26 +233,6 @@ std::vector<SettingMenu> GroupSettingMenus(const settings::Registry::Declaration
         std::ranges::sort(menu.submenus, {}, &SettingSubmenu::category);
     }
     return menus;
-}
-
-std::vector<std::string> DrawPresets(settings::Registry& registry,
-                                     std::span<const settings::SettingPreset> presets,
-                                     std::string_view menu) {
-    std::vector<std::string> changed;
-    const auto isListed = [&](const settings::SettingPreset& preset) {
-        return preset.menu == menu;
-    };
-    if (std::ranges::none_of(presets, isListed) || !ImGui::BeginMenu("Presets")) {
-        return changed;
-    }
-    for (const settings::SettingPreset& preset : presets) {
-        if (isListed(preset) && ImGui::MenuItem(preset.label.c_str(), nullptr,
-                                                settings::IsPresetActive(registry, preset))) {
-            std::ranges::move(settings::ApplyPreset(registry, preset), std::back_inserter(changed));
-        }
-    }
-    ImGui::EndMenu();
-    return changed;
 }
 
 std::vector<std::string> DrawSettingItems(settings::Registry& registry, const SettingMenu& menu) {

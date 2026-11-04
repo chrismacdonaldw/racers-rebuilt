@@ -2,6 +2,9 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
+#include <filesystem>
+#include <fstream>
 #include <vector>
 
 #include "app/audio_settings.hpp"
@@ -9,6 +12,7 @@
 #include "app/fix_settings.hpp"
 #include "app/race_settings.hpp"
 #include "app/video_settings.hpp"
+#include "temp_folder.hpp"
 
 namespace rr::app {
 namespace {
@@ -35,11 +39,11 @@ TEST_CASE("every enhancement preset names declared settings") {
     }
 }
 
-TEST_CASE("the original preset clears the cheats and the enhanced one keeps them") {
+TEST_CASE("the default preset clears the cheats and the enhanced one keeps them") {
     settings::Registry registry = DeclaredRegistry();
     const std::vector<settings::SettingPreset> presets = EnhancementPresets();
     REQUIRE(presets.size() == 2);
-    const settings::SettingPreset& original = presets[0];
+    const settings::SettingPreset& defaults = presets[0];
     const settings::SettingPreset& enhanced = presets[1];
     const settings::SettingSpec<bool>& noWheels = kCheatToggles.back().setting;
     registry.Set(noWheels, true);
@@ -52,18 +56,18 @@ TEST_CASE("the original preset clears the cheats and the enhanced one keeps them
     CHECK(registry.Get(noWheels));
     CHECK(registry.Get(kChampionCars));
     CHECK(IsPresetActive(registry, enhanced));
-    CHECK_FALSE(IsPresetActive(registry, original));
+    CHECK_FALSE(IsPresetActive(registry, defaults));
 
-    static_cast<void>(ApplyPreset(registry, original));
+    static_cast<void>(ApplyPreset(registry, defaults));
     CHECK_FALSE(registry.Get(kPhysicsAi));
     CHECK_FALSE(registry.Get(kRespawn));
     CHECK_FALSE(registry.Get(noWheels));
     CHECK_FALSE(registry.Get(kChampionCars));
-    CHECK(IsPresetActive(registry, original));
+    CHECK(IsPresetActive(registry, defaults));
     CHECK_FALSE(IsPresetActive(registry, enhanced));
 }
 
-TEST_CASE("the original preset turns smoothing, filtering and clipping prevention off") {
+TEST_CASE("the default preset turns smoothing, filtering and clipping prevention off") {
     settings::Registry registry = DeclaredRegistry();
     const std::vector<settings::SettingPreset> presets = EnhancementPresets();
     REQUIRE(presets.size() == 2);
@@ -79,16 +83,43 @@ TEST_CASE("the original preset turns smoothing, filtering and clipping preventio
     CHECK(registry.Get(kPreventClipping));
 }
 
-TEST_CASE("only the enhanced preset fills a wide window") {
+TEST_CASE("every enhancement defaults off and the default preset matches a fresh install") {
+    const settings::Registry registry = DeclaredRegistry();
+    const std::vector<settings::SettingPreset> presets = EnhancementPresets();
+    REQUIRE(presets.size() == 2);
+    CHECK(presets[0].label == "Default");
+    CHECK(IsPresetActive(registry, presets[0]));
+    CHECK(std::ranges::all_of(presets[1].values, [&](const auto& value) {
+        return registry.AllDeclarations().find(value.first)->second.defaultValue ==
+               settings::SettingValue{false};
+    }));
+}
+
+TEST_CASE("only the enhanced preset turns on widescreen and the far models") {
     settings::Registry registry = DeclaredRegistry();
     const std::vector<settings::SettingPreset> presets = EnhancementPresets();
     REQUIRE(presets.size() == 2);
-    CHECK_FALSE(registry.Get(kWidescreenSetting));
-
     static_cast<void>(ApplyPreset(registry, presets[1]));
     CHECK(registry.Get(kWidescreenSetting));
+    CHECK(registry.Get(kFarCarsSetting));
+    CHECK(registry.Get(kFarScenerySetting));
     static_cast<void>(ApplyPreset(registry, presets[0]));
     CHECK_FALSE(registry.Get(kWidescreenSetting));
+}
+
+TEST_CASE("quick configs load the user's presets folder beside the shipped presets") {
+    const test::TempFolder folder;
+    const settings::Registry registry = DeclaredRegistry();
+    const settings::QuickConfigs empty = LoadQuickConfigs(registry, folder.Path());
+    CHECK(empty.User().empty());
+    CHECK(empty.Shipped().size() == 2);
+
+    std::filesystem::create_directories(folder.Path() / "presets");
+    std::ofstream(folder.Path() / "presets" / "mine.toml", std::ios::binary)
+        << "name = \"Mine\"\n[settings.race]\nrespawn = true\n";
+    const settings::QuickConfigs configs = LoadQuickConfigs(registry, folder.Path());
+    REQUIRE(configs.User().size() == 1);
+    CHECK(configs.User()[0].preset.label == "Mine");
 }
 
 }

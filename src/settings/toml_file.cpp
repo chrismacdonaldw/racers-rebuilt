@@ -4,15 +4,56 @@
 #include <format>
 #include <fstream>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <system_error>
 #include <utility>
+#include <variant>
+#include <vector>
 
+#include "core/log.hpp"
 #include "core/utf8_path.hpp"
 
 namespace rr::settings {
 namespace {
+
+struct PendingTable {
+    const toml::table* table = nullptr;
+    std::string prefix;
+};
+
+std::optional<SettingValue> ValueOf(const toml::node& node) {
+    if (const auto* value = node.as_boolean()) {
+        return value->get();
+    }
+    if (const auto* value = node.as_integer()) {
+        return value->get();
+    }
+    if (const auto* value = node.as_floating_point()) {
+        return value->get();
+    }
+    if (const auto* value = node.as_string()) {
+        return value->get();
+    }
+    return std::nullopt;
+}
+
+toml::table* TableFor(toml::table& root, std::string_view& key) {
+    toml::table* table = &root;
+    for (std::size_t dot = key.find('.'); dot != std::string_view::npos; dot = key.find('.')) {
+        const std::string_view part = key.substr(0, dot);
+        if (!table->contains(part)) {
+            table->insert(part, toml::table{});
+        }
+        table = table->get(part)->as_table();
+        if (table == nullptr) {
+            return nullptr;
+        }
+        key.remove_prefix(dot + 1);
+    }
+    return table;
+}
 
 std::string LeadingComments(std::string_view text) {
     std::size_t end = 0;
@@ -40,6 +81,40 @@ Result<toml::table> ParseToml(std::string_view text, std::string_view sourceName
                                 parsed.error().description()));
     }
     return std::move(parsed).table();
+}
+
+std::vector<TomlSetting> FlattenSettings(const toml::table& root) {
+    std::vector<TomlSetting> settings;
+    std::vector<PendingTable> pending{{.table = &root, .prefix = {}}};
+    while (!pending.empty()) {
+        const PendingTable current = std::move(pending.back());
+        pending.pop_back();
+        for (const auto& [name, node] : *current.table) {
+            std::string key = current.prefix.empty()
+                                  ? std::string(name.str())
+                                  : std::format("{}.{}", current.prefix, name.str());
+            if (const toml::table* child = node.as_table()) {
+                pending.push_back({.table = child, .prefix = std::move(key)});
+                continue;
+            }
+            settings.push_back({.key = std::move(key), .value = ValueOf(node)});
+        }
+    }
+    return settings;
+}
+
+toml::table NestSettings(const Registry::Values& values) {
+    toml::table root;
+    for (const auto& [key, value] : values) {
+        std::string_view name = key;
+        toml::table* table = TableFor(root, name);
+        if (table == nullptr) {
+            log::Warn("settings key {} clashes with a table of the same name, not saving it", key);
+            continue;
+        }
+        std::visit([&](const auto& current) { table->insert_or_assign(name, current); }, value);
+    }
+    return root;
 }
 
 Result<TomlFile> ReadTomlFile(const std::filesystem::path& path) {

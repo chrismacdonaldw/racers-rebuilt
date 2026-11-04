@@ -140,8 +140,8 @@ Result<void> Application::Run() {
     MenuPointer pointer(window_.Handle(), renderer_, LoadMenuCursor(renderer_, vfs_));
     renderer_.PinTextures();
     AttachEnhancements(extensions_, frameLoop_.Hooks(), vfs_, settings_);
-    Result<std::unique_ptr<overlay::Overlay>> menu =
-        overlay::Overlay::Create(window_, renderer_, EnhancementPresets());
+    Result<std::unique_ptr<overlay::Overlay>> menu = overlay::Overlay::Create(
+        window_, renderer_, LoadQuickConfigs(settings_, settingsFile_.parent_path()));
     Result<void> opened = menu.and_then([&](const auto&) { return OpenScene(scene_); });
     if (!opened) {
         return opened;

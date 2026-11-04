@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -16,6 +17,9 @@ struct SettingPreset {
     std::vector<std::string> resets;
     std::vector<std::pair<std::string, SettingValue>> values;
 };
+
+/// True for `prefix` itself and its submenus, so `A` holds `A/B` but not `AB`.
+[[nodiscard]] bool IsInCategory(std::string_view category, std::string_view prefix);
 
 /// Returns the keys whose value changed.
 [[nodiscard]] std::vector<std::string> ApplyPreset(Registry& registry, const SettingPreset& preset);

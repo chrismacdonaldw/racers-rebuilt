@@ -37,7 +37,7 @@ inline constexpr settings::SettingSpec<bool> kWidescreenSetting{
 
 /// Retail textures' mip levels and colour-key edges filled from neighbours, unlike the original.
 inline constexpr settings::SettingSpec<bool> kSmoothTexturesSetting{.key = "video.smooth_textures",
-                                                                    .defaultValue = true,
+                                                                    .defaultValue = false,
                                                                     .label = "Smooth textures",
                                                                     .category = "Video"};
 
@@ -49,11 +49,11 @@ inline constexpr settings::SettingSpec<bool> kAnisotropicFilteringSetting{
 
 /// Draws cars past the original's 500 units from the camera.
 inline constexpr settings::SettingSpec<bool> kFarCarsSetting{
-    .key = "video.far_cars", .defaultValue = true, .label = "Draw far cars", .category = "Video"};
+    .key = "video.far_cars", .defaultValue = false, .label = "Draw far cars", .category = "Video"};
 
 /// Draws track models past the distance each one's world file gives, unlike the original.
 inline constexpr settings::SettingSpec<bool> kFarScenerySetting{.key = "video.far_scenery",
-                                                                .defaultValue = true,
+                                                                .defaultValue = false,
                                                                 .label = "Draw far scenery",
                                                                 .category = "Video"};
 

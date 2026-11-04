@@ -3,6 +3,8 @@ rr_add_module(settings
         command_line.cpp
         registry.cpp
         progress.cpp
+        quick_config.cpp
+        quick_configs.cpp
         racers.cpp
         setting_preset.cpp
         settings_file.cpp

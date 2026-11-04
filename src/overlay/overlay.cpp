@@ -65,8 +65,8 @@ void DrawChoices(const char* menu, std::span<const MenuChoice> choices, const ch
 
 Result<std::unique_ptr<Overlay>> Overlay::Create(const platform::Window& window,
                                                  render::Renderer& renderer,
-                                                 std::vector<settings::SettingPreset> presets) {
-    std::unique_ptr<Overlay> overlay(new Overlay(renderer, std::move(presets)));
+                                                 settings::QuickConfigs quickConfigs) {
+    std::unique_ptr<Overlay> overlay(new Overlay(renderer, std::move(quickConfigs)));
     ImGui::CreateContext();
     ImGui::GetIO().IniFilename = nullptr;
     ImGui::StyleColorsDark();
@@ -117,7 +117,7 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
                 } else if (menu.category == kGameCategory && !actions.game.empty()) {
                     DrawActions("Changes here apply after a restart", actions.game);
                 }
-                Append(finished, DrawPresets(registry, presets_, menu.category));
+                Append(finished, quickConfigs_.DrawMenu(registry, menu.category));
                 Append(finished, menu.category == kBindingsCategory
                                      ? DrawSettingGrid(registry, menu)
                                      : DrawSettingItems(registry, menu));
@@ -142,6 +142,7 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
         }
         ImGui::EndMainMenuBar();
     }
+    quickConfigs_.DrawDialogs(registry);
     ImGui::Render();
     hasFrame_ = true;
     frameCost_ = platform::Now() - start;

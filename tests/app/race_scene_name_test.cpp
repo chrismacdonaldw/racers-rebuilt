@@ -235,20 +235,20 @@ TEST_CASE("a circuit scene name needs a circuit, a race in range and six points"
     CHECK(ParseCircuitScene("circuit:c0:respawn=off").has_value());
 }
 
-TEST_CASE("respawn settings default on after 3 seconds and follow their values") {
+TEST_CASE("respawn settings default off after 3 seconds and follow their values") {
     settings::Registry registry;
     DeclareRaceSettings(registry);
     const sim::RespawnRule defaults = RespawnRuleFrom(registry);
-    CHECK(defaults.isEnabled);
+    CHECK_FALSE(defaults.isEnabled);
     CHECK(defaults.timeout == Milliseconds{3000});
 
     const std::array<settings::SettingOverride, 2> overrides{
-        settings::SettingOverride{.key = "race.respawn", .value = "false"},
+        settings::SettingOverride{.key = "race.respawn", .value = "true"},
         settings::SettingOverride{.key = "race.respawn_seconds", .value = "5"}};
     REQUIRE(settings::ApplyOverrides(registry, overrides).has_value());
 
     const sim::RespawnRule changed = RespawnRuleFrom(registry);
-    CHECK_FALSE(changed.isEnabled);
+    CHECK(changed.isEnabled);
     CHECK(changed.timeout == Milliseconds{5000});
 }
 

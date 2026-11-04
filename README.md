@@ -93,15 +93,37 @@ To keep everything next to the exe instead, create an empty file named `portable
   music/
   mods/
   overrides/
+  presets/
 ```
 
-Create `music/`, `mods/` and `overrides/` when you first need them.
+Create `music/`, `mods/` and `overrides/` when you first need them. `presets/` appears when you save a [quick config](#quick-configs).
 
 ## Configuration
 
 Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Bindings**, **Enhancements**, **Game**, **Mods**, **Race**, **Video**, **Progress** and **Developer**. **Enhancements** holds the **Camera**, **Cheats**, **Fixes**, **Gameplay** and **Modifiers** submenus. **Bindings** picks each player's device and shows every keyboard and pad binding in one table. Items marked * change gameplay: replays record them and warn when played back with other values. Video, audio and enhancement changes apply on the next frame. Game changes apply on the next start, and mod changes on **Apply now** or the next start. Every change saves when an edit finishes.
 
 **Developer** shows frame time, ticks per frame and startup timings. Its **Scenes** list opens the test scene, a sprite test that draws 1000 UI sprites, or any race track in your copy.
+
+### Quick configs
+
+A fresh install plays like the original game: every enhancement starts off. **Enhancements → Presets** switches between quick configs:
+
+- **Default** turns every enhancement off.
+- **Enhanced** turns on the port's recommended set: physics-driven computer racers, respawn, champion cars, smooth textures, anisotropic filtering, far cars and scenery, widescreen and clipping prevention.
+- **Save current as...** saves your enhancement and mod settings under a name. Your configs list under the shipped ones, and **Delete** removes one.
+
+Default and Enhanced leave your mods as they are. Your own configs also restore which mods are on, which applies on **Apply now** or the next start. Resolution, frame rate, audio volume and controls are never part of a config.
+
+Each saved config is a file in `<data>/presets/`, so you can share it. Settings it doesn't list take their defaults, and settings it can't set are ignored:
+
+```toml
+name = "Race night"
+
+[settings]
+"video.smooth_textures" = true
+"race.respawn" = false
+"mods.hd-tracks.enabled" = true
+```
 
 ### Controls
 
@@ -138,16 +160,16 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `video.resolution_scale` | `1.0` | `0.25` to `2.0`. Renders the scene at this fraction of the window size. |
 | `video.fullscreen` | `false` | `true`, `false`. Fills the screen without a border, at the desktop's resolution. <kbd>F11</kbd> switches it. |
 | `video.stretch_ui` | `false` | `true`, `false` |
-| `video.widescreen` | `false` | `true`, `false`. Races and cutscenes fill the window and see more to the sides, instead of the original's 4:3 frame. **Enhancements → Presets → Enhanced** turns it on and **Original** turns it off. |
-| `video.smooth_textures` | `true` | `true`, `false`. Gives the game's textures their mipmaps and fills their see-through edges with nearby colours, so distant and filtered edges don't shimmer or show a dark fringe. `false` draws them as the original does, down to the materials the game asks to be drawn with blocky unfiltered pixels. PNG replacements always keep their mipmaps. |
+| `video.widescreen` | `false` | `true`, `false`. Races and cutscenes fill the window and see more to the sides, instead of the original's 4:3 frame. **Enhancements → Presets → Enhanced** turns it on and **Default** turns it off. |
+| `video.smooth_textures` | `false` | `true`, `false`. Gives the game's textures their mipmaps and fills their see-through edges with nearby colours, so distant and filtered edges don't shimmer or show a dark fringe. `false` draws them as the original does, down to the materials the game asks to be drawn with blocky unfiltered pixels. PNG replacements always keep their mipmaps. |
 | `video.anisotropic_filtering` | `false` | `true`, `false`. Filters textures 16x where they're seen at a slant, so roads and walls stay sharp into the distance. Materials drawn with blocky unfiltered pixels keep them. The **Enhanced** preset turns it on. Applies at once. |
 | `audio.music_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.effects_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.voice_volume` | `1.0` | `0.0` to `1.0` |
-| `audio.prevent_clipping` | `true` | `true`, `false`. Mixes with headroom and a limiter so loud moments don't crackle. `false` mixes at full volume and clips, as the original does. |
+| `audio.prevent_clipping` | `false` | `true`, `false`. Mixes with headroom and a limiter so loud moments don't crackle. `false` mixes at full volume and clips, as the original does. |
 | `enhancements.free_camera` | `false` | `true`, `false` |
 | `enhancements.free_camera_speed` | `40.0` | `1.0` to `400.0` |
-| `race.respawn` | `true` | `true`, `false`. Puts a racer back on the track after it falls off or stays in the air too long. Applies from the next race. |
+| `race.respawn` | `false` | `true`, `false`. Puts a racer back on the track after it falls off or stays in the air too long. Applies from the next race. |
 | `race.respawn_seconds` | `3` | `1` to `30`. Seconds in the air before a respawn. Applies from the next race. |
 | `race.physics_ai` | `false` | `true`, `false`. Computer racers drive with the car physics instead of replaying their recorded routes. Applies from the next race. |
 | `race.ai_pace` | `100` | `50` to `150`. With `race.physics_ai`, computer racers ease off above this percentage of their route's recorded speed. Applies from the next race. |

@@ -11,7 +11,7 @@
 namespace rr::app {
 
 inline constexpr settings::SettingSpec<bool> kRespawn{.key = "race.respawn",
-                                                      .defaultValue = true,
+                                                      .defaultValue = false,
                                                       .label = "Respawn off the track",
                                                       .category = "Enhancements/Gameplay",
                                                       .changesGameplay = true};
