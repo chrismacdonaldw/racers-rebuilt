@@ -80,6 +80,7 @@ void RunPass(BodyState& body, const BodyConstants& constants, int dtMs,
 void RespondToWall(BodyState& body, const BodyConstants& constants, const Vector3& normal) {
     ApplyWallResponse(body, constants, normal);
     body.hasWallContact = true;
+    body.wallNormal = normal;
     UpdateDerivedMotion(body);
     ClearContacts(body.motion);
     body.saved = body.motion;

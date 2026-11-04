@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <span>
@@ -13,6 +14,7 @@
 #include "app/powerup/powerup_particles.hpp"
 #include "app/racer/car_particles.hpp"
 #include "app/racer/skid_marks.hpp"
+#include "app/racer/wall_sparks.hpp"
 #include "assets/surface_table.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
@@ -33,12 +35,14 @@ inline constexpr std::size_t kTrackParticleSlots = 4;
 /// Power-ups use the common `EMITTER` file and hazards the track's own.
 enum class ParticleFile : std::uint8_t { Common, Track };
 
+using FxFactory = std::function<std::unique_ptr<render::FxSystem>()>;
+
 /// Reads the race and never changes it. `surfaces` must outlive it.
 class RaceParticles {
 public:
     RaceParticles(render::ParticleBankSetup common, render::ParticleBankSetup track,
-                  std::unique_ptr<render::FxSystem> fx,
-                  std::span<const assets::SurfaceEntry> surfaces, std::size_t player);
+                  FxFactory makeFx, std::span<const assets::SurfaceEntry> surfaces,
+                  std::size_t player);
 
     /// `track` is a race track folder under `GAMEDATA`, such as `RACEC0R0`.
     [[nodiscard]] static Result<RaceParticles> Load(
@@ -78,7 +82,9 @@ private:
     void Start(WheelEmitter& wheel, const render::EmitterPlacement& placement);
 
     std::array<render::ParticleBank, 2> banks_;
+    FxFactory makeFx_;
     std::unique_ptr<render::FxSystem> fx_;
+    WallSparks walls_;
     bool isBetter_ = false;
     std::span<const assets::SurfaceEntry> surfaces_;
     std::size_t player_;

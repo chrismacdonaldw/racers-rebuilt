@@ -17,6 +17,8 @@ constexpr float kRandomScale = 1.0F / 16777216.0F;
 constexpr Vector3 kCameraUp{.y = 1.0F};
 constexpr Vector3 kCameraRight{.x = 1.0F};
 constexpr Vector3 kTowardLight = -kDefaultLight.direction;
+constexpr float kBounceFriction = 0.7F;
+constexpr Rect kWholeTexture{.width = 1.0F, .height = 1.0F};
 
 float SmoothStep(float x) {
     const float t = std::clamp(x, 0.0F, 1.0F);
@@ -39,16 +41,41 @@ Vector3 Between(const Vector3& from, const Vector3& to, float share) {
     return from + ((to - from) * share);
 }
 
+Color ColorOf(const FxEffect& effect, float share) {
+    if (!effect.endColor) {
+        return effect.color;
+    }
+    const Color& end = *effect.endColor;
+    return {.r = std::lerp(effect.color.r, end.r, share),
+            .g = std::lerp(effect.color.g, end.g, share),
+            .b = std::lerp(effect.color.b, end.b, share),
+            .a = std::lerp(effect.color.a, end.a, share)};
+}
+
 Color Lit(const Color& color, float shade, const Vector3& offset) {
     const float facing = Dot(Normalized(offset, kCameraUp), kTowardLight);
     const float light = std::lerp(shade, 1.0F, 0.5F + (0.5F * facing));
     return {.r = color.r * light, .g = color.g * light, .b = color.b * light};
 }
 
+std::array<Vector3, 4> Corners(const Vector3& at, const Vector3& along, const Vector3& across) {
+    return {at + along - across, at + along + across, at - along - across, at - along + across};
 }
 
-FxSystem::FxSystem(std::vector<FxEffect> effects, TextureId smoke, std::size_t capacity)
-    : effects_(std::move(effects)), smoke_(smoke), capacity_(capacity) {
+void Bounce(Vector3& position, Vector3& velocity, float floor, float bounce) {
+    if (bounce <= 0.0F || position.y >= floor || velocity.y >= 0.0F) {
+        return;
+    }
+    position.y = floor;
+    velocity = {.x = velocity.x * kBounceFriction,
+                .y = -velocity.y * bounce,
+                .z = velocity.z * kBounceFriction};
+}
+
+}
+
+FxSystem::FxSystem(std::vector<FxEffect> effects, FxTextures textures, std::size_t capacity)
+    : effects_(std::move(effects)), textures_(textures), capacity_(capacity) {
     particles_.reserve(capacity_);
     order_.reserve(capacity_);
 }
@@ -63,24 +90,29 @@ std::optional<FxEffectId> FxSystem::EffectFor(std::string_view emitter) const {
 
 void FxSystem::Emit(FxEffectId effect, const EmitterPlacement& placement, float elapsedMs,
                     FxEmission& emission) {
-    const auto index = static_cast<std::uint16_t>(effect);
-    const FxEffect& definition = effects_.at(index);
-    const Vector3 from = emission.lastPosition.value_or(placement.position);
+    const auto first = static_cast<std::size_t>(effect);
+    const std::string_view emitter = effects_.at(first).emitter;
+    Vector3 from = emission.lastPosition.value_or(placement.position);
+    if (Length(placement.position - from) > kFxMaxEmitStep) {
+        from = placement.position;
+    }
     emission.lastPosition = placement.position;
-    if (!emission.hasBurst) {
-        emission.hasBurst = true;
-        for (int spawned = 0; spawned < definition.burst; ++spawned) {
+    const bool bursts = !emission.hasBurst;
+    emission.hasBurst = true;
+    for (std::size_t layer = 0; layer < kMaxFxLayers && first + layer < effects_.size() &&
+                                effects_[first + layer].emitter == emitter;
+         ++layer) {
+        const auto index = static_cast<std::uint16_t>(first + layer);
+        for (int spawned = 0; bursts && spawned < effects_[index].burst; ++spawned) {
             Spawn(index, placement.position, placement, 0.0F);
         }
+        EmitLayer(index, emission.carry.at(layer), from, placement, elapsedMs);
     }
-    emission.carry += definition.ratePerSecond * elapsedMs / kMillisecondsPerSecond;
-    const int steady = static_cast<int>(emission.carry);
-    emission.carry -= static_cast<float>(steady);
-    for (int spawned = 0; spawned < steady; ++spawned) {
-        const float share = (static_cast<float>(spawned) + Unit()) / static_cast<float>(steady);
-        Spawn(index, Between(from, placement.position, share), placement,
-              (1.0F - share) * elapsedMs);
-    }
+}
+
+void FxSystem::Burst(FxEffectId effect, const EmitterPlacement& placement) {
+    FxEmission once;
+    Emit(effect, placement, 0.0F, once);
 }
 
 void FxSystem::Update(FloatMilliseconds elapsed) {
@@ -96,6 +128,7 @@ void FxSystem::Update(FloatMilliseconds elapsed) {
         particle.velocity += effect.acceleration * seconds;
         particle.position += particle.velocity * seconds;
         particle.angle += particle.spin * seconds;
+        Bounce(particle.position, particle.velocity, particle.floor, effect.bounce);
         return false;
     });
 }
@@ -109,16 +142,32 @@ std::size_t FxSystem::Count() const {
 }
 
 void FxSystem::AppendQuads(const Transform& camera, std::vector<QuadDraw>& out) const {
-    const Vector3 up = Rotate(camera.rotation, kCameraUp);
-    const Vector3 right = Rotate(camera.rotation, kCameraRight);
+    const View view{.position = camera.position,
+                    .up = Rotate(camera.rotation, kCameraUp),
+                    .right = Rotate(camera.rotation, kCameraRight)};
     order_.clear();
     for (std::uint32_t i = 0; i < particles_.size(); ++i) {
         const Vector3 toCamera = particles_[i].position - camera.position;
-        order_.emplace_back(Dot(toCamera, toCamera), i);
+        const float distance = Dot(toCamera, toCamera);
+        if (distance < kFxDrawDistance * kFxDrawDistance) {
+            order_.emplace_back(distance, i);
+        }
     }
     std::ranges::sort(order_, std::ranges::greater{});
     for (const std::uint32_t index : order_ | std::views::values) {
-        out.push_back(QuadOf(particles_[index], up, right));
+        out.push_back(QuadOf(particles_[index], view));
+    }
+}
+
+void FxSystem::EmitLayer(std::uint16_t layer, float& carry, const Vector3& from,
+                         const EmitterPlacement& placement, float elapsedMs) {
+    carry += effects_[layer].ratePerSecond * elapsedMs / kMillisecondsPerSecond;
+    const int steady = static_cast<int>(carry);
+    carry -= static_cast<float>(steady);
+    for (int spawned = 0; spawned < steady; ++spawned) {
+        const float share = (static_cast<float>(spawned) + Unit()) / static_cast<float>(steady);
+        Spawn(layer, Between(from, placement.position, share), placement,
+              (1.0F - share) * elapsedMs);
     }
 }
 
@@ -131,7 +180,7 @@ void FxSystem::Spawn(std::uint16_t effect, const Vector3& at, const EmitterPlace
     const Vector3 jitter{.x = definition.spread.x * ((Unit() * 2.0F) - 1.0F),
                          .y = definition.spread.y * ((Unit() * 2.0F) - 1.0F),
                          .z = definition.spread.z * ((Unit() * 2.0F) - 1.0F)};
-    const Vector3 velocity = (placement.velocity * definition.inherit) + jitter;
+    const Vector3 velocity = (placement.velocity * definition.inherit) + definition.launch + jitter;
     const float spin = Roll(definition.spinPerSecond) * (Unit() < 0.5F ? -1.0F : 1.0F);
     particles_.push_back(
         {.position = at + (velocity * (ageMs / kMillisecondsPerSecond)),
@@ -142,29 +191,48 @@ void FxSystem::Spawn(std::uint16_t effect, const Vector3& at, const EmitterPlace
          .endSize = Roll(definition.endSize),
          .angle = Unit() * std::numbers::pi_v<float> * 2.0F,
          .spin = spin,
+         .floor = at.y - definition.floorDrop,
          .effect = effect,
          .variant = static_cast<std::uint8_t>(Unit() * static_cast<float>(kSmokeVariants))});
 }
 
-QuadDraw FxSystem::QuadOf(const Particle& particle, const Vector3& up, const Vector3& right) const {
+QuadDraw FxSystem::QuadOf(const Particle& particle, const View& view) const {
     const FxEffect& effect = effects_[particle.effect];
     const float share = particle.lifeMs > 0.0F ? particle.ageMs / particle.lifeMs : 1.0F;
     const float half = 0.5F * std::lerp(particle.startSize, particle.endSize, GrowthOf(share));
+    const Color color = ColorOf(effect, share);
+    QuadDraw quad{.tint = {.a = color.a * FadeOf(effect, share)}, .blend = effect.blend};
+    const Color plain{.r = color.r, .g = color.g, .b = color.b};
+    quad.cornerTints = {plain, plain, plain, plain};
+    if (effect.shape == FxShape::Streak) {
+        const float speed = Length(particle.velocity);
+        const Vector3 along = Normalized(particle.velocity, view.up);
+        const Vector3 across =
+            Normalized(Cross(along, view.position - particle.position), view.right);
+        const Vector3 head = particle.position;
+        const float length = std::max(half * 2.0F, speed * effect.streakSeconds);
+        quad.texture = textures_.spark;
+        quad.uv = kWholeTexture;
+        quad.corners =
+            Corners(head - (along * (0.5F * length)), along * (0.5F * length), across * half);
+        return quad;
+    }
     const float cos = std::cos(particle.angle) * half;
     const float sin = std::sin(particle.angle) * half;
-    const Vector3 across = (right * cos) + (up * sin);
-    const Vector3 along = (up * cos) - (right * sin);
-    const Vector3& at = particle.position;
+    const Vector3 across = (view.right * cos) + (view.up * sin);
+    const Vector3 along = (view.up * cos) - (view.right * sin);
+    quad.corners = Corners(particle.position, along, across);
+    if (effect.shape == FxShape::Glow) {
+        quad.texture = textures_.glow;
+        quad.uv = kWholeTexture;
+        return quad;
+    }
+    quad.texture = textures_.smoke;
+    quad.uv = SmokeCell(particle.variant);
     const std::array<Vector3, 4> offsets{along - across, along + across, -along - across,
                                          -along + across};
-    QuadDraw quad{
-        .texture = smoke_,
-        .uv = SmokeCell(particle.variant),
-        .tint = {.r = 1.0F, .g = 1.0F, .b = 1.0F, .a = effect.color.a * FadeOf(effect, share)},
-        .blend = effect.blend};
     for (std::size_t corner = 0; corner < offsets.size(); ++corner) {
-        quad.corners.at(corner) = at + offsets.at(corner);
-        quad.cornerTints.at(corner) = Lit(effect.color, effect.shade, offsets.at(corner));
+        quad.cornerTints.at(corner) = Lit(plain, effect.shade, offsets.at(corner));
     }
     return quad;
 }

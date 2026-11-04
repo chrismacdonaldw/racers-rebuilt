@@ -16,24 +16,31 @@
 namespace rr::render {
 
 inline constexpr std::size_t kFxCapacity = 4096;
+inline constexpr float kFxDrawDistance = 600.0F;
+/// An emitter that moves further than this in a frame jumped, so nothing spawns along the gap.
+inline constexpr float kFxMaxEmitStep = 30.0F;
 
 /// Effects drawn in place of original emitters, from textures made in code, on one shared pool.
 /// Spawns past `capacity` are dropped. Draws randomness from its own stream.
 class FxSystem {
 public:
-    FxSystem(std::vector<FxEffect> effects, TextureId smoke, std::size_t capacity = kFxCapacity);
+    FxSystem(std::vector<FxEffect> effects, FxTextures textures,
+             std::size_t capacity = kFxCapacity);
 
+    /// The first of the layers that name `emitter`.
     [[nodiscard]] std::optional<FxEffectId> EffectFor(std::string_view emitter) const;
 
     /// Spawns this frame's share along the path from the emitter's last position to `placement`.
     void Emit(FxEffectId effect, const EmitterPlacement& placement, float elapsedMs,
               FxEmission& emission);
+    /// Spawns only the effect's bursts.
+    void Burst(FxEffectId effect, const EmitterPlacement& placement);
     void Update(FloatMilliseconds elapsed);
     void Clear();
 
     [[nodiscard]] std::size_t Count() const;
 
-    /// Camera-facing, turned by each particle's spin, back to front.
+    /// Back to front, leaving out particles past `kFxDrawDistance`.
     void AppendQuads(const Transform& camera, std::vector<QuadDraw>& out) const;
 
 private:
@@ -46,19 +53,27 @@ private:
         float endSize = 0.0F;
         float angle = 0.0F;
         float spin = 0.0F;
+        float floor = 0.0F;
         std::uint16_t effect = 0;
         std::uint8_t variant = 0;
     };
 
+    struct View {
+        Vector3 position;
+        Vector3 up;
+        Vector3 right;
+    };
+
+    void EmitLayer(std::uint16_t layer, float& carry, const Vector3& from,
+                   const EmitterPlacement& placement, float elapsedMs);
     void Spawn(std::uint16_t effect, const Vector3& at, const EmitterPlacement& placement,
                float ageMs);
-    [[nodiscard]] QuadDraw QuadOf(const Particle& particle, const Vector3& up,
-                                  const Vector3& right) const;
+    [[nodiscard]] QuadDraw QuadOf(const Particle& particle, const View& view) const;
     [[nodiscard]] float Roll(FxRange range);
     [[nodiscard]] float Unit();
 
     std::vector<FxEffect> effects_;
-    TextureId smoke_;
+    FxTextures textures_;
     std::size_t capacity_;
     std::vector<Particle> particles_;
     mutable std::vector<std::pair<float, std::uint32_t>> order_;
