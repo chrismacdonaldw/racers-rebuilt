@@ -57,6 +57,13 @@ void GarageMenu::Refresh(std::size_t racers, std::size_t racer, GarageButton foc
     }
 }
 
+void GarageMenu::LockTestDrive(bool isLocked) {
+    isTestDriveLocked_ = isLocked;
+    if (isLocked && focus_ == GarageButton::TestDrive) {
+        MoveFocus(1);
+    }
+}
+
 bool GarageMenu::FocusOn(GarageButton button) {
     if (!std::ranges::contains(Buttons(), button) || !IsEnabled(button)) {
         return false;
@@ -80,15 +87,16 @@ bool GarageMenu::IsEnabled(GarageButton button) const {
             return racers_ != 0 && racers_ < kGarageCapacity;
         case GarageButton::Edit:
         case GarageButton::Delete:
-        case GarageButton::TestDrive:
             return racers_ != 0;
+        case GarageButton::TestDrive:
+            return racers_ != 0 && !isTestDriveLocked_;
         default:
             return true;
     }
 }
 
 std::uint64_t GarageMenu::StateHash() const {
-    const std::uint64_t page = (racer_ * 2) + (isEditing_ ? 1 : 0);
+    const std::uint64_t page = (racer_ * 4) + (isEditing_ ? 2 : 0) + (isTestDriveLocked_ ? 1 : 0);
     return (page * kButtonBase) + static_cast<std::uint64_t>(focus_);
 }
 

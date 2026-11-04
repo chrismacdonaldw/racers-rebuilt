@@ -59,6 +59,7 @@ private:
     void Start();
     void CheerInto(std::string next);
     void ShowPicked();
+    [[nodiscard]] bool IsPickLocked() const;
     [[nodiscard]] std::string Reopened() const;
     [[nodiscard]] std::string Left() const;
     void PlaySounds(const sim::InputFrame& input, RacerPickRequest request,
@@ -74,6 +75,7 @@ private:
     RacerPickLook look_;
     RacerPickRoute route_;
     bool isVersus_;
+    bool allowsExtraPieces_ = false;
     Racers racers_;
     RacerPickMenu menu_;
     MenuText text_;

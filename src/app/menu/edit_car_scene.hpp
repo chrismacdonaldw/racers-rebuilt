@@ -14,6 +14,7 @@
 #include "app/menu/car_stand.hpp"
 #include "app/menu/edit_car_look.hpp"
 #include "app/menu/edit_car_menu.hpp"
+#include "app/menu/extra_pieces_lock.hpp"
 #include "app/menu/icon_strip.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
@@ -98,6 +99,9 @@ private:
     void Done();
     void ShowCar();
     [[nodiscard]] bool HasChanges() const;
+    [[nodiscard]] bool IsLocked() const {
+        return IsLockedCar(shown_.car, buildMode_.offersExtraPieces);
+    }
     void PlaySounds(const sim::InputFrame& input, CarRequest request, CarRow focusBefore) const;
     [[nodiscard]] const assets::SoundIds& SoundsOf(CarRow row) const;
     [[nodiscard]] std::size_t StateOf(CarRow row) const;

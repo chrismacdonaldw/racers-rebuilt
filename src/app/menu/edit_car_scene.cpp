@@ -149,6 +149,7 @@ void EditCarScene::ApplySettings(const settings::Registry& settings) {
     buildMode_ = {.controls = settings.Get(kEnhancedBuilder) ? BuildControls::Palette
                                                              : BuildControls::Original,
                   .offersExtraPieces = settings.Get(kExtraPiecesSetting)};
+    menu_.Enable(CarRow::Done, !IsLocked());
     if (build_) {
         build_->UseControls(buildMode_);
     }
@@ -218,6 +219,9 @@ void EditCarScene::Render(const sim::RenderSnapshot& interpolated) {
         DrawPictures(under_, sprites_);
     }
     DrawControls();
+    if (views_.stand && IsLocked()) {
+        DrawLockNotice(text_, views_.stand->Framing().interior, sprites_);
+    }
     if (dialog_) {
         dialog_->Draw(text_, sprites_);
     }
@@ -364,6 +368,7 @@ void EditCarScene::QuickBuild() {
     if (build == nullptr) {
         return;
     }
+    car_.pieces.ReadExtraModels(*vfs_, assets::PieceTypesOf(build->car));
     Result<sim::BuiltCar> loaded = sim::BuiltCar::Load(build->car, car_.pieces.library);
     if (!loaded) {
         log::Warn("{}, the car stays as it was", loaded.error().message);
@@ -392,6 +397,7 @@ void EditCarScene::ShowCar() {
     const bool hasBricks = car_.built.Pieces().size() > 1;
     menu_.Enable(CarRow::RemoveBricks, hasBricks);
     menu_.Enable(CarRow::PartSet, !hasBricks || car_.isReplaceable);
+    menu_.Enable(CarRow::Done, !IsLocked());
     if (views_.stand) {
         views_.stand->ShowCar(shown_);
     }
