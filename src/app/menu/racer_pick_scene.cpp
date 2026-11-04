@@ -9,6 +9,8 @@
 
 #include "app/fix_settings.hpp"
 #include "app/frame_loop.hpp"
+#include "app/menu/builder_settings.hpp"
+#include "app/menu/extra_pieces_lock.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_scenes.hpp"
@@ -103,6 +105,7 @@ Result<std::unique_ptr<RacerPickScene>> RacerPickScene::Create(render::Renderer&
 
 void RacerPickScene::ApplySettings(const settings::Registry& settings) {
     static_cast<void>(text_.Apply(*renderer_, *vfs_, settings));
+    allowsExtraPieces_ = settings.Get(kExtraPiecesSetting);
     if (!stand_) {
         return;
     }
@@ -133,7 +136,11 @@ void RacerPickScene::Tick(const sim::InputFrame& input) {
         menu_.FocusOn(static_cast<RacerPickRow>(*focus));
     }
     const sim::InputFrame clicked = WithClick(input, pointed);
-    const RacerPickRequest request = menu_.Tick(clicked);
+    RacerPickRequest request = menu_.Tick(clicked);
+    if (request == RacerPickRequest::Start && IsPickLocked()) {
+        sounds_.Play(kLockedSound);
+        request = RacerPickRequest::None;
+    }
     switch (request) {
         case RacerPickRequest::Start:
             Start();
@@ -177,6 +184,9 @@ void RacerPickScene::Render(const sim::RenderSnapshot& interpolated) {
     DrawBanner(text_, look_.banner, text_.Line(title), look_.backdrop, look_.bannerTop, sprites_);
     DrawPicker();
     DrawButtons();
+    if (stand_ && IsPickLocked()) {
+        DrawLockNotice(text_, stand_->Bounds(), sprites_);
+    }
     view.sprites = sprites_;
     Result<void> drawn = renderer_->Draw(view);
     if (!drawn) {
@@ -226,6 +236,11 @@ void RacerPickScene::ShowPicked() {
     if (stand_ && !racers_.pickable.empty()) {
         stand_->Show(racers_.pickable.at(menu_.Racer()));
     }
+}
+
+bool RacerPickScene::IsPickLocked() const {
+    return !racers_.pickable.empty() &&
+           IsLockedCar(racers_.pickable.at(menu_.Racer()).car, allowsExtraPieces_);
 }
 
 std::string RacerPickScene::Reopened() const {

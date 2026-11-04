@@ -49,6 +49,10 @@ public:
     /// False, leaving the focus, for a button that's hidden or off.
     [[nodiscard]] bool FocusOn(GarageButton button);
 
+    /// Moves the focus on from TEST DRIVE when it locks.
+    void LockTestDrive(bool isLocked);
+    [[nodiscard]] bool IsTestDriveLocked() const { return isTestDriveLocked_; }
+
     [[nodiscard]] std::span<const GarageButton> Buttons() const;
     [[nodiscard]] bool IsEnabled(GarageButton button) const;
     [[nodiscard]] bool IsEditing() const { return isEditing_; }
@@ -66,6 +70,7 @@ private:
     std::size_t racers_;
     std::size_t racer_ = 0;
     bool isEditing_ = false;
+    bool isTestDriveLocked_ = false;
     GarageButton focus_ = GarageButton::New;
 };
 

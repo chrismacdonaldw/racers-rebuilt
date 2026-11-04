@@ -65,6 +65,7 @@ private:
     void TestDrive();
     bool Changed(std::size_t racer, GarageButton focus);
     void ShowRacer();
+    void LockShownRacer();
     void PlaySounds(const sim::InputFrame& input, GarageRequest request,
                     GarageButton focusBefore) const;
     [[nodiscard]] const assets::SoundIds& SoundsOf(GarageButton button) const;
@@ -83,6 +84,7 @@ private:
     GarageMenu menu_;
     MenuText text_;
     RaceSceneSetup rules_;
+    bool allowsExtraPieces_ = false;
     std::optional<MessageDialog> dialog_;
     std::optional<std::string> opened_;
     std::vector<render::SpriteDraw> sprites_;

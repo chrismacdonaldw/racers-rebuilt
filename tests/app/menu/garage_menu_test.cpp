@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <cstdint>
 #include <initializer_list>
 
 namespace rr::app {
@@ -42,6 +43,29 @@ TEST_CASE("a full garage opens on EDIT RACER and can't make or copy racers") {
     CHECK(Press(menu, {MenuAction::Down}) == GarageRequest::None);
     CHECK(menu.Focus() == GarageButton::Delete);
     CHECK(Press(menu, {MenuAction::Down, MenuAction::Confirm}) == GarageRequest::TestDrive);
+}
+
+TEST_CASE("a locked TEST DRIVE is off and passes the focus on") {
+    GarageMenu menu(2);
+    REQUIRE(menu.FocusOn(GarageButton::TestDrive));
+
+    menu.LockTestDrive(true);
+
+    CHECK(menu.Focus() == GarageButton::Back);
+    CHECK_FALSE(menu.FocusOn(GarageButton::TestDrive));
+    menu.LockTestDrive(false);
+    CHECK(menu.FocusOn(GarageButton::TestDrive));
+}
+
+TEST_CASE("locking TEST DRIVE keeps EDIT and DELETE and shows in the state hash") {
+    GarageMenu menu(2);
+    const std::uint64_t unlocked = menu.StateHash();
+
+    menu.LockTestDrive(true);
+
+    CHECK(menu.StateHash() != unlocked);
+    CHECK(menu.FocusOn(GarageButton::Edit));
+    CHECK(menu.FocusOn(GarageButton::Delete));
 }
 
 TEST_CASE("left and right step through the racers, wrapping") {
