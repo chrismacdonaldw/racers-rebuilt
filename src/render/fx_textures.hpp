@@ -16,4 +16,10 @@ inline constexpr std::uint32_t kSmokeCellPx = 128;
 
 [[nodiscard]] Rect SmokeCell(std::size_t variant);
 
+/// A white spark, hot at its head on the top edge and fading down its tail.
+[[nodiscard]] assets::ImageAsset MakeSparkTexture();
+
+/// A soft white round light.
+[[nodiscard]] assets::ImageAsset MakeGlowTexture();
+
 }

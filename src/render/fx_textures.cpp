@@ -19,6 +19,10 @@ constexpr float kBlobMaxRadius = 0.48F;
 constexpr float kCellFadeStart = 0.75F;
 constexpr float kCellFadeEnd = 0.98F;
 constexpr std::size_t kChannels = 4;
+constexpr std::uint32_t kSparkWidthPx = 16;
+constexpr std::uint32_t kSparkHeightPx = 64;
+constexpr float kSparkSharpness = 6.0F;
+constexpr std::uint32_t kGlowPx = 64;
 
 float Hash(int x, int y, std::uint32_t seed) {
     std::uint32_t h = (static_cast<std::uint32_t>(x) * 0x8DA6B343U) ^
@@ -63,6 +67,14 @@ float SmoothStep(float edge0, float edge1, float x) {
 
 std::byte ToByte(float value) {
     return static_cast<std::byte>(std::lround(std::clamp(value, 0.0F, 1.0F) * 255.0F));
+}
+
+void Fill(assets::ImageAsset& image, std::size_t pixel, float light, float alpha) {
+    const std::size_t at = pixel * kChannels;
+    image.rgba[at] = ToByte(light);
+    image.rgba[at + 1] = ToByte(light);
+    image.rgba[at + 2] = ToByte(light);
+    image.rgba[at + 3] = ToByte(alpha);
 }
 
 struct Blob {
@@ -119,12 +131,7 @@ void DrawPuff(assets::ImageAsset& atlas, std::size_t variant) {
                 SmoothStep(0.02F, 0.5F, height) * (0.65F + (0.35F * wisp)) * window;
             const float light =
                 0.45F + (0.55F * std::clamp(height, 0.0F, 1.0F)) + (0.12F * (detail - 0.5F));
-            const std::size_t at =
-                ((static_cast<std::size_t>(top + y) * kAtlasPx) + left + x) * kChannels;
-            atlas.rgba[at] = ToByte(light);
-            atlas.rgba[at + 1] = ToByte(light);
-            atlas.rgba[at + 2] = ToByte(light);
-            atlas.rgba[at + 3] = ToByte(density);
+            Fill(atlas, (static_cast<std::size_t>(top + y) * kAtlasPx) + left + x, light, density);
         }
     }
 }
@@ -140,6 +147,43 @@ assets::ImageAsset MakeSmokeAtlas() {
         DrawPuff(atlas, variant);
     }
     return atlas;
+}
+
+assets::ImageAsset MakeSparkTexture() {
+    assets::ImageAsset spark{
+        .widthPx = kSparkWidthPx,
+        .heightPx = kSparkHeightPx,
+        .rgba = std::vector<std::byte>(std::size_t{kSparkWidthPx} * kSparkHeightPx * kChannels)};
+    for (std::uint32_t y = 0; y < kSparkHeightPx; ++y) {
+        const float along = (static_cast<float>(y) + 0.5F) / static_cast<float>(kSparkHeightPx);
+        const float head = 1.0F - SmoothStep(0.0F, 1.0F, along);
+        const float tip = SmoothStep(0.0F, 0.08F, along);
+        for (std::uint32_t x = 0; x < kSparkWidthPx; ++x) {
+            const float across =
+                ((static_cast<float>(x) + 0.5F) / static_cast<float>(kSparkWidthPx) * 2.0F) - 1.0F;
+            const float core = std::exp(-(across * across) * kSparkSharpness);
+            Fill(spark, (std::size_t{y} * kSparkWidthPx) + x, 1.0F, core * head * tip);
+        }
+    }
+    return spark;
+}
+
+assets::ImageAsset MakeGlowTexture() {
+    assets::ImageAsset glow{
+        .widthPx = kGlowPx,
+        .heightPx = kGlowPx,
+        .rgba = std::vector<std::byte>(std::size_t{kGlowPx} * kGlowPx * kChannels)};
+    for (std::uint32_t y = 0; y < kGlowPx; ++y) {
+        for (std::uint32_t x = 0; x < kGlowPx; ++x) {
+            const float dx =
+                ((static_cast<float>(x) + 0.5F) / static_cast<float>(kGlowPx) * 2.0F) - 1.0F;
+            const float dy =
+                ((static_cast<float>(y) + 0.5F) / static_cast<float>(kGlowPx) * 2.0F) - 1.0F;
+            const float falloff = std::max(0.0F, 1.0F - (dx * dx) - (dy * dy));
+            Fill(glow, (std::size_t{y} * kGlowPx) + x, 1.0F, falloff * falloff * falloff);
+        }
+    }
+    return glow;
 }
 
 Rect SmokeCell(std::size_t variant) {

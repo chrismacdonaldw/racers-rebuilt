@@ -1,5 +1,10 @@
 #include "app/race_fx.hpp"
 
+#include <optional>
+
+#include "core/log.hpp"
+#include "render/fx_textures.hpp"
+
 namespace rr::app {
 namespace {
 
@@ -88,10 +93,123 @@ constexpr render::FxEffect kCannonSmoke{.emitter = "cannsmk",
                                         .color = {.r = 0.7F, .g = 0.7F, .b = 0.7F, .a = 0.65F},
                                         .shade = 0.5F};
 
+constexpr render::Color kSparkHot{.r = 1.0F, .g = 0.95F, .b = 0.7F};
+constexpr render::Color kSparkCool{.r = 1.0F, .g = 0.35F, .b = 0.05F};
+
+constexpr render::FxEffect Sparks(std::string_view emitter, int burst) {
+    return {.emitter = emitter,
+            .shape = render::FxShape::Streak,
+            .burst = burst,
+            .lifeMs = {.min = 350.0F, .max = 800.0F},
+            .startSize = {.min = 0.8F, .max = 1.1F},
+            .endSize = {.min = 0.4F, .max = 0.6F},
+            .inherit = 0.4F,
+            .launch = {.y = 12.0F},
+            .spread = {.x = 30.0F, .y = 20.0F, .z = 30.0F},
+            .acceleration = {.y = -60.0F},
+            .drag = 0.8F,
+            .streakSeconds = 0.06F,
+            .bounce = 0.35F,
+            .floorDrop = 1.0F,
+            .color = kSparkHot,
+            .endColor = kSparkCool,
+            .fadeInShare = 0.0F,
+            .fadeOutShare = 0.3F,
+            .blend = render::BlendMode::Additive};
+}
+
+constexpr render::FxEffect Flash(std::string_view emitter, float size) {
+    return {.emitter = emitter,
+            .shape = render::FxShape::Glow,
+            .burst = 1,
+            .lifeMs = {.min = 90.0F, .max = 140.0F},
+            .startSize = {.min = size, .max = size},
+            .endSize = {.min = size * 0.4F, .max = size * 0.4F},
+            .color = {.r = 1.0F, .g = 0.8F, .b = 0.5F, .a = 0.9F},
+            .fadeInShare = 0.0F,
+            .fadeOutShare = 1.0F,
+            .blend = render::BlendMode::Additive};
+}
+
+constexpr render::FxEffect kCrashPuff{.emitter = "carsprk",
+                                      .burst = 3,
+                                      .lifeMs = {.min = 500.0F, .max = 800.0F},
+                                      .startSize = {.min = 1.5F, .max = 2.0F},
+                                      .endSize = {.min = 4.0F, .max = 6.0F},
+                                      .spinPerSecond = {.min = 0.5F, .max = 1.5F},
+                                      .inherit = 0.3F,
+                                      .launch = {.y = 3.0F},
+                                      .spread = {.x = 3.0F, .y = 2.0F, .z = 3.0F},
+                                      .drag = 2.0F,
+                                      .color = {.r = 0.5F, .g = 0.5F, .b = 0.5F, .a = 0.4F},
+                                      .shade = 0.5F};
+
+constexpr render::FxEffect kFuseSparks{.emitter = "dynsprk",
+                                       .shape = render::FxShape::Streak,
+                                       .ratePerSecond = 90.0F,
+                                       .lifeMs = {.min = 200.0F, .max = 450.0F},
+                                       .startSize = {.min = 0.5F, .max = 0.7F},
+                                       .endSize = {.min = 0.25F, .max = 0.35F},
+                                       .launch = {.y = 6.0F},
+                                       .spread = {.x = 10.0F, .y = 8.0F, .z = 10.0F},
+                                       .acceleration = {.y = -40.0F},
+                                       .streakSeconds = 0.05F,
+                                       .color = kSparkHot,
+                                       .endColor = kSparkCool,
+                                       .fadeInShare = 0.0F,
+                                       .fadeOutShare = 0.3F,
+                                       .blend = render::BlendMode::Additive};
+
+constexpr render::FxEffect kFuseGlow{.emitter = "dynsprk",
+                                     .shape = render::FxShape::Glow,
+                                     .ratePerSecond = 15.0F,
+                                     .lifeMs = {.min = 60.0F, .max = 120.0F},
+                                     .startSize = {.min = 3.0F, .max = 4.0F},
+                                     .endSize = {.min = 2.0F, .max = 2.5F},
+                                     .color = {.r = 1.0F, .g = 0.75F, .b = 0.4F, .a = 0.8F},
+                                     .fadeInShare = 0.0F,
+                                     .fadeOutShare = 1.0F,
+                                     .blend = render::BlendMode::Additive};
+
+std::optional<render::TextureId> Upload(render::Renderer& renderer,
+                                        const assets::ImageAsset& image) {
+    Result<render::TextureId> texture = renderer.UploadTexture(image);
+    if (!texture) {
+        log::Warn("{}, racing without better particles", texture.error().message);
+        return std::nullopt;
+    }
+    return *texture;
+}
+
 }
 
 std::vector<render::FxEffect> RaceFxEffects() {
-    return {kTireSmoke, kDriftDust, kExhaustPuff, kTurboSmoke, kLandingDust, kCannonSmoke};
+    return {kTireSmoke,
+            kDriftDust,
+            kExhaustPuff,
+            kTurboSmoke,
+            kLandingDust,
+            kCannonSmoke,
+            Sparks("carsprk", 36),
+            Flash("carsprk", 10.0F),
+            kCrashPuff,
+            Sparks(kWallSparksEffect, 12),
+            Flash(kWallSparksEffect, 6.0F),
+            kFuseSparks,
+            kFuseGlow};
+}
+
+std::unique_ptr<render::FxSystem> MakeRaceFx(render::Renderer& renderer) {
+    const std::optional<render::TextureId> smoke = Upload(renderer, render::MakeSmokeAtlas());
+    const std::optional<render::TextureId> spark =
+        smoke ? Upload(renderer, render::MakeSparkTexture()) : std::nullopt;
+    const std::optional<render::TextureId> glow =
+        spark ? Upload(renderer, render::MakeGlowTexture()) : std::nullopt;
+    if (!glow) {
+        return nullptr;
+    }
+    return std::make_unique<render::FxSystem>(
+        RaceFxEffects(), render::FxTextures{.smoke = *smoke, .spark = *spark, .glow = *glow});
 }
 
 }

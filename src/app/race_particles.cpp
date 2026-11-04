@@ -5,7 +5,6 @@
 #include "app/particle_assets.hpp"
 #include "app/race_fx.hpp"
 #include "app/track_space.hpp"
-#include "render/fx_textures.hpp"
 
 namespace rr::app {
 namespace {
@@ -18,10 +17,10 @@ constexpr std::size_t kRearLeft = 3;
 }
 
 RaceParticles::RaceParticles(render::ParticleBankSetup common, render::ParticleBankSetup track,
-                             std::unique_ptr<render::FxSystem> fx,
-                             std::span<const assets::SurfaceEntry> surfaces, std::size_t player)
+                             FxFactory makeFx, std::span<const assets::SurfaceEntry> surfaces,
+                             std::size_t player)
     : banks_{render::ParticleBank(std::move(common)), render::ParticleBank(std::move(track))},
-      fx_(std::move(fx)),
+      makeFx_(std::move(makeFx)),
       surfaces_(surfaces),
       player_(player),
       hazards_(player) {}
@@ -41,13 +40,9 @@ Result<RaceParticles> RaceParticles::Load(render::Renderer& renderer, const asse
     if (!trackBank) {
         return std::unexpected(std::move(trackBank.error()));
     }
-    Result<render::TextureId> smoke = renderer.UploadTexture(render::MakeSmokeAtlas());
-    if (!smoke) {
-        return std::unexpected(std::move(smoke.error()));
-    }
-    return RaceParticles(std::move(*common), std::move(*trackBank),
-                         std::make_unique<render::FxSystem>(RaceFxEffects(), *smoke), surfaces,
-                         player);
+    return RaceParticles(
+        std::move(*common), std::move(*trackBank), [&renderer] { return MakeRaceFx(renderer); },
+        surfaces, player);
 }
 
 void RaceParticles::Tick(const sim::RaceSession& session, const Transform& camera,
@@ -55,6 +50,9 @@ void RaceParticles::Tick(const sim::RaceSession& session, const Transform& camer
     cars_.Tick(session.Racers(), Bank(ParticleFile::Common));
     powerups_.Tick(session, Bank(ParticleFile::Common), elapsed);
     hazards_.Tick(session, camera, Bank(ParticleFile::Track), elapsed);
+    if (isBetter_) {
+        walls_.Tick(session.Racers(), *fx_, elapsed);
+    }
 }
 
 void RaceParticles::Update(const sim::RaceSession& session,
@@ -112,6 +110,10 @@ void RaceParticles::AppendQuads(const Transform& camera, std::vector<render::Qua
 }
 
 void RaceParticles::SetBetter(bool isBetter) {
+    if (isBetter && !fx_) {
+        fx_ = makeFx_();
+    }
+    isBetter = isBetter && fx_ != nullptr;
     if (isBetter == isBetter_) {
         return;
     }

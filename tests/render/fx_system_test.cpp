@@ -18,7 +18,10 @@ namespace rr::render {
 namespace {
 
 constexpr TextureId kSmoke{3};
+constexpr TextureId kSpark{4};
+constexpr TextureId kGlow{5};
 constexpr TextureId kOriginal{9};
+constexpr FxTextures kTextures{.smoke = kSmoke, .spark = kSpark, .glow = kGlow};
 constexpr Transform kCamera{.position = {.z = -50.0F}};
 
 FxEffect Puff(float rate, int burst = 0) {
@@ -31,7 +34,11 @@ FxEffect Puff(float rate, int burst = 0) {
 }
 
 FxSystem System(FxEffect effect, std::size_t capacity = kFxCapacity) {
-    return {{effect}, kSmoke, capacity};
+    return {{effect}, kTextures, capacity};
+}
+
+Vector3 Centre(const QuadDraw& quad) {
+    return (quad.corners[0] + quad.corners[3]) * 0.5F;
 }
 
 std::vector<QuadDraw> Quads(const FxSystem& fx) {
@@ -76,12 +83,67 @@ TEST_CASE("particles spawn along the emitter's path, not in one clump") {
     float least = 10.0F;
     float most = 0.0F;
     for (const QuadDraw& quad : quads) {
-        const float x = (quad.corners[0].x + quad.corners[3].x) * 0.5F;
-        least = std::min(least, x);
-        most = std::max(most, x);
+        least = std::min(least, Centre(quad).x);
+        most = std::max(most, Centre(quad).x);
     }
     CHECK(least < 2.0F);
     CHECK(most > 8.0F);
+}
+
+TEST_CASE("an emitter that jumps spawns nothing along the gap") {
+    FxSystem fx = System(Puff(1000.0F));
+    const FxEffectId puff = *fx.EffectFor("puff");
+    FxEmission emission;
+    fx.Emit(puff, {}, 0.0F, emission);
+
+    fx.Emit(puff, {.position = {.x = kFxMaxEmitStep * 2.0F}}, 10.0F, emission);
+
+    for (const QuadDraw& quad : Quads(fx)) {
+        CHECK(Centre(quad).x == doctest::Approx(kFxMaxEmitStep * 2.0F));
+    }
+}
+
+TEST_CASE("layers naming the same emitter play together and bursts fire once") {
+    FxEffect glow = Puff(0.0F, 1);
+    glow.shape = FxShape::Glow;
+    FxSystem fx({Puff(0.0F, 2), glow, FxEffect{.emitter = "other", .burst = 5}}, kTextures);
+    FxEmission emission;
+
+    fx.Emit(*fx.EffectFor("puff"), {}, 0.0F, emission);
+    fx.Emit(*fx.EffectFor("puff"), {}, 0.0F, emission);
+    fx.Burst(*fx.EffectFor("puff"), {});
+
+    CHECK(fx.Count() == 6);
+    const std::vector<QuadDraw> quads = Quads(fx);
+    CHECK(std::ranges::count(quads, kGlow, &QuadDraw::texture) == 2);
+}
+
+TEST_CASE("streaks stretch along their motion and bounce off the floor") {
+    FxEffect spark = Puff(0.0F, 1);
+    spark.shape = FxShape::Streak;
+    spark.launch = {.x = 100.0F, .y = -10.0F};
+    spark.streakSeconds = 0.1F;
+    spark.bounce = 0.5F;
+    spark.floorDrop = 1.0F;
+    FxSystem fx = System(spark);
+    FxEmission emission;
+    fx.Emit(*fx.EffectFor("puff"), {}, 0.0F, emission);
+
+    fx.Update(FloatMilliseconds{150.0F});
+
+    const QuadDraw quad = Quads(fx).front();
+    CHECK(quad.texture == kSpark);
+    CHECK(quad.corners[0].x - quad.corners[2].x == doctest::Approx(7.0F).epsilon(0.02));
+    CHECK((quad.corners[0].y + quad.corners[1].y) * 0.5F == doctest::Approx(-1.0F));
+}
+
+TEST_CASE("particles past the draw distance are left out") {
+    FxSystem fx = System(Puff(0.0F, 1));
+    FxEmission emission;
+    fx.Emit(*fx.EffectFor("puff"), {.position = {.z = kFxDrawDistance * 2.0F}}, 0.0F, emission);
+
+    CHECK(fx.Count() == 1);
+    CHECK(Quads(fx).empty());
 }
 
 TEST_CASE("particles grow, fade and die at the end of their life") {

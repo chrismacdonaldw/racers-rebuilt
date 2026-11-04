@@ -59,10 +59,14 @@ public:
           world_({test::TestPlane{.surface = {.tableEntry = 0}, .maxX = kGrassEndX},
                   test::TestPlane{.minX = kGrassEndX}}),
           session_(Start()),
-          particles_(Bank({"grassemt", "tiresmk"}, kCommonParticleSlots),
-                     Bank({"snowkick"}, kTrackParticleSlots),
-                     std::make_unique<render::FxSystem>(RaceFxEffects(), render::kWhiteTexture),
-                     surfaces_, 0) {
+          particles_(
+              Bank({"grassemt", "tiresmk"}, kCommonParticleSlots),
+              Bank({"snowkick"}, kTrackParticleSlots),
+              [this] {
+                  ++fxMade_;
+                  return std::make_unique<render::FxSystem>(RaceFxEffects(), render::FxTextures{});
+              },
+              surfaces_, 0) {
         while (session_.Clock().Phase() != sim::RacePhase::Racing) {
             Tick();
         }
@@ -85,6 +89,7 @@ public:
     [[nodiscard]] std::size_t QuadCount() const { return Quads().size(); }
 
     [[nodiscard]] RaceParticles& Particles() { return particles_; }
+    [[nodiscard]] int FxMade() const { return fxMade_; }
     [[nodiscard]] sim::Racer& Player() { return session_.Racers()[0]; }
 
     [[nodiscard]] float RacerX(std::size_t racer) const {
@@ -104,6 +109,7 @@ private:
     }
 
     std::size_t players_;
+    int fxMade_ = 0;
     std::vector<assets::SurfaceEntry> surfaces_;
     sim::CheckpointGraph graph_ = test::Ring();
     test::PlaneWorld world_;
@@ -230,6 +236,19 @@ TEST_CASE("a skidding player's tyres smoke from either marked wheel until the sk
         race.Tick();
     }
     CHECK(race.QuadCount() == 0);
+}
+
+TEST_CASE("better particles are made only once they first turn on") {
+    GrassRace race("grassemt");
+    race.Particles().SetBetter(false);
+
+    CHECK(race.FxMade() == 0);
+
+    race.Particles().SetBetter(true);
+    race.Particles().SetBetter(false);
+    race.Particles().SetBetter(true);
+
+    CHECK(race.FxMade() == 1);
 }
 
 TEST_CASE("with better particles a skid draws the new smoke in place of the original's") {
