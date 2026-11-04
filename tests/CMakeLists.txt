@@ -122,6 +122,7 @@ add_executable(racers-rebuilt-tests
     app/menu/track_preview_test.cpp
     app/menu_pointer_test.cpp
     app/model_export_test.cpp
+    app/mod_content_test.cpp
     app/music_folder_source_test.cpp
     app/pace_car_test.cpp
     app/particle_assets_test.cpp

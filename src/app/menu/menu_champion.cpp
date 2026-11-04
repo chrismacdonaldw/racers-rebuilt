@@ -41,7 +41,6 @@ constexpr Milliseconds kTapInterval{30000};
 constexpr Vector3 kSpot{.x = 18.181229F, .y = -10.622759F, .z = 0.025708F};
 constexpr Vector3 kFacing{.x = 0.97237F, .y = -0.233445F, .z = 0.0F};
 constexpr Vector3 kUp{.z = 1.0F};
-constexpr std::array<std::string_view, 7> kChampions{"CR", "KK", "BB", "JT", "BVB", "GM", "RR"};
 
 Result<const assets::SceneElement*> PlatformScene(const MenuFiles& files) {
     return FindMenuElement(files, kScreen, kPlatform)
@@ -110,7 +109,8 @@ std::string MenuChampionCode(const assets::RaceCatalog& races,
     if (last < races.Circuits().size() && !races.Circuits()[last].boss.empty()) {
         return races.Circuits()[last].boss;
     }
-    return std::string(last < kChampions.size() ? kChampions[last] : kChampions.front());
+    const std::string_view retail = RetailBoss(last);
+    return std::string(retail.empty() ? RetailBoss(0) : retail);
 }
 
 std::string SavedMenuChampion(const assets::Vfs& vfs, const std::filesystem::path& progressFile) {
@@ -119,7 +119,7 @@ std::string SavedMenuChampion(const assets::Vfs& vfs, const std::filesystem::pat
         [&](const settings::Progress&) { return assets::RaceCatalog::Load(vfs); });
     if (!races) {
         log::Warn("{}, the main menu shows the first champion", races.error().message);
-        return std::string(kChampions.front());
+        return std::string(RetailBoss(0));
     }
     return MenuChampionCode(*races, OpenCircuits(*races, progress->unlockedCircuits));
 }

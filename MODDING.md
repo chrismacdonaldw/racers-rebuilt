@@ -181,8 +181,8 @@ start_boost = true
 - `name`: the name on the grid, in the results and in the circuit list.
 - `racer`: a game racer the driver races as, with its car and look: a prebuilt racer from `RACERS.TOML` or a quick build.
 - `champion`: the champion car from `CHAMPS.CCB` for a driver without `racer`.
-- `voice`: the code of a driver whose voice lines it uses.
-- `use_chances`: out of 255, how often the driver uses a power-up of each colour, `red`, `blue`, `green` and `yellow`. They replace the chances from the driver's stats.
+- `voice`: the code of a driver whose voice lines it uses. A new driver without one uses the first voice bank.
+- `use_chances`: out of 255, how often the driver uses a power-up of each colour, `red`, `blue`, `green` and `yellow`. They replace the chances from the driver's stats. A new driver has stats of 0, which give each colour 51, about 20%.
 - `charge`: the colour the driver charges, or `none`, and how many white bricks it charges to, 0 to 3.
 - `start_boost`: `true` or `false` to always or never take the start boost, in place of the green chance.
 

@@ -439,5 +439,23 @@ TEST_CASE("circuit setup offers every retail circuit, mirrored ones too, the fir
     CHECK(circuits->back().circuitIndex == 6);
 }
 
+TEST_CASE("a retail boss a mod renames shows its new name in the circuit list") {
+    std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const test::TempFolder mod;
+    std::filesystem::create_directories(mod.Path() / "GAMEDATA" / "COMMON");
+    std::ofstream(mod.Path() / "GAMEDATA" / "COMMON" / "DRIVERS.TOML", std::ios::binary)
+        << "[[driver]]\ncode = \"BVB\"\nname = \"Baron Von Brick\"\n";
+    AddModTrack(*vfs, mod.Path());
+
+    const Result<std::vector<CourseChoice>> circuits = LoadCircuitChoices(*vfs, {});
+
+    REQUIRE(circuits.has_value());
+    CHECK(circuits->at(4).boss.title == "Baron Von Brick");
+    CHECK(circuits->at(3).boss.code.empty());
+}
+
 }
 }

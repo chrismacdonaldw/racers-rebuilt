@@ -1,6 +1,7 @@
 #include "app/circuit_awards.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -15,6 +16,8 @@
 
 namespace rr::app {
 namespace {
+
+constexpr std::array<std::string_view, 7> kRetailBosses{"CR", "KK", "BB", "JT", "BVB", "GM", "RR"};
 
 constexpr std::size_t kChampionSlot = 1;
 
@@ -139,6 +142,10 @@ AwardDrivers DriversOf(const assets::CircuitEntry& circuit, std::size_t racer) {
     };
     return {.player = code(racer),
             .champion = circuit.boss.empty() ? code(kChampionSlot) : circuit.boss};
+}
+
+std::string_view RetailBoss(std::size_t circuit) {
+    return circuit < kRetailBosses.size() ? kRetailBosses[circuit] : std::string_view();
 }
 
 AwardClaim ClaimAward(const std::filesystem::path& file, const assets::Vfs& vfs,
