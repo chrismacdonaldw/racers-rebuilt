@@ -10,7 +10,9 @@
 #include <filesystem>
 #include <fstream>
 #include <optional>
+#include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "archive_survey.hpp"
@@ -102,13 +104,23 @@ Vector3 Lowest(const GeometryAsset& part, const LdrawMatrix& matrix) {
     return low;
 }
 
-bool SitsOnCells(LdrawLibrary& library, const LdrawPiece& mapped) {
-    const Result<GeometryAsset> part = library.LoadPart(mapped.file);
-    if (!part) {
+std::vector<std::string_view> MappedPieces() {
+    std::vector<std::string_view> pieces;
+    for (const LdrawPart& part : LdrawParts()) {
+        if (pieces.empty() || pieces.back() != part.piece) {
+            pieces.push_back(part.piece);
+        }
+    }
+    return pieces;
+}
+
+bool StaysOnCells(LdrawLibrary& library, std::string_view piece) {
+    const Result<GeometryAsset> model = LoadLdrawPiece(library, LdrawPartsOf(piece));
+    if (!model) {
         return false;
     }
-    const Vector3 low = Lowest(*part, mapped.matrix);
-    return low.x > -kTolerance && low.y > -kTolerance && std::abs(low.z) < kTolerance;
+    const Vector3 low = Lowest(*model, {});
+    return low.x > -kTolerance && low.y > -kTolerance && low.z > -kTolerance;
 }
 
 std::vector<std::array<float, 2>> SamplePoints(const PieceRecord& record) {
@@ -127,8 +139,19 @@ std::vector<std::array<float, 2>> SamplePoints(const PieceRecord& record) {
     return points;
 }
 
+bool FitsCells(const PieceLibrary& original, LdrawLibrary& library, std::string_view piece) {
+    const PieceRecord* record = original.Find(piece);
+    const Result<GeometryAsset> model = LoadLdrawPiece(library, LdrawPartsOf(piece));
+    if (record == nullptr || !model) {
+        return false;
+    }
+    const Vector3 high = Highest(*model, {});
+    return high.x < static_cast<float>(record->shape.size.width) + kTolerance &&
+           high.y < static_cast<float>(record->shape.size.height) + kTolerance;
+}
+
 std::optional<int> TopMismatches(const PieceLibrary& original, LdrawLibrary& library,
-                                 const LdrawPiece& mapped) {
+                                 const LdrawPart& mapped) {
     const PieceRecord* record = original.Find(mapped.piece);
     const Result<GeometryAsset> part = library.LoadPart(mapped.file);
     if (record == nullptr || !part) {
@@ -136,10 +159,7 @@ std::optional<int> TopMismatches(const PieceLibrary& original, LdrawLibrary& lib
     }
     const std::vector<Triangle> expected = OriginalTriangles(original, *record);
     const std::vector<Triangle> placed = PlacedTriangles(*part, mapped.matrix);
-    const Vector3 high = Highest(*part, mapped.matrix);
-    const bool isOutside = high.x > static_cast<float>(record->shape.size.width) + kTolerance ||
-                           high.y > static_cast<float>(record->shape.size.height) + kTolerance;
-    int mismatches = isOutside ? 1 : 0;
+    int mismatches = 0;
     for (const auto& [x, y] : SamplePoints(*record)) {
         const std::optional<float> want = TopAt(expected, x, y);
         const std::optional<float> got = TopAt(placed, x, y);
@@ -151,18 +171,36 @@ std::optional<int> TopMismatches(const PieceLibrary& original, LdrawLibrary& lib
     return mismatches;
 }
 
-TEST_CASE("every mapped piece loads from the shipped parts and sits on its cells") {
+std::string Misfits(const PieceLibrary& original, LdrawLibrary& library) {
+    std::string misfits;
+    for (const std::string_view piece : MappedPieces()) {
+        const std::span<const LdrawPart> parts = LdrawPartsOf(piece);
+        const bool topsMatch =
+            parts.size() != 1 || TopMismatches(original, library, parts.front()) == 0;
+        if (!FitsCells(original, library, piece) || !topsMatch) {
+            misfits.append(piece).append(" ");
+        }
+    }
+    return misfits;
+}
+
+TEST_CASE("every mapped piece loads from the shipped parts and stays above its first cell") {
     LdrawLibrary library(RR_LDRAW_DIR);
 
-    for (const LdrawPiece& mapped : LdrawPieces()) {
-        CAPTURE(mapped.piece);
-        CHECK(SitsOnCells(library, mapped));
+    for (const std::string_view piece : MappedPieces()) {
+        CAPTURE(piece);
+        CHECK(StaysOnCells(library, piece));
     }
 }
 
-TEST_CASE("a piece is found by name in any case") {
-    CHECK(LdrawPieceFor("l300100").value_or(LdrawPiece{}).file == "3001.dat");
-    CHECK_FALSE(LdrawPieceFor("L999900").has_value());
+TEST_CASE("a piece's parts are found together by name in any case") {
+    std::vector<std::string_view> pieces = MappedPieces();
+    std::ranges::sort(pieces);
+    CHECK(std::ranges::adjacent_find(pieces) == pieces.end());
+    REQUIRE(LdrawPartsOf("l300100").size() == 1);
+    CHECK(LdrawPartsOf("l300100").front().file == "3001.dat");
+    CHECK(LdrawPartsOf("SPRTSWD").size() == 2);
+    CHECK(LdrawPartsOf("L999900").empty());
 }
 
 TEST_CASE("a piece model names LDraw colours as game materials, the main colour as the piece's") {
@@ -172,15 +210,24 @@ TEST_CASE("a piece model names LDraw colours as game materials, the main colour 
         << "3 4 0 0 0 20 0 0 0 0 20\n3 16 0 0 0 20 0 0 0 0 20\n3 999 0 0 0 20 0 0 0 0 20\n";
     LdrawLibrary library(folder.Path());
 
-    const Result<GeometryAsset> model = LoadLdrawPiece(
-        library, {.piece = "X", .file = "x.dat", .matrix = {.position = {.x = 1.0F}}});
+    const std::array<LdrawPart, 2> parts{
+        LdrawPart{.piece = "X", .file = "x.dat", .matrix = {.position = {.x = 1.0F}}},
+        LdrawPart{.piece = "X", .file = "x.dat", .colour = "0"}};
+
+    const Result<GeometryAsset> model = LoadLdrawPiece(library, parts);
 
     REQUIRE(model.has_value());
-    CHECK(model->materials == std::vector<std::string>{"red", "piece", "piece"});
+    CHECK(model->materials == std::vector<std::string>{"red", "piece", "black"});
+    const std::size_t single = library.LoadPart("x.dat").value_or(GeometryAsset{}).vertices.size();
+    REQUIRE(single > 0);
+    REQUIRE(model->vertices.size() == 2 * single);
     CHECK(model->vertices[0].position == Vector3{.x = 1.0F});
+    CHECK(model->vertices[single].position == Vector3{});
+    CHECK(model->indices.back() >= single);
 }
 
-TEST_CASE("mapped pieces have the original pieces' top heights away from the studs") {
+TEST_CASE(
+    "mapped pieces fit their cells, and single parts have the original tops away from studs") {
     const std::optional<Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
         return;
@@ -192,10 +239,8 @@ TEST_CASE("mapped pieces have the original pieces' top heights away from the stu
     REQUIRE(original.has_value());
     LdrawLibrary library(RR_LDRAW_DIR);
 
-    for (const LdrawPiece& mapped : LdrawPieces()) {
-        CAPTURE(mapped.piece);
-        CHECK(TopMismatches(*original, library, mapped) == 0);
-    }
+    const std::string misfits = Misfits(*original, library);
+    CHECK_MESSAGE(misfits.empty(), misfits);
 }
 
 }

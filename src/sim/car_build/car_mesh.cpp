@@ -69,14 +69,14 @@ const assets::GeometryAsset* ModelOf(const assets::PieceRecord& record,
 }
 
 void GatherStuds(const BuiltCar& car, const assets::PieceCatalog& catalog,
-                 std::span<const std::uint32_t> materials, std::span<const std::uint8_t> isModelled,
-                 MeshInput& input) {
+                 std::span<const std::uint32_t> materials,
+                 const std::vector<std::uint8_t>& isModelled, MeshInput& input) {
     const assets::PieceRecord* stud = catalog.library.Find(assets::kStudPieceType, kPieceVariant);
     if (stud == nullptr) {
         return;
     }
     for (const CarStud& placed : CarStuds(car)) {
-        if (isModelled[placed.topPiece] != 0) {
+        if (isModelled.at(placed.topPiece) != 0) {
             continue;
         }
         input.studs.push_back({.piece = stud,

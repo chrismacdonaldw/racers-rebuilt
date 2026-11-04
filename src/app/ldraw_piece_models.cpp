@@ -1,5 +1,6 @@
 #include "app/ldraw_piece_models.hpp"
 
+#include <span>
 #include <utility>
 
 #include "assets/geometry_writer.hpp"
@@ -30,22 +31,22 @@ void LdrawPieceModels::Attach(mods::HookRegistry& hooks, const settings::Registr
 }
 
 std::optional<std::vector<std::byte>> LdrawPieceModels::ModelFile(std::string_view pieceName) {
-    const std::optional<assets::LdrawPiece> piece = assets::LdrawPieceFor(pieceName);
-    if (!piece) {
+    const std::span<const assets::LdrawPart> parts = assets::LdrawPartsOf(pieceName);
+    if (parts.empty()) {
         return std::nullopt;
     }
     const std::scoped_lock lock(mutex_);
-    const auto [found, isNew] = files_.try_emplace(std::string(piece->piece));
+    const auto [found, isNew] = files_.try_emplace(std::string(parts.front().piece));
     if (!isNew) {
         return found->second;
     }
     Result<std::vector<std::byte>> file =
-        assets::LoadLdrawPiece(library_, *piece).and_then([](const assets::GeometryAsset& model) {
+        assets::LoadLdrawPiece(library_, parts).and_then([](const assets::GeometryAsset& model) {
             return assets::WriteGeometry(model, assets::GdbVertices::Lit);
         });
     if (!file) {
-        log::Warn("Keeping piece {} because LDraw part {} can't be used: {}", piece->piece,
-                  piece->file, file.error().message);
+        log::Warn("Keeping piece {} because its LDraw parts can't be used: {}", parts.front().piece,
+                  file.error().message);
         return std::nullopt;
     }
     found->second = std::move(*file);

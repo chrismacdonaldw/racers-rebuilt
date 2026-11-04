@@ -1,6 +1,5 @@
 #pragma once
 
-#include <optional>
 #include <span>
 #include <string_view>
 
@@ -11,19 +10,22 @@
 
 namespace rr::assets {
 
-/// `matrix` moves the loaded part onto the original piece's cells, with its bottom at z = 0.
-struct LdrawPiece {
+/// `matrix` puts it on the piece's cells; an empty `colour` leaves its main colour to the piece.
+struct LdrawPart {
     std::string_view piece;
     std::string_view file;
     LdrawMatrix matrix;
+    std::string_view colour;
 };
 
-[[nodiscard]] std::span<const LdrawPiece> LdrawPieces();
+/// Each piece's parts are next to each other.
+[[nodiscard]] std::span<const LdrawPart> LdrawParts();
 
-/// Matches `pieceName` in any case.
-[[nodiscard]] std::optional<LdrawPiece> LdrawPieceFor(std::string_view pieceName);
+/// Matches `pieceName` in any case. Empty when the piece has no LDraw parts.
+[[nodiscard]] std::span<const LdrawPart> LdrawPartsOf(std::string_view pieceName);
 
-/// A piece model: colour 16 becomes `kPieceColourMaterial`, others the nearest game colour.
-[[nodiscard]] Result<GeometryAsset> LoadLdrawPiece(LdrawLibrary& library, const LdrawPiece& piece);
+/// A main colour left to the piece becomes `kPieceColourMaterial`, others the nearest game colour.
+[[nodiscard]] Result<GeometryAsset> LoadLdrawPiece(LdrawLibrary& library,
+                                                   std::span<const LdrawPart> parts);
 
 }
