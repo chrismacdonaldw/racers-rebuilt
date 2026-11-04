@@ -9,6 +9,7 @@ namespace {
 [[nodiscard]] float Anchored(float x, SpriteAnchor anchor, float shift, bool isRightEdge) {
     switch (anchor) {
         case SpriteAnchor::Center:
+        case SpriteAnchor::Beside:
             return x;
         case SpriteAnchor::Left:
             return x - shift;
@@ -43,6 +44,9 @@ void BatchSprites(std::span<const SpriteDraw> sprites, float edgeShift,
     vertices.clear();
     batches.clear();
     for (const SpriteDraw& sprite : sprites) {
+        if (sprite.anchor == SpriteAnchor::Beside && edgeShift <= 0.0F) {
+            continue;
+        }
         AddToBatches(batches, sprite.texture, sprite.blend);
         if (sprite.corners) {
             const std::array<SpriteCorner, kVerticesPerSprite>& corners = *sprite.corners;

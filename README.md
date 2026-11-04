@@ -109,6 +109,7 @@ Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Bindings**, 
 |---|---|
 | <kbd>F1</kbd> | Show or hide the overlay |
 | <kbd>F9</kbd> | Cycle VSync, 30, 60 and 144 FPS, and uncapped |
+| <kbd>F11</kbd> | Switch between a window and fullscreen |
 | <kbd>Print Screen</kbd> | Save a screenshot to the [data folder](#data-folder) as `LEGO<n>.bmp`, with the first free number |
 
 With **Enhancements → Camera → Free camera** on:
@@ -135,8 +136,9 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `video.vsync` | `true` | `true`, `false` |
 | `video.fps_cap` | `144` | `30` to `360`, or `0` for uncapped. Applies only with VSync off. |
 | `video.resolution_scale` | `1.0` | `0.25` to `2.0`. Renders the scene at this fraction of the window size. |
+| `video.fullscreen` | `false` | `true`, `false`. Fills the screen without a border, at the desktop's resolution. <kbd>F11</kbd> switches it. |
 | `video.stretch_ui` | `false` | `true`, `false` |
-| `video.widescreen` | `false` | `true`, `false`. Races and cutscenes fill the window and see more to the sides, instead of the original's 4:3 frame. |
+| `video.widescreen` | `false` | `true`, `false`. Races and cutscenes fill the window and see more to the sides, instead of the original's 4:3 frame. **Enhancements → Presets → Enhanced** turns it on and **Original** turns it off. |
 | `video.smooth_textures` | `true` | `true`, `false`. Gives the game's textures their mipmaps and fills their see-through edges with nearby colours, so distant and filtered edges don't shimmer or show a dark fringe. `false` draws them as the original does, down to the materials the game asks to be drawn with blocky unfiltered pixels. PNG replacements always keep their mipmaps. |
 | `video.anisotropic_filtering` | `false` | `true`, `false`. Filters textures 16x where they're seen at a slant, so roads and walls stay sharp into the distance. Materials drawn with blocky unfiltered pixels keep them. The **Enhanced** preset turns it on. Applies at once. |
 | `audio.music_volume` | `1.0` | `0.0` to `1.0` |

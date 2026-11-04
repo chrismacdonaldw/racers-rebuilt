@@ -76,8 +76,11 @@ Result<Application> Application::Create(GameBoot boot) {
     if (!scene) {
         return std::unexpected(std::move(scene.error()));
     }
-    Result<platform::Window> window = platform::Window::Create(
-        {.title = kWindowTitle, .widthPx = kWindowWidthPx, .heightPx = kWindowHeightPx});
+    Result<platform::Window> window =
+        platform::Window::Create({.title = kWindowTitle,
+                                  .widthPx = kWindowWidthPx,
+                                  .heightPx = kWindowHeightPx,
+                                  .isFullscreen = boot.settings.Get(kFullscreenSetting)});
     if (!window) {
         return std::unexpected(std::move(window.error()));
     }
@@ -200,6 +203,9 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music,
         }
         if (events_.WasKeyPressed(kScreenshotKey)) {
             renderer_.RequestCapture();
+        }
+        if (events_.WasKeyPressed(kToggleFullscreenKey)) {
+            ToggleFullscreen();
         }
         const Nanoseconds now = platform::Now();
         Scene* shown = frameLoop_.Scenes().Top();

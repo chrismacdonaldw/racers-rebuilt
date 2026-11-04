@@ -79,4 +79,16 @@ TEST_CASE("the original preset turns smoothing, filtering and clipping preventio
     CHECK(registry.Get(kPreventClipping));
 }
 
+TEST_CASE("only the enhanced preset fills a wide window") {
+    settings::Registry registry = DeclaredRegistry();
+    const std::vector<settings::SettingPreset> presets = EnhancementPresets();
+    REQUIRE(presets.size() == 2);
+    CHECK_FALSE(registry.Get(kWidescreenSetting));
+
+    static_cast<void>(ApplyPreset(registry, presets[1]));
+    CHECK(registry.Get(kWidescreenSetting));
+    static_cast<void>(ApplyPreset(registry, presets[0]));
+    CHECK_FALSE(registry.Get(kWidescreenSetting));
+}
+
 }

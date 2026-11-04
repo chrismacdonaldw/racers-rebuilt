@@ -13,6 +13,7 @@ struct WindowConfig {
     std::string title;
     int widthPx = 0;
     int heightPx = 0;
+    bool isFullscreen = false;
 };
 
 /// Requires a live `SdlContext`.
@@ -22,6 +23,9 @@ public:
     [[nodiscard]] static Result<Window> Create(const WindowConfig& config);
 
     [[nodiscard]] SDL_Window* Handle() const { return window_.get(); }
+
+    /// Fullscreen is borderless at the desktop's size.
+    Result<void> SetFullscreen(bool isFullscreen);
 
 private:
     struct Deleter {

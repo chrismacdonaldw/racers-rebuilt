@@ -103,6 +103,7 @@ private:
     void OpenNextScene();
     void StoreSceneSettings();
     void CyclePacing();
+    void ToggleFullscreen();
     void ApplyVideo();
     void Persist(const std::vector<std::string>& keys);
 

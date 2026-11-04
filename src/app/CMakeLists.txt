@@ -155,6 +155,7 @@ rr_add_module(app
         menu/race_setup_menu.cpp
         menu/race_setup_scene.cpp
         menu/racer_stand.cpp
+        menu/side_tiles.cpp
         menu/stand_racer.cpp
         menu/stand_scene.cpp
         menu/track_preview.cpp
