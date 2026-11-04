@@ -41,4 +41,6 @@ struct GhostRun {
 
 [[nodiscard]] Result<GhostRun> ParseGhb(std::span<const std::byte> bytes);
 
+[[nodiscard]] GhostRun Mirrored(GhostRun run);
+
 }

@@ -8,6 +8,7 @@
 
 #include "assets/stored_rotation.hpp"
 #include "assets/token_schema.hpp"
+#include "core/mirror.hpp"
 
 namespace rr::assets {
 namespace {
@@ -16,6 +17,7 @@ constexpr FieldId kGhostField = 0x2C;
 constexpr float kPositionScale = 32.0F;
 constexpr float kRotationScale = 127.0F;
 constexpr std::size_t kRotationStart = 3;
+constexpr int kMostStoredPosition = std::numeric_limits<std::int16_t>::max();
 
 using StoredSample = std::array<std::int32_t, 7>;
 
@@ -117,6 +119,18 @@ Transform FromGhostSample(const GhostSample& sample) {
     return {.position = {.x = position(0), .y = position(1), .z = position(2)},
             .rotation =
                 FromStoredRotation({part(0), part(1), part(2), part(3)}).value_or(Quaternion{})};
+}
+
+GhostRun Mirrored(GhostRun run) {
+    run.start = {.position = MirroredY(run.start.position),
+                 .rotation = MirroredY(run.start.rotation)};
+    for (GhostSample& sample : run.samples) {
+        sample.position[1] =
+            static_cast<std::int16_t>(-std::max<int>(sample.position[1], -kMostStoredPosition));
+        sample.rotation[1] = static_cast<std::int8_t>(-sample.rotation[1]);
+        sample.rotation[3] = static_cast<std::int8_t>(-sample.rotation[3]);
+    }
+    return run;
 }
 
 Result<GhostRun> ParseGhb(std::span<const std::byte> bytes) {

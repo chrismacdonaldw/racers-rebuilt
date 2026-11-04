@@ -358,8 +358,10 @@ Result<std::unique_ptr<Scene>> Application::CreateTrialRace(std::string_view sce
                                                             Nanoseconds started) {
     return ParseTrialScene(scene)
         .and_then([&](RaceSceneSetup setup) {
-            if (!trial_ || trial_->Track() != setup.track) {
-                trial_ = TimeTrialRun::Load(vfs_, setup.track);
+            setup.modifiers = ModifiersFrom(settings_);
+            const bool isMirrored = LoadsMirrored(setup);
+            if (!trial_ || trial_->Track() != setup.track || trial_->IsMirrored() != isMirrored) {
+                trial_ = TimeTrialRun::Load(vfs_, setup.track, isMirrored);
             }
             setup.firstSlot = trial_->StartSlot();
             return LoadRace(setup, loader, started);

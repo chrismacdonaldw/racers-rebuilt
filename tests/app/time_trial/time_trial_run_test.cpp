@@ -71,8 +71,10 @@ TEST_CASE("only retail races with a record ghost start the player on position 2"
         return;
     }
 
-    CHECK(TimeTrialRun::Load(*vfs, "RACEC0R0").StartSlot() == 2);
-    CHECK(TimeTrialRun::Load(*vfs, "RACEC3R0").StartSlot() == 1);
+    CHECK(TimeTrialRun::Load(*vfs, "RACEC0R0", false).StartSlot() == 2);
+    CHECK(TimeTrialRun::Load(*vfs, "RACEC3R0", false).StartSlot() == 1);
+    CHECK(TimeTrialRun::Load(*vfs, "RACEC0R0", true).StartSlot() == 2);
+    CHECK(TimeTrialRun::Load(*vfs, "RACEC0R0", true).IsMirrored());
 }
 
 }
