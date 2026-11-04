@@ -317,7 +317,7 @@ enabled = true
 | `priority` | No | Whole number, default `0`. Higher wins when two mods replace the same file. On a tie, the id that sorts first wins. |
 | `enabled` | No | Default `true`. Sets the starting value of `mods.<id>.enabled`. |
 
-Once a setting in **Mods** changes, two items appear there. **Apply now** remounts the mods and overrides, reloads the music, and returns to the main menu; it isn't offered while recording or playing a replay. **Restart now** relaunches the game with the same command line, minus `--record`, `--replay`, `--import-save`, `--dump-images` and `--dump-textures`. A newly added mod folder, or a change to the menu cursor, still needs a restart. A mod with a broken `mod.toml` is skipped with a warning in the log.
+Once a setting in **Mods** changes, two items appear there. **Apply now** remounts the mods and overrides, reloads the music, and returns to the main menu; it isn't offered while recording or playing a replay. **Restart now** relaunches the game with the same command line, minus `--record`, `--replay`, `--import-save`, `--dump-images`, `--dump-textures` and `--export-gltf`. A newly added mod folder, or a change to the menu cursor, still needs a restart. A mod with a broken `mod.toml` is skipped with a warning in the log.
 
 ### Tracks
 
@@ -394,6 +394,12 @@ A glTF binary next to a game model's path, named like it but ending in `.glb`, r
   - At most 4,000,000 keys are read from one file.
 - A `.glb` that can't be read is skipped with a warning in the log, and the game's model or animations are kept.
 - **glTF models** in the **Mods** menu (`mods.gltf_models`) turns replacements of both models and animations off. It applies on **Apply now** or the next start.
+
+To start from the game's own models, run `racers-rebuilt.exe --export-gltf <folder>`. It writes every model in `LEGO.JAM` as a `.glb` at its game path under that folder, e.g. `<folder>/GAMEDATA/COMMON/RRJMW.GLB`, then exits.
+
+- Materials keep the game's names but carry no textures.
+- A jointed model is one skinned mesh in its rest pose, with nodes named after the skeleton's, and its animations as glTF animations of the same names. Driver parts carry the shared `PELVIS.ADB` animations, which only `PELVIS.glb` replaces.
+- Copy the `.glb` files you change into a mod's `files` folder at the same paths.
 
 ### Overrides
 

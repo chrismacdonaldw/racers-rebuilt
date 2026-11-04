@@ -11,8 +11,9 @@ namespace {
 
 constexpr std::string_view kModsCategory = "Mods";
 constexpr std::array kOneShotFlags{
-    std::string_view("--record"), std::string_view("--replay"), std::string_view("--import-save"),
-    std::string_view("--dump-images"), std::string_view("--dump-textures")};
+    std::string_view("--record"),        std::string_view("--replay"),
+    std::string_view("--import-save"),   std::string_view("--dump-images"),
+    std::string_view("--dump-textures"), std::string_view("--export-gltf")};
 
 bool IsOneShotWithValue(std::string_view arg) {
     return std::ranges::any_of(kOneShotFlags, [&](std::string_view flag) {

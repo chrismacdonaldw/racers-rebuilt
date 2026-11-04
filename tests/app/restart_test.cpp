@@ -29,7 +29,7 @@ settings::Registry Declared() {
 }
 
 TEST_CASE("a relaunch keeps the program and its arguments but drops one-shot work") {
-    const std::array<std::string_view, 15> argv{"racers-rebuilt.exe",
+    const std::array<std::string_view, 17> argv{"racers-rebuilt.exe",
                                                 "--race",
                                                 "RACEC0R0",
                                                 "--record",
@@ -43,6 +43,8 @@ TEST_CASE("a relaunch keeps the program and its arguments but drops one-shot wor
                                                 "--dump-textures",
                                                 "mods/a",
                                                 "--dump-textures=mods/b",
+                                                "--export-gltf",
+                                                "models",
                                                 "--import-save"};
 
     CHECK(RelaunchCommand(argv) == std::vector<std::string>{"racers-rebuilt.exe", "--race",

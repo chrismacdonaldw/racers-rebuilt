@@ -110,6 +110,7 @@ add_executable(racers-rebuilt-tests
     app/menu/stand_scene_test.cpp
     app/menu/track_preview_test.cpp
     app/menu_pointer_test.cpp
+    app/model_export_test.cpp
     app/music_folder_source_test.cpp
     app/pace_car_test.cpp
     app/particle_assets_test.cpp
@@ -205,6 +206,7 @@ add_executable(racers-rebuilt-tests
     assets/geometry_writer_test.cpp
     assets/ghost_run_test.cpp
     assets/gltf_animation_test.cpp
+    assets/gltf_export_test.cpp
     assets/gltf_joints_test.cpp
     assets/gltf_model_test.cpp
     assets/hazard_list_retail_test.cpp

@@ -26,6 +26,9 @@ public:
     void WriteGame(std::string_view path, const std::vector<std::byte>& bytes) const {
         Write(Game() / PathFromUtf8(path), bytes);
     }
+    void WriteLoose(std::string_view path, const std::vector<std::byte>& bytes) const {
+        Write(Loose() / PathFromUtf8(path), bytes);
+    }
     void WriteGameImage(std::string_view path, const assets::ImageAsset& image) const {
         WriteTga(Game() / PathFromUtf8(path), image);
     }
