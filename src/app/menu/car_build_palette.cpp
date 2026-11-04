@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "app/menu/build_sounds.hpp"
 #include "app/menu/car_build_screen.hpp"
 #include "app/menu/grid_pick.hpp"
 #include "app/menu/menu_frame.hpp"
@@ -18,8 +19,6 @@ namespace {
 constexpr std::size_t kSetControl = 0;
 constexpr std::size_t kDoneControl = 1;
 constexpr std::size_t kDoneButton = 5;
-constexpr std::int32_t kBlockedSound = 8;
-constexpr std::int32_t kRotateSound = 22;
 constexpr int kTurns = 4;
 
 std::optional<std::size_t> DirectionOf(const sim::InputFrame& input) {
@@ -41,7 +40,12 @@ void CarBuildScreen::UseControls(BuildControls controls) {
     if ((controls == BuildControls::Palette) == (palette_ != nullptr)) {
         return;
     }
+    builder_.Release();
     hold_ = PaletteHold::None;
+    selected_.reset();
+    blockers_.clear();
+    grab_.Forget();
+    builder_.RecordEdits(controls == BuildControls::Palette);
     if (controls == BuildControls::Original) {
         palette_.reset();
         builder_.Choose(builder_.Choice());
@@ -78,21 +82,32 @@ BuildOutcome CarBuildScreen::TickPalette(const sim::InputFrame& input) {
             outcome = std::max(outcome, Apply(key));
         }
     }
+    TickEditTimers();
     const bool backs = input.WasPressed(sim::MenuAction::Back);
-    const PaletteTick tick = motion_.IsBusy()
-                                 ? PaletteTick{}
-                                 : palette_->Tick(input, hold_ == PaletteHold::None && !movesByKeys,
-                                                  backs && hold_ == PaletteHold::Pointer);
+    const bool cancels = backs && hold_ == PaletteHold::Pointer;
+    const PaletteTick tick =
+        motion_.IsBusy()
+            ? PaletteTick{}
+            : palette_->Tick(input, hold_ == PaletteHold::None && !movesByKeys, cancels);
+    const GrabTick grab = GrabFor(input.pointer, tick, cancels);
+    if (tick.swatch) {
+        outcome = std::max(outcome, Paint(*tick.swatch));
+    }
     if (tick.picked) {
+        selected_.reset();
         builder_.Pick(tick.picked->set, tick.picked->choice, palette_->ColourOf(*tick.picked));
         hold_ = tick.isDragged ? PaletteHold::Pointer : PaletteHold::Keys;
         isAimed_ = !tick.isDragged;
     } else if (hold_ == PaletteHold::Pointer) {
-        DragPiece(input.pointer, tick.drag);
+        outcome = std::max(outcome,
+                           DragPiece(input.pointer, builder_.IsLifted() ? grab.drag : tick.drag));
     } else if (hold_ == PaletteHold::Keys) {
         outcome = std::max(outcome, HoldByKeys(input, movesByKeys || backs));
-    } else if (backs) {
-        return BuildOutcome::Done;
+    } else {
+        outcome = std::max(outcome, TickEdits(grab));
+        if (backs && !std::exchange(selected_, std::nullopt)) {
+            return BuildOutcome::Done;
+        }
     }
     const PaletteHold held =
         HoldAfterTick(hold_, builder_.Cursor().Piece() != nullptr, motion_.IsBusy());
@@ -103,13 +118,30 @@ BuildOutcome CarBuildScreen::TickPalette(const sim::InputFrame& input) {
     return std::max(outcome, PointPalette(input));
 }
 
-void CarBuildScreen::DragPiece(const sim::MenuPointer& pointer, const DragTick& drag) {
+GrabTick CarBuildScreen::GrabFor(const sim::MenuPointer& pointer, const PaletteTick& tick,
+                                 bool cancels) {
+    if (motion_.IsBusy() || hold_ == PaletteHold::Keys || palette_->IsDragging() || tick.picked) {
+        return {};
+    }
+    const bool picks = hold_ == PaletteHold::None && pointer.pressed;
+    return grab_.Tick(pointer, picks ? PieceUnder(pointer) : std::nullopt, cancels);
+}
+
+BuildOutcome CarBuildScreen::Paint(std::uint8_t colour) {
+    if (!selected_) {
+        palette_->ChooseColour(colour);
+        return BuildOutcome::None;
+    }
+    return Settle(RecolourSelected(builder_, *selected_, colour));
+}
+
+BuildOutcome CarBuildScreen::DragPiece(const sim::MenuPointer& pointer, const DragTick& drag) {
     const int turns = ((drag.turns % kTurns) + kTurns) % kTurns;
     for (int turn = 0; turn < turns; ++turn) {
         builder_.Rotate();
     }
     if (turns > 0) {
-        services_.sounds.Play(kRotateSound);
+        services_.sounds.Play(kBuildRotateSound);
     }
     const std::optional<GridCellPick> cell =
         pointer.isOver ? PickGridCell(GridOnScreen(), builder_.Car().Grid(), pointer.x, pointer.y)
@@ -122,13 +154,21 @@ void CarBuildScreen::DragPiece(const sim::MenuPointer& pointer, const DragTick& 
     if (drag.step == DragStep::Dropped && isAimed_ && builder_.Check() != PlaceResult::Refused) {
         hold_ = PaletteHold::None;
         motion_.Drop(RestHeight());
-    } else if (drag.step == DragStep::Dropped || drag.step == DragStep::Cancelled) {
-        if (isAimed_) {
-            services_.sounds.Play(kBlockedSound);
-        }
-        hold_ = PaletteHold::None;
-        builder_.Release();
+        return BuildOutcome::None;
     }
+    if (drag.step != DragStep::Dropped && drag.step != DragStep::Cancelled) {
+        return BuildOutcome::None;
+    }
+    hold_ = PaletteHold::None;
+    const bool isLifted = builder_.IsLifted();
+    if (drag.step == DragStep::Dropped && !isAimed_ && isLifted) {
+        return Settle(DropOffCar(builder_));
+    }
+    if (isAimed_) {
+        services_.sounds.Play(kBuildBlockedSound);
+    }
+    builder_.Release();
+    return isLifted ? Settle({.isChanged = true}) : BuildOutcome::None;
 }
 
 BuildOutcome CarBuildScreen::HoldByKeys(const sim::InputFrame& input, bool skipsMenu) {
@@ -155,7 +195,7 @@ BuildOutcome CarBuildScreen::PointPalette(const sim::InputFrame& input) {
     if (choice.clicked == kSetControl && choice.click) {
         StepSet(choice.Clicks(sim::MenuAction::Right) ? 1 : -1);
     }
-    if (hold_ != PaletteHold::Pointer) {
+    if (hold_ != PaletteHold::Pointer && !grab_.IsBusy()) {
         const std::optional<BuildPad> held = menu_.Held();
         const SceneMouse mouse = drag_.Tick(input.pointer, Regions(), menu_);
         static_cast<void>(camera_.Swing(mouse.turn));

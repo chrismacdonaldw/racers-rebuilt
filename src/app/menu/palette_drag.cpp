@@ -8,6 +8,11 @@ PaletteHold HoldAfterTick(PaletteHold hold, bool holdsPiece, bool isMoving) {
     return hold == PaletteHold::None && holdsPiece && !isMoving ? PaletteHold::Keys : hold;
 }
 
+void PaletteDrag::Hold(std::size_t entry) {
+    entry_ = entry;
+    wheel_ = 0.0F;
+}
+
 DragTick PaletteDrag::Tick(const sim::MenuPointer& pointer, std::optional<std::size_t> tile,
                            bool cancels) {
     if (!entry_) {

@@ -90,7 +90,7 @@ std::expected<void, PlacementFailure> BuildHistory::Do(BuiltCar& car, const Buil
     undone_.clear();
     done_.push_back({.edit = edit, .before = before});
     if (done_.size() > kBuildHistorySteps) {
-        done_.pop_front();
+        done_.erase(done_.begin());
     }
     return applied;
 }

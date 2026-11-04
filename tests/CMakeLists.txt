@@ -102,6 +102,8 @@ add_executable(racers-rebuilt-tests
     app/menu/options_menu_test.cpp
     app/menu/palette_drag_test.cpp
     app/menu/part_carousel_test.cpp
+    app/menu/piece_edits_test.cpp
+    app/menu/piece_grab_test.cpp
     app/menu/piece_palette_test.cpp
     app/menu/pointer_buttons_test.cpp
     app/menu/pause_menu_test.cpp
