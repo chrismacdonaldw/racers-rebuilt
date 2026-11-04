@@ -16,6 +16,10 @@ namespace rr::app {
 /// Rolling on its wheels, not hovering, spun out or a ghost.
 [[nodiscard]] bool IsKickingUp(const sim::Racer& racer);
 
+/// The surface table entry under `wheel`, if it touches one in the table.
+[[nodiscard]] std::optional<std::size_t> SurfaceEntryOf(
+    const sim::WheelProbe& wheel, std::span<const assets::SurfaceEntry> surfaces);
+
 /// The particle the surface under `wheel` names, if it touches one.
 [[nodiscard]] std::optional<std::string_view> WheelParticleOf(
     const sim::WheelProbe& wheel, std::span<const assets::SurfaceEntry> surfaces);
@@ -35,6 +39,7 @@ private:
     };
 
     std::span<const assets::SurfaceEntry> surfaces_;
+    std::optional<std::vector<std::optional<render::FxEffectId>>> effects_;
     std::vector<std::array<Wheel, 2>> cars_;
 };
 

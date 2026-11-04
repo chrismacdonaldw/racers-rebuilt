@@ -19,10 +19,19 @@ bool IsKickingUp(const sim::Racer& racer) {
            body.derived.forwardSpeed > kMinSpeed;
 }
 
-std::optional<std::string_view> WheelParticleOf(const sim::WheelProbe& wheel,
-                                                std::span<const assets::SurfaceEntry> surfaces) {
+std::optional<std::size_t> SurfaceEntryOf(const sim::WheelProbe& wheel,
+                                          std::span<const assets::SurfaceEntry> surfaces) {
     const std::optional<std::size_t> entry = wheel.surface.tableEntry;
     if (!wheel.isInContact || !entry || *entry >= surfaces.size()) {
+        return std::nullopt;
+    }
+    return entry;
+}
+
+std::optional<std::string_view> WheelParticleOf(const sim::WheelProbe& wheel,
+                                                std::span<const assets::SurfaceEntry> surfaces) {
+    const std::optional<std::size_t> entry = SurfaceEntryOf(wheel, surfaces);
+    if (!entry) {
         return std::nullopt;
     }
     const std::optional<std::string>& particle = surfaces[*entry].particle;
@@ -34,13 +43,20 @@ void WheelSpray::Update(std::size_t slot, const sim::Racer& racer, render::FxSys
     if (slot >= cars_.size()) {
         cars_.resize(slot + 1);
     }
+    if (!effects_) {
+        effects_.emplace();
+        for (const assets::SurfaceEntry& surface : surfaces_) {
+            effects_->push_back(surface.particle ? fx.EffectFor(*surface.particle) : std::nullopt);
+        }
+    }
     const bool isKicking = IsKickingUp(racer);
     const Vector3 velocity = ToEngine(racer.Body().motion.velocity) * kVelocityScale;
     for (std::size_t i = 0; i < kRearWheels.size(); ++i) {
         const sim::WheelProbe& probe = racer.Body().motion.wheels.at(kRearWheels.at(i));
-        const std::optional<std::string_view> name =
-            isKicking ? WheelParticleOf(probe, surfaces_) : std::nullopt;
-        const std::optional<render::FxEffectId> effect = name ? fx.EffectFor(*name) : std::nullopt;
+        const std::optional<std::size_t> entry =
+            isKicking ? SurfaceEntryOf(probe, surfaces_) : std::nullopt;
+        const std::optional<render::FxEffectId> effect =
+            entry ? effects_->at(*entry) : std::nullopt;
         Wheel& wheel = cars_[slot].at(i);
         if (effect != wheel.effect) {
             wheel = {.effect = effect};

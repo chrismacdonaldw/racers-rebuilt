@@ -21,10 +21,9 @@ constexpr Vector3 kCarMiddle{.z = 2.0F};
 constexpr float kPullSpeed = 70.0F;
 constexpr float kPerSecond = 1000.0F;
 
-void Keep(render::FxSystem& fx, std::string_view name, bool isOn,
+void Keep(render::FxSystem& fx, std::optional<render::FxEffectId> effect, bool isOn,
           const render::EmitterPlacement& placement, float elapsedMs,
           render::FxEmission& emission) {
-    const std::optional<render::FxEffectId> effect = fx.EffectFor(name);
     if (!isOn || !effect) {
         emission = {};
         return;
@@ -32,8 +31,8 @@ void Keep(render::FxSystem& fx, std::string_view name, bool isOn,
     fx.Emit(*effect, placement, elapsedMs, emission);
 }
 
-void BurstAt(render::FxSystem& fx, std::string_view name, const Vector3& at) {
-    if (const std::optional<render::FxEffectId> effect = fx.EffectFor(name)) {
+void BurstAt(render::FxSystem& fx, std::optional<render::FxEffectId> effect, const Vector3& at) {
+    if (effect) {
         fx.Burst(*effect, {.position = ToEngine(at)});
     }
 }
@@ -60,9 +59,12 @@ std::optional<Vector3> NearestMagnet(const sim::PowerupSystem& powerups, const V
     float nearestDistance = std::numeric_limits<float>::max();
     for (const std::uint16_t slot : powerups.Active()) {
         const sim::EffectSlot& effect = powerups.Slots()[slot];
+        if (effect.kind != sim::PowerupKind::Magnet) {
+            continue;
+        }
         const Vector3 magnet = effect.effect->Pose().position;
         const float distance = Length(magnet - at);
-        if (effect.kind == sim::PowerupKind::Magnet && distance < nearestDistance) {
+        if (distance < nearestDistance) {
             nearest = magnet;
             nearestDistance = distance;
         }
@@ -70,53 +72,67 @@ std::optional<Vector3> NearestMagnet(const sim::PowerupSystem& powerups, const V
     return nearest;
 }
 
-void BurstPickups(const sim::BrickField& bricks, render::FxSystem& fx) {
+}
+
+PowerupFx::Effects PowerupFx::EffectsOf(const render::FxSystem& fx) {
+    Effects effects{.flame = fx.EffectFor(kTurboFlameEffect),
+                    .hover = fx.EffectFor(kHoverFlameEffect),
+                    .swirl = fx.EffectFor(kWarpSwirlEffect),
+                    .warpOut = fx.EffectFor(kWarpOutEffect),
+                    .warpIn = fx.EffectFor(kWarpInEffect),
+                    .pull = fx.EffectFor(kMagnetPullEffect),
+                    .pulse = fx.EffectFor(kMagnetPulseEffect),
+                    .white = fx.EffectFor(kWhitePickupEffect)};
+    std::ranges::transform(kPickupEffects, effects.pickups.begin(),
+                           [&](std::string_view name) { return fx.EffectFor(name); });
+    return effects;
+}
+
+void PowerupFx::Tick(const sim::RaceSession& session, render::FxSystem& fx, Milliseconds elapsed) {
+    const Effects& effects = effects_ ? *effects_ : effects_.emplace(EffectsOf(fx));
+    racers_.resize(session.Racers().size());
+    for (std::size_t slot = 0; slot < racers_.size(); ++slot) {
+        TickRacer(slot, session, effects, fx, static_cast<float>(elapsed.count()));
+    }
+    BurstPickups(session.Bricks(), effects, fx);
+}
+
+void PowerupFx::BurstPickups(const sim::BrickField& bricks, const Effects& effects,
+                             render::FxSystem& fx) {
     for (const sim::BrickEvent& event : bricks.Events()) {
         if (event.kind == sim::BrickEventKind::WhiteCollected) {
-            BurstAt(fx, kWhitePickupEffect, bricks.White()[event.brick].brick.position);
+            BurstAt(fx, effects.white, bricks.White()[event.brick].brick.position);
         } else if (event.kind != sim::BrickEventKind::Respawned) {
             const sim::ColourBrick& brick = bricks.Coloured()[event.brick];
-            BurstAt(fx, kPickupEffects.at(static_cast<std::size_t>(brick.colour)),
+            BurstAt(fx, effects.pickups.at(static_cast<std::size_t>(brick.colour)),
                     brick.brick.position);
         }
     }
 }
 
-}
-
-void PowerupFx::Tick(const sim::RaceSession& session, render::FxSystem& fx, Milliseconds elapsed) {
-    racers_.resize(session.Racers().size());
-    for (std::size_t slot = 0; slot < racers_.size(); ++slot) {
-        TickRacer(slot, session, fx, static_cast<float>(elapsed.count()));
-    }
-    BurstPickups(session.Bricks(), fx);
-}
-
-void PowerupFx::TickRacer(std::size_t slot, const sim::RaceSession& session, render::FxSystem& fx,
-                          float elapsedMs) {
+void PowerupFx::TickRacer(std::size_t slot, const sim::RaceSession& session, const Effects& effects,
+                          render::FxSystem& fx, float elapsedMs) {
     const sim::Racer& racer = session.Racers()[slot];
     RacerEmissions& emissions = racers_[slot];
     const Vector3 middle = racer.Body().motion.position + kCarMiddle;
     const std::optional<sim::Turbo>& turbo = racer.ActiveTurbo();
     const bool isBoosting = turbo && turbo->phase == sim::TurboPhase::Boost;
-    Keep(fx,
-         isBoosting && turbo->level == sim::TurboLevel::Hover ? kHoverFlameEffect
-                                                              : kTurboFlameEffect,
+    Keep(fx, isBoosting && turbo->level == sim::TurboLevel::Hover ? effects.hover : effects.flame,
          isBoosting, AtExhaust(racer), elapsedMs, emissions.flame);
-    Keep(fx, kWarpSwirlEffect, IsWarpStarting(session.Powerups(), slot),
+    Keep(fx, effects.swirl, IsWarpStarting(session.Powerups(), slot),
          {.position = ToEngine(middle)}, elapsedMs, emissions.swirl);
     if (racer.Events().hasWarpEntered) {
-        BurstAt(fx, kWarpOutEffect, middle);
+        BurstAt(fx, effects.warpOut, middle);
     }
     if (racer.Events().hasWarpLanded) {
-        BurstAt(fx, kWarpInEffect, middle);
+        BurstAt(fx, effects.warpIn, middle);
     }
     const std::optional<Vector3> magnet =
         racer.Status().isMagnetHeld ? NearestMagnet(session.Powerups(), middle) : std::nullopt;
     const Vector3 pull = magnet ? Normalized(*magnet - middle, {}) * kPullSpeed : Vector3{};
-    Keep(fx, kMagnetPullEffect, magnet.has_value(),
+    Keep(fx, effects.pull, magnet.has_value(),
          {.position = ToEngine(middle), .velocity = ToEngine(pull)}, elapsedMs, emissions.pull);
-    Keep(fx, kMagnetPulseEffect, magnet.has_value(), {.position = ToEngine(middle)}, elapsedMs,
+    Keep(fx, effects.pulse, magnet.has_value(), {.position = ToEngine(middle)}, elapsedMs,
          emissions.pulse);
 }
 
