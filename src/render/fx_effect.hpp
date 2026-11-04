@@ -17,14 +17,14 @@ enum class FxEffectId : std::uint16_t {};
 inline constexpr std::size_t kMaxFxLayers = 8;
 
 /// Rings lie flat on the ground; bricks tumble as solid models, not quads.
-enum class FxShape : std::uint8_t { Puff, Streak, Glow, Ring, Brick };
+enum class FxShape : std::uint8_t { Puff, Streak, Glow, Ring, Brick, Bubble, Star };
 
 struct FxRange {
     float min = 0.0F;
     float max = 0.0F;
 };
 
-/// Layers naming the same emitter play together; sizes are world units, speeds units per second.
+/// Layers naming one emitter play together. Sizes are world units, speeds per second, radial out.
 struct FxEffect {
     std::string_view emitter;
     FxShape shape = FxShape::Puff;
@@ -46,6 +46,8 @@ struct FxEffect {
     std::optional<Color> endColor;
     std::span<const Color> palette;
     Vector3 offset;
+    float spawnRadius = 0.0F;
+    float radialSpeed = 0.0F;
     float shade = 1.0F;
     float fadeInShare = 0.1F;
     float fadeOutShare = 0.5F;
@@ -63,6 +65,8 @@ struct FxAssets {
     TextureId spark = kWhiteTexture;
     TextureId glow = kWhiteTexture;
     TextureId ring = kWhiteTexture;
+    TextureId bubble = kWhiteTexture;
+    TextureId star = kWhiteTexture;
     MeshId brick{};
 };
 

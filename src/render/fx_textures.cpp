@@ -26,6 +26,19 @@ constexpr std::uint32_t kGlowPx = 64;
 constexpr std::uint32_t kRingPx = 128;
 constexpr float kRingRadius = 0.78F;
 constexpr float kRingSharpness = 60.0F;
+constexpr std::uint32_t kBubblePx = 64;
+constexpr float kBubbleRimStart = 0.55F;
+constexpr float kBubbleRimEnd = 0.92F;
+constexpr float kBubbleEdgeStart = 0.9F;
+constexpr float kBubbleEdgeEnd = 0.97F;
+constexpr float kBubbleSwirl = 3.0F;
+constexpr float kHighlightX = -0.35F;
+constexpr float kHighlightY = -0.4F;
+constexpr float kHighlightSharpness = 60.0F;
+constexpr float kThirdTurn = 2.0F * std::numbers::pi_v<float> / 3.0F;
+constexpr std::uint32_t kStarPx = 64;
+constexpr float kStarCoreSharpness = 30.0F;
+constexpr float kStarRaySharpness = 400.0F;
 constexpr Vector3 kBrickHalf{.x = 0.5F, .y = 0.3F, .z = 0.25F};
 constexpr float kStudRadius = 0.15F;
 constexpr float kStudHeight = 0.1F;
@@ -77,12 +90,54 @@ std::byte ToByte(float value) {
     return static_cast<std::byte>(std::lround(std::clamp(value, 0.0F, 1.0F) * 255.0F));
 }
 
-void Fill(assets::ImageAsset& image, std::size_t pixel, float light, float alpha) {
+void Paint(assets::ImageAsset& image, std::size_t pixel, const Color& color) {
     const std::size_t at = pixel * kChannels;
-    image.rgba[at] = ToByte(light);
-    image.rgba[at + 1] = ToByte(light);
-    image.rgba[at + 2] = ToByte(light);
-    image.rgba[at + 3] = ToByte(alpha);
+    image.rgba[at] = ToByte(color.r);
+    image.rgba[at + 1] = ToByte(color.g);
+    image.rgba[at + 2] = ToByte(color.b);
+    image.rgba[at + 3] = ToByte(color.a);
+}
+
+void Fill(assets::ImageAsset& image, std::size_t pixel, float light, float alpha) {
+    Paint(image, pixel, {.r = light, .g = light, .b = light, .a = alpha});
+}
+
+assets::ImageAsset SquareImage(std::uint32_t px) {
+    return {.widthPx = px,
+            .heightPx = px,
+            .rgba = std::vector<std::byte>(std::size_t{px} * px * kChannels)};
+}
+
+float Centred(std::uint32_t index, std::uint32_t px) {
+    return ((static_cast<float>(index) + 0.5F) / static_cast<float>(px) * 2.0F) - 1.0F;
+}
+
+Color BubbleAt(float dx, float dy) {
+    const float distance = std::sqrt((dx * dx) + (dy * dy));
+    const float rim = SmoothStep(kBubbleRimStart, kBubbleRimEnd, distance);
+    const float edge = 1.0F - SmoothStep(kBubbleEdgeStart, kBubbleEdgeEnd, distance);
+    const float hue = std::atan2(dy, dx) + (distance * kBubbleSwirl);
+    const float hx = dx - kHighlightX;
+    const float hy = dy - kHighlightY;
+    const float highlight = std::exp(-((hx * hx) + (hy * hy)) * kHighlightSharpness);
+    const float base = 0.12F + (rim * 0.5F);
+    const auto channel = [&](float shift) {
+        const float sheen = 0.5F + (0.5F * std::cos(hue + shift));
+        return (base * std::lerp(1.0F, sheen, rim * 0.8F)) + highlight;
+    };
+    return {.r = channel(0.0F),
+            .g = channel(-kThirdTurn),
+            .b = channel(kThirdTurn),
+            .a = std::max((0.55F + (0.4F * rim)) * edge, highlight)};
+}
+
+float StarAt(float dx, float dy) {
+    const float core = std::exp(-((dx * dx) + (dy * dy)) * kStarCoreSharpness);
+    const float across = std::max(0.0F, 1.0F - std::abs(dx));
+    const float down = std::max(0.0F, 1.0F - std::abs(dy));
+    const float rays = (std::exp(-(dy * dy) * kStarRaySharpness) * across * across) +
+                       (std::exp(-(dx * dx) * kStarRaySharpness) * down * down);
+    return std::min(1.0F, core + rays);
 }
 
 struct Blob {
@@ -220,16 +275,11 @@ assets::ImageAsset MakeSparkTexture() {
 }
 
 assets::ImageAsset MakeGlowTexture() {
-    assets::ImageAsset glow{
-        .widthPx = kGlowPx,
-        .heightPx = kGlowPx,
-        .rgba = std::vector<std::byte>(std::size_t{kGlowPx} * kGlowPx * kChannels)};
+    assets::ImageAsset glow = SquareImage(kGlowPx);
     for (std::uint32_t y = 0; y < kGlowPx; ++y) {
         for (std::uint32_t x = 0; x < kGlowPx; ++x) {
-            const float dx =
-                ((static_cast<float>(x) + 0.5F) / static_cast<float>(kGlowPx) * 2.0F) - 1.0F;
-            const float dy =
-                ((static_cast<float>(y) + 0.5F) / static_cast<float>(kGlowPx) * 2.0F) - 1.0F;
+            const float dx = Centred(x, kGlowPx);
+            const float dy = Centred(y, kGlowPx);
             const float falloff = std::max(0.0F, 1.0F - (dx * dx) - (dy * dy));
             Fill(glow, (std::size_t{y} * kGlowPx) + x, 1.0F, falloff * falloff * falloff);
         }
@@ -238,16 +288,11 @@ assets::ImageAsset MakeGlowTexture() {
 }
 
 assets::ImageAsset MakeRingTexture() {
-    assets::ImageAsset ring{
-        .widthPx = kRingPx,
-        .heightPx = kRingPx,
-        .rgba = std::vector<std::byte>(std::size_t{kRingPx} * kRingPx * kChannels)};
+    assets::ImageAsset ring = SquareImage(kRingPx);
     for (std::uint32_t y = 0; y < kRingPx; ++y) {
         for (std::uint32_t x = 0; x < kRingPx; ++x) {
-            const float dx =
-                ((static_cast<float>(x) + 0.5F) / static_cast<float>(kRingPx) * 2.0F) - 1.0F;
-            const float dy =
-                ((static_cast<float>(y) + 0.5F) / static_cast<float>(kRingPx) * 2.0F) - 1.0F;
+            const float dx = Centred(x, kRingPx);
+            const float dy = Centred(y, kRingPx);
             const float distance = std::sqrt((dx * dx) + (dy * dy));
             const float band = distance - kRingRadius;
             const float inner = SmoothStep(0.0F, kRingRadius, distance) * 0.25F;
@@ -257,6 +302,28 @@ assets::ImageAsset MakeRingTexture() {
         }
     }
     return ring;
+}
+
+assets::ImageAsset MakeBubbleTexture() {
+    assets::ImageAsset bubble = SquareImage(kBubblePx);
+    for (std::uint32_t y = 0; y < kBubblePx; ++y) {
+        for (std::uint32_t x = 0; x < kBubblePx; ++x) {
+            Paint(bubble, (std::size_t{y} * kBubblePx) + x,
+                  BubbleAt(Centred(x, kBubblePx), Centred(y, kBubblePx)));
+        }
+    }
+    return bubble;
+}
+
+assets::ImageAsset MakeStarTexture() {
+    assets::ImageAsset star = SquareImage(kStarPx);
+    for (std::uint32_t y = 0; y < kStarPx; ++y) {
+        for (std::uint32_t x = 0; x < kStarPx; ++x) {
+            Fill(star, (std::size_t{y} * kStarPx) + x, 1.0F,
+                 StarAt(Centred(x, kStarPx), Centred(y, kStarPx)));
+        }
+    }
+    return star;
 }
 
 assets::GeometryAsset MakeBrickGeometry() {

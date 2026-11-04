@@ -72,6 +72,7 @@ private:
                float ageMs);
     [[nodiscard]] QuadDraw QuadOf(const Particle& particle, const View& view) const;
     [[nodiscard]] Color ColorAt(const Particle& particle, float share) const;
+    [[nodiscard]] TextureId TextureOf(FxShape shape) const;
     [[nodiscard]] Vector3 RandomAxis();
     [[nodiscard]] float Roll(FxRange range);
     [[nodiscard]] float Unit();

@@ -22,9 +22,17 @@ constexpr TextureId kSmoke{3};
 constexpr TextureId kSpark{4};
 constexpr TextureId kGlow{5};
 constexpr TextureId kRing{6};
+constexpr TextureId kBubble{7};
+constexpr TextureId kStar{8};
 constexpr TextureId kOriginal{9};
-constexpr FxAssets kTextures{.smoke = kSmoke, .spark = kSpark, .glow = kGlow, .ring = kRing};
+constexpr FxAssets kTextures{.smoke = kSmoke,
+                             .spark = kSpark,
+                             .glow = kGlow,
+                             .ring = kRing,
+                             .bubble = kBubble,
+                             .star = kStar};
 constexpr Transform kCamera{.position = {.z = -50.0F}};
+constexpr Vector3 kSwirlMiddle{.y = 2.0F};
 
 FxEffect Puff(float rate, int burst = 0) {
     return {.emitter = "puff",
@@ -182,6 +190,59 @@ TEST_CASE("the brick model is closed and faces outward") {
     CHECK(std::ranges::all_of(brick.vertices, [](const assets::GeometryVertex& vertex) {
         return Length(vertex.normal) == doctest::Approx(1.0F);
     }));
+}
+
+TEST_CASE("particles spawn around a flat circle and move in toward its middle") {
+    FxEffect swirl = Puff(0.0F, 12);
+    swirl.spawnRadius = 5.0F;
+    swirl.radialSpeed = -10.0F;
+    FxSystem fx = System(swirl);
+    fx.Burst(*fx.EffectFor("puff"), {.position = kSwirlMiddle});
+    const auto isAt = [](const QuadDraw& quad, float radius) {
+        const Vector3 offset = Centre(quad) - kSwirlMiddle;
+        return offset.y == doctest::Approx(0.0F) && Length(offset) == doctest::Approx(radius);
+    };
+
+    const std::vector<QuadDraw> spawned = Quads(fx);
+    fx.Update(FloatMilliseconds{100.0F});
+    const std::vector<QuadDraw> moved = Quads(fx);
+
+    REQUIRE(spawned.size() == 12);
+    CHECK(std::ranges::all_of(spawned, [&](const QuadDraw& quad) { return isAt(quad, 5.0F); }));
+    CHECK(std::ranges::all_of(moved, [&](const QuadDraw& quad) { return isAt(quad, 4.0F); }));
+}
+
+TEST_CASE("bubbles and twinkles draw from their own textures") {
+    FxEffect bubble = Puff(0.0F, 1);
+    bubble.shape = FxShape::Bubble;
+    FxEffect star = Puff(0.0F, 1);
+    star.emitter = "star";
+    star.shape = FxShape::Star;
+    FxSystem fx({bubble, star}, kTextures);
+
+    fx.Burst(*fx.EffectFor("puff"), {});
+    fx.Burst(*fx.EffectFor("star"), {});
+
+    std::vector<TextureId> textures;
+    for (const QuadDraw& quad : Quads(fx)) {
+        textures.push_back(quad.texture);
+    }
+    std::ranges::sort(textures);
+    CHECK(textures == std::vector{kBubble, kStar});
+}
+
+TEST_CASE(
+    "a bubble is clearer in the middle than at its rim, and a twinkle shines along its arms") {
+    const assets::ImageAsset bubble = MakeBubbleTexture();
+    const assets::ImageAsset star = MakeStarTexture();
+    const std::uint32_t middle = bubble.widthPx / 2;
+    const std::uint32_t rim = middle + (middle * 4 / 5);
+    const std::uint32_t arm = star.widthPx / 2;
+
+    CHECK(Alpha(bubble, middle, middle) < Alpha(bubble, rim, middle));
+    CHECK(Alpha(bubble, 0, 0) == doctest::Approx(0.0F));
+    CHECK(Alpha(star, arm, arm) > 0.9F);
+    CHECK(Alpha(star, arm, 6) > 4.0F * Alpha(star, 10, 10));
 }
 
 TEST_CASE("particles grow, fade and die at the end of their life") {

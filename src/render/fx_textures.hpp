@@ -26,6 +26,12 @@ inline constexpr std::uint32_t kSmokeCellPx = 128;
 /// A soft white ring near the image's edge.
 [[nodiscard]] assets::ImageAsset MakeRingTexture();
 
+/// A dark glossy bubble with a rainbow sheen at its rim and a white highlight.
+[[nodiscard]] assets::ImageAsset MakeBubbleTexture();
+
+/// A white four-pointed twinkle.
+[[nodiscard]] assets::ImageAsset MakeStarTexture();
+
 /// A 1 by 2 brick with two studs, one unit long, centred on its middle and facing up +y.
 [[nodiscard]] assets::GeometryAsset MakeBrickGeometry();
 

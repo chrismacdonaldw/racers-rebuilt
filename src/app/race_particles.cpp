@@ -53,6 +53,7 @@ void RaceParticles::Tick(const sim::RaceSession& session, const Transform& camer
     if (isBetter_) {
         walls_.Tick(session.Racers(), *fx_, elapsed);
         blasts_.Tick(session, *fx_);
+        powerupFx_.Tick(session, *fx_, elapsed);
     }
 }
 

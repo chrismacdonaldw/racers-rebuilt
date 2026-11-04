@@ -12,6 +12,7 @@
 
 #include "app/hazard/hazard_particles.hpp"
 #include "app/powerup/blast_fx.hpp"
+#include "app/powerup/powerup_fx.hpp"
 #include "app/powerup/powerup_particles.hpp"
 #include "app/racer/car_particles.hpp"
 #include "app/racer/skid_marks.hpp"
@@ -88,6 +89,7 @@ private:
     std::unique_ptr<render::FxSystem> fx_;
     WallSparks walls_;
     BlastFx blasts_;
+    PowerupFx powerupFx_;
     bool isBetter_ = false;
     std::span<const assets::SurfaceEntry> surfaces_;
     std::size_t player_;
