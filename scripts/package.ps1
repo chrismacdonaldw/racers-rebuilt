@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Builds the release preset from a clean tree and zips the exe with LICENSE, README.md, the
+Builds the release preset from a clean tree and zips the exe with LICENSE, the user docs, the
 content/ldraw folder and a licenses folder into build/package/racers-rebuilt-windows-x64.zip.
 
 .NOTES
@@ -20,6 +20,8 @@ $packageFolder = 'build/package'
 $ldrawFolder = 'content/ldraw'
 $zipPath = Join-Path $packageFolder 'racers-rebuilt-windows-x64.zip'
 $licensesFolder = Join-Path $packageFolder 'licenses'
+$packageLdrawFolder = Join-Path $packageFolder 'ldraw'
+$userDocs = @('LICENSE', 'README.md', 'SETTINGS.md', 'MODDING.md')
 $vcpkgShare = 'build/release/vcpkg_installed/x64-windows-static/share'
 $testOnlyPorts = @('doctest')
 
@@ -58,6 +60,11 @@ function Copy-Licenses {
     }
 }
 
+function Copy-Ldraw {
+    Copy-Item $ldrawFolder $packageLdrawFolder -Recurse
+    Remove-Item (Join-Path $packageLdrawFolder '.gitattributes')
+}
+
 if (@(git status --porcelain --untracked-files=all).Count -gt 0) {
     throw 'The working tree has changes. Package from a clean checkout.'
 }
@@ -86,7 +93,8 @@ if ($built.Count -ne 1 -or $built[0] -ne $exeName) {
 
 New-Item -ItemType Directory -Force $packageFolder | Out-Null
 Copy-Licenses
-$contents = @((Join-Path $binFolder $exeName), 'LICENSE', 'README.md', $ldrawFolder, $licensesFolder)
+Copy-Ldraw
+$contents = @((Join-Path $binFolder $exeName)) + $userDocs + @($packageLdrawFolder, $licensesFolder)
 Compress-Archive -Path $contents -DestinationPath $zipPath -CompressionLevel Optimal
 
 $zip = Get-Item $zipPath
