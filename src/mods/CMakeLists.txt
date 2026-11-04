@@ -1,8 +1,14 @@
 rr_add_module(mods
     SOURCES
+        folder_hash.cpp
         hook_registry.cpp
+        mod.cpp
+        mod_check.cpp
         mod_list.cpp
         mod_manifest.cpp
+        mod_resolution.cpp
+        mod_toggles.cpp
+        mod_version.cpp
         override_folder.cpp
     DEPENDS
         rr::assets

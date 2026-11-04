@@ -6,6 +6,8 @@
 #include <limits>
 #include <optional>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include <toml++/toml.hpp>
 
@@ -62,19 +64,62 @@ private:
     std::optional<std::string> error_;
 };
 
+Result<std::vector<ModReference>> ReadReferences(const toml::table& table, std::string_view key,
+                                                 std::string_view ownId) {
+    std::vector<ModReference> references;
+    const toml::node* node = table.get(key);
+    if (node == nullptr) {
+        return references;
+    }
+    const toml::table* entries = node->as_table();
+    if (entries == nullptr) {
+        return Fail(ErrorCode::InvalidData, std::format("{} must be a table", key));
+    }
+    for (const auto& [id, value] : *entries) {
+        const std::string_view name = id.str();
+        if (!IsValidModId(name) || name == ownId) {
+            return Fail(ErrorCode::InvalidData,
+                        std::format("{}.{} isn't another mod's id", key, name));
+        }
+        const std::optional<std::string> text = value.value_exact<std::string>();
+        if (!text) {
+            return Fail(ErrorCode::InvalidData, std::format("{}.{} must be text", key, name));
+        }
+        const Result<VersionRange> range = ParseVersionRange(*text);
+        if (!range) {
+            return Fail(ErrorCode::InvalidData,
+                        std::format("{}.{}: {}", key, name, range.error().message));
+        }
+        references.push_back({.id = std::string(name), .range = *range});
+    }
+    return references;
+}
+
 Result<ModManifest> ReadManifest(const toml::table& table) {
     FieldReader fields(table);
     ModManifest manifest{.id = fields.Get<std::string>("id"),
                          .name = fields.Get<std::string>("name"),
                          .version = fields.Get<std::string>("version"),
                          .priority = fields.Get<int>("priority", 0),
-                         .isEnabledByDefault = fields.Get<bool>("enabled", true)};
+                         .isEnabledByDefault = fields.Get<bool>("enabled", true),
+                         .requirements = {},
+                         .loadsAfter = {},
+                         .conflicts = {}};
     if (fields.Problem()) {
         return Fail(ErrorCode::InvalidData, *fields.Problem());
     }
     if (!IsValidModId(manifest.id)) {
         return Fail(ErrorCode::InvalidData,
                     std::format("id {} may only use a-z, 0-9, _ and -", manifest.id));
+    }
+    for (auto [key, references] :
+         {std::pair{"requires", &manifest.requirements}, std::pair{"after", &manifest.loadsAfter},
+          std::pair{"conflicts", &manifest.conflicts}}) {
+        Result<std::vector<ModReference>> read = ReadReferences(table, key, manifest.id);
+        if (!read) {
+            return std::unexpected(std::move(read.error()));
+        }
+        *references = std::move(*read);
     }
     return manifest;
 }

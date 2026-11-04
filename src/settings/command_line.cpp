@@ -12,7 +12,15 @@ namespace {
 
 constexpr std::string_view kSetFlag = "--set";
 constexpr std::string_view kPlayersFlag = "--players";
-constexpr std::string_view kNoVideoFlag = "--novideo";
+struct SwitchFlag {
+    std::string_view flag;
+    bool CommandLine::* field;
+};
+
+constexpr std::array kSwitchFlags{
+    SwitchFlag{.flag = "--novideo", .field = &CommandLine::noVideo},
+    SwitchFlag{.flag = "--check-mods", .field = &CommandLine::checkMods},
+};
 
 struct TextFlag {
     std::string_view flag;
@@ -78,8 +86,9 @@ Result<SettingOverride> ParseOverride(std::string_view text) {
 Result<CommandLine> ParseCommandLine(std::span<const std::string_view> args) {
     CommandLine commandLine;
     for (std::size_t index = 0; index < args.size(); ++index) {
-        if (args[index] == kNoVideoFlag) {
-            commandLine.noVideo = true;
+        const auto switchFlag = std::ranges::find(kSwitchFlags, args[index], &SwitchFlag::flag);
+        if (switchFlag != kSwitchFlags.end()) {
+            commandLine.*(switchFlag->field) = true;
             continue;
         }
         Result<FlagValue> flag = TakeFlag(args, index);

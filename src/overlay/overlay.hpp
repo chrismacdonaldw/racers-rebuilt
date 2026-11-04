@@ -13,9 +13,12 @@
 
 #include "core/duration.hpp"
 #include "core/result.hpp"
+#include "mods/mod_list.hpp"
 #include "overlay/input_gate.hpp"
+#include "overlay/mod_menu.hpp"
 #include "overlay/quick_config_menu.hpp"
 #include "overlay/racer_tools.hpp"
+#include "overlay/setting_menus.hpp"
 #include "platform/window.hpp"
 #include "render/overlay_pass.hpp"
 #include "render/renderer.hpp"
@@ -38,6 +41,7 @@ struct MenuChoice {
 struct SettingActions {
     std::span<const MenuChoice> mods;
     std::span<const MenuChoice> game;
+    const mods::ModList* modList = nullptr;
 };
 
 /// ImGui state is global, so only one may exist. `window` and `renderer` must outlive it.
@@ -71,8 +75,12 @@ private:
     Overlay(render::Renderer& renderer, settings::QuickConfigs quickConfigs)
         : renderer_(&renderer), quickConfigs_(std::move(quickConfigs)) {}
 
+    std::vector<std::string> DrawSettingMenu(settings::Registry& registry, const SettingMenu& menu,
+                                             const SettingActions& actions);
+
     render::Renderer* renderer_;
     QuickConfigMenu quickConfigs_;
+    ModMenu modMenu_;
     InputGate input_;
     bool hasFrame_ = false;
     Nanoseconds frameCost_{0};

@@ -4,7 +4,7 @@
 #include <variant>
 
 #include "app/racer/racer_ref.hpp"
-#include "mods/mod_manifest.hpp"
+#include "mods/mod.hpp"
 
 namespace rr::app {
 namespace {
@@ -30,7 +30,8 @@ std::vector<std::string> GameplayFingerprint(const settings::Registry& settings,
                                              const PlayerRacers& players) {
     std::vector<std::string> entries;
     for (const mods::Mod* mod : mods.Enabled(settings)) {
-        entries.push_back(std::format("mod:{}@{}", mod->Manifest().id, mod->Manifest().version));
+        entries.push_back(std::format("mod:{}@{}#{:016x}", mod->Manifest().id,
+                                      mod->Manifest().version, mod->ContentHash()));
     }
     if (overridesHash) {
         entries.push_back(std::format("overrides:{:016x}", *overridesHash));

@@ -16,6 +16,7 @@
 #include "app/texture_pack.hpp"
 #include "core/result.hpp"
 #include "core/utf8_path.hpp"
+#include "mods/mod_check.hpp"
 #include "platform/fatal_error.hpp"
 
 namespace {
@@ -26,6 +27,9 @@ rr::Result<void> Run(std::span<const std::string_view> argv) {
         return std::unexpected(std::move(boot.error()));
     }
     boot->relaunch = rr::app::RelaunchCommand(argv);
+    if (boot->commandLine.checkMods) {
+        return rr::mods::CheckMods(boot->extensions.mods, boot->settings);
+    }
     if (boot->commandLine.importSaveFile) {
         const rr::Result<bool> imported = rr::app::ImportOriginalSave(
             rr::PathFromUtf8(*boot->commandLine.importSaveFile),
