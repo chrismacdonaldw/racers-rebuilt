@@ -115,7 +115,6 @@ TEST_CASE("only the enhanced preset turns on widescreen, HUD width, far models a
     CHECK(registry.IsAvailable(kHudWidthSetting.key));
     CHECK(registry.Get(kFarCarsSetting));
     CHECK(registry.Get(kFarScenerySetting));
-    CHECK(registry.Get(kBetterParticlesSetting));
     CHECK(registry.Get(kEnhancedBuilder));
     CHECK(registry.Get(kExtraPiecesSetting));
     static_cast<void>(ApplyPreset(registry, presets[0]));

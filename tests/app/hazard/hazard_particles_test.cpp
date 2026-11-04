@@ -12,8 +12,6 @@
 #include "../../sim/hazard/hazard_rig.hpp"
 #include "../../sim/physics/plane_world.hpp"
 #include "../../sim/race/checkpoint_ring.hpp"
-#include "app/hazard/hazard_fx_effects.hpp"
-#include "render/fx_system.hpp"
 
 namespace rr::app {
 namespace {
@@ -46,8 +44,6 @@ public:
         particles_.Tick(session_, kCamera, bank_, kTick);
         bank_.Update(kFrame);
     }
-
-    void UseEffects(render::FxSystem& fx) { bank_.SetEffects(&fx); }
 
     [[nodiscard]] std::vector<render::QuadDraw> Quads() const {
         std::vector<render::QuadDraw> quads;
@@ -101,19 +97,6 @@ TEST_CASE("snow falls 100 ahead of the camera, 40 below and up to 100 aside") {
     const std::vector<render::QuadDraw> quads = race.Quads();
     REQUIRE_FALSE(quads.empty());
     CHECK(std::ranges::all_of(quads, IsAheadOfTheCamera));
-}
-
-TEST_CASE("better particles draw new flakes along the original falling snow") {
-    render::FxSystem fx{HazardFxEffects(), render::FxAssets{}};
-    HazardRace race({{.kind = assets::HazardKind::Snowfall}});
-    race.UseEffects(fx);
-
-    for (int tick = 0; tick < 5; ++tick) {
-        race.Tick();
-    }
-
-    CHECK(race.Quads().empty());
-    CHECK(fx.Count() > 0);
 }
 
 TEST_CASE("no snow falls while the player's car is tinted") {

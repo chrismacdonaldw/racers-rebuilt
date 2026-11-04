@@ -13,12 +13,9 @@
 #include "assets/material_animation.hpp"
 #include "core/transform.hpp"
 #include "core/vector3.hpp"
-#include "render/fx_effect.hpp"
 #include "render/render_view.hpp"
 
 namespace rr::render {
-
-class FxSystem;
 
 using FloatMilliseconds = std::chrono::duration<float, std::milli>;
 
@@ -76,11 +73,6 @@ public:
     void Release(EmitterHandle handle);
     void StopAll();
 
-    /// Running emitters that `effects` has an effect for spawn that effect in place of drawing
-    /// their own particles, whose timing still runs as the original's. `effects` must outlive the
-    /// bank.
-    void SetEffects(FxSystem* effects);
-
     void Update(FloatMilliseconds elapsed);
 
     /// Camera-facing, sized along the camera's up and right axes.
@@ -104,12 +96,9 @@ private:
         std::size_t spawnCount = 0;
         std::optional<Vector3> anchor;
         std::array<Particle, kParticlesPerSlot> particles{};
-        std::optional<FxEffectId> effect;
-        FxEmission emission;
     };
 
     [[nodiscard]] Slot* Find(EmitterHandle handle);
-    [[nodiscard]] std::optional<FxEffectId> EffectOf(std::size_t emitter) const;
     [[nodiscard]] std::optional<std::size_t> ChooseSlot(std::uint8_t priority) const;
     void UpdateSlot(Slot& slot, float elapsedMs);
     void Spawn(Slot& slot);
@@ -119,7 +108,6 @@ private:
 
     ParticleBankSetup setup_;
     std::vector<Slot> slots_;
-    FxSystem* effects_ = nullptr;
     std::uint32_t random_ = 0x9E3779B9U;
 };
 

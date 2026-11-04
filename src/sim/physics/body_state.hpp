@@ -107,7 +107,6 @@ struct BodyState {
     ImpulseTimers impulses;
     bool hasWallYaw = false;
     bool hasWallContact = false;
-    Vector3 wallNormal;
     int airborneMs = 0;
     Vector3 supportForce;
     SpinState spin;

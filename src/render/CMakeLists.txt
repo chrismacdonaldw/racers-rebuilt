@@ -2,8 +2,6 @@ rr_add_module(render
     SOURCES
         camera.cpp
         frame_readback.cpp
-        fx_system.cpp
-        fx_textures.cpp
         joint_uniforms.cpp
         light_uniforms.cpp
         pipelines.cpp

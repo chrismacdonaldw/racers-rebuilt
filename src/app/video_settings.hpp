@@ -79,13 +79,6 @@ inline constexpr settings::SettingSpec<bool> kFarScenerySetting{.key = "video.fa
                                                                 .label = "Draw far scenery",
                                                                 .category = "Video"};
 
-inline constexpr settings::SettingSpec<bool> kBetterParticlesSetting{
-    .key = "video.better_particles",
-    .defaultValue = false,
-    .label = "Better particles",
-    .category = "Video",
-    .tooltip = "Redraws the original smoke, sparks and power-up effects in a modern style."};
-
 /// Draws the player's own car in the cockpit view, which the original leaves out while racing.
 inline constexpr settings::SettingSpec<bool> kCockpitCarSetting{.key = "video.cockpit_car",
                                                                 .defaultValue = false,

@@ -3,12 +3,12 @@
 #include <utility>
 
 #include "app/particle_assets.hpp"
-#include "app/race_fx.hpp"
 #include "app/track_space.hpp"
 
 namespace rr::app {
 namespace {
 
+constexpr float kMinSpeed = 0.008F;
 constexpr float kVelocityScale = 0.6F * 1000.0F;
 constexpr std::size_t kRearRight = 2;
 constexpr std::size_t kRearLeft = 3;
@@ -16,11 +16,8 @@ constexpr std::size_t kRearLeft = 3;
 }
 
 RaceParticles::RaceParticles(render::ParticleBankSetup common, render::ParticleBankSetup track,
-                             FxFactory makeFx, std::span<const assets::SurfaceEntry> surfaces,
-                             std::size_t player)
+                             std::span<const assets::SurfaceEntry> surfaces, std::size_t player)
     : banks_{render::ParticleBank(std::move(common)), render::ParticleBank(std::move(track))},
-      makeFx_(std::move(makeFx)),
-      spray_(surfaces),
       surfaces_(surfaces),
       player_(player),
       hazards_(player) {}
@@ -40,9 +37,7 @@ Result<RaceParticles> RaceParticles::Load(render::Renderer& renderer, const asse
     if (!trackBank) {
         return std::unexpected(std::move(trackBank.error()));
     }
-    return RaceParticles(
-        std::move(*common), std::move(*trackBank), [&renderer] { return MakeRaceFx(renderer); },
-        surfaces, player);
+    return RaceParticles(std::move(*common), std::move(*trackBank), surfaces, player);
 }
 
 void RaceParticles::Tick(const sim::RaceSession& session, const Transform& camera,
@@ -50,9 +45,6 @@ void RaceParticles::Tick(const sim::RaceSession& session, const Transform& camer
     cars_.Tick(session.Racers(), Bank(ParticleFile::Common));
     powerups_.Tick(session, Bank(ParticleFile::Common), elapsed);
     hazards_.Tick(session, camera, Bank(ParticleFile::Track), elapsed);
-    if (isBetter_) {
-        blasts_.Tick(session, *fx_);
-    }
 }
 
 void RaceParticles::Update(const sim::RaceSession& session,
@@ -65,17 +57,11 @@ void RaceParticles::Update(const sim::RaceSession& session,
         if (slot >= player_ && slot - player_ < skidding.size()) {
             UpdatePlayer(racers[slot], skidding[slot - player_], players_[slot - player_]);
         } else {
-            if (isBetter_) {
-                spray_.Update(slot, racers[slot], *fx_, elapsed.count());
-            }
             cars_.Update(
                 racers[slot], computers_[slot],
                 {.velocity = ToEngine(racers[slot].Body().motion.velocity) * kVelocityScale},
                 Bank(ParticleFile::Common));
         }
-    }
-    if (isBetter_) {
-        fx_->Update(elapsed);
     }
     for (render::ParticleBank& bank : banks_) {
         bank.Update(elapsed);
@@ -85,12 +71,13 @@ void RaceParticles::Update(const sim::RaceSession& session,
 void RaceParticles::UpdatePlayer(const sim::Racer& racer, const std::optional<SkidWheels>& skidding,
                                  PlayerEmitters& emitters) {
     const sim::BodyState& body = racer.Body();
-    const bool isRolling = IsKickingUp(racer);
+    const bool isRolling = !body.hover.isHovering && !racer.IsSpunOut() &&
+                           !racer.Status().isGhost && body.derived.forwardSpeed > kMinSpeed;
     const Vector3 velocity = ToEngine(body.motion.velocity) * kVelocityScale;
     std::array<WheelEmitter, sim::kWheelCount>& wheels = emitters.wheels;
     for (std::size_t i = 0; i < wheels.size(); ++i) {
         const sim::WheelProbe& probe = body.motion.wheels[i];
-        UpdateWheel(wheels[i], isRolling ? WheelParticleOf(probe, surfaces_) : std::nullopt,
+        UpdateWheel(wheels[i], isRolling ? ParticleOf(probe) : std::nullopt,
                     {.position = ToEngine(probe.position), .velocity = velocity});
     }
     const bool isRearKicking = wheels[kRearRight].handle || wheels[kRearLeft].handle;
@@ -106,24 +93,15 @@ void RaceParticles::AppendQuads(const Transform& camera, std::vector<render::Qua
     for (const render::ParticleBank& bank : banks_) {
         bank.AppendQuads(camera, out);
     }
-    if (isBetter_) {
-        fx_->AppendQuads(camera, out);
-    }
 }
 
-void RaceParticles::SetBetter(bool isBetter) {
-    if (isBetter && !fx_) {
-        fx_ = makeFx_();
+std::optional<std::string_view> RaceParticles::ParticleOf(const sim::WheelProbe& wheel) const {
+    const std::optional<std::size_t> entry = wheel.surface.tableEntry;
+    if (!wheel.isInContact || !entry || *entry >= surfaces_.size()) {
+        return std::nullopt;
     }
-    isBetter = isBetter && fx_ != nullptr;
-    if (isBetter == isBetter_) {
-        return;
-    }
-    isBetter_ = isBetter;
-    fx_->Clear();
-    for (render::ParticleBank& bank : banks_) {
-        bank.SetEffects(isBetter ? fx_.get() : nullptr);
-    }
+    const std::optional<std::string>& particle = surfaces_[*entry].particle;
+    return particle ? std::optional<std::string_view>(*particle) : std::nullopt;
 }
 
 void RaceParticles::UpdateWheel(WheelEmitter& wheel, std::optional<std::string_view> name,
