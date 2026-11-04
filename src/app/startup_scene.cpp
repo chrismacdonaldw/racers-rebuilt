@@ -32,6 +32,7 @@ std::string RaceNamed(RaceSceneSetup setup, const settings::Registry& settings) 
     setup.respawn = RespawnRuleFrom(settings);
     setup.aiDriving = AiDrivingFrom(settings);
     setup.aiPace = settings.Get(kAiPace);
+    setup.aiCraft = AiCraftFrom(settings);
     return RaceSceneName(setup);
 }
 

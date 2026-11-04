@@ -8,6 +8,7 @@
 #include "assets/game_version.hpp"
 #include "core/bounding_sphere.hpp"
 #include "core/duration.hpp"
+#include "sim/ai/ai_craft.hpp"
 #include "sim/ai/powerup_habits.hpp"
 #include "sim/physics/chassis.hpp"
 #include "sim/powerup/powerup_effect.hpp"
@@ -44,6 +45,7 @@ struct RaceSetup {
     RespawnRule respawn;
     AiDriving aiDriving = AiDriving::Route;
     float aiPace = 1.0F;
+    AiCraft aiCraft;
     EffectFactories effects;
     Cheats cheats;
     Modifiers modifiers;

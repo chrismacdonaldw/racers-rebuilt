@@ -306,6 +306,7 @@ add_executable(racers-rebuilt-tests
     settings/setting_preset_test.cpp
     settings/settings_file_test.cpp
     sim/ai/ai_aim_test.cpp
+    sim/ai/ai_craft_test.cpp
     sim/ai/ai_grid_test.cpp
     sim/ai/ai_powerups_test.cpp
     sim/ai/ai_racer_test.cpp
@@ -392,6 +393,7 @@ add_executable(racers-rebuilt-tests
     sim/powerup/warp_rules_test.cpp
     sim/powerup/shield_effect_test.cpp
     sim/powerup/shot_world_test.cpp
+    sim/race/ai_lap_benchmark_test.cpp
     sim/race/ai_race_test.cpp
     sim/race/cheats_test.cpp
     sim/race/checkpoint_graph_test.cpp

@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <optional>
 
+#include "sim/ai/route_driver.hpp"
 #include "sim/race/player_cheats.hpp"
 #include "sim/race/race_session.hpp"
 
@@ -22,13 +23,15 @@ bool RaceSession::WantsPowerup(std::size_t racer, Milliseconds elapsed,
     if (racers_[racer].Boost().isHeldAtStart) {
         return false;
     }
+    const std::optional<RouteDriver>& driver = drivers_[racer];
+    const bool isLiningUp = driver.has_value() && driver->Craft().aims;
     return aiPowerups_[racer].Tick(elapsed,
                                    {.racers = racers_,
                                     .racer = racer,
                                     .inventory = &inventories_[racer],
                                     .isCrowded = powerups_.IsCrowded(),
                                     .hasFinished = progress_.OfRacer(racer).finishPlace.has_value(),
-                                    .isLiningUp = drivers_[racer].has_value()},
+                                    .isLiningUp = isLiningUp},
                                    random_);
 }
 

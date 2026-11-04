@@ -11,6 +11,7 @@
 #include "assets/game_version.hpp"
 #include "core/result.hpp"
 #include "settings/racers.hpp"
+#include "sim/ai/ai_craft.hpp"
 #include "sim/powerup/warp_rules.hpp"
 #include "sim/race/cheats.hpp"
 #include "sim/race/circuit_run.hpp"
@@ -37,6 +38,7 @@ struct RaceSceneSetup {
     std::size_t racer = 0;
     sim::AiDriving aiDriving = sim::AiDriving::Route;
     int aiPace = kDefaultAiPace;
+    sim::AiCraft aiCraft;
     bool isMirrored = false;
     bool isTestDrive = false;
     bool isDemo = false;

@@ -18,6 +18,10 @@ constexpr std::string_view kMenu = "Enhancements";
 constexpr std::string_view kPresetsFolderName = "presets";
 
 constexpr std::array kEnhancedSettings{&kPhysicsAi,
+                                       &kAiBraking,
+                                       &kAiPassing,
+                                       &kAiUnsticking,
+                                       &kAiAiming,
                                        &kRespawn,
                                        &kChampionCars,
                                        &kSmoothTexturesSetting,

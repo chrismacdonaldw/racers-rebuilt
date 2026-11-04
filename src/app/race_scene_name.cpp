@@ -12,6 +12,7 @@
 #include "assets/circuit_database.hpp"
 #include "assets/game_path.hpp"
 #include "core/duration.hpp"
+#include "sim/ai/ai_craft.hpp"
 #include "sim/input_frame.hpp"
 
 namespace rr::app {
@@ -25,6 +26,7 @@ constexpr std::string_view kRacerKey = "racer";
 constexpr std::string_view kCircuitKey = "circuit";
 constexpr std::string_view kAiKey = "ai";
 constexpr std::string_view kPaceKey = "pace";
+constexpr std::string_view kCraftKey = "craft";
 constexpr std::string_view kMirroredKey = "mirrored";
 constexpr std::string_view kTestDriveKey = "testdrive";
 constexpr std::string_view kDemoKey = "demo";
@@ -225,6 +227,10 @@ bool ReadField(Field field, RaceSceneSetup& setup, std::optional<sim::RespawnRul
         setup.aiPace = ParseNumber<int>(field.value).value_or(0);
         return setup.aiPace >= kMinAiPace && setup.aiPace <= kMaxAiPace;
     }
+    if (field.key == kCraftKey) {
+        setup.aiCraft = sim::ParseCraftLetters(field.value).value_or(sim::AiCraft{});
+        return setup.aiCraft != sim::AiCraft{};
+    }
     if (field.key == kPlayerKey) {
         setup.player = ParseRef(field.value).value_or(RacerRef{});
         return !setup.player.name.empty();
@@ -284,6 +290,9 @@ std::string AiField(const RaceSceneSetup& setup) {
     std::string field = std::format(":{}={}", kAiKey, kPhysicsAi);
     if (setup.aiPace != kDefaultAiPace) {
         field += std::format(":{}={}", kPaceKey, setup.aiPace);
+    }
+    if (setup.aiCraft != sim::AiCraft{}) {
+        field += std::format(":{}={}", kCraftKey, sim::CraftLetters(setup.aiCraft));
     }
     return field;
 }
