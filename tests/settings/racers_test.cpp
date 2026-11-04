@@ -31,7 +31,12 @@ assets::CarData Car() {
 
 RacerStore Garage() {
     return {.racers = {{.name = "JOAN OF KART",
-                        .look = {.face = 3, .hat = 1, .legs = 2, .torso = 4, .expression = 5},
+                        .look = {.face = 3,
+                                 .hat = 1,
+                                 .legs = 2,
+                                 .torso = 4,
+                                 .expression = 5,
+                                 .hatName = "lava-helmet"},
                         .chassis = "dachas0",
                         .car = Car(),
                         .trophies = {{"c0", Trophy::Gold}}},
@@ -60,6 +65,17 @@ TEST_CASE("a saved racer reads as named fields and its car as hex") {
     CHECK(text.find("car = '00010014" + std::string(std::size_t{0x1FB} * 2, '0') + "ab'") !=
           std::string::npos);
     CHECK(text.find("\nselected") == std::string::npos);
+}
+
+TEST_CASE("a racer saves the part names it has beside their indices") {
+    const test::TempFolder folder;
+    const std::filesystem::path path = folder.Path() / "racers.toml";
+
+    REQUIRE(SaveRacers(Garage(), path).has_value());
+
+    const std::string text = ReadText(path);
+    CHECK(text.find("hat_name = 'lava-helmet'") != std::string::npos);
+    CHECK(text.find("face_name") == std::string::npos);
 }
 
 TEST_CASE("a missing racers file holds no racers") {

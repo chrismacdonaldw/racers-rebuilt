@@ -139,6 +139,45 @@ TEST_CASE("fitting a look keeps the indices its catalogue lists") {
           DriverLook{.face = 1, .hat = 0, .legs = 1, .torso = 0, .expression = 4});
 }
 
+TEST_CASE("a named part wins over its index, so mods that move the lists don't swap it") {
+    const DriverLook look{.face = 0, .hat = 0, .legs = 0, .torso = 1, .hatName = "KK_HATS"};
+
+    const DriverLook fitted = FitLook(SmallCatalog(), look);
+
+    CHECK(fitted.hat == 1);
+    CHECK(fitted.torso == 1);
+    CHECK(fitted.hatName == "KK_HATS");
+    CHECK(MenuMaterials(look) == MenuMaterials({.hat = 1, .torso = 1}));
+}
+
+TEST_CASE("a part the catalogue lacks keeps its name and index and marks the look") {
+    const DriverLook look{.face = 1, .legs = 7, .faceName = "lava_", .legsName = "leg_blck"};
+
+    const DriverLook fitted = FitLook(SmallCatalog(), look);
+
+    CHECK(fitted.face == 1);
+    CHECK(fitted.faceName == "lava_");
+    CHECK(fitted.legs == 0);
+    CHECK(HasMissingParts(SmallCatalog(), look));
+    CHECK_FALSE(HasMissingParts(SmallCatalog(), {.face = 9, .legsName = "Leg_Peg"}));
+}
+
+TEST_CASE("naming a look fills the names it lacks from the catalogue") {
+    const DriverLook look{.face = 1, .hat = 5, .torso = 1, .legsName = "leg_peg"};
+
+    const DriverLook named = NameLook(SmallCatalog(), look);
+
+    CHECK(named == DriverLook{.face = 1,
+                              .hat = 0,
+                              .legs = 1,
+                              .torso = 1,
+                              .faceName = "kk_",
+                              .hatName = "nohat",
+                              .legsName = "leg_peg",
+                              .torsoName = "vb_chst"});
+    CHECK(NameLook(SmallCatalog(), {.faceName = "lava_"}).faceName == "lava_");
+}
+
 template <typename T, typename Parse>
 Result<T> ReadRetail(const Vfs& vfs, const std::string& path, Parse parse) {
     return vfs.Read(path).and_then([&](const FileData& data) { return parse(data.Bytes()); });

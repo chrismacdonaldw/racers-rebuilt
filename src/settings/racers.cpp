@@ -39,12 +39,23 @@ struct LookField {
     std::uint8_t assets::DriverLook::* field;
 };
 
+struct PartName {
+    std::string_view key;
+    std::string assets::DriverLook::* field;
+};
+
 constexpr std::array kLookFields{
     LookField{.key = "face", .field = &assets::DriverLook::face},
     LookField{.key = "hat", .field = &assets::DriverLook::hat},
     LookField{.key = "legs", .field = &assets::DriverLook::legs},
     LookField{.key = "torso", .field = &assets::DriverLook::torso},
     LookField{.key = "expression", .field = &assets::DriverLook::expression}};
+
+constexpr std::array kPartNames{
+    PartName{.key = "face_name", .field = &assets::DriverLook::faceName},
+    PartName{.key = "hat_name", .field = &assets::DriverLook::hatName},
+    PartName{.key = "legs_name", .field = &assets::DriverLook::legsName},
+    PartName{.key = "torso_name", .field = &assets::DriverLook::torsoName}};
 
 std::optional<assets::CarData> ParseCar(std::string_view hex) {
     if (hex.size() % kHexDigits != 0 || hex.size() > assets::kCarDataSize * kHexDigits) {
@@ -82,6 +93,17 @@ bool ReadLook(const toml::table& table, assets::DriverLook& look) {
             return false;
         }
         look.*field.field = static_cast<std::uint8_t>(*value);
+    }
+    for (const PartName& name : kPartNames) {
+        const toml::node* node = table.get(name.key);
+        if (node == nullptr) {
+            continue;
+        }
+        std::optional<std::string> value = node->value<std::string>();
+        if (!value) {
+            return false;
+        }
+        look.*name.field = std::move(*value);
     }
     return true;
 }
@@ -135,6 +157,11 @@ toml::table RacerTable(const Racer& racer) {
     toml::table table{{kName, racer.name}};
     for (const LookField& field : kLookFields) {
         table.insert(field.key, static_cast<std::int64_t>(racer.look.*field.field));
+    }
+    for (const PartName& name : kPartNames) {
+        if (!(racer.look.*name.field).empty()) {
+            table.insert(name.key, racer.look.*name.field);
+        }
     }
     table.insert(kChassis, racer.chassis);
     table.insert(kCar, CarHex(racer.car));

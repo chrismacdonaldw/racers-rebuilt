@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <span>
+#include <string>
 #include <utility>
 
 namespace rr::app {
@@ -22,6 +23,25 @@ std::span<const assets::DriverPart> ShelfOf(const assets::DriverPartCatalog& cat
     return {};
 }
 
+struct SlotFields {
+    std::uint8_t assets::DriverLook::* index;
+    std::string assets::DriverLook::* name;
+};
+
+SlotFields FieldsOf(DriverSlot slot) {
+    switch (slot) {
+        case DriverSlot::Hat:
+            return {.index = &assets::DriverLook::hat, .name = &assets::DriverLook::hatName};
+        case DriverSlot::Face:
+            return {.index = &assets::DriverLook::face, .name = &assets::DriverLook::faceName};
+        case DriverSlot::Torso:
+            return {.index = &assets::DriverLook::torso, .name = &assets::DriverLook::torsoName};
+        case DriverSlot::Legs:
+            return {.index = &assets::DriverLook::legs, .name = &assets::DriverLook::legsName};
+    }
+    return {.index = &assets::DriverLook::hat, .name = &assets::DriverLook::hatName};
+}
+
 std::ptrdiff_t Wrap(std::ptrdiff_t index, std::size_t count) {
     const auto size = static_cast<std::ptrdiff_t>(count);
     return ((index % size) + size) % size;
@@ -29,18 +49,14 @@ std::ptrdiff_t Wrap(std::ptrdiff_t index, std::size_t count) {
 
 }
 
-std::uint8_t& PartOf(assets::DriverLook& look, DriverSlot slot) {
-    switch (slot) {
-        case DriverSlot::Hat:
-            return look.hat;
-        case DriverSlot::Face:
-            return look.face;
-        case DriverSlot::Torso:
-            return look.torso;
-        case DriverSlot::Legs:
-            return look.legs;
-    }
-    return look.hat;
+std::uint8_t PartOf(const assets::DriverLook& look, DriverSlot slot) {
+    return look.*FieldsOf(slot).index;
+}
+
+void PickPart(assets::DriverLook& look, DriverSlot slot, std::uint8_t part) {
+    const SlotFields fields = FieldsOf(slot);
+    look.*fields.index = part;
+    (look.*fields.name).clear();
 }
 
 std::vector<std::uint8_t> UnlockedParts(const assets::DriverPartCatalog& catalog, DriverSlot slot,

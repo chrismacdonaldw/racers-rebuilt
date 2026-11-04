@@ -112,8 +112,8 @@ Result<std::unique_ptr<RaceScene>> RaceScene::Create(const RaceOutputs& outputs,
          .scrolledDraws = std::move(model->scrolledDraws),
          .world = std::move(world),
          .session = std::move(*session),
-         .audio =
-             LoadRaceAudio(outputs, vfs, setup.track, AudioSetup(setup, race, racerSounds, seed)),
+         .audio = LoadRaceAudio(outputs, vfs, setup.track,
+                                AudioSetup(vfs, setup, race, racerSounds, seed)),
          .particles =
              LoadRaceParticles(renderer, vfs, loader, setup.track, race.collision.surfaces),
          .map = LoadTrackMap(vfs, setup.track, setup.isMirrored, model->textures),

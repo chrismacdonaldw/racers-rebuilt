@@ -117,7 +117,6 @@ rr_add_module(app
         menu/edit_car_menu.cpp
         menu/edit_car_scene.cpp
         menu/edit_driver_look.cpp
-        menu/extra_pieces_lock.cpp
         menu/edit_driver_menu.cpp
         menu/edit_driver_scene.cpp
         menu/language_look.cpp
@@ -162,6 +161,7 @@ rr_add_module(app
         menu/preview_cycle.cpp
         menu/race_preview.cpp
         menu/racer_edit_flow.cpp
+        menu/racer_lock.cpp
         menu/racer_pick_list.cpp
         menu/racer_pick_look.cpp
         menu/racer_pick_menu.cpp

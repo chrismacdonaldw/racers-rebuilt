@@ -152,12 +152,12 @@ These tables merge with the game's instead of replacing it, so a mod only needs 
 | Any `.MDB` or `.TDB` | Materials and textures, by name |
 
 - An entry named like one before it, in any case, replaces it. Mods merge in priority order, lowest first, and overrides last.
-- New entries come after the game's, so saved racers keep their parts. A racer saved with a mod's part gets the first part once the mod is off.
-- Saved racers store a part's position in its list, so turning off one mod can give a racer the part of a mod after it.
+- Saved racers store each driver part's name beside its position (`face_name`, `hat_name`, `torso_name` and `legs_name` in `racers.toml`). The name wins, so turning mods on or off never swaps a racer's parts. A racer saved before names were stored keeps its positions until its driver is edited.
+- A racer wearing a part from a mod that's off is kept but can't race or test drive, and shows "Needs parts from a mod". Until then it wears the part at the saved position, or the first part. Turning the mod back on unlocks it, and editing the driver keeps the missing part unless it's changed.
 - Each list of hats, faces, torsos or legs holds 256 parts. Parts past that are skipped with a warning.
 - A mod's table that doesn't load is skipped with a warning in the log.
 - A new brick needs a piece type of `0x1389` or more that no other brick uses, since saved cars store the type. A brick named like a game brick must keep its type. Bricks that break either rule are skipped with a warning, and a car saved with a mod's brick loses it once the mod is off.
-- `RACERS.TOML` uses the data folder's `racers.toml` layout, so a racer built in the game can be copied in. Trophies and `selected` are ignored.
+- `RACERS.TOML` uses the data folder's `racers.toml` layout, so a racer built in the game can be copied in, and its racers can name their parts. Trophies and `selected` are ignored.
 - Entries can't be removed.
 
 ## Power-ups

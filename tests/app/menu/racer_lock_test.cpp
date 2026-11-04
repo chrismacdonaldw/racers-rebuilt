@@ -1,9 +1,10 @@
-#include "app/menu/extra_pieces_lock.hpp"
+#include "app/menu/racer_lock.hpp"
 
 #include <doctest/doctest.h>
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 #include "assets/ldraw_extra_pieces.hpp"
 
@@ -30,6 +31,26 @@ TEST_CASE("a car with an extra piece locks only while extra pieces are off") {
 TEST_CASE("a car of original pieces never locks") {
     CHECK_FALSE(IsLockedCar(CarOf(17, 0x900), false));
     CHECK_FALSE(IsLockedCar(assets::CarData{}, false));
+}
+
+TEST_CASE("a driver wearing a part the catalogue lacks locks its racer") {
+    RacerLocks locks(assets::DriverPartCatalog{.hats = {{.name = "nohat"}}});
+    const settings::Racer worn{.look = {.hatName = "NOHAT"}};
+    const settings::Racer missing{.look = {.hatName = "lava-helmet"}};
+    settings::Racer both = missing;
+    both.car = CarOf(17, assets::kFirstExtraPieceType);
+
+    CHECK(locks.Of(worn) == RacerLock::None);
+    CHECK(locks.Of(missing) == RacerLock::MissingParts);
+    CHECK(locks.Of(both) == RacerLock::ExtraPieces);
+    locks.AllowExtraPieces(true);
+    CHECK(locks.Of(both) == RacerLock::MissingParts);
+}
+
+TEST_CASE("without a parts catalogue no driver locks") {
+    const RacerLocks locks(std::nullopt);
+
+    CHECK(locks.Of({.look = {.hatName = "lava-helmet"}}) == RacerLock::None);
 }
 
 }

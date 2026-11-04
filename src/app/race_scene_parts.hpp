@@ -64,7 +64,7 @@ struct RacerSounds {
 [[nodiscard]] std::vector<PowerupQuads> PlayerPowerupQuads(
     const assets::NameMap<render::Material>& materials, std::size_t players);
 
-[[nodiscard]] RaceAudioSetup AudioSetup(const RaceSceneSetup& setup,
+[[nodiscard]] RaceAudioSetup AudioSetup(const assets::Vfs& vfs, const RaceSceneSetup& setup,
                                         const sim::RaceTrack& raceTrack, const RacerSounds& racers,
                                         std::uint64_t seed);
 

@@ -12,6 +12,7 @@
 #include "app/menu/menu_text.hpp"
 #include "app/menu/message_dialog.hpp"
 #include "app/menu/pointer_buttons.hpp"
+#include "app/menu/racer_lock.hpp"
 #include "app/menu/racer_stand.hpp"
 #include "app/race_scene_name.hpp"
 #include "app/scene.hpp"
@@ -84,7 +85,8 @@ private:
     GarageMenu menu_;
     MenuText text_;
     RaceSceneSetup rules_;
-    bool allowsExtraPieces_ = false;
+    RacerLocks locks_;
+    RacerLock shownLock_ = RacerLock::None;
     std::optional<MessageDialog> dialog_;
     std::optional<std::string> opened_;
     std::vector<render::SpriteDraw> sprites_;
