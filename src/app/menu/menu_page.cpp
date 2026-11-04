@@ -10,6 +10,7 @@
 #include <variant>
 
 #include "app/menu/menu_sounds.hpp"
+#include "app/menu/side_tiles.hpp"
 #include "app/ui_text/text_layout.hpp"
 #include "app/ui_text/ui_image.hpp"
 #include "assets/game_path.hpp"
@@ -257,6 +258,7 @@ std::array<MenuButtonState, assets::kControlStates> TextButtonStates(const MenuF
 
 void DrawPictures(std::span<const MenuPicture> pictures, std::vector<render::SpriteDraw>& out) {
     for (const MenuPicture& picture : pictures) {
+        AppendSideTiles(picture, out);
         out.push_back({.texture = picture.texture, .bounds = picture.bounds, .tint = picture.tint});
     }
 }
@@ -276,6 +278,7 @@ void DrawPicturesAround(std::span<const MenuPicture> pictures, const render::Rec
 void DrawPicturesAround(std::span<const MenuPicture> pictures, std::span<const render::Rect> holes,
                         std::vector<render::SpriteDraw>& out) {
     for (const MenuPicture& picture : pictures) {
+        AppendSideTiles(picture, out);
         AppendAround(picture, holes, out);
     }
 }

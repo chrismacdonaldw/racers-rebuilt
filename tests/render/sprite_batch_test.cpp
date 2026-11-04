@@ -123,6 +123,24 @@ TEST_CASE("anchored corners move with their side") {
     CHECK(batched.vertices[3].x == 12.0F);
 }
 
+TEST_CASE("sprites beside the canvas draw only when the window is wider, unmoved") {
+    const std::vector<SpriteDraw> sprites{
+        {.texture = kTile},
+        {.texture = kIcon,
+         .bounds = {.x = -640.0F, .width = 640.0F, .height = 480.0F},
+         .anchor = SpriteAnchor::Beside}};
+
+    const Batched narrow = Batch(sprites);
+    const Batched wide = Batch(sprites, 100.0F);
+
+    REQUIRE(narrow.batches.size() == 1);
+    CHECK(narrow.batches[0].texture == kTile);
+    REQUIRE(wide.batches.size() == 2);
+    CHECK(wide.batches[1].texture == kIcon);
+    CHECK(wide.vertices[kVerticesPerSprite].x == -640.0F);
+    CHECK(wide.vertices[kVerticesPerSprite + 1].x == 0.0F);
+}
+
 TEST_CASE("sprite indices make two triangles over each sprite's corners") {
     const std::vector<std::uint16_t> indices = SpriteIndices(2);
 
