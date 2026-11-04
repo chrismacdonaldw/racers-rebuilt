@@ -93,6 +93,7 @@ A mod with a broken `mod.toml` is skipped with a warning in the log.
 - Applying a quick config turns on what its mods require.
 - Replays record each loaded mod's id, version and a hash of its file names and sizes, and warn when played with different ones.
 - `racers-rebuilt.exe --check-mods` checks every mod against the current settings, lists each broken `mod.toml` and held-back mod with its reason, and exits.
+- The game's fonts have no lower case, so lower-case letters in mod text such as track, circuit and driver names draw as gaps or stray symbols, as in the original, unless `fixes.missing_glyphs` is on. Write them in capitals.
 
 ## Tracks
 

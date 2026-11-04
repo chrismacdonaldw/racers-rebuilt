@@ -29,14 +29,6 @@ const assets::Glyph* FindGlyph(const assets::FontGlyphs& glyphs, char16_t charac
     return glyph != glyphs.glyphs.end() && glyph->character == character ? &*glyph : nullptr;
 }
 
-const assets::Glyph* GlyphFor(const assets::FontGlyphs& glyphs, char16_t character) {
-    const assets::Glyph* glyph = FindGlyph(glyphs, character);
-    if (glyph == nullptr && IsLowerCase(character)) {
-        return FindGlyph(glyphs, static_cast<char16_t>(character - kCaseOffset));
-    }
-    return glyph;
-}
-
 bool IsLineBreak(char16_t character) {
     return character == kLineFeed || character == kCarriageReturn;
 }
@@ -60,7 +52,7 @@ Mark FirstGlyphMark(const UiFont& font) {
 }
 
 std::optional<Mark> MarkFor(const UiFont& font, char16_t character) {
-    if (const assets::Glyph* glyph = GlyphFor(font.Glyphs(), character)) {
+    if (const assets::Glyph* glyph = FindGlyph(font.Glyphs(), character)) {
         return GlyphMark(*glyph);
     }
     if (IsLineBreak(character)) {
@@ -68,6 +60,13 @@ std::optional<Mark> MarkFor(const UiFont& font, char16_t character) {
     }
     if (font.fixes.missingGlyphs == MissingGlyphs::FirstGlyph) {
         return FirstGlyphMark(font);
+    }
+    const assets::Glyph* upper =
+        IsLowerCase(character)
+            ? FindGlyph(font.Glyphs(), static_cast<char16_t>(character - kCaseOffset))
+            : nullptr;
+    if (upper != nullptr) {
+        return GlyphMark(*upper);
     }
     if (const std::optional<DrawnGlyph> drawn = DrawnGlyphFor(character)) {
         return Mark{.drawn = drawn,

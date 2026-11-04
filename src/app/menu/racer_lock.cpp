@@ -16,9 +16,9 @@
 namespace rr::app {
 namespace {
 
-constexpr std::u16string_view kExtraPiecesNotice = u"Uses extra pieces";
-constexpr std::u16string_view kMissingPiecesNotice = u"Needs pieces from a mod";
-constexpr std::u16string_view kMissingPartsNotice = u"Needs parts from a mod";
+constexpr std::u16string_view kExtraPiecesNotice = u"USES EXTRA PIECES";
+constexpr std::u16string_view kMissingPiecesNotice = u"NEEDS PIECES FROM A MOD";
+constexpr std::u16string_view kMissingPartsNotice = u"NEEDS PARTS FROM A MOD";
 constexpr float kMargin = 8.0F;
 constexpr render::Color kNoticeColor{.r = 1.0F, .g = 0.35F, .b = 0.25F};
 

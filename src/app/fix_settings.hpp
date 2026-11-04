@@ -18,7 +18,7 @@ inline constexpr settings::SettingSpec<bool> kChampionCars{
 
 inline constexpr settings::SettingSpec<bool> kMissingGlyphs{
     .key = "fixes.missing_glyphs",
-    .label = "Draw a dash or slash a font has no glyph for",
+    .label = "Draw missing letters, dashes and slashes readably",
     .category = kFixesCategory};
 
 inline constexpr settings::SettingSpec<bool> kMenuFontGlyphs{
