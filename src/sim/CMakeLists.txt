@@ -19,6 +19,7 @@ rr_add_module(sim
         car_build/car_studs.cpp
         car_build/hidden_faces.cpp
         car_build/mesh_primitives.cpp
+        car_build/placed_model.cpp
         car_build/piece_cursor.cpp
         collision/collision_mesh.cpp
         collision/collision_world.cpp

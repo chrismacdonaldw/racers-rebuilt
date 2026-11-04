@@ -3,7 +3,14 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <charconv>
 #include <cstddef>
+#include <cstdint>
+#include <string>
+#include <system_error>
+#include <utility>
+
+#include "assets/piece_models.hpp"
 
 namespace rr::assets {
 namespace {
@@ -42,6 +49,34 @@ constexpr std::array kPieces{
     Piece("L656500", "6565.dat", 2, {.x = 1.0F, .y = 1.5F, .z = 1.2F}),
 };
 
+constexpr std::array<std::pair<std::int32_t, std::string_view>, 13> kGameColours{{
+    {0, "black"},
+    {1, "blue"},
+    {2, "green"},
+    {4, "red"},
+    {6, "brown"},
+    {7, "ltgray"},
+    {8, "dkgray"},
+    {14, "yellow"},
+    {15, "white"},
+    {19, "biege"},
+    {70, "brown"},
+    {71, "ltgray"},
+    {72, "dkgray"},
+}};
+
+std::string GameMaterial(std::string_view ldrawColour) {
+    std::int32_t code = kLdrawMainColour;
+    const std::from_chars_result read =
+        std::from_chars(ldrawColour.data(), ldrawColour.data() + ldrawColour.size(), code);
+    const auto found = std::ranges::find_if(
+        kGameColours, [&](const auto& colour) { return colour.first == code; });
+    if (read.ec != std::errc{} || found == kGameColours.end()) {
+        return std::string(kPieceColourMaterial);
+    }
+    return std::string(found->second);
+}
+
 bool SameName(std::string_view a, std::string_view b) {
     return std::ranges::equal(a, b, [](char x, char y) {
         return std::toupper(static_cast<unsigned char>(x)) ==
@@ -62,6 +97,22 @@ std::optional<LdrawPiece> LdrawPieceFor(std::string_view pieceName) {
         return std::nullopt;
     }
     return *found;
+}
+
+Result<GeometryAsset> LoadLdrawPiece(LdrawLibrary& library, const LdrawPiece& piece) {
+    Result<GeometryAsset> part = library.LoadPart(piece.file);
+    if (!part) {
+        return part;
+    }
+    const LdrawMatrix turn{.rows = piece.matrix.rows};
+    for (GeometryVertex& vertex : part->vertices) {
+        vertex.position = Apply(piece.matrix, vertex.position);
+        vertex.normal = Apply(turn, vertex.normal);
+    }
+    for (std::string& material : part->materials) {
+        material = GameMaterial(material);
+    }
+    return part;
 }
 
 }

@@ -42,7 +42,8 @@ TEST_CASE_FIXTURE(Pieces, "every occupied top has a stud in its piece's colour")
 
     REQUIRE(studs.size() == kChassisTops);
     CHECK(studs.front() == ChassisStud(0, 0));
-    CHECK(std::ranges::count(studs, CarStud{.x = 2, .y = 1, .height = 4, .colour = kBrickColour}) ==
+    CHECK(std::ranges::count(
+              studs, CarStud{.x = 2, .y = 1, .height = 4, .colour = kBrickColour, .topPiece = 1}) ==
           1);
 }
 

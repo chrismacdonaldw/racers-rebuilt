@@ -61,6 +61,7 @@ music_volume = 0.6
 | `video.stretch_ui` | `false` | `true`, `false`. Stretches the UI's centered 4:3 area to fill the window. |
 | `video.widescreen` | `false` | `true`, `false`. Races and cutscenes fill the window and see more to the sides, instead of the original's 4:3 frame. |
 | `video.smooth_textures` | `false` | `true`, `false`. Gives the game's textures their mipmaps and fills their see-through edges with nearby colours, so distant and filtered edges don't shimmer or show a dark fringe. `false` draws them as the original does, down to the materials the game asks to be drawn with blocky unfiltered pixels. PNG replacements always keep their mipmaps. |
+| `enhancements.ldraw_pieces` | `false` | `true`, `false`. Draws car bricks that match an LDraw part with that part's detailed model, studs included. Applies to the next car loaded or built. |
 | `video.anisotropic_filtering` | `false` | `true`, `false`. Filters textures 16x where they're seen at a slant, so roads and walls stay sharp into the distance. Materials drawn with blocky unfiltered pixels keep them. Applies at once. |
 
 ## Audio

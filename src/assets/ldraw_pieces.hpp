@@ -4,7 +4,10 @@
 #include <span>
 #include <string_view>
 
+#include "assets/geometry_asset.hpp"
 #include "assets/ldraw.hpp"
+#include "assets/ldraw_part.hpp"
+#include "core/result.hpp"
 
 namespace rr::assets {
 
@@ -19,5 +22,8 @@ struct LdrawPiece {
 
 /// Matches `pieceName` in any case.
 [[nodiscard]] std::optional<LdrawPiece> LdrawPieceFor(std::string_view pieceName);
+
+/// A piece model: colour 16 becomes `kPieceColourMaterial`, others the nearest game colour.
+[[nodiscard]] Result<GeometryAsset> LoadLdrawPiece(LdrawLibrary& library, const LdrawPiece& piece);
 
 }

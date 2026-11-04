@@ -11,6 +11,7 @@
 #include "sim/car_build/car_studs.hpp"
 #include "sim/car_build/hidden_faces.hpp"
 #include "sim/car_build/mesh_primitives.hpp"
+#include "sim/car_build/placed_model.hpp"
 
 namespace rr::sim {
 namespace {
@@ -22,10 +23,16 @@ constexpr float kNormalUnit = 127.0F;
 constexpr Vector3 kBareOffset{.x = -5.0F, .y = -3.0F};
 constexpr std::uint32_t kUnused = std::numeric_limits<std::uint32_t>::max();
 
+struct ModelInstance {
+    const assets::GeometryAsset* model = nullptr;
+    PieceInstance instance;
+};
+
 struct MeshInput {
     const assets::PieceLibrary* library = nullptr;
     std::vector<PieceInstance> pieces;
     std::vector<PieceInstance> studs;
+    std::vector<ModelInstance> models;
 };
 
 Result<std::vector<std::uint32_t>> ColourMaterials(const assets::PieceCatalog& catalog) {
@@ -56,12 +63,36 @@ std::uint8_t StudColour(const CarStud& stud, std::span<const std::uint32_t> mate
     return found == materials.end() ? 0 : static_cast<std::uint8_t>(found - materials.begin());
 }
 
+const assets::GeometryAsset* ModelOf(const assets::PieceRecord& record,
+                                     const assets::PieceCatalog& catalog) {
+    return record.IsChassis() ? nullptr : catalog.ModelOf(record);
+}
+
+void GatherStuds(const BuiltCar& car, const assets::PieceCatalog& catalog,
+                 std::span<const std::uint32_t> materials, std::span<const std::uint8_t> isModelled,
+                 MeshInput& input) {
+    const assets::PieceRecord* stud = catalog.library.Find(assets::kStudPieceType, kPieceVariant);
+    if (stud == nullptr) {
+        return;
+    }
+    for (const CarStud& placed : CarStuds(car)) {
+        if (isModelled[placed.topPiece] != 0) {
+            continue;
+        }
+        input.studs.push_back({.piece = stud,
+                               .placement = {.x = placed.x, .y = placed.y},
+                               .height = placed.height,
+                               .colourMaterial = materials[StudColour(placed, materials)]});
+    }
+}
+
 Result<MeshInput> GatherInput(const BuiltCar& car, const assets::PieceCatalog& catalog) {
     Result<std::vector<std::uint32_t>> materials = ColourMaterials(catalog);
     if (!materials) {
         return std::unexpected(std::move(materials.error()));
     }
     MeshInput input{.library = &catalog.library};
+    std::vector<std::uint8_t> isModelled;
     for (const CarPiece& piece : car.Pieces()) {
         const assets::PieceRecord* record = catalog.library.Find(piece.piece->type, kPieceVariant);
         const Result<std::uint32_t> colour = MaterialOfColour(*materials, piece.colour);
@@ -69,22 +100,20 @@ Result<MeshInput> GatherInput(const BuiltCar& car, const assets::PieceCatalog& c
             return Fail(ErrorCode::InvalidData,
                         std::format("can't draw piece {}", piece.piece->name));
         }
-        input.pieces.push_back({.piece = record,
-                                .placement = piece.placement,
-                                .height = piece.height,
-                                .colourMaterial = *colour,
-                                .part = input.pieces.size()});
+        const PieceInstance instance{.piece = record,
+                                     .placement = piece.placement,
+                                     .height = piece.height,
+                                     .colourMaterial = *colour,
+                                     .part = input.pieces.size()};
+        const assets::GeometryAsset* model = ModelOf(*record, catalog);
+        isModelled.push_back(model != nullptr ? 1 : 0);
+        if (model != nullptr) {
+            input.models.push_back({.model = model, .instance = instance});
+        } else {
+            input.pieces.push_back(instance);
+        }
     }
-    const assets::PieceRecord* stud = catalog.library.Find(assets::kStudPieceType, kPieceVariant);
-    if (stud == nullptr) {
-        return input;
-    }
-    for (const CarStud& placed : CarStuds(car)) {
-        input.studs.push_back({.piece = stud,
-                               .placement = {.x = placed.x, .y = placed.y},
-                               .height = placed.height,
-                               .colourMaterial = (*materials)[StudColour(placed, *materials)]});
-    }
+    GatherStuds(car, catalog, *materials, isModelled, input);
     return input;
 }
 
@@ -239,7 +268,11 @@ Result<CarMesh> BuildCarMesh(const BuiltCar& car, const assets::PieceCatalog& ca
     if (!geometry) {
         return std::unexpected(std::move(geometry.error()));
     }
+    for (const ModelInstance& placed : input->models) {
+        AppendPlacedModel(*geometry, *placed.model, placed.instance, *offset, catalog.materials);
+    }
     mesh->geometry = std::move(*geometry);
+    mesh->drawnPieces += input->models.size();
     return mesh;
 }
 
@@ -269,6 +302,14 @@ Result<assets::GeometryAsset> BuildPieceMesh(const assets::PieceRecord& piece, s
         });
     if (!material || record == nullptr) {
         return Fail(ErrorCode::InvalidData, std::format("can't draw piece {}", piece.name));
+    }
+    if (const assets::GeometryAsset* model = ModelOf(*record, catalog)) {
+        assets::GeometryAsset geometry;
+        AppendPlacedModel(
+            geometry, *model,
+            {.piece = record, .placement = {.rotation = rotation}, .colourMaterial = *material}, {},
+            catalog.materials);
+        return geometry;
     }
     MeshInput input{.library = &catalog.library};
     input.pieces.push_back(

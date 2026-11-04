@@ -12,6 +12,7 @@
 
 namespace rr::sim::test {
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 struct RetailCars {
     assets::PieceCatalog catalog;
     std::vector<assets::SavedRacer> racers;
