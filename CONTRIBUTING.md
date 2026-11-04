@@ -163,7 +163,7 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/): `ty
 | `refactor` | A change with no behavior change |
 | `test` | Tests only |
 | `build` | CMake, presets, vcpkg, scripts |
-| `docs` | README, CONTRIBUTING, doc comments |
+| `docs` | README, SETTINGS, MODDING, CONTRIBUTING, doc comments |
 | `chore` | Anything else |
 
 - No commit trailers.

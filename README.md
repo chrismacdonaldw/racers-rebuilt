@@ -40,7 +40,7 @@ racers-rebuilt is a reimplementation of LEGO Racers for 64-bit Windows. It reads
 | GPU | Direct3D 12 with Shader Model 6.0 |
 | Game | An installed copy of LEGO Racers for PC (the folder with `LEGO.JAM`) |
 
-Tested with the English PC release from 1999 and the 2001 re-release. `game.version` picks which one to play.
+Tested with the English PC release from 1999 and the 2001 re-release. [`game.version`](SETTINGS.md#game) picks which one to play.
 
 ## Install
 
@@ -100,9 +100,13 @@ Create `music/`, `mods/` and `overrides/` when you first need them. `presets/` a
 
 ## Configuration
 
-Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Bindings**, **Enhancements**, **Game**, **Mods**, **Race**, **Video**, **Progress** and **Developer**. **Enhancements** holds the **Camera**, **Cheats**, **Fixes**, **Gameplay** and **Modifiers** submenus. **Bindings** picks each player's device and shows every keyboard and pad binding in one table. Items marked * change gameplay: replays record them and warn when played back with other values. Video, audio and enhancement changes apply on the next frame. Game changes apply on the next start, and mod changes on **Apply now** or the next start. Every change saves when an edit finishes.
+Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Bindings**, **Enhancements**, **Game**, **Mods**, **Race**, **Video**, **Progress** and **Developer**. **Enhancements** holds the **Camera**, **Cheats**, **Fixes**, **Gameplay** and **Modifiers** submenus. **Developer** shows frame time, ticks per frame and startup timings, and its **Scenes** list opens test scenes and any race track in your copy.
 
-**Developer** shows frame time, ticks per frame and startup timings. Its **Scenes** list opens the test scene, a sprite test that draws 1000 UI sprites, or any race track in your copy.
+Every setting is saved in `<data>/settings.toml`. [SETTINGS.md](SETTINGS.md) lists each one with its default and values, along with the control bindings and command line options.
+
+```powershell
+.\racers-rebuilt.exe --set video.vsync=false --set video.fps_cap=60
+```
 
 ### Quick configs
 
@@ -110,20 +114,9 @@ A fresh install plays like the original game: every enhancement starts off. **En
 
 - **Default** turns every enhancement off.
 - **Enhanced** turns on the port's recommended set: physics-driven computer racers, respawn, champion cars, smooth textures, anisotropic filtering, far cars and scenery, widescreen and clipping prevention.
-- **Save current as...** saves your enhancement and mod settings under a name. Your configs list under the shipped ones, and **Delete** removes one.
+- **Save current as...** saves your enhancement and mod settings under a name, as a [file you can share](SETTINGS.md#quick-config-files). **Delete** removes one.
 
-Default and Enhanced leave your mods as they are. Your own configs also restore which mods are on, which applies on **Apply now** or the next start. Resolution, frame rate, audio volume and controls are never part of a config.
-
-Each saved config is a file in `<data>/presets/`, so you can share it. Settings it doesn't list take their defaults, and settings it can't set are ignored:
-
-```toml
-name = "Race night"
-
-[settings]
-"video.smooth_textures" = true
-"race.respawn" = false
-"mods.hd-tracks.enabled" = true
-```
+Default and Enhanced leave your mods as they are. Your own configs also restore which mods are on. Resolution, frame rate, audio volume and controls are never part of a config.
 
 ### Controls
 
@@ -134,280 +127,16 @@ name = "Race night"
 | <kbd>F11</kbd> | Switch between a window and fullscreen |
 | <kbd>Print Screen</kbd> | Save a screenshot to the [data folder](#data-folder) as `LEGO<n>.bmp`, with the first free number |
 
-With **Enhancements → Camera → Free camera** on:
+Driving and menu bindings are in [SETTINGS.md](SETTINGS.md#controls), and can be changed from the options screen.
 
-| Key | Action |
-|---|---|
-| <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> | Move |
-| <kbd>Q</kbd> / <kbd>E</kbd> | Down / up |
-| Arrow keys | Look |
-| <kbd>Shift</kbd> | Move faster |
+## Music and mods
 
-### Settings
+- **Music:** a file named after a track, such as `<data>/music/circuit1.ogg`, plays instead of the original. OGG, FLAC, MP3 and WAV work, with optional loop points.
+- **Mods:** a folder in `<data>/mods/` with a `mod.toml`. Its files replace any file in `LEGO.JAM`, and it can add tracks, racers, driver parts, bricks, HQ textures and glTF models.
+- **Texture packs:** `--dump-textures` writes every game image as a PNG mod to edit or upscale.
+- **Overrides:** files in `<data>/overrides/` replace single game files without a mod.
 
-Every setting lives in `<data>/settings.toml` and shows in the overlay.
-
-| Key | Default | Values |
-|---|---|---|
-| `game.version` | `1999` | `1999`, `2001`. The release to play, the original 1999 one or the 2001 re-release. Needs that release's files. 2001 also drives as the 2001 game does: faster steering and recentring, the stick on a squared curve, wheels set from the car's shadow size, a faster turning nose, slopes that bounce like floors, a harder hover bank, hovering on the wheels, computer racers 3% slower on the first circuit, racers moving before hazards each frame, a lap counted each time a car backs over the finish line from the track just past it, no body roll from drifting, and a red border instead of yellow round the Rocket Racer race on the race pick screens. Marked * in the overlay. Applies on **Restart now** or the next start. |
-| `game.input_lag_2001` | `false` | `true`, `false`. The 2001 release reads the controls after each frame's step, so every frame drives on the controls from the frame before. This adds that lag back as one 12 ms tick. Only works with `game.version` 2001, and is greyed out in the overlay otherwise. Marked * in the overlay. |
-| `game.path` | Empty | The LEGO Racers folder of the 1999 release |
-| `game.path_2001` | Empty | The LEGO Racers folder of the 2001 release |
-| `game.language` | From the original installer, else `ENGLISH` | `ENGLISH`, `GERMAN`, `FRENCH`, `SPANISH`, `ITALIAN`, `DUTCH`, `DANISH`, `NORWEGI`, `SWEDISH` |
-| `startup.intro_videos` | `true` | `true`, `false`. Plays the original's three intro videos at launch. Any key skips the second and third. |
-| `video.vsync` | `true` | `true`, `false` |
-| `video.fps_cap` | `144` | `30` to `360`, or `0` for uncapped. Applies only with VSync off. |
-| `video.resolution_scale` | `1.0` | `0.25` to `2.0`. Renders the scene at this fraction of the window size. |
-| `video.fullscreen` | `false` | `true`, `false`. Fills the screen without a border, at the desktop's resolution. <kbd>F11</kbd> switches it. |
-| `video.stretch_ui` | `false` | `true`, `false` |
-| `video.widescreen` | `false` | `true`, `false`. Races and cutscenes fill the window and see more to the sides, instead of the original's 4:3 frame. **Enhancements → Presets → Enhanced** turns it on and **Default** turns it off. |
-| `video.smooth_textures` | `false` | `true`, `false`. Gives the game's textures their mipmaps and fills their see-through edges with nearby colours, so distant and filtered edges don't shimmer or show a dark fringe. `false` draws them as the original does, down to the materials the game asks to be drawn with blocky unfiltered pixels. PNG replacements always keep their mipmaps. |
-| `video.anisotropic_filtering` | `false` | `true`, `false`. Filters textures 16x where they're seen at a slant, so roads and walls stay sharp into the distance. Materials drawn with blocky unfiltered pixels keep them. The **Enhanced** preset turns it on. Applies at once. |
-| `audio.music_volume` | `1.0` | `0.0` to `1.0` |
-| `audio.effects_volume` | `1.0` | `0.0` to `1.0` |
-| `audio.voice_volume` | `1.0` | `0.0` to `1.0` |
-| `audio.prevent_clipping` | `false` | `true`, `false`. Mixes with headroom and a limiter so loud moments don't crackle. `false` mixes at full volume and clips, as the original does. |
-| `enhancements.free_camera` | `false` | `true`, `false` |
-| `enhancements.free_camera_speed` | `40.0` | `1.0` to `400.0` |
-| `race.respawn` | `false` | `true`, `false`. Puts a racer back on the track after it falls off or stays in the air too long. Applies from the next race. |
-| `race.respawn_seconds` | `3` | `1` to `30`. Seconds in the air before a respawn. Applies from the next race. |
-| `race.physics_ai` | `false` | `true`, `false`. Computer racers drive with the car physics instead of replaying their recorded routes. Applies from the next race. |
-| `race.ai_pace` | `100` | `50` to `150`. With `race.physics_ai`, computer racers ease off above this percentage of their route's recorded speed. Applies from the next race. |
-| `race.opponents` | `5` | `0` to `5`. Computer racers in a single race, from the options screen. Applies from the next race. |
-| `race.versus_laps` | `3` | `1` to `5`. Laps in a versus race, from the options screen. |
-| `cheats.<plate>` | `false` | `true`, `false`. Keeps a license plate cheat on, such as `cheats.mxpmx`. Entered after the license's own cheats, from the next single race, versus race or test drive. Circuits and time trials ignore them, as the original does, and so does the attract demo. |
-| `cheats.invincible` | `false` | `true`, `false`. Weapons, hazards and curses can't touch a player's racer, and a shield still works. Every cheat below applies to players from the next race of any kind, circuits and time trials too, but not test drives or the attract demo. |
-| `cheats.bottomless_brick` | `false` | `true`, `false`. Using a power-up keeps it. |
-| `cheats.full_white` | `false` | `true`, `false`. Players always hold 3 white bricks. |
-| `cheats.brick_magnet` | `false` | `true`, `false`. Players pick up bricks from 3 times as far. |
-| `cheats.long_turbo` | `false` | `true`, `false`. Players' turbo boosts last 3 times as long. |
-| `cheats.perfect_start` | `false` | `true`, `false`. Players get the strong start boost at every go, with no timing. |
-| `cheats.free_warp` | `false` | `true`, `false`. Every green power-up a player uses warps, whatever the white bricks. |
-| `cheats.head_start` | `0` | `0` to `10`. Seconds the computer racers wait after the go. |
-| `cheats.boost_button` | `false` | `true`, `false`. The `boost` button fires a level 1 turbo at any time during the race. |
-| `cheats.slow_motion` | `false` | `true`, `false`. Holding the `slow_motion` button runs the race at half speed. Takes effect at once. |
-| `cheats.skip_ahead` | `false` | `true`, `false`. The `skip_ahead` button moves a player to the next checkpoint, keeping their speed. |
-| `modifiers.gravity` | `100` | `25` to `100`. Gravity as a percentage, for floatier jumps. Every `modifiers` key applies to all racers from the next race of any kind, circuits and time trials too, but not test drives or the attract demo. |
-| `modifiers.speed` | `100` | `100` to `200`. Every racer's top speed and acceleration as a percentage. |
-| `modifiers.mirror` | `false` | `true`, `false`. Mirrors every track. |
-| `modifiers.only_powerup` | `off` | `off`, `cannonball`, `grappling_hook`, `lightning`, `missile`, `oil_slick`, `dynamite`, `magnet`, `curse`, `shield`, `turbo`, `warp`. Every use fires this power-up. A shield keeps the held white count, and a turbo up to 2. |
-| `modifiers.chaos_bricks` | `false` | `true`, `false`. Every coloured brick picked up becomes a random colour with 0 to 3 white bricks. |
-| `modifiers.squeaky_voices` | `false` | `true`, `false`. Drivers' voices and taunts play an octave up. |
-| `modifiers.rocket_rush` | `false` | `true`, `false`. Every computer racer is Rocket Racer. |
-| `mods.<id>.enabled` | The mod's `enabled` value | `true`, `false` |
-| `mods.hq_textures` | `true` | `true`, `false`. Uses PNG replacements for game images. Applies on **Apply now** or the next start. |
-| `mods.gltf_models` | `true` | `true`, `false`. Uses glTF replacements for game models and animations. Applies on **Apply now** or the next start. |
-| `mods.overrides` | `true` | `true`, `false`. Loads `<data>/overrides/`. Applies on **Apply now** or the next start. |
-| `input.keys.<action>` | See below | The first keyboard set (arrows). Comma-separated SDL key names, such as `Up,W` or `Left Shift` |
-| `input.keys2.<action>` | See below | The second keyboard set (WASD), in the same form |
-| `input.keys3.<action>` | See below | The third keyboard set (keypad), in the same form |
-| `input.buttons.<action>` | See below | The first gamepad's set. Comma-separated SDL gamepad names: buttons such as `a` or `dpleft`, or `lefttrigger` and `righttrigger` |
-| `input.pad2.buttons.<action>` | The first gamepad's defaults | The second gamepad's set, in the same form |
-| `input.p1.device` | `pad1` | `pad1`, `pad2`, `keys1`, `keys2`, `keys3`. The set player 1 drives with |
-| `input.p2.device` | `pad2` | The set player 2 drives with, in the same form |
-| `input.p1.any_device` | `false` | `true` lets every keyboard set and gamepad drive player 1 when racing alone |
-
-Each `<action>` has a default in every set. The left stick always steers. The menus take every keyboard and gamepad.
-
-| Action | `keys` | `keys2` | `keys3` | `buttons` |
-|---|---|---|---|---|
-| `accelerate` | `Up` | `W` | `Keypad 8` | `a,righttrigger` |
-| `brake` | `Down` | `X` | `Keypad 2` | `b,lefttrigger` |
-| `steer_left` | `Left` | `A` | `Keypad 4` | `dpleft` |
-| `steer_right` | `Right` | `D` | `Keypad 6` | `dpright` |
-| `drift` | `Space` | `Left Shift` | `Keypad Enter` | `rightshoulder,leftshoulder` |
-| `use_powerup` | `Return` | `Left Alt` | `Right Shift` | `x` |
-| `pause` | `Escape` | | | `start` |
-| `toggle_display` | `M` | `E` | `Keypad 7` | `back` |
-| `change_camera` | `Right Ctrl` | `Q` | `Keypad 3` | `y` |
-| `look_back` | `Right Alt` | `Z` | `Keypad 9` | `rightstick` |
-| `boost` | `B` | `R` | `Keypad 1` | `leftstick` |
-| `slow_motion` | `N` | `F` | `Keypad 0` | |
-| `skip_ahead` | `J` | `C` | `Keypad 5` | |
-| `menu_up` | `Up` | | | `dpup` |
-| `menu_down` | `Down` | | | `dpdown` |
-| `menu_left` | `Left` | | | `dpleft` |
-| `menu_right` | `Right` | | | `dpright` |
-| `menu_confirm` | `Return,Space` | | | `a` |
-| `menu_back` | `Escape,Backspace` | | | `b` |
-
-The sets follow the original's. Each player drives with one set, as the original does, so with a gamepad attached player 1 drives with the gamepad alone. A set naming a gamepad that isn't attached falls back to the first attached gamepad not in use, then to the arrows, or WASD when the other player has the arrows. Gamepads are numbered in the order they connected. A key in both players' sets drives player 1, and the pause key of a set nobody drives still pauses. PLAYER 1 CONTROLS and PLAYER 2 CONTROLS on the options screen pick each player's set from the attached gamepads and the three keyboard sets, and rebind it. A gamepad's steering rows stay closed, as it steers with its stick and d-pad. Picking the other player's set moves them to another, as the original does.
-
-```toml
-[video]
-vsync = false
-fps_cap = 240
-
-[audio]
-music_volume = 0.6
-```
-
-The UI keeps a centered 4:3 area unless `video.stretch_ui` is on, which stretches it to fill the window. Races and cutscenes keep to the same area unless `video.widescreen` is on.
-
-Out-of-range values are clamped. Unknown keys are kept when the file is saved.
-
-### Command line
-
-| Option | Effect |
-|---|---|
-| `--game-path <folder>` | Use this LEGO Racers folder and skip detection |
-| `--novideo` | Skip the intro videos this run, as in the original |
-| `--set <key>=<value>` | Override a setting for this run only. Repeatable. |
-| `--track <folder>` | Open a race track instead of the main menu, by its `GAMEDATA` folder, e.g. `RACEC0R0` |
-| `--race <folder>` | Start a race on a track instead of the main menu, by its `GAMEDATA` folder. Can't be combined with `--track`. |
-| `--players 2` | With `--race`, race two players against each other in split screen, with no computer racers |
-| `--cheats <plates>` | With `--race`, turn on the original's license plate cheats, comma separated, e.g. `MXPMX,PGLLRD`. Plates are entered in order, so later ones can switch earlier ones off. |
-| `--cutscene <folder>/<file>` | Play a menu cutscene on a loop instead of the main menu, by its `MENUDATA` folder and file, e.g. `CIRCUIT1/CIR1-01` |
-
-```powershell
-.\racers-rebuilt.exe --set video.vsync=false --set video.fps_cap=60
-```
-
-## Music replacement
-
-Put a file named after a track's id in `<data>/music/`. It plays instead of the original.
-
-- The id is the name of the original `.tun` file in the game folder, in lowercase: `circuit1`, `theme`, `credits`.
-- Supported formats: `.ogg`, `.flac`, `.mp3`, `.wav`.
-- A track loops from start to end unless it has a loop file.
-
-To loop part of a track, add `<id>.toml` beside it. Positions are in samples.
-
-```toml
-loop_start = 441000
-loop_end = 5292000
-```
-
-Either key can be left out. Without `loop_start` the loop starts at the beginning. Without `loop_end` it runs to the end.
-
-A file that fails to decode is logged and skipped. The next source plays instead: an enabled mod's track, then the original.
-
-## Mods
-
-A mod is a folder in `<data>/mods/`. The folder name is the mod's id.
-
-```text
-<data>/mods/
-  hd-bricks/
-    mod.toml
-    files/
-      GAMEDATA/COMMON/RRJMW.GDB
-    music/
-      circuit1.ogg
-```
-
-- `files/` mirrors the paths inside `LEGO.JAM`. Any file there replaces the original. Path case doesn't matter.
-- `music/` works like `<data>/music/`. The music folder wins over every mod.
-
-`mod.toml`:
-
-```toml
-id = "hd-bricks"
-name = "HD bricks"
-version = "1.0.0"
-priority = 10
-enabled = true
-```
-
-| Key | Required | Notes |
-|---|---|---|
-| `id` | Yes | Must match the folder name. Lowercase letters, digits, `_` and `-` only. |
-| `name` | Yes | Shown in the overlay's **Mods** menu |
-| `version` | Yes | Text, e.g. `1.0.0` |
-| `priority` | No | Whole number, default `0`. Higher wins when two mods replace the same file. On a tie, the id that sorts first wins. |
-| `enabled` | No | Default `true`. Sets the starting value of `mods.<id>.enabled`. |
-
-Once a setting in **Mods** changes, two items appear there. **Apply now** remounts the mods and overrides, reloads the music, and returns to the main menu; it isn't offered while recording or playing a replay. **Restart now** relaunches the game with the same command line, minus `--record`, `--replay`, `--import-save`, `--dump-images`, `--dump-textures` and `--export-gltf`. A newly added mod folder, or a change to the menu cursor, still needs a restart. A mod with a broken `mod.toml` is skipped with a warning in the log.
-
-### Tracks
-
-A mod adds a race track with a new folder in `files/GAMEDATA/`. Any folder there with a `STARTPOS.SPB` and a `RACE.CPB` is a track. It shows at the end of the single race and versus track lists under its folder name, in the overlay's **Scenes** menu, and `--race <folder>` starts a race on it.
-
-Starting from a copy of a retail folder such as `RACEC0R0`, rename the files named after it:
-
-| Retail file | New track `<NAME>` |
-|---|---|
-| `RACEC0R0.TMB`, `.RAB`, `.EMB`, `.TGB` | `<NAME>.TMB`, `.RAB`, `.EMB`, `.TGB` |
-| `LEVC0R0.SBK` | `<NAME>.SBK` |
-
-Keep the `EMITC0R0` files as they are: the track's worlds refer to them by name.
-
-New tracks aren't part of any circuit, so they race with the first circuit's grid.
-
-### Racers, driver parts and bricks
-
-These tables merge with the game's instead of replacing it, so a mod only needs the entries it adds or changes:
-
-| File in `files/` | Entries |
-|---|---|
-| `GAMEDATA/COMMON/DRIVERS.DDB` | Opponent drivers, by code |
-| `GAMEDATA/COMMON/CHAMPS.CCB` | Champion cars, by name |
-| `GAMEDATA/COMMON/CHASSIS.CMB`, `MENUDATA/PIECEDB/CHASSIS.CMB` | Chassis, by name |
-| `MENUDATA/RACERS.TOML` | Prebuilt racers in the racer pick, by name |
-| `MENUDATA/PARTDB/BODYPART.PCB` | Hats, faces, torsos and legs, by name. A hat brings its head part with it |
-| `MENUDATA/PARTDB/MENUPART/CBBODIES.GCB`, `MENUDATA/PARTDB/GAMEPART/ICB_CHAR.GCB` | Head parts, by name, with their own vertices |
-| `MENUDATA/PIECEDB/LPIECEHI.LEB`, `MENUDATA/PIECEDB/LPIECELO.LEB` | Builder bricks, by name, with their own vertices. Their materials come from the `.MDB` beside them in the same mod |
-| `MENUDATA/PIECEDB/CRSTMGR.LEB` | Part set files. A mod's sets come after the game's 12, are always available, and show the icon of the game set with their chassis |
-| Any `.MDB` or `.TDB` | Materials and textures, by name |
-
-- An entry named like one before it, in any case, replaces it. Mods merge in priority order, lowest first, and overrides last.
-- New entries come after the game's, so saved racers keep their parts. A racer saved with a mod's part gets the first part once the mod is off.
-- Saved racers store a part's position in its list, so turning off one mod can give a racer the part of a mod after it.
-- Each list of hats, faces, torsos or legs holds 256 parts. Parts past that are skipped with a warning.
-- A mod's table that doesn't load is skipped with a warning in the log.
-- A new brick needs a piece type of `0x1389` or more that no other brick uses, since saved cars store the type. A brick named like a game brick must keep its type. Bricks that break either rule are skipped with a warning, and a car saved with a mod's brick loses it once the mod is off.
-- `RACERS.TOML` uses the data folder's `racers.toml` layout, so a racer built in the game can be copied in. Trophies and `selected` are ignored.
-- Entries can't be removed.
-
-### HQ textures
-
-A PNG next to a game image's path, named like it but ending in `.png`, replaces that image, e.g. `files/GAMEDATA/COMMON/BRICK.png` for `GAMEDATA/COMMON/BRICK.TGA`.
-
-- It can be any size. Menus and the HUD lay it out at the original image's size.
-- Its alpha is used as is: the original's colour key doesn't apply.
-- **HQ textures** in the **Mods** menu (`mods.hq_textures`) turns replacements off. It applies on the next start.
-
-### Make a texture pack
-
-1. Run `racers-rebuilt.exe --dump-textures <data>/mods/my-pack`. It writes every image in `LEGO.JAM` as a PNG under `my-pack/files/`, named for the image it replaces, plus a `mod.toml`, then exits. It won't overwrite a folder that already has a `mod.toml`.
-2. Edit or upscale the PNGs, e.g. with an upscaler such as Real-ESRGAN. Any size works.
-   - Keep the alpha channel. Colour-keyed images are dumped with their key already transparent and the see-through pixels filled with nearby colours, so edges don't pick up the key colour. Upscale the alpha separately if the tool supports it.
-   - Pad textures that tile before upscaling, then crop, to avoid seams.
-3. Delete the PNGs you didn't change, so the originals still load for those.
-4. Turn the pack on in the **Mods** menu: it starts disabled. **HQ textures** turns every pack's PNGs off at once.
-
-### Models
-
-A glTF binary next to a game model's path, named like it but ending in `.glb`, replaces that model, e.g. `files/GAMEDATA/COMMON/RRJMW.glb` for `GAMEDATA/COMMON/RRJMW.GDB`.
-
-- Export it as **glTF Binary** with Y up, as Blender does by default. Node transforms are applied.
-- Each material's name picks the game material it's drawn with, so name it after one in the materials file (`.MDB`) the game loads with that model. Case doesn't matter.
-- Every mesh needs normals or vertex colours. Vertex colours make the whole model unlit, the way the game draws coloured models.
-- Units are the game's drawn units: the original model's scale is kept.
-- A model with a skeleton (an `.SDB` of the same name, or `PELVIS.SDB` for drivers) is jointed. Name glTF nodes after the skeleton's nodes (case doesn't matter) and place them where the game's skeleton has them, since the game moves its own nodes.
-  - A mesh belongs to the nearest named node at or above it, else to the skeleton's first node, and is stored relative to that node.
-  - A skinned mesh gives each vertex the joint it's weighted to most. Every skin joint must be named after a skeleton node.
-- A `.glb` next to an animation file (`.ADB`) replaces its animations too, e.g. `PELVIS.glb` for the drivers' shared `PELVIS.ADB`. A model's `.glb` also replaces the animations of an `.ADB` with the same name, so actions in it that share a name with a game animation take effect.
-  - Each glTF animation (action) replaces the game animation with the same name (case doesn't matter). The others are kept.
-  - Rotations and moves of nodes named after the skeleton's nodes are used. Nodes and channels the animation doesn't key keep the game animation's keys. Linear and step keys work; cubic spline keys don't.
-  - Keys snap to the game animation's frame rate. The animation's speed, order and bounds are kept, so a part swung far outside the original's bounds may be culled.
-  - At most 4,000,000 keys are read from one file.
-- A `.glb` that can't be read is skipped with a warning in the log, and the game's model or animations are kept.
-- **glTF models** in the **Mods** menu (`mods.gltf_models`) turns replacements of both models and animations off. It applies on **Apply now** or the next start.
-
-To start from the game's own models, run `racers-rebuilt.exe --export-gltf <folder>`. It writes every model in `LEGO.JAM` as a `.glb` at its game path under that folder, e.g. `<folder>/GAMEDATA/COMMON/RRJMW.GLB`, then exits.
-
-- Materials keep the game's names but carry no textures.
-- A jointed model is one skinned mesh in its rest pose, with nodes named after the skeleton's, and its animations as glTF animations of the same names. Driver parts carry the shared `PELVIS.ADB` animations, which only `PELVIS.glb` replaces.
-- Copy the `.glb` files you change into a mod's `files` folder at the same paths.
-
-### Overrides
-
-To replace a few files without writing a mod, put them in `<data>/overrides/` at their paths inside `LEGO.JAM`, e.g. `<data>/overrides/GAMEDATA/COMMON/RRJMW.GDB`.
-
-- Overrides win over every mod. Path case doesn't matter.
-- **Loose file overrides** in the **Mods** menu (`mods.overrides`) turns them off. It applies on **Apply now** or the next start, which also pick up changed files.
-- Replays record which files are overridden and warn when played back with different ones.
+Turn mods on and off in the overlay's **Mods** menu. [MODDING.md](MODDING.md) covers the folder layouts, `mod.toml`, and each kind of replacement.
 
 ## Troubleshooting
 
