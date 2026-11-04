@@ -11,6 +11,8 @@ struct RacerControls {
     bool isBrakeHeld = false;
     bool isDriftHeld = false;
     bool isUsePressed = false;
+    bool isBoostPressed = false;
+    bool isSkipPressed = false;
     float steerLeftAxis = 0.0F;
 
     friend constexpr bool operator==(const RacerControls&, const RacerControls&) = default;

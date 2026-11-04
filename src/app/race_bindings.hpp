@@ -41,6 +41,11 @@ inline constexpr std::array kKeys1Bindings{
                    "input.keys.change_camera", "Right Ctrl"),
     RaceBindingFor(kKeys1, sim::Action::LookBack, "Look backwards", "input.keys.look_back",
                    "Right Alt"),
+    RaceBindingFor(kKeys1, sim::Action::Boost, "Boost (cheat)", "input.keys.boost", "B"),
+    RaceBindingFor(kKeys1, sim::Action::SlowMotion, "Slow motion (cheat)", "input.keys.slow_motion",
+                   "N"),
+    RaceBindingFor(kKeys1, sim::Action::SkipAhead, "Skip ahead (cheat)", "input.keys.skip_ahead",
+                   "J"),
 };
 
 inline constexpr std::array kKeys2Bindings{
@@ -57,6 +62,11 @@ inline constexpr std::array kKeys2Bindings{
     RaceBindingFor(kKeys2, sim::Action::ChangeCamera, "Change camera view",
                    "input.keys2.change_camera", "Q"),
     RaceBindingFor(kKeys2, sim::Action::LookBack, "Look backwards", "input.keys2.look_back", "Z"),
+    RaceBindingFor(kKeys2, sim::Action::Boost, "Boost (cheat)", "input.keys2.boost", "R"),
+    RaceBindingFor(kKeys2, sim::Action::SlowMotion, "Slow motion (cheat)",
+                   "input.keys2.slow_motion", "F"),
+    RaceBindingFor(kKeys2, sim::Action::SkipAhead, "Skip ahead (cheat)", "input.keys2.skip_ahead",
+                   "C"),
 };
 
 inline constexpr std::array kKeys3Bindings{
@@ -77,6 +87,11 @@ inline constexpr std::array kKeys3Bindings{
                    "input.keys3.change_camera", "Keypad 3"),
     RaceBindingFor(kKeys3, sim::Action::LookBack, "Look backwards", "input.keys3.look_back",
                    "Keypad 9"),
+    RaceBindingFor(kKeys3, sim::Action::Boost, "Boost (cheat)", "input.keys3.boost", "Keypad 1"),
+    RaceBindingFor(kKeys3, sim::Action::SlowMotion, "Slow motion (cheat)",
+                   "input.keys3.slow_motion", "Keypad 0"),
+    RaceBindingFor(kKeys3, sim::Action::SkipAhead, "Skip ahead (cheat)", "input.keys3.skip_ahead",
+                   "Keypad 5"),
 };
 
 inline constexpr std::array kPad1Bindings{
@@ -97,6 +112,11 @@ inline constexpr std::array kPad1Bindings{
                    "input.buttons.change_camera", "y"),
     RaceBindingFor(kPad1, sim::Action::LookBack, "Look backwards", "input.buttons.look_back",
                    "rightstick"),
+    RaceBindingFor(kPad1, sim::Action::Boost, "Boost (cheat)", "input.buttons.boost", "leftstick"),
+    RaceBindingFor(kPad1, sim::Action::SlowMotion, "Slow motion (cheat)",
+                   "input.buttons.slow_motion", ""),
+    RaceBindingFor(kPad1, sim::Action::SkipAhead, "Skip ahead (cheat)", "input.buttons.skip_ahead",
+                   ""),
 };
 
 inline constexpr std::array kPad2Bindings{
@@ -118,6 +138,12 @@ inline constexpr std::array kPad2Bindings{
                    "input.pad2.buttons.change_camera", "y"),
     RaceBindingFor(kPad2, sim::Action::LookBack, "Look backwards", "input.pad2.buttons.look_back",
                    "rightstick"),
+    RaceBindingFor(kPad2, sim::Action::Boost, "Boost (cheat)", "input.pad2.buttons.boost",
+                   "leftstick"),
+    RaceBindingFor(kPad2, sim::Action::SlowMotion, "Slow motion (cheat)",
+                   "input.pad2.buttons.slow_motion", ""),
+    RaceBindingFor(kPad2, sim::Action::SkipAhead, "Skip ahead (cheat)",
+                   "input.pad2.buttons.skip_ahead", ""),
 };
 
 [[nodiscard]] std::span<const RaceBinding> RaceBindingsOf(InputSet set);

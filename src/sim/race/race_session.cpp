@@ -293,6 +293,7 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
                             const RacerControls& controls) {
     Racer& car = racers_[racer];
     const Vector3 from = positions_[racer];
+    const bool hasSkipped = clock_.IsRunning() && UseButtonCheats(racer, controls);
     car.RollCurse(elapsed, random_);
     const RacerWorldView worlds = WorldsOf(racer);
     car.Tick(elapsed, controls, car.Route() ? worlds.WithoutBase() : worlds);
@@ -307,8 +308,8 @@ void RaceSession::TickRacer(std::size_t racer, Milliseconds elapsed,
                                                 motion.position.z, course_.lowestTrackZ);
     const bool hasStalled =
         driver && clock_.IsRunning() && !car.Boost().isHeldAtStart && driver->IsStalled(elapsed);
-    wasRespawned_[racer] = hasFallen || hasStalled;
-    if (wasRespawned_[racer]) {
+    wasRespawned_[racer] = hasFallen || hasStalled || hasSkipped;
+    if (hasFallen || hasStalled) {
         car.Place(driver ? driver->Rejoin()
                          : RespawnPoint(*course_.checkpoints,
                                         progress_.OfRacer(racer).laps.LastCheckpoint(),

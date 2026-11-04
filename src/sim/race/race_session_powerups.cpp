@@ -128,6 +128,30 @@ void RaceSession::UsePowerup(std::size_t racer) {
     }
 }
 
+bool RaceSession::UseButtonCheats(std::size_t racer, const RacerControls& controls) {
+    const PlayerCheats cheats = CheatsOf(racer);
+    if (cheats.hasBoostButton && controls.isBoostPressed) {
+        PowerupContext effects = EffectContext();
+        powerups_.Fire({.racer = static_cast<std::uint8_t>(racer),
+                        .colour = assets::BrickColour::Green,
+                        .level = 1},
+                       effects);
+    }
+    return cheats.hasSkipAhead && controls.isSkipPressed && SkipAhead(racer);
+}
+
+bool RaceSession::SkipAhead(std::size_t racer) {
+    Racer& car = racers_[racer];
+    if (car.Status().isWarping || car.Status().isGhost) {
+        return false;
+    }
+    const std::size_t gate = progress_.NextGate(*course_.checkpoints, racer).value_or(0);
+    const float speed = car.Body().derived.speed;
+    car.Place(RespawnPoint(*course_.checkpoints, gate, course_.grid[racer], *course_.world));
+    car.Push(car.Body().motion.basis.forward, speed * car.Constants().mass);
+    return true;
+}
+
 void RaceSession::Taunt(std::size_t racer) {
     triggers_.FireStartAndEnd(kTauntEvent, positions_[racer]);
     sounds_.HearTaunt(racer);

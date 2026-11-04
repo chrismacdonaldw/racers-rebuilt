@@ -13,6 +13,9 @@ void DeclarePlayerCheatSettings(settings::Registry& registry) {
     registry.Declare(kPerfectStartCheat);
     registry.Declare(kFreeWarpCheat);
     registry.Declare(kHeadStartCheat);
+    registry.Declare(kBoostButtonCheat);
+    registry.Declare(kSlowMotionCheat);
+    registry.Declare(kSkipAheadCheat);
 }
 
 sim::PlayerCheats PlayerCheatsFrom(const settings::Registry& registry) {
@@ -23,6 +26,8 @@ sim::PlayerCheats PlayerCheatsFrom(const settings::Registry& registry) {
             .hasLongTurbo = registry.Get(kLongTurboCheat),
             .hasPerfectStart = registry.Get(kPerfectStartCheat),
             .hasFreeWarp = registry.Get(kFreeWarpCheat),
+            .hasBoostButton = registry.Get(kBoostButtonCheat),
+            .hasSkipAhead = registry.Get(kSkipAheadCheat),
             .headStart = std::chrono::duration_cast<Milliseconds>(
                 std::chrono::seconds(registry.Get(kHeadStartCheat)))};
 }

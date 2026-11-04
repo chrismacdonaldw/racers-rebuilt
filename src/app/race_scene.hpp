@@ -173,6 +173,8 @@ private:
     bool showsCheckpoints_ = false;
     bool showsCollision_ = false;
     bool showsTriggers_ = false;
+    bool hasSlowMotion_ = false;
+    bool isSlowMotion_ = false;
     std::optional<Nanoseconds> lastRender_;
     bool hasDrawn_ = false;
 };

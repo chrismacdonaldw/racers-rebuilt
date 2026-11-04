@@ -15,6 +15,8 @@ struct PlayerCheats {
     bool hasLongTurbo = false;
     bool hasPerfectStart = false;
     bool hasFreeWarp = false;
+    bool hasBoostButton = false;
+    bool hasSkipAhead = false;
     Milliseconds headStart{0};
 
     friend bool operator==(const PlayerCheats&, const PlayerCheats&) = default;

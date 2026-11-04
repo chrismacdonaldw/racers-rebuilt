@@ -19,6 +19,7 @@
 #include "app/game_settings.hpp"
 #include "app/hud/race_map_view.hpp"
 #include "app/menu/menu_scenes.hpp"
+#include "app/player_cheat_settings.hpp"
 #include "app/race_scene_parts.hpp"
 #include "app/race_step.hpp"
 #include "app/racer/far_cars.hpp"
@@ -38,6 +39,7 @@ namespace {
 constexpr std::uint64_t kHashPrime = 1099511628211ULL;
 constexpr Milliseconds kCircuitResultsTime{5000};
 constexpr double kFastForwardScale = 1.75;
+constexpr double kSlowMotionScale = 0.5;
 
 std::string MenuAfter(const RaceSceneSetup& setup) {
     return std::string(setup.isTestDrive ? kGarageScene : kMainMenuScene);
@@ -145,6 +147,7 @@ void RaceScene::ApplySettings(const settings::Registry& settings) {
     showsCheckpoints_ = settings.Get(kShowCheckpoints);
     showsCollision_ = settings.Get(kCollisionWireframe);
     showsTriggers_ = settings.Get(kShowTriggerSpheres);
+    hasSlowMotion_ = settings.Get(kSlowMotionCheat);
     parts_.farModels.SetHidden(!settings.Get(kFarCarsSetting), !settings.Get(kFarScenerySetting));
     hud_.SetLanguage(SelectedLanguage(settings));
 }
@@ -177,6 +180,8 @@ void RaceScene::Tick(const sim::InputFrame& input) {
         TickPause(input);
         return;
     }
+    isSlowMotion_ =
+        hasSlowMotion_ && !parts_.setup.isDemo && input.IsAnyHeld(sim::Action::SlowMotion);
     ApplyChosenTools();
     if (!trial_) {
         LeaveAfterResults();
@@ -212,7 +217,10 @@ SceneMusic RaceScene::Music() const {
 
 double RaceScene::TimeScale() const {
     const bool isRacing = !pause_.IsOpen() && !IsTrialAsking();
-    return isRacing && parts_.setup.cheats.Has(sim::Cheat::FastForward) ? kFastForwardScale : 1.0;
+    const double fastForward =
+        parts_.setup.cheats.Has(sim::Cheat::FastForward) ? kFastForwardScale : 1.0;
+    const double slowMotion = isSlowMotion_ ? kSlowMotionScale : 1.0;
+    return isRacing ? fastForward * slowMotion : 1.0;
 }
 
 void RaceScene::Snapshot(sim::RenderSnapshot& out) const {

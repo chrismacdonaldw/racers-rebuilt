@@ -144,6 +144,16 @@ TEST_CASE("a replay records the camera and look back actions") {
     CHECK(decoded->frames.front().players[0].IsHeld(Action::ChangeCamera));
 }
 
+TEST_CASE("a replay records the cheat button actions") {
+    const Replay replay{.scene = "RACEC0R0",
+                        .frames = {Held({Action::Boost, Action::SlowMotion, Action::SkipAhead})}};
+
+    const Result<Replay> decoded = DecodeReplay(EncodeReplay(replay));
+
+    REQUIRE(decoded.has_value());
+    CHECK(decoded->frames.front() == replay.frames.front());
+}
+
 TEST_CASE("a damaged replay is rejected") {
     const std::vector<std::byte> good = EncodeReplay(SampleReplay());
 
