@@ -62,6 +62,7 @@ add_executable(racers-rebuilt-tests
     app/device_assignment_test.cpp
     app/free_camera_test.cpp
     app/hq_textures_test.cpp
+    app/ldraw_driver_prints_test.cpp
     app/ldraw_piece_models_test.cpp
     app/input_bindings_test.cpp
     app/install_discovery_test.cpp
@@ -226,6 +227,7 @@ add_executable(racers-rebuilt-tests
     assets/jam_test.cpp
     assets/ldraw_part_test.cpp
     assets/ldraw_pieces_test.cpp
+    assets/ldraw_prints_test.cpp
     assets/ldraw_test.cpp
     assets/loader_pool_test.cpp
     assets/loading_screen_test.cpp

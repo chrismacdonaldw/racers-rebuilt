@@ -3,6 +3,7 @@
 #include "app/free_camera.hpp"
 #include "app/gltf_models.hpp"
 #include "app/hq_textures.hpp"
+#include "app/ldraw_driver_prints.hpp"
 #include "app/ldraw_piece_models.hpp"
 #include "core/log.hpp"
 #include "platform/data_folder.hpp"
@@ -28,6 +29,7 @@ Extensions LoadExtensions(const std::filesystem::path& modsFolder,
     extensions.enhancements.push_back(std::make_unique<HqTextures>());
     extensions.enhancements.push_back(std::make_unique<GltfModels>());
     extensions.enhancements.push_back(std::make_unique<LdrawPieceModels>(ShippedLdrawFolder()));
+    extensions.enhancements.push_back(std::make_unique<LdrawDriverPrints>(ShippedLdrawFolder()));
     return extensions;
 }
 
