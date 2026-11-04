@@ -19,11 +19,17 @@ UiFont TwoLetterFont() {
                                   {.character = u'B', .leftPx = 20, .widthPx = 6}}}};
 }
 
+UiFont ShapesFont() {
+    UiFont font = TwoLetterFont();
+    font.missingGlyphs = MissingGlyphs::Shapes;
+    return font;
+}
+
 TEST_CASE("text lays out glyphs left to right with spacing between them") {
     const UiFont font = TwoLetterFont();
     std::vector<render::SpriteDraw> sprites;
 
-    LayoutText(font, u"Ab A?", {.x = 5.0F, .y = 7.0F, .scale = 2.0F, .tint = {.r = 0.5F}}, sprites);
+    LayoutText(font, u"Ab A", {.x = 5.0F, .y = 7.0F, .scale = 2.0F, .tint = {.r = 0.5F}}, sprites);
 
     REQUIRE(sprites.size() == 3);
     CHECK(sprites[0].texture == render::TextureId{3});
@@ -39,16 +45,36 @@ TEST_CASE("text lays out glyphs left to right with spacing between them") {
     CHECK(sprites[2].bounds.x == 37.0F);
 }
 
-TEST_CASE("text width leaves out trailing spacing and missing glyphs") {
+TEST_CASE("text width leaves out trailing spacing and line breaks") {
     const UiFont font = TwoLetterFont();
 
-    CHECK(TextWidth(font, u"Ab A?") == 20.0F);
+    CHECK(TextWidth(font, u"Ab A") == 20.0F);
     CHECK(TextWidth(font, u"") == 0.0F);
+    CHECK(TextWidth(font, u"A\nA") == 9.0F);
+}
+
+TEST_CASE("a missing character draws the font's lowest-coded glyph, as the original does") {
+    const UiFont font = TwoLetterFont();
+    std::vector<render::SpriteDraw> sprites;
+
+    LayoutText(font, u"B/", {}, sprites);
+
+    REQUIRE(sprites.size() == 2);
+    CHECK(sprites[1].texture == render::TextureId{3});
+    CHECK(sprites[1].bounds.x == 7.0F);
+    CHECK(sprites[1].uv.x == doctest::Approx(0.1F));
+    CHECK(TextWidth(font, u"?") == 4.0F);
+}
+
+TEST_CASE("with shapes, other missing characters are skipped") {
+    const UiFont font = ShapesFont();
+
+    CHECK(TextWidth(font, u"Ab A?") == 20.0F);
     CHECK(TextWidth(font, u"?") == 0.0F);
 }
 
 TEST_CASE("a missing dash or slash is drawn as a shape in the text's tint") {
-    const UiFont font = TwoLetterFont();
+    const UiFont font = ShapesFont();
     std::vector<render::SpriteDraw> sprites;
 
     LayoutText(font, u"A-B/", {.x = 5.0F, .scale = 2.0F, .tint = {.g = 0.5F}}, sprites);
@@ -65,7 +91,7 @@ TEST_CASE("a missing dash or slash is drawn as a shape in the text's tint") {
 }
 
 TEST_CASE("a font's own dash wins over the drawn one") {
-    UiFont font = TwoLetterFont();
+    UiFont font = ShapesFont();
     font.glyphs.glyphs.insert(font.glyphs.glyphs.begin(),
                               {.character = u'-', .leftPx = 2, .widthPx = 2});
     std::vector<render::SpriteDraw> sprites;

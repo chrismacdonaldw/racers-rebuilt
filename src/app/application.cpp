@@ -403,7 +403,7 @@ Result<std::unique_ptr<RaceScene>> Application::LoadRace(RaceSceneSetup setup,
     ApplyUnnamedSettings(setup, settings_, cheats_);
     const std::string language = SelectedLanguage(settings_);
     const std::unique_ptr<RaceLoadingScreen> loading =
-        OpenLoadingScreen(renderer_, vfs_, setup.track, language);
+        OpenLoadingScreen(renderer_, vfs_, setup.track, language, MissingGlyphsFrom(settings_));
     Result<std::unique_ptr<RaceScene>> race =
         RaceScene::Create({.renderer = &renderer_, .mixer = &mixer_, .banks = &soundBanks_}, vfs_,
                           loader, setup, seed_, started);

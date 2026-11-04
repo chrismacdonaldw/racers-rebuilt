@@ -33,7 +33,8 @@ public:
     [[nodiscard]] static Result<std::unique_ptr<RaceLoadingScreen>> Load(render::Renderer& renderer,
                                                                          const assets::Vfs& vfs,
                                                                          std::string_view track,
-                                                                         std::string_view language);
+                                                                         std::string_view language,
+                                                                         MissingGlyphs missing);
 
     /// Draws and presents a frame at once.
     void Show(float progress);
@@ -54,6 +55,7 @@ private:
 [[nodiscard]] std::unique_ptr<RaceLoadingScreen> OpenLoadingScreen(render::Renderer& renderer,
                                                                    const assets::Vfs& vfs,
                                                                    std::string_view track,
-                                                                   std::string_view language);
+                                                                   std::string_view language,
+                                                                   MissingGlyphs missing);
 
 }

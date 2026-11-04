@@ -55,10 +55,16 @@ void RaceHudLayer::SetLanguage(std::string_view language) {
     SetLanguage(language, std::move(*fonts));
 }
 
+void RaceHudLayer::UseMissingGlyphs(MissingGlyphs missing) {
+    missingGlyphs_ = missing;
+    app::UseMissingGlyphs(fonts_, missing);
+}
+
 void RaceHudLayer::SetLanguage(std::string_view language, UiFonts fonts) {
     language_ = language;
     huds_.clear();
     fonts_ = std::move(fonts);
+    app::UseMissingGlyphs(fonts_, missingGlyphs_);
     Result<HudFonts> found = FindHudFonts(fonts_);
     Result<HudLanguage> text = LoadHudLanguage(*vfs_, language_);
     if (!found || !text) {

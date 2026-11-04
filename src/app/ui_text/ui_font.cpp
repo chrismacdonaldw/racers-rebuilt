@@ -1,5 +1,6 @@
 #include "app/ui_text/ui_font.hpp"
 
+#include <ranges>
 #include <utility>
 #include <vector>
 
@@ -53,6 +54,12 @@ Result<UiFonts> LoadUiFonts(render::Renderer& renderer, const assets::Vfs& vfs,
 const UiFont* FindUiFont(const UiFonts& fonts, std::string_view name) {
     const auto font = fonts.find(assets::ToUpperAscii(name));
     return font == fonts.end() ? nullptr : &font->second;
+}
+
+void UseMissingGlyphs(UiFonts& fonts, MissingGlyphs missing) {
+    for (UiFont& font : fonts | std::views::values) {
+        font.missingGlyphs = missing;
+    }
 }
 
 }

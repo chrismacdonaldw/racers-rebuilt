@@ -10,6 +10,8 @@ namespace rr::app {
 
 enum class DrawnGlyph : std::uint8_t { Dash, Slash };
 
+enum class MissingGlyphs : std::uint8_t { FirstGlyph, Shapes };
+
 /// Punctuation drawn as a shape when a font has no glyph for it.
 [[nodiscard]] std::optional<DrawnGlyph> DrawnGlyphFor(char16_t character);
 

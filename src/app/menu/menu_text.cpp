@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "app/fix_settings.hpp"
 #include "app/game_settings.hpp"
 #include "app/menu/menu_files.hpp"
 #include "core/log.hpp"
@@ -12,9 +13,15 @@ namespace rr::app {
 bool MenuText::Apply(render::Renderer& renderer, const assets::Vfs& vfs,
                      const settings::Registry& settings) {
     std::string language = SelectedLanguage(settings);
-    if (language == language_) {
-        return false;
+    const bool isNewLanguage = language != language_;
+    if (isNewLanguage) {
+        Load(renderer, vfs, std::move(language));
     }
+    UseMissingGlyphs(fonts_, MissingGlyphsFrom(settings));
+    return isNewLanguage;
+}
+
+void MenuText::Load(render::Renderer& renderer, const assets::Vfs& vfs, std::string language) {
     language_ = std::move(language);
     Result<UiFonts> fonts =
         LoadUiFonts(renderer, vfs, MenuLanguageFolder(language_), kMenuFontList);
@@ -24,7 +31,6 @@ bool MenuText::Apply(render::Renderer& renderer, const assets::Vfs& vfs,
     }
     fonts_ = std::move(fonts).value_or(UiFonts{});
     lines_ = std::move(lines).value_or(std::vector<std::u16string>{});
-    return true;
 }
 
 std::u16string_view MenuText::Line(std::size_t line) const {

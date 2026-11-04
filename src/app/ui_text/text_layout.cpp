@@ -36,15 +36,31 @@ const assets::Glyph* GlyphFor(const assets::FontGlyphs& glyphs, char16_t charact
     return glyph;
 }
 
+bool IsLineBreak(char16_t character) {
+    return character == kLineFeed || character == kCarriageReturn;
+}
+
 struct Mark {
     const assets::Glyph* glyph = nullptr;
     std::optional<DrawnGlyph> drawn;
     float widthPx = 0.0F;
 };
 
+Mark GlyphMark(const assets::Glyph& glyph) {
+    return {.glyph = &glyph, .widthPx = static_cast<float>(glyph.widthPx)};
+}
+
 std::optional<Mark> MarkFor(const UiFont& font, char16_t character) {
     if (const assets::Glyph* glyph = GlyphFor(font.glyphs, character)) {
-        return Mark{.glyph = glyph, .widthPx = static_cast<float>(glyph->widthPx)};
+        return GlyphMark(*glyph);
+    }
+    if (IsLineBreak(character)) {
+        return std::nullopt;
+    }
+    if (font.missingGlyphs == MissingGlyphs::FirstGlyph) {
+        return font.glyphs.glyphs.empty()
+                   ? std::nullopt
+                   : std::optional<Mark>(GlyphMark(font.glyphs.glyphs.front()));
     }
     if (const std::optional<DrawnGlyph> drawn = DrawnGlyphFor(character)) {
         return Mark{.drawn = drawn,
@@ -84,10 +100,6 @@ float Advance(const UiFont& font, char16_t character) {
     }
     const std::optional<Mark> mark = MarkFor(font, character);
     return mark ? mark->widthPx + static_cast<float>(font.spacingPx) : 0.0F;
-}
-
-bool IsLineBreak(char16_t character) {
-    return character == kLineFeed || character == kCarriageReturn;
 }
 
 class LineBreaker {

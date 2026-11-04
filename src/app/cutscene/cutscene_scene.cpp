@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "app/cutscene/cutscene_screen.hpp"
+#include "app/fix_settings.hpp"
 #include "app/frame_loop.hpp"
 #include "app/video_settings.hpp"
 #include "assets/game_path.hpp"
@@ -56,6 +57,7 @@ void CutsceneScene::ApplySettings(const settings::Registry& settings) {
     view_->DrawFarScenery(settings.Get(kFarScenerySetting));
     view_->KeepToCanvas(settings.Get(kWidescreenSetting) &&
                         !settings.Get(kWidescreenCutscenesSetting));
+    view_->UseMissingGlyphs(MissingGlyphsFrom(settings));
 }
 
 std::optional<std::string> CutsceneScene::TakeNextScene() {

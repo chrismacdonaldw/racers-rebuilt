@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 
+#include "app/ui_text/drawn_glyphs.hpp"
 #include "assets/font_list.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -20,6 +21,7 @@ struct UiFont {
     std::uint32_t heightPx = 0;
     std::int32_t spacingPx = 0;
     assets::FontGlyphs glyphs;
+    MissingGlyphs missingGlyphs = MissingGlyphs::FirstGlyph;
 };
 
 /// Keyed by font name in upper case.
@@ -34,5 +36,7 @@ using UiFonts = std::map<std::string, UiFont, std::less<>>;
                                           std::string_view folder, std::string_view fontList);
 
 [[nodiscard]] const UiFont* FindUiFont(const UiFonts& fonts, std::string_view name);
+
+void UseMissingGlyphs(UiFonts& fonts, MissingGlyphs missing);
 
 }

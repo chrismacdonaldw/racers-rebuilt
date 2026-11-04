@@ -30,6 +30,8 @@ public:
     [[nodiscard]] std::u16string_view Line(std::size_t line) const;
 
 private:
+    void Load(render::Renderer& renderer, const assets::Vfs& vfs, std::string language);
+
     std::string language_;
     UiFonts fonts_;
     std::vector<std::u16string> lines_;

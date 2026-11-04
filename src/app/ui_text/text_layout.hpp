@@ -19,7 +19,8 @@ struct TextPlacement {
 [[nodiscard]] float TextWidth(const UiFont& font, std::u16string_view text);
 
 /// `x` and `y` are the top left of the scaled text. Lower-case letters without a glyph use the
-/// upper-case one, and other characters without a glyph are skipped.
+/// upper-case one. Other characters without a glyph draw the font's lowest-coded glyph, as the
+/// original does, or with MissingGlyphs::Shapes a drawn dash or slash, skipping the rest.
 void LayoutText(const UiFont& font, std::u16string_view text, const TextPlacement& placement,
                 std::vector<render::SpriteDraw>& out);
 
