@@ -103,7 +103,9 @@ CourseChoice CircuitCourse(const Catalogs& catalogs, std::size_t circuit) {
     const assets::CircuitEntry& entry = catalogs.races.Circuits()[circuit];
     CourseChoice choice = CircuitChoice(catalogs, circuit);
     choice.title = entry.title;
-    choice.boss = entry.boss.empty() ? RacerChoice{} : ChoiceOf(catalogs.racers, entry.boss);
+    const RacerChoice boss = ChoiceOf(
+        catalogs.racers, entry.boss.empty() ? std::string(RetailBoss(circuit)) : entry.boss);
+    choice.boss = entry.boss.empty() && boss.title.empty() ? RacerChoice{} : boss;
     choice.intro = CircuitIntro(entry).value_or(std::string());
     return choice;
 }

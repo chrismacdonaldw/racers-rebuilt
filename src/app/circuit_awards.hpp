@@ -52,6 +52,9 @@ struct AwardUnlocks {
 /// slot.
 [[nodiscard]] AwardDrivers DriversOf(const assets::CircuitEntry& circuit, std::size_t racer);
 
+/// The champion the original menus name for circuit `circuit`, or empty past the original seven.
+[[nodiscard]] std::string_view RetailBoss(std::size_t circuit);
+
 struct AwardClaim {
     std::string screen;
     bool opensCircuit = false;

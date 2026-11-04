@@ -25,6 +25,11 @@ void AddDriverProblems(const assets::Vfs& vfs, std::vector<std::string>& problem
         if (!FindDriverRacer(vfs, driver)) {
             problems.push_back(std::format("{}: driver {}: there's no racer {}",
                                            assets::kDriverTablePath, driver.name, driver.racer));
+        } else if (driver.racer.empty()) {
+            if (const Result<assets::RacerFiles> files = catalog->Find(driver.name); !files) {
+                problems.push_back(std::format("{}: driver {}: {}", assets::kDriverTablePath,
+                                               driver.name, files.error().message));
+            }
         }
     }
 }

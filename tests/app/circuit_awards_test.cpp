@@ -133,6 +133,12 @@ TEST_CASE("saving an award reports each unlock only the first time") {
     CHECK(SaveAward(file, *vfs, {.circuit = "c0", .award = CircuitAward::Gold}) == AwardUnlocks{});
 }
 
+TEST_CASE("the original circuits name their own bosses, and later ones none") {
+    CHECK(RetailBoss(0) == "CR");
+    CHECK(RetailBoss(4) == "BVB");
+    CHECK(RetailBoss(7).empty());
+}
+
 TEST_CASE("the selected racer takes the trophy and progress keeps the unlocks") {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
