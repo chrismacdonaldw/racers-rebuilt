@@ -46,6 +46,7 @@ rr_add_module(app
         ground_decal.cpp
         free_camera.cpp
         hq_textures.cpp
+        ldraw_piece_models.cpp
         game_boot.cpp
         game_extraction.cpp
         hazard/crane_shadow.cpp
@@ -276,3 +277,6 @@ target_compile_definitions(rr_app PRIVATE
 add_executable(racers-rebuilt main.cpp)
 set_target_properties(racers-rebuilt PROPERTIES WIN32_EXECUTABLE "$<NOT:$<CONFIG:Debug>>")
 target_link_libraries(racers-rebuilt PRIVATE rr::app rr::compile_options)
+add_custom_command(TARGET racers-rebuilt POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+            ${PROJECT_SOURCE_DIR}/content/ldraw $<TARGET_FILE_DIR:racers-rebuilt>/ldraw)

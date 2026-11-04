@@ -61,6 +61,7 @@ add_executable(racers-rebuilt-tests
     app/device_assignment_test.cpp
     app/free_camera_test.cpp
     app/hq_textures_test.cpp
+    app/ldraw_piece_models_test.cpp
     app/input_bindings_test.cpp
     app/install_discovery_test.cpp
     app/loop_sidecar_test.cpp
@@ -231,6 +232,7 @@ add_executable(racers-rebuilt-tests
     assets/original_save_test.cpp
     assets/part_library_test.cpp
     assets/piece_merge_test.cpp
+    assets/piece_models_test.cpp
     assets/model_survey_test.cpp
     assets/part_sets_test.cpp
     assets/piece_catalog_test.cpp
@@ -325,6 +327,7 @@ add_executable(racers-rebuilt-tests
     sim/car_build/car_mesh_test.cpp
     sim/car_build/car_studs_test.cpp
     sim/car_build/piece_cursor_test.cpp
+    sim/car_build/placed_model_test.cpp
     sim/collision/collision_mesh_test.cpp
     sim/collision/collision_world_test.cpp
     sim/collision/racer_worlds_test.cpp

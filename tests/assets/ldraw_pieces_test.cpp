@@ -7,13 +7,17 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
+#include <fstream>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "archive_survey.hpp"
 #include "assets/ldraw_part.hpp"
 #include "assets/piece_library.hpp"
 #include "sim/car_build/mesh_primitives.hpp"
+#include "temp_folder.hpp"
 
 namespace rr::assets {
 namespace {
@@ -80,6 +84,15 @@ std::vector<Triangle> PlacedTriangles(const GeometryAsset& part, const LdrawMatr
     return triangles;
 }
 
+Vector3 Highest(const GeometryAsset& part, const LdrawMatrix& matrix) {
+    Vector3 high = Apply(matrix, part.vertices.front().position);
+    for (const GeometryVertex& vertex : part.vertices) {
+        const Vector3 p = Apply(matrix, vertex.position);
+        high = {.x = std::max(high.x, p.x), .y = std::max(high.y, p.y), .z = std::max(high.z, p.z)};
+    }
+    return high;
+}
+
 Vector3 Lowest(const GeometryAsset& part, const LdrawMatrix& matrix) {
     Vector3 low = Apply(matrix, part.vertices.front().position);
     for (const GeometryVertex& vertex : part.vertices) {
@@ -123,7 +136,10 @@ std::optional<int> TopMismatches(const PieceLibrary& original, LdrawLibrary& lib
     }
     const std::vector<Triangle> expected = OriginalTriangles(original, *record);
     const std::vector<Triangle> placed = PlacedTriangles(*part, mapped.matrix);
-    int mismatches = 0;
+    const Vector3 high = Highest(*part, mapped.matrix);
+    const bool isOutside = high.x > static_cast<float>(record->shape.size.width) + kTolerance ||
+                           high.y > static_cast<float>(record->shape.size.height) + kTolerance;
+    int mismatches = isOutside ? 1 : 0;
     for (const auto& [x, y] : SamplePoints(*record)) {
         const std::optional<float> want = TopAt(expected, x, y);
         const std::optional<float> got = TopAt(placed, x, y);
@@ -147,6 +163,21 @@ TEST_CASE("every mapped piece loads from the shipped parts and sits on its cells
 TEST_CASE("a piece is found by name in any case") {
     CHECK(LdrawPieceFor("l300100").value_or(LdrawPiece{}).file == "3001.dat");
     CHECK_FALSE(LdrawPieceFor("L999900").has_value());
+}
+
+TEST_CASE("a piece model names LDraw colours as game materials, the main colour as the piece's") {
+    const test::TempFolder folder;
+    std::filesystem::create_directories(folder.Path() / "parts");
+    std::ofstream(folder.Path() / "parts/x.dat")
+        << "3 4 0 0 0 20 0 0 0 0 20\n3 16 0 0 0 20 0 0 0 0 20\n3 999 0 0 0 20 0 0 0 0 20\n";
+    LdrawLibrary library(folder.Path());
+
+    const Result<GeometryAsset> model = LoadLdrawPiece(
+        library, {.piece = "X", .file = "x.dat", .matrix = {.position = {.x = 1.0F}}});
+
+    REQUIRE(model.has_value());
+    CHECK(model->materials == std::vector<std::string>{"red", "piece", "piece"});
+    CHECK(model->vertices[0].position == Vector3{.x = 1.0F});
 }
 
 TEST_CASE("mapped pieces have the original pieces' top heights away from the studs") {

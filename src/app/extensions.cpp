@@ -3,9 +3,21 @@
 #include "app/free_camera.hpp"
 #include "app/gltf_models.hpp"
 #include "app/hq_textures.hpp"
+#include "app/ldraw_piece_models.hpp"
 #include "core/log.hpp"
+#include "platform/data_folder.hpp"
 
 namespace rr::app {
+namespace {
+
+constexpr std::string_view kLdrawFolderName = "ldraw";
+
+std::filesystem::path ShippedLdrawFolder() {
+    const Result<std::filesystem::path> exeFolder = platform::ExeFolder();
+    return (exeFolder ? *exeFolder : std::filesystem::path()) / kLdrawFolderName;
+}
+
+}
 
 Extensions LoadExtensions(const std::filesystem::path& modsFolder,
                           const std::filesystem::path& overridesFolder) {
@@ -15,6 +27,7 @@ Extensions LoadExtensions(const std::filesystem::path& modsFolder,
     extensions.enhancements.push_back(std::make_unique<FreeCamera>());
     extensions.enhancements.push_back(std::make_unique<HqTextures>());
     extensions.enhancements.push_back(std::make_unique<GltfModels>());
+    extensions.enhancements.push_back(std::make_unique<LdrawPieceModels>(ShippedLdrawFolder()));
     return extensions;
 }
 

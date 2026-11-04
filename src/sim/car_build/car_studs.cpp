@@ -13,7 +13,12 @@ CarStud StudOn(std::span<const CarPiece> pieces, const GridCell& cell, int x, in
         top.piece->IsChassis()
             ? top.piece->shape.GetCell(x - at.x, y - at.y, at.rotation).RaisedBottomHeight()
             : 0;
-    return {.x = x, .y = y, .height = cell.height, .colour = top.colour, .raisedBottom = raised};
+    return {.x = x,
+            .y = y,
+            .height = cell.height,
+            .colour = top.colour,
+            .raisedBottom = raised,
+            .topPiece = static_cast<std::size_t>(cell.piece)};
 }
 
 void AddCoveredStuds(const CarGrid& grid, std::span<const CarPiece> pieces, const CarPiece& piece,

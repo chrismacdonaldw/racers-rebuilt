@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -14,6 +15,7 @@ struct CarStud {
     int height = 0;
     std::uint8_t colour = 0;
     int raisedBottom = 0;
+    std::size_t topPiece = 0;
 
     friend bool operator==(const CarStud&, const CarStud&) = default;
 };

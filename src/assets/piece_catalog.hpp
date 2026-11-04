@@ -6,7 +6,9 @@
 #include <string_view>
 #include <vector>
 
+#include "assets/geometry_asset.hpp"
 #include "assets/piece_library.hpp"
+#include "assets/piece_models.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 
@@ -32,11 +34,15 @@ struct CatalogPartSet {
 };
 
 /// `materials` names the library's MDB materials in the order piece commands index them.
+// NOLINTNEXTLINE(bugprone-exception-escape)
 struct PieceCatalog {
     PieceLibrary library;
     std::vector<std::string> materials;
     std::vector<std::string> colours;
     std::vector<CatalogPartSet> partSets;
+    PieceModels models;
+
+    [[nodiscard]] const GeometryAsset* ModelOf(const PieceRecord& piece) const;
 
     /// Fails when a set's chassis, piece or colour is missing; skips pieces too big to build.
     [[nodiscard]] static Result<PieceCatalog> Load(const Vfs& vfs, PieceDetail detail);

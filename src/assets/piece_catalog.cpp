@@ -172,6 +172,11 @@ std::string BinaryPartSetFile(std::string_view listed) {
     return ToUpperAscii(stem) + ".LEB";
 }
 
+const GeometryAsset* PieceCatalog::ModelOf(const PieceRecord& piece) const {
+    const auto found = models.find(ToUpperAscii(piece.name));
+    return found == models.end() ? nullptr : &found->second;
+}
+
 Result<PieceCatalog> PieceCatalog::Load(const Vfs& vfs, PieceDetail detail) {
     PieceCatalog catalog;
     const std::string_view stem = detail == PieceDetail::Menu ? "LPIECEHI" : "LPIECELO";
@@ -180,6 +185,7 @@ Result<PieceCatalog> PieceCatalog::Load(const Vfs& vfs, PieceDetail detail) {
         .and_then([&](PieceLayer merged) {
             catalog.library = std::move(merged.library);
             catalog.materials = std::move(merged.materials);
+            catalog.models = ReadPieceModels(vfs, catalog.library);
             return ReadPieceFile(vfs, "L_COLORS.LEB", ParsePieceColours);
         })
         .and_then([&](std::vector<std::string> colours) {

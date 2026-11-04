@@ -140,6 +140,15 @@ To start from the game's own models, run `racers-rebuilt.exe --export-gltf <fold
 - A jointed model is one skinned mesh in its rest pose, with nodes named after the skeleton's, and its animations as glTF animations of the same names. Driver parts carry the shared `PELVIS.ADB` animations, which only `PELVIS.glb` replaces.
 - Copy the `.glb` files you change into a mod's `files` folder at the same paths.
 
+## Brick models
+
+A model at `MENUDATA/PIECEDB/MODELS/<brick name>.GDB`, or a `.glb` there, replaces how a builder brick is drawn on cars, e.g. `files/MENUDATA/PIECEDB/MODELS/L300100.glb`. Where the brick fits and what it hits are unchanged.
+
+- Units are studs: one cell per unit along x and y, and a plate is 0.4 high. Model the brick unturned, with its first cell's corner at the origin and its bottom at z 0. The game turns and places it.
+- A material named `piece` (case doesn't matter) takes the colour the brick is placed in. Other names pick a material from `LPIECEHI.MDB`.
+- The model draws its own studs: the game adds none on the brick's cells.
+- **LDraw pieces** (`enhancements.ldraw_pieces`) draws the bricks that match a part in the shipped LDraw library this way. A mod's model wins over it.
+
 ## Overrides
 
 To replace a few files without writing a mod, put them in `<data>/overrides/` at their paths inside `LEGO.JAM`, e.g. `<data>/overrides/GAMEDATA/COMMON/RRJMW.GDB`.

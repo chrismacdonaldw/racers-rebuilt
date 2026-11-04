@@ -55,6 +55,7 @@ rr_add_module(assets
         piece_catalog.cpp
         piece_library.cpp
         piece_merge.cpp
+        piece_models.cpp
         png_image.cpp
         race_catalog.cpp
         race_list.cpp
