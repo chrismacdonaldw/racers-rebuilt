@@ -30,12 +30,8 @@ namespace rr::sim {
 /// One per racer sphere, the collision world it switches on.
 [[nodiscard]] std::vector<std::optional<std::size_t>> SphereWorldsFor(const RaceCourse& course);
 
-[[nodiscard]] std::span<const assets::RaceRoute> RoutesFor(const RaceCourse& course,
-                                                           std::size_t slot);
-
-/// Shaped like the course's routes, or empty when racers don't follow racing lines.
-[[nodiscard]] std::vector<std::vector<std::shared_ptr<const RacingLine>>> RacingLinesFor(
-    const RaceSetup& setup, const RaceCourse& course);
+/// Gate paths need racing lines. A racer on one for want of recordings gets every craft.
+[[nodiscard]] AiCraft CraftFor(const RaceSetup& setup, bool isGatePath);
 
 /// Empty when `lines` doesn't match `routes`.
 [[nodiscard]] std::vector<RouteOption> RouteOptionsFor(

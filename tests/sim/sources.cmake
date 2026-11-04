@@ -6,6 +6,8 @@ target_sources(racers-rebuilt-tests PRIVATE
     sim/ai/ai_powerups_test.cpp
     sim/ai/ai_racer_test.cpp
     sim/ai/ai_taunts_test.cpp
+    sim/ai/gate_path_test.cpp
+    sim/ai/gate_path_retail_test.cpp
     sim/ai/powerup_habits_test.cpp
     sim/ai/racing_line_retail_test.cpp
     sim/ai/racing_line_test.cpp
@@ -108,6 +110,7 @@ target_sources(racers-rebuilt-tests PRIVATE
     sim/race/race_modifiers_test.cpp
     sim/race/race_progress_test.cpp
     sim/race/race_session_test.cpp
+    sim/race/racer_routes_test.cpp
     sim/race/race_skill_test.cpp
     sim/race/race_start_test.cpp
     sim/race/race_sounds_test.cpp

@@ -70,6 +70,12 @@ inline constexpr settings::SettingSpec<bool> kAiRacingLine{
     .label = "Physics racers drive a racing line at their car's speed",
     .category = "Enhancements/Gameplay"};
 
+inline constexpr settings::SettingSpec<bool> kAiGatePaths{
+    .key = "race.ai_gate_paths",
+    .defaultValue = false,
+    .label = "Physics racers find their own way round instead of following recordings",
+    .category = "Enhancements/Gameplay"};
+
 inline constexpr settings::SettingSpec<int> kOpponents{
     .key = "race.opponents",
     .defaultValue = 5,
@@ -95,6 +101,7 @@ inline void DeclareRaceSettings(settings::Registry& registry) {
     registry.Declare(kAiAiming);
     DeclareAiSkillSettings(registry);
     registry.Declare(kAiRacingLine);
+    registry.Declare(kAiGatePaths);
     registry.Declare(kOpponents);
     registry.Declare(kVersusLaps);
 }
@@ -113,7 +120,8 @@ inline void DeclareRaceSettings(settings::Registry& registry) {
             .passes = registry.Get(kAiPassing),
             .unsticks = registry.Get(kAiUnsticking),
             .aims = registry.Get(kAiAiming),
-            .racingLine = registry.Get(kAiRacingLine)};
+            .racingLine = registry.Get(kAiRacingLine),
+            .gatePaths = registry.Get(kAiGatePaths)};
 }
 
 /// Only the respawn and computer racer fields are set.
