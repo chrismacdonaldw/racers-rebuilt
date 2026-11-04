@@ -12,11 +12,6 @@ constexpr std::array kProfiles{
         .speedShare = 0.95F, .brakeMargin = 1.06F, .wobble = 1.2F, .reaction = Milliseconds{300}},
     SkillProfile{
         .speedShare = 1.00F, .brakeMargin = 1.10F, .wobble = 0.6F, .reaction = Milliseconds{200}},
-    SkillProfile{.speedShare = 1.04F,
-                 .brakeMargin = 1.14F,
-                 .wobble = 0.25F,
-                 .reaction = Milliseconds{120},
-                 .takesShortcuts = true},
     SkillProfile{.speedShare = 1.08F,
                  .brakeMargin = 1.18F,
                  .wobble = 0.0F,
@@ -29,7 +24,7 @@ constexpr char kEqualMark = 'e';
 constexpr char kCustomMark = 'c';
 
 int ClampedLevel(int level) {
-    return std::clamp(level, kEasiestLevel, kMasterLevel);
+    return std::clamp(level, kEasiestLevel, kExpertLevel);
 }
 
 int PaceDrop(assets::RoutePace pace) {
@@ -46,7 +41,7 @@ int PaceDrop(assets::RoutePace pace) {
 
 std::optional<int> LevelDigit(char digit) {
     const int level = digit - '0';
-    return level >= kEasiestLevel && level <= kMasterLevel ? std::optional(level) : std::nullopt;
+    return level >= kEasiestLevel && level <= kExpertLevel ? std::optional(level) : std::nullopt;
 }
 
 std::optional<AiSkill> ParseCustom(std::string_view digits) {
