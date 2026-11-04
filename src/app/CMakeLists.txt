@@ -247,7 +247,9 @@ rr_add_module(app
         racer/racer_visuals.cpp
         racer/skid_marks.cpp
         racer/skid_trail.cpp
+        racer/surface_fx_effects.cpp
         racer/wall_sparks.cpp
+        racer/wheel_spray.cpp
         replay_session.cpp
         scene_music.cpp
         scene_stack.cpp

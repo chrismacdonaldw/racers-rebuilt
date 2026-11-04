@@ -17,6 +17,7 @@
 #include "app/racer/car_particles.hpp"
 #include "app/racer/skid_marks.hpp"
 #include "app/racer/wall_sparks.hpp"
+#include "app/racer/wheel_spray.hpp"
 #include "assets/surface_table.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
@@ -79,7 +80,6 @@ private:
     void UpdatePlayer(const sim::Racer& racer, const std::optional<SkidWheels>& skidding,
                       PlayerEmitters& emitters);
 
-    [[nodiscard]] std::optional<std::string_view> ParticleOf(const sim::WheelProbe& wheel) const;
     void UpdateWheel(WheelEmitter& wheel, std::optional<std::string_view> name,
                      const render::EmitterPlacement& placement);
     void Start(WheelEmitter& wheel, const render::EmitterPlacement& placement);
@@ -90,6 +90,7 @@ private:
     WallSparks walls_;
     BlastFx blasts_;
     PowerupFx powerupFx_;
+    WheelSpray spray_;
     bool isBetter_ = false;
     std::span<const assets::SurfaceEntry> surfaces_;
     std::size_t player_;

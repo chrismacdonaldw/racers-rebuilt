@@ -7,6 +7,7 @@
 #include <optional>
 
 #include "app/powerup/powerup_fx_effects.hpp"
+#include "app/racer/surface_fx_effects.hpp"
 #include "core/log.hpp"
 #include "render/fx_textures.hpp"
 
@@ -320,6 +321,7 @@ std::vector<render::FxEffect> RaceFxEffects() {
                                           kShockwave,
                                           kFlyingBricks};
     std::ranges::copy(PowerupFxEffects(), std::back_inserter(effects));
+    std::ranges::copy(SurfaceFxEffects(), std::back_inserter(effects));
     return effects;
 }
 
