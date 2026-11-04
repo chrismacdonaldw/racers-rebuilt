@@ -20,11 +20,13 @@ music_volume = 0.6
 - [Video](#video)
 - [Audio](#audio)
 - [Camera](#camera)
+- [Car builder](#car-builder)
 - [Race](#race)
 - [Cheats](#cheats)
 - [Modifiers](#modifiers)
 - [Mods](#mods)
 - [Controls](#controls)
+- [Developer](#developer)
 - [Quick config files](#quick-config-files)
 - [Command line](#command-line)
 
@@ -68,6 +70,8 @@ music_volume = 0.6
 | `enhancements.ldraw_prints` | `false` | `true`, `false`. Draws the matching LDraw minifig torso print over the front of each original driver torso that has one, and redraws original driver faces in every expression in the style of LDraw minifig head prints, at higher resolution. Applies to drivers loaded after it changes. |
 | `video.anisotropic_filtering` | `false` | `true`, `false`. Filters textures 16x where they're seen at a slant, so roads and walls stay sharp into the distance. Materials drawn with blocky unfiltered pixels keep them. Applies at once. |
 | `video.better_particles` | `false` | `true`, `false`. Redraws the original's particles in a modern style while keeping their timing, motion and size: tire smoke, exhaust, turbo, landing and cannon smoke become soft billowing puffs lit by the sun, drift dust glints, crash sparks and dynamite fuses twinkle as smooth stars with a glow, lightning strikes leave glowing orbs and oil slicks bubble with glossy black bubbles. Blast and spike explosions flash and glow behind their original burst model and leave a few puffs of smoke. Track hazards get the same treatment: cannon flashes, lava globs, ghost trails and wizard magic glow, dust, smoke, mist and splashes turn soft, and snow falls as soft flakes. Every car, not just the player's, throws grass, sand, dirt, snow and splashing water from its wheels. `false` draws the original particles. Applies at once. |
+| `video.far_cars` | `false` | `true`, `false`. Draws cars and their shadows past the original's 500 units from the camera. `false` hides them there, as the original does. |
+| `video.far_scenery` | `false` | `true`, `false`. Draws track, menu and cutscene models past the distance each one's world file gives. `false` hides them there, as the original does. |
 | `video.cockpit_car` | `false` | `true`, `false`. Draws your own car, driver and wheels in the cockpit camera view. `false` leaves them out while racing, as the original does. |
 | `fixes.missing_glyphs` | `false` | `true`, `false`. A lower-case letter a font has no glyph for uses its capital, a missing dash or slash is drawn as a line, and other missing characters are left out. `false` draws what the original does: an odd symbol from the font, or a gap. The workshop always uses the fix. Applies at once. |
 | `fixes.menu_font_glyphs` | `false` | `true`, `false`. English menus draw `&` and `-` with their own letters. The original's English menu font is off by one after `)`, so `&` shows an accent and `-` shows a `7`. Applies at once. |
@@ -79,6 +83,7 @@ music_volume = 0.6
 | `audio.music_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.effects_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.voice_volume` | `1.0` | `0.0` to `1.0` |
+| `audio.stereo` | `true` | `true`, `false`. `false` mixes everything to mono. The options screen sets it too. |
 | `audio.prevent_clipping` | `false` | `true`, `false`. Mixes with headroom and a limiter so loud moments don't crackle. `false` mixes at full volume and clips, as the original does. |
 
 ## Camera
@@ -255,6 +260,15 @@ Each `<action>` has a default in every set. The sets follow the original's. The 
 - PLAYER 1 CONTROLS and PLAYER 2 CONTROLS on the options screen pick each player's set from the attached gamepads and the three keyboard sets, and rebind it. A gamepad's steering rows stay closed, as it steers with its stick and d-pad. Picking the other player's set moves them to another, as the original does.
 - The overlay's **Bindings** menu picks each player's device and shows every keyboard and pad binding in one table.
 
+## Developer
+
+| Key | Default | Values |
+|---|---|---|
+| `dev.show_checkpoints` | `false` | `true`, `false`. Draws the checkpoint gates in races and the track viewer. |
+| `dev.collision_wireframe` | `false` | `true`, `false`. Draws the track's collision meshes as wireframes in races and the track viewer. |
+| `dev.show_triggers` | `false` | `true`, `false`. Draws the track event trigger spheres in races. |
+| `dev.play_sound` | Empty | A game sound path, such as `GAMEDATA/COMMON/321.PCM` or `THEME.TUN`, played once audio starts. |
+
 ## Quick config files
 
 Each config saved from **Enhancements → Presets** is a file in `<data>/presets/`, so you can share it. Settings it doesn't list take their defaults, and settings it can't set are ignored:
@@ -277,11 +291,18 @@ name = "Race night"
 | `--set <key>=<value>` | Override a setting for this run only. Repeatable. |
 | `--track <folder>` | Open a race track instead of the main menu, by its `GAMEDATA` folder, e.g. `RACEC0R0` |
 | `--race <folder>` | Start a race on a track instead of the main menu, by its `GAMEDATA` folder. Can't be combined with `--track`. |
+| `--racer <name>` | With `--race`, race as the racer of that name: one of yours from `racers.toml`, else one of the game's, e.g. `"TURBO CHARGER"` |
 | `--players 2` | With `--race`, race two players against each other in split screen, with no computer racers |
 | `--cheats <plates>` | With `--race`, turn on the original's license plate cheats, comma separated, e.g. `MXPMX,PGLLRD`. Plates are entered in order, so later ones can switch earlier ones off. |
 | `--cutscene <folder>/<file>` | Play a menu cutscene on a loop instead of the main menu, by its `MENUDATA` folder and file, e.g. `CIRCUIT1/CIR1-01` |
+| `--show-car <name>` | Turn a game racer's car on a stand instead of the main menu, by the racer's name |
+| `--record <file>` | Record the first scene's input to a replay file |
+| `--replay <file>` | Play the first scene back from a replay file, and warn where it plays out differently |
+| `--import-save <file>` | Bring in trophies, best times, unlocks and racers from an original save file, such as `Save\1\LEGORac1`, then start as usual |
+| `--dump-images <folder>` | Write every image in `LEGO.JAM` as a PNG and exit |
 | `--dump-textures <folder>` | Write every image in `LEGO.JAM` as a PNG texture pack and exit. See [Make a texture pack](MODDING.md#make-a-texture-pack). |
 | `--export-gltf <folder>` | Write every model in `LEGO.JAM` as a `.glb` and exit. See [Models](MODDING.md#models). |
+| `--export-track <track> <folder>` | Write a game track, by its `GAMEDATA` folder, as `track.glb` and `track.toml` and exit. See [Models](MODDING.md#models). |
 | `--dump-powerups <file>` | Write every power-up value as a `POWERUPS.TOML` and exit. See [Power-ups](MODDING.md#power-ups). |
 | `--check-mods` | Check every mod and exit. Each problem is logged with its `mod.toml`, and a message lists them all. See [Dependencies](MODDING.md#dependencies). |
 
