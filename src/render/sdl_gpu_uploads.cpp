@@ -276,7 +276,8 @@ void SdlGpuBackend::GatherViews(std::span<const RenderView> views) {
     const float edgeShift = EdgeShift(static_cast<std::uint32_t>(std::max(widthPx, 1)),
                                       static_cast<std::uint32_t>(std::max(heightPx, 1)),
                                       settings_.uiFit, settings_.sceneFit);
-    BatchSprites(sprites_, edgeShift, spriteVertices_, spriteBatches_);
+    BatchSprites(sprites_, {.bar = edgeShift, .hud = HudShift(edgeShift, settings_.hudAspect)},
+                 spriteVertices_, spriteBatches_);
 }
 
 Result<void> SdlGpuBackend::UploadFrame(SDL_GPUCommandBuffer* commands,

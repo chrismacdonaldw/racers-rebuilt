@@ -93,22 +93,27 @@ TEST_CASE("every enhancement defaults off and the default preset matches a fresh
     REQUIRE(presets.size() == 2);
     CHECK(presets[0].label == "Default");
     CHECK(IsPresetActive(registry, presets[0]));
-    CHECK(std::ranges::all_of(presets[1].values, [&](const auto& value) {
-        return registry.AllDeclarations().find(value.first)->second.defaultValue ==
-               settings::SettingValue{false};
+    CHECK(std::ranges::none_of(presets[1].values, [&](const auto& value) {
+        return registry.AllDeclarations().find(value.first)->second.defaultValue == value.second;
     }));
 }
 
-TEST_CASE("only the enhanced preset turns on widescreen and the far models") {
+TEST_CASE("only the enhanced preset turns on widescreen, its HUD width and the far models") {
     settings::Registry registry = DeclaredRegistry();
     const std::vector<settings::SettingPreset> presets = EnhancementPresets();
     REQUIRE(presets.size() == 2);
+    CHECK_FALSE(registry.IsAvailable(kHudWidthSetting.key));
     static_cast<void>(ApplyPreset(registry, presets[1]));
     CHECK(registry.Get(kWidescreenSetting));
+    CHECK(registry.Get(kHudWidthSetting) == "21:9");
+    CHECK(registry.Get(kWidescreenCutscenesSetting));
+    CHECK(registry.IsAvailable(kHudWidthSetting.key));
     CHECK(registry.Get(kFarCarsSetting));
     CHECK(registry.Get(kFarScenerySetting));
     static_cast<void>(ApplyPreset(registry, presets[0]));
     CHECK_FALSE(registry.Get(kWidescreenSetting));
+    CHECK(registry.Get(kHudWidthSetting) == "Window");
+    CHECK_FALSE(registry.Get(kWidescreenCutscenesSetting));
 }
 
 TEST_CASE("quick configs load the user's presets folder beside the shipped presets") {

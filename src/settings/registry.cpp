@@ -130,7 +130,13 @@ bool Registry::IsAvailable(std::string_view key) const {
     }
     const auto& [required, choice] = *declaration->second.requirement;
     const auto value = values_.find(required);
-    const auto* text = value == values_.end() ? nullptr : std::get_if<std::string>(&value->second);
+    if (value == values_.end()) {
+        return false;
+    }
+    if (const auto* isOn = std::get_if<bool>(&value->second)) {
+        return choice == (*isOn ? "true" : "false");
+    }
+    const auto* text = std::get_if<std::string>(&value->second);
     return text != nullptr && *text == choice;
 }
 

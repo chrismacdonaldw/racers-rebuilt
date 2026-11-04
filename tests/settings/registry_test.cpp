@@ -136,6 +136,19 @@ TEST_CASE(
     CHECK(registry.IsAvailable(kLag.key));
 }
 
+TEST_CASE("a requirement on a switch matches it as true or false") {
+    constexpr SettingSpec<int> kCap{
+        .key = "video.frame_cap",
+        .defaultValue = 60,
+        .requirement = SettingRequirement{.key = "video.vsync", .choice = "false"}};
+    Registry registry = DeclaredRegistry();
+    registry.Declare(kCap);
+
+    CHECK_FALSE(registry.IsAvailable(kCap.key));
+    registry.Set(kVsync, false);
+    CHECK(registry.IsAvailable(kCap.key));
+}
+
 TEST_CASE("observers hear about changes only") {
     Registry registry = DeclaredRegistry();
     std::vector<std::string> changed;

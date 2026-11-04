@@ -30,8 +30,14 @@ struct SpriteBatch {
 void AddToBatches(std::vector<SpriteBatch>& batches, TextureId texture, BlendMode blend,
                   TextureSampling sampling = {});
 
-/// Overwrites both outputs. `edgeShift` is how far, in UI units, anchored sprites move out.
-void BatchSprites(std::span<const SpriteDraw> sprites, float edgeShift,
+/// In UI units: `bar` is the side bar's width, `hud` how far sprites anchored to a side move.
+struct EdgeShifts {
+    float bar = 0.0F;
+    float hud = 0.0F;
+};
+
+/// Overwrites both outputs.
+void BatchSprites(std::span<const SpriteDraw> sprites, EdgeShifts shifts,
                   std::vector<SpriteVertex>& vertices, std::vector<SpriteBatch>& batches);
 
 [[nodiscard]] std::vector<std::uint16_t> SpriteIndices(std::uint32_t spriteCount);

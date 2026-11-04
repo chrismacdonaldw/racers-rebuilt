@@ -22,6 +22,7 @@ add_executable(racers-rebuilt-tests
     app/intro/soundtrack_clock_test.cpp
     app/cutscene/cutscene_sounds_test.cpp
     app/cutscene/cutscene_timeline_test.cpp
+    app/cutscene/cutscene_view_test.cpp
     app/decal_clip_test.cpp
     app/decal_surface_test.cpp
     app/ground_decal_test.cpp

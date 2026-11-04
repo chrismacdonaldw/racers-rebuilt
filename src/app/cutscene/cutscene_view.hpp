@@ -29,6 +29,10 @@
 
 namespace rr::app {
 
+/// A shot without `rect`, or one covering the canvas, fills the window unless `keepsToCanvas`.
+[[nodiscard]] render::Viewport CutsceneViewport(const std::optional<render::Rect>& rect,
+                                                bool keepsToCanvas);
+
 /// Plays one cutscene a frame at a time, starting with its first, in `play.rect`.
 class CutsceneView {
 public:
@@ -55,6 +59,8 @@ public:
     void Advance(Milliseconds elapsed);
 
     void DrawFarScenery(bool isDrawn) { isFarSceneryDrawn_ = isDrawn; }
+    /// Full-screen shots stay in the 4:3 area even when races fill a wider window.
+    void KeepToCanvas(bool keepsToCanvas) { keepsToCanvas_ = keepsToCanvas; }
 
     [[nodiscard]] bool IsComplete() const { return parts_.player.IsComplete(); }
     [[nodiscard]] std::span<const sim::EntityClock> Clocks() const {
@@ -107,6 +113,7 @@ private:
     std::vector<render::QuadDraw> quads_;
     std::vector<render::DirectionalLight> lights_;
     bool isFarSceneryDrawn_ = true;
+    bool keepsToCanvas_ = false;
     float scrollMs_ = 0.0F;
 };
 

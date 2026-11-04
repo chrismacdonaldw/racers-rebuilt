@@ -5,6 +5,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace rr::render {
@@ -18,9 +19,11 @@ struct Batched {
     std::vector<SpriteBatch> batches;
 };
 
-Batched Batch(const std::vector<SpriteDraw>& sprites, float edgeShift = 0.0F) {
+Batched Batch(const std::vector<SpriteDraw>& sprites, float edgeShift = 0.0F,
+              std::optional<float> hudShift = std::nullopt) {
     Batched out;
-    BatchSprites(sprites, edgeShift, out.vertices, out.batches);
+    BatchSprites(sprites, {.bar = edgeShift, .hud = hudShift.value_or(edgeShift)}, out.vertices,
+                 out.batches);
     return out;
 }
 
@@ -121,6 +124,18 @@ TEST_CASE("anchored corners move with their side") {
     CHECK(batched.vertices[1].x == 12.0F);
     CHECK(batched.vertices[2].x == -9.0F);
     CHECK(batched.vertices[3].x == 12.0F);
+}
+
+TEST_CASE("side sprites move by the HUD shift and filling ones by the whole bar") {
+    const std::vector<SpriteDraw> sprites{
+        {.bounds = {.x = 600.0F, .width = 40.0F}, .anchor = SpriteAnchor::Right},
+        {.bounds = {.width = 640.0F}, .anchor = SpriteAnchor::Fill}};
+
+    const Batched batched = Batch(sprites, 500.0F, 250.0F);
+
+    CHECK(batched.vertices[0].x == 850.0F);
+    CHECK(batched.vertices[kVerticesPerSprite].x == -500.0F);
+    CHECK(batched.vertices[kVerticesPerSprite + 1].x == 1140.0F);
 }
 
 TEST_CASE("sprites beside the canvas draw only when the window is wider, unmoved") {

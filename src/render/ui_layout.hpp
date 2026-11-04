@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 
 #include "render/render_view.hpp"
 
@@ -45,6 +46,9 @@ struct UiToClip {
 /// UI units from the canvas's side to the window's when the scene fills a wider window, else 0.
 [[nodiscard]] float EdgeShift(std::uint32_t widthPx, std::uint32_t heightPx, UiFit uiFit,
                               SceneFit sceneFit);
+
+/// `edgeShift` cut so the sprites it moves stay within a centred area `hudAspect` wide.
+[[nodiscard]] float HudShift(float edgeShift, std::optional<float> hudAspect);
 
 [[nodiscard]] UiToClip UiToClipTransform(const PixelRect& area, std::uint32_t widthPx,
                                          std::uint32_t heightPx);

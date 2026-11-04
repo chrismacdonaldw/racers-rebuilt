@@ -54,6 +54,8 @@ Result<std::unique_ptr<CutsceneScene>> CutsceneScene::Create(
 
 void CutsceneScene::ApplySettings(const settings::Registry& settings) {
     view_->DrawFarScenery(settings.Get(kFarScenerySetting));
+    view_->KeepToCanvas(settings.Get(kWidescreenSetting) &&
+                        !settings.Get(kWidescreenCutscenesSetting));
 }
 
 std::optional<std::string> CutsceneScene::TakeNextScene() {
