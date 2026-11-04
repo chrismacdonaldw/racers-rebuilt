@@ -38,6 +38,7 @@ target_sources(racers-rebuilt-tests PRIVATE
     assets/gltf_export_test.cpp
     assets/gltf_joints_test.cpp
     assets/gltf_model_test.cpp
+    assets/gltf_scene_test.cpp
     assets/hazard_list_retail_test.cpp
     assets/hazard_list_test.cpp
     assets/image_list_test.cpp

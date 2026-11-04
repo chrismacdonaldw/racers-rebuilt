@@ -17,11 +17,19 @@ struct SettingOverride {
     std::string value;
 };
 
+struct TrackExport {
+    std::string track;
+    std::string folder;
+
+    friend bool operator==(const TrackExport&, const TrackExport&) = default;
+};
+
 struct CommandLine {
     std::optional<std::string> gamePath;
     std::optional<std::string> imageDumpFolder;
     std::optional<std::string> texturePackFolder;
     std::optional<std::string> gltfExportFolder;
+    std::optional<TrackExport> trackExport;
     std::optional<std::string> powerupDumpFile;
     std::optional<std::string> track;
     std::optional<std::string> race;

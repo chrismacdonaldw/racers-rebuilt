@@ -191,6 +191,7 @@ target_sources(racers-rebuilt-tests PRIVATE
     app/time_trial/time_trial_run_test.cpp
     app/time_trial/trial_records_test.cpp
     app/track_entity_draws_test.cpp
+    app/track_export_test.cpp
     app/track_info_test.cpp
     app/track_material_anims_test.cpp
     app/track_space_test.cpp

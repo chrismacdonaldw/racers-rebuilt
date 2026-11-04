@@ -387,6 +387,16 @@ To start from the game's own models, run `racers-rebuilt.exe --export-gltf <fold
 - A jointed model is one skinned mesh in its rest pose, with nodes named after the skeleton's, and its animations as glTF animations of the same names. Driver parts carry the shared `PELVIS.ADB` animations, which only `PELVIS.glb` replaces.
 - Copy the `.glb` files you change into a mod's `files` folder at the same paths.
 
+To start a track from a game one, run `racers-rebuilt.exe --export-track RACEC0R0 <folder>`. It writes `track.glb` and `track.toml` into the folder, then exits.
+
+- Each world file is a node of the same name holding its models, placed as in the race. Jointed models are in their rest pose.
+- `collision` holds a mesh per collision volume. Its materials are the game's surface names.
+- `start.1` to `start.6` are the grid slots, facing forward. `gate.01` and on are the checkpoint gates, facing the way to drive, with the gates they lead to as `links` in their extras.
+- `brick.red.1`, `brick.white.1` and so on are the power-up bricks, and `trial_brick.*` the time trial ones. A brick that respawns at another time than 3000 ms has `respawn_ms`.
+- `hazard.cannon.1` and so on are the hazards, named by kind, with their settings in their extras.
+- `route.1.F.0` is the computer racers' route file `R1_F_0.RRB` as a line: grid slot, pace (`F`, `M` or `S`) and number. Its extras hold the timing and widths per point.
+- Positions and rotations in extras are in game space: Z up, rotations as `[w, x, y, z]`.
+
 ## Brick models
 
 A model at `MENUDATA/PIECEDB/MODELS/<brick name>.GDB`, or a `.glb` there, replaces how a builder brick is drawn on cars, e.g. `files/MENUDATA/PIECEDB/MODELS/L300100.glb`. Where the brick fits and what it hits are unchanged.

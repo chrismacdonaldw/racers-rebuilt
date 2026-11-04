@@ -38,7 +38,9 @@ rr_add_module(assets
         gltf_data.cpp
         gltf_export.cpp
         gltf_joints.cpp
+        gltf_mesh.cpp
         gltf_model.cpp
+        gltf_scene.cpp
         hazard_list.cpp
         image_list.cpp
         install.cpp

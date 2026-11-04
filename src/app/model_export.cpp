@@ -102,21 +102,6 @@ Result<std::vector<std::byte>> ExportModel(const assets::Vfs& vfs, std::size_t l
     return glb;
 }
 
-Result<void> WriteBytes(const std::filesystem::path& path, std::span<const std::byte> bytes) {
-    std::error_code error;
-    std::filesystem::create_directories(path.parent_path(), error);
-    if (error) {
-        return Fail(ErrorCode::Io, std::format("can't create {}: {}",
-                                               Utf8FromPath(path.parent_path()), error.message()));
-    }
-    std::ofstream file(path, std::ios::binary | std::ios::trunc);
-    file.write(reinterpret_cast<const char*>(bytes.data()), std::ssize(bytes));
-    if (!file) {
-        return Fail(ErrorCode::Io, std::format("can't write {}", Utf8FromPath(path)));
-    }
-    return {};
-}
-
 Result<bool> ExportHeadParts(const assets::Vfs& vfs, std::size_t layer,
                              const std::filesystem::path& folder, const std::string& gamePath) {
     Result<std::optional<assets::PartLibrary>> library =
@@ -141,7 +126,7 @@ Result<bool> ExportHeadParts(const assets::Vfs& vfs, std::size_t layer,
             continue;
         }
         const std::string path = std::format("{}/{}.GLB", stem, assets::ToUpperAscii(part.name));
-        if (Result<void> written = WriteBytes(folder / PathFromUtf8(path), *glb); !written) {
+        if (Result<void> written = WriteExportFile(folder / PathFromUtf8(path), *glb); !written) {
             return std::unexpected(std::move(written.error()));
         }
     }
@@ -169,10 +154,25 @@ Result<bool> ExportGameFile(const assets::Vfs& vfs, std::size_t layer,
         log::Warn("Skipping {}: {}", gamePath, glb.error().message);
         return std::unexpected(std::move(glb.error()));
     }
-    return WriteBytes(folder / PathFromUtf8(GlbSibling(gamePath).value_or(gamePath)), *glb)
+    return WriteExportFile(folder / PathFromUtf8(GlbSibling(gamePath).value_or(gamePath)), *glb)
         .transform([] { return true; });
 }
 
+}
+
+Result<void> WriteExportFile(const std::filesystem::path& path, std::span<const std::byte> bytes) {
+    std::error_code error;
+    std::filesystem::create_directories(path.parent_path(), error);
+    if (error) {
+        return Fail(ErrorCode::Io, std::format("can't create {}: {}",
+                                               Utf8FromPath(path.parent_path()), error.message()));
+    }
+    std::ofstream file(path, std::ios::binary | std::ios::trunc);
+    file.write(reinterpret_cast<const char*>(bytes.data()), std::ssize(bytes));
+    if (!file) {
+        return Fail(ErrorCode::Io, std::format("can't write {}", Utf8FromPath(path)));
+    }
+    return {};
 }
 
 Result<void> ExportGameModels(const assets::Vfs& vfs, std::size_t gameLayer,

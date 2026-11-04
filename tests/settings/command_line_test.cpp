@@ -33,6 +33,19 @@ TEST_CASE("--novideo and --check-mods take no value") {
     CHECK(commandLine->track == "RACEC0R0");
 }
 
+TEST_CASE("--export-track takes a track and a folder") {
+    constexpr std::array<std::string_view, 4> kArgs{"--export-track", "RACEC0R0", "out/track",
+                                                    "--novideo"};
+    constexpr std::array<std::string_view, 2> kShort{"--export-track", "RACEC0R0"};
+
+    const Result<CommandLine> commandLine = ParseCommandLine(kArgs);
+
+    REQUIRE(commandLine.has_value());
+    CHECK(commandLine->trackExport == TrackExport{.track = "RACEC0R0", .folder = "out/track"});
+    CHECK(commandLine->noVideo);
+    CHECK_FALSE(ParseCommandLine(kShort).has_value());
+}
+
 TEST_CASE("the command line takes an image dump folder") {
     constexpr std::array<std::string_view, 1> kArgs{"--dump-images=dumps/images"};
 

@@ -16,6 +16,7 @@
 #include "app/restart.hpp"
 #include "app/save_import.hpp"
 #include "app/texture_pack.hpp"
+#include "app/track_export.hpp"
 #include "core/result.hpp"
 #include "core/utf8_path.hpp"
 #include "mods/mod_check.hpp"
@@ -54,6 +55,11 @@ rr::Result<void> Run(std::span<const std::string_view> argv) {
     if (boot->commandLine.gltfExportFolder) {
         return rr::app::ExportGameModels(boot->vfs, boot->extensions.gameLayers - 1,
                                          rr::PathFromUtf8(*boot->commandLine.gltfExportFolder));
+    }
+    if (const std::optional<rr::settings::TrackExport>& trackExport =
+            boot->commandLine.trackExport) {
+        return rr::app::ExportTrack(boot->vfs, trackExport->track,
+                                    rr::PathFromUtf8(trackExport->folder));
     }
     rr::Result<rr::app::Application> application = rr::app::Application::Create(std::move(*boot));
     if (!application) {
