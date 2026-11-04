@@ -187,6 +187,7 @@ rr_add_module(app
         race_scene.cpp
         race_scene_name.cpp
         race_scene_parts.cpp
+        race_scene_settings.cpp
         race_scene_tools.cpp
         race_step.cpp
         restart.cpp

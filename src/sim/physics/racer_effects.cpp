@@ -12,6 +12,7 @@ namespace rr::sim {
 namespace {
 
 constexpr float kWarpLaunchImpulse = 700.0F;
+constexpr float kPerMsFromPerSecond = 0.001F;
 constexpr std::size_t kGrabForce = 1;
 constexpr float kGrabbedRouteSpeed = -0.4F;
 constexpr std::uint32_t kAbsorbSounds = 3;
@@ -169,12 +170,12 @@ void Racer::EndGrab() {
     }
 }
 
-void Racer::EnterGhostMode() {
+void Racer::EnterGhostMode(float routeSpeed) {
     status_.isGhost = true;
     RemoveCurse();
     if (route_) {
         route_->EndSpin();
-        route_->StartGhost();
+        route_->StartGhost(routeSpeed);
     } else {
         EndSpin(body_);
         body_.hasTrackCollision = false;
@@ -234,9 +235,9 @@ void Racer::CancelWarp() {
     status_.isWarping = false;
 }
 
-void Racer::EnterWarp() {
+void Racer::EnterWarp(float routeSpeed) {
     status_.isWarping = false;
-    EnterGhostMode();
+    EnterGhostMode(routeSpeed);
     if (!route_) {
         for (std::size_t slot = 0; slot < kExternalForceSlots; ++slot) {
             sim::EndExternalForce(body_, slot);
@@ -253,12 +254,14 @@ void Racer::MoveWarp(const Vector3& position) {
     }
 }
 
-void Racer::LandWarp(const Vector3& position, const Vector3& direction) {
+void Racer::LandWarp(const Vector3& position, const Vector3& direction, WarpLaunch launch) {
     if (!route_) {
         BodyMotion& motion = body_.motion;
         motion.position = position;
         motion.basis = OrthonormalBasis(direction, {.z = 1.0F});
-        motion.velocity = direction * (kWarpLaunchImpulse / constants_.mass);
+        motion.velocity = launch == WarpLaunch::TopSpeed
+                              ? direction * (body_.maxSpeed * kPerMsFromPerSecond)
+                              : direction * (kWarpLaunchImpulse / constants_.mass);
         body_.facing = motion.basis.forward;
         UpdateDerivedMotion(body_);
     }

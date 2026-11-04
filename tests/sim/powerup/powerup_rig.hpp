@@ -20,6 +20,7 @@
 #include "sim/powerup/every_effect.hpp"
 #include "sim/powerup/explosions.hpp"
 #include "sim/powerup/powerup_system.hpp"
+#include "sim/powerup/warp_rules.hpp"
 #include "sim/powerup/weapon_events.hpp"
 
 namespace rr::test {
@@ -50,14 +51,16 @@ inline sim::CheckpointGraph Line() {
     return std::move(*graph);
 }
 
-/// A line of racers on flat ground, with gates every 400 units along +X and one spare white brick.
+/// A line of racers on `world`, with gates every 400 units along +X and one spare white brick.
 class Rig {
 public:
-    explicit Rig(std::size_t racerCount = 1)
-        : progress_(racerCount, 3),
+    explicit Rig(std::size_t racerCount = 1, const sim::WarpRules& warp = {},
+                 PlaneWorld world = FlatGround())
+        : world_(std::move(world)),
+          progress_(racerCount, 3),
           bricks_(assets::BrickLayout{.white = {kSpareWhite}}),
           inventories_(racerCount),
-          system_(sim::EveryEffect(), racerCount),
+          system_(sim::EveryEffect(warp), racerCount),
           reaches_(racerCount) {
         for (std::size_t i = 0; i < racerCount; ++i) {
             racers_.emplace_back(
@@ -204,7 +207,7 @@ private:
     }
 
     sim::CheckpointGraph graph_ = Line();
-    PlaneWorld world_ = FlatGround();
+    PlaneWorld world_;
     std::vector<sim::Racer> racers_;
     std::vector<Vector3> positions_;
     sim::RaceProgress progress_;

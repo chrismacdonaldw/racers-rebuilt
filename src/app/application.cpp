@@ -33,10 +33,10 @@
 #include "app/modifier_settings.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/pacing_presets.hpp"
-#include "app/player_cheat_settings.hpp"
 #include "app/race_loading_screen.hpp"
 #include "app/race_scene.hpp"
 #include "app/race_scene_name.hpp"
+#include "app/race_scene_settings.hpp"
 #include "app/race_settings.hpp"
 #include "app/racer/racer_lookup.hpp"
 #include "app/replay_session.hpp"
@@ -397,15 +397,7 @@ Result<std::unique_ptr<RaceScene>> Application::LoadRace(RaceSceneSetup setup,
     if (Result<void> resolved = ResolvePlayers(vfs_, RacersFile(), setup); !resolved) {
         return std::unexpected(std::move(resolved.error()));
     }
-    if (!setup.isDemo && !setup.isTestDrive) {
-        setup.modifiers = ModifiersFrom(settings_);
-        setup.playerCheats = PlayerCheatsFrom(settings_);
-    }
-    setup.isMirrored = LoadsMirrored(setup);
-    setup.cheats = RaceCheats(setup.cheats, cheats_);
-    setup.carBody = CarBodyFrom(settings_);
-    setup.version = SelectedVersion(settings_);
-    setup.lagsInput = settings_.Get(kInputLag2001);
+    ApplyUnnamedSettings(setup, settings_, cheats_);
     const std::string language = SelectedLanguage(settings_);
     const std::unique_ptr<RaceLoadingScreen> loading =
         OpenLoadingScreen(renderer_, vfs_, setup.track, language);

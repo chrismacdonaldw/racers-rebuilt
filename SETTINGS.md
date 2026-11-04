@@ -98,6 +98,10 @@ These apply from the next race.
 | `race.respawn_seconds` | `3` | `1` to `30`. Seconds in the air before a respawn. |
 | `race.physics_ai` | `false` | `true`, `false`. Computer racers drive with the car physics instead of replaying their recorded routes. |
 | `race.ai_pace` | `100` | `50` to `150`. With `race.physics_ai`, computer racers ease off above this percentage of their route's recorded speed. |
+| `race.better_warp` | `false` | `true`, `false`. A warp lands a player facing a clear way along the track instead of the next checkpoint, which can point into a wall. |
+| `race.fair_warp` | `false` | `true`, `false`. A warp saves about 3 s instead of 5 to 6, for every racer, and a player lands at top speed instead of being launched. |
+| `race.catch_up_warp` | `false` | `true`, `false`. The race leader's warp gains a third as much, for every racer. |
+| `fixes.stuck_warp` | `false` | `true`, `false`. A warp taken back because 3 are already flying ends properly. In the original, that racer stays a hidden ghost for the rest of the race, which lets a computer racer finish in seconds. |
 | `race.opponents` | `5` | `0` to `5`. Computer racers in a single race, from the options screen. |
 | `race.versus_laps` | `3` | `1` to `5`. Laps in a versus race, from the options screen. |
 

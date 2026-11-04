@@ -388,6 +388,8 @@ add_executable(racers-rebuilt-tests
     sim/powerup/powerup_system_test.cpp
     sim/powerup/turbo_effect_test.cpp
     sim/powerup/warp_effect_test.cpp
+    sim/powerup/warp_landing_test.cpp
+    sim/powerup/warp_rules_test.cpp
     sim/powerup/shield_effect_test.cpp
     sim/powerup/shot_world_test.cpp
     sim/race/ai_race_test.cpp

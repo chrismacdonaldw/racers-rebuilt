@@ -12,6 +12,7 @@
 #include "app/fix_settings.hpp"
 #include "app/race_settings.hpp"
 #include "app/video_settings.hpp"
+#include "app/warp_settings.hpp"
 #include "temp_folder.hpp"
 
 namespace rr::app {
@@ -24,6 +25,7 @@ settings::Registry DeclaredRegistry() {
     DeclareVideoSettings(registry);
     DeclareAudioSettings(registry);
     DeclareFixSettings(registry);
+    DeclareWarpSettings(registry);
     return registry;
 }
 
@@ -120,6 +122,20 @@ TEST_CASE("quick configs load the user's presets folder beside the shipped prese
     const settings::QuickConfigs configs = LoadQuickConfigs(registry, folder.Path());
     REQUIRE(configs.User().size() == 1);
     CHECK(configs.User()[0].preset.label == "Mine");
+}
+
+TEST_CASE("the warp enhancements are off by default, on when enhanced and off again by default") {
+    settings::Registry registry = DeclaredRegistry();
+    const std::vector<settings::SettingPreset> presets = EnhancementPresets();
+    REQUIRE(presets.size() == 2);
+
+    CHECK(WarpRulesFrom(registry) == sim::WarpRules{});
+    static_cast<void>(ApplyPreset(registry, presets[1]));
+    CHECK(WarpRulesFrom(registry) ==
+          sim::WarpRules{
+              .isFair = true, .catchesUp = true, .aimsLanding = true, .endsWhenTakenBack = true});
+    static_cast<void>(ApplyPreset(registry, presets[0]));
+    CHECK(WarpRulesFrom(registry) == sim::WarpRules{});
 }
 
 }

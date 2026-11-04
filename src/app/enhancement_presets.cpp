@@ -9,6 +9,7 @@
 #include "app/fix_settings.hpp"
 #include "app/race_settings.hpp"
 #include "app/video_settings.hpp"
+#include "app/warp_settings.hpp"
 
 namespace rr::app {
 namespace {
@@ -24,7 +25,11 @@ constexpr std::array kEnhancedSettings{&kPhysicsAi,
                                        &kFarCarsSetting,
                                        &kFarScenerySetting,
                                        &kWidescreenSetting,
-                                       &kPreventClipping};
+                                       &kPreventClipping,
+                                       &kBetterWarp,
+                                       &kFairWarp,
+                                       &kCatchUpWarp,
+                                       &kStuckWarpFix};
 
 }
 

@@ -8,12 +8,12 @@
 
 namespace rr::sim {
 
-void AddGreenEffects(EffectFactories& factories) {
+void AddGreenEffects(EffectFactories& factories, const WarpRules& warp) {
     factories.at(static_cast<std::size_t>(PowerupKind::Turbo)) = [] {
         return std::make_unique<TurboEffect>();
     };
-    factories.at(static_cast<std::size_t>(PowerupKind::Warp)) = [] {
-        return std::make_unique<WarpEffect>();
+    factories.at(static_cast<std::size_t>(PowerupKind::Warp)) = [warp] {
+        return std::make_unique<WarpEffect>(warp);
     };
 }
 
