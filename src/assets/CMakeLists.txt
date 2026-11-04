@@ -42,9 +42,11 @@ rr_add_module(assets
         gltf_model.cpp
         gltf_scene.cpp
         hazard_list.cpp
+        hazard_settings.cpp
         image_list.cpp
         install.cpp
         jam.cpp
+        json_value.cpp
         ldraw.cpp
         ldraw_part.cpp
         ldraw_head.cpp
@@ -99,6 +101,7 @@ rr_add_module(assets
         token_schema.cpp
         token_writer.cpp
         track_loader.cpp
+        track_markers.cpp
         track_triggers.cpp
         vfs.cpp
         world_database.cpp

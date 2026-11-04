@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <map>
 #include <optional>
 #include <span>
 #include <string>
@@ -26,37 +27,8 @@ namespace {
 
 using assets::GltfNode;
 using assets::GltfScene;
-using assets::HazardKind;
 
 constexpr std::string_view kRouteExtension = ".RRB";
-
-struct HazardName {
-    HazardKind kind;
-    std::string_view name;
-};
-
-constexpr std::array kHazardNames{
-    HazardName{.kind = HazardKind::FallingPillar, .name = "falling_pillar"},
-    HazardName{.kind = HazardKind::Sphinx, .name = "sphinx"},
-    HazardName{.kind = HazardKind::HammerSwish, .name = "hammer_swish"},
-    HazardName{.kind = HazardKind::Ghost, .name = "ghost"},
-    HazardName{.kind = HazardKind::LavaBlob, .name = "lava_blob"},
-    HazardName{.kind = HazardKind::CodePuzzle, .name = "code_puzzle"},
-    HazardName{.kind = HazardKind::RocketPad, .name = "rocket_pad"},
-    HazardName{.kind = HazardKind::Snowfall, .name = "snowfall"},
-    HazardName{.kind = HazardKind::SmokeVent, .name = "smoke_vent"},
-    HazardName{.kind = HazardKind::Crane, .name = "crane"},
-    HazardName{.kind = HazardKind::Cannon, .name = "cannon"},
-    HazardName{.kind = HazardKind::BreakableProp, .name = "breakable_prop"},
-    HazardName{.kind = HazardKind::WaterScroll, .name = "water_scroll"},
-    HazardName{.kind = HazardKind::ShipCannons, .name = "ship_cannons"},
-    HazardName{.kind = HazardKind::SwingingBox, .name = "swinging_box"},
-    HazardName{.kind = HazardKind::CurseDrop, .name = "curse_drop"},
-    HazardName{.kind = HazardKind::LightningCannon, .name = "lightning_cannon"},
-    HazardName{.kind = HazardKind::DragonCannonballs, .name = "dragon_cannonballs"},
-    HazardName{.kind = HazardKind::UfoGrabber, .name = "ufo_grabber"},
-    HazardName{.kind = HazardKind::WarpPad, .name = "warp_pad"},
-};
 
 template <typename Asset>
 Result<std::optional<Asset>> ReadOptional(const assets::Vfs& vfs, const std::string& path,
@@ -235,15 +207,11 @@ Vector3 HazardPosition(const assets::HazardPayload& payload) {
 
 std::vector<GltfNode> HazardNodes(std::span<const assets::Hazard> hazards) {
     std::vector<GltfNode> nodes;
-    std::array<std::size_t, kHazardNames.size()> counts{};
+    std::map<std::string_view, std::size_t> counts;
     for (const assets::Hazard& hazard : hazards) {
-        const auto found = std::ranges::find(kHazardNames, hazard.kind, &HazardName::kind);
-        if (found == kHazardNames.end()) {
-            continue;
-        }
-        const auto kind = static_cast<std::size_t>(found - kHazardNames.begin());
+        const std::string_view name = assets::HazardKindName(hazard.kind);
         const JsonFields settings = std::visit(PayloadJson{}, hazard.payload);
-        nodes.push_back({.name = std::format("hazard.{}.{}", found->name, ++counts.at(kind)),
+        nodes.push_back({.name = std::format("hazard.{}.{}", name, ++counts[name]),
                          .position = HazardPosition(hazard.payload),
                          .extras = settings.IsEmpty() ? std::string() : settings.Text()});
     }

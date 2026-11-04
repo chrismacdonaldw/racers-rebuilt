@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <array>
 #include <format>
+#include <optional>
+#include <string_view>
 #include <utility>
 
 #include "assets/token_schema.hpp"
@@ -131,6 +133,34 @@ constexpr HazardSchema WithPayload(HazardKind kind) {
             }};
 }
 
+struct HazardName {
+    HazardKind kind;
+    std::string_view name;
+};
+
+constexpr std::array kHazardNames{
+    HazardName{.kind = HazardKind::FallingPillar, .name = "falling_pillar"},
+    HazardName{.kind = HazardKind::Sphinx, .name = "sphinx"},
+    HazardName{.kind = HazardKind::HammerSwish, .name = "hammer_swish"},
+    HazardName{.kind = HazardKind::Ghost, .name = "ghost"},
+    HazardName{.kind = HazardKind::LavaBlob, .name = "lava_blob"},
+    HazardName{.kind = HazardKind::CodePuzzle, .name = "code_puzzle"},
+    HazardName{.kind = HazardKind::RocketPad, .name = "rocket_pad"},
+    HazardName{.kind = HazardKind::Snowfall, .name = "snowfall"},
+    HazardName{.kind = HazardKind::SmokeVent, .name = "smoke_vent"},
+    HazardName{.kind = HazardKind::Crane, .name = "crane"},
+    HazardName{.kind = HazardKind::Cannon, .name = "cannon"},
+    HazardName{.kind = HazardKind::BreakableProp, .name = "breakable_prop"},
+    HazardName{.kind = HazardKind::WaterScroll, .name = "water_scroll"},
+    HazardName{.kind = HazardKind::ShipCannons, .name = "ship_cannons"},
+    HazardName{.kind = HazardKind::SwingingBox, .name = "swinging_box"},
+    HazardName{.kind = HazardKind::CurseDrop, .name = "curse_drop"},
+    HazardName{.kind = HazardKind::LightningCannon, .name = "lightning_cannon"},
+    HazardName{.kind = HazardKind::DragonCannonballs, .name = "dragon_cannonballs"},
+    HazardName{.kind = HazardKind::UfoGrabber, .name = "ufo_grabber"},
+    HazardName{.kind = HazardKind::WarpPad, .name = "warp_pad"},
+};
+
 constexpr std::array kSchemas{
     Bare(HazardKind::FallingPillar),
     Bare(HazardKind::Sphinx),
@@ -173,6 +203,16 @@ Result<void> ReadHazard(TokenReader& reader, std::vector<Hazard>& hazards) {
     return schema->read(reader, hazards.emplace_back(Hazard{.kind = schema->kind}).payload);
 }
 
+}
+
+std::string_view HazardKindName(HazardKind kind) {
+    const auto found = std::ranges::find(kHazardNames, kind, &HazardName::kind);
+    return found != kHazardNames.end() ? found->name : "unknown";
+}
+
+std::optional<HazardKind> HazardKindNamed(std::string_view name) {
+    const auto found = std::ranges::find(kHazardNames, name, &HazardName::name);
+    return found != kHazardNames.end() ? std::optional(found->kind) : std::nullopt;
 }
 
 Result<std::vector<Hazard>> ParseHazards(std::span<const std::byte> bytes) {

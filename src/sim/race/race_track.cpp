@@ -15,6 +15,7 @@
 #include "assets/sky_file.hpp"
 #include "assets/start_grid.hpp"
 #include "assets/target_points.hpp"
+#include "assets/track_markers.hpp"
 #include "assets/track_triggers.hpp"
 
 namespace rr::sim {
@@ -25,6 +26,10 @@ constexpr std::string_view kRenamedRacerTriggers = "NEWTRIG.TRB";
 constexpr std::string_view kEventTable = "EVENT.EVB";
 constexpr std::string_view kCheckpoints = "RACE.CPB";
 constexpr std::string_view kSky = "BACKGRND.SKB";
+constexpr std::string_view kStartGrid = "STARTPOS.SPB";
+constexpr std::string_view kBricks = "POWERUP.PWB";
+constexpr std::string_view kTrialBricks = "POWERUP2.PWB";
+constexpr std::string_view kHazards = "HAZARDS.HZB";
 
 template <typename Parse>
 auto ReadParsed(const assets::Vfs& vfs, std::string_view track, std::string_view file,
@@ -37,6 +42,88 @@ auto ReadParsed(const assets::Vfs& vfs, std::string_view track, std::string_view
             return error;
         });
 }
+
+template <typename Asset, typename Parse>
+Result<Asset> ReadIfThere(const assets::Vfs& vfs, std::string_view track, std::string_view file,
+                          Parse parse) {
+    if (!vfs.Contains(std::format("GAMEDATA/{}/{}", track, file))) {
+        return Asset{};
+    }
+    return ReadParsed(vfs, track, file, parse);
+}
+
+class MarkerFiles {
+public:
+    static Result<MarkerFiles> Load(const assets::Vfs& vfs, std::string_view track,
+                                    bool isMirrored) {
+        return assets::ReadTrackMarkers(vfs, track)
+            .transform([&](std::optional<assets::TrackMarkers> markers) {
+                if (markers && isMirrored) {
+                    assets::MirrorY(*markers);
+                }
+                return MarkerFiles(vfs, track, isMirrored, std::move(markers));
+            });
+    }
+
+    [[nodiscard]] Result<CheckpointGraph> Checkpoints() const {
+        if (markers_ && markers_->gates) {
+            return CheckpointGraph::Create(*markers_->gates);
+        }
+        return ReadIfThere<assets::CheckpointsAsset>(
+                   *vfs_, track_, kCheckpoints, assets::MirroredIf(isMirrored_, assets::ParseCpb))
+            .and_then([](assets::CheckpointsAsset asset) {
+                return CheckpointGraph::Create(std::move(asset));
+            });
+    }
+
+    [[nodiscard]] Result<assets::StartGridAsset> Grid() const {
+        if (markers_ && markers_->grid) {
+            return *markers_->grid;
+        }
+        return ReadParsed(*vfs_, track_, kStartGrid,
+                          assets::MirroredIf(isMirrored_, assets::ParseSpb));
+    }
+
+    [[nodiscard]] Result<GridRoutes> Routes(std::size_t slotCount) const {
+        if (markers_ && !markers_->routes.empty()) {
+            return GridRoutesOf(markers_->routes, slotCount);
+        }
+        return LoadGridRoutes(*vfs_, track_, slotCount, isMirrored_);
+    }
+
+    [[nodiscard]] Result<assets::BrickLayout> Bricks(BrickSet set) const {
+        const std::optional<assets::BrickLayout>* marked = nullptr;
+        if (markers_) {
+            marked = set == BrickSet::TimeTrial ? &markers_->trialBricks : &markers_->bricks;
+        }
+        if (marked != nullptr && *marked) {
+            return **marked;
+        }
+        const std::string_view file = set == BrickSet::TimeTrial ? kTrialBricks : kBricks;
+        const auto parse = assets::MirroredIf(isMirrored_, assets::ParsePwb);
+        return markers_ ? ReadIfThere<assets::BrickLayout>(*vfs_, track_, file, parse)
+                        : ReadParsed(*vfs_, track_, file, parse);
+    }
+
+    [[nodiscard]] Result<std::vector<assets::Hazard>> Hazards() const {
+        if (markers_ && markers_->hazards) {
+            return *markers_->hazards;
+        }
+        const auto parse = assets::MirroredIf(isMirrored_, assets::ParseHazards);
+        return markers_ ? ReadIfThere<std::vector<assets::Hazard>>(*vfs_, track_, kHazards, parse)
+                        : ReadParsed(*vfs_, track_, kHazards, parse);
+    }
+
+private:
+    MarkerFiles(const assets::Vfs& vfs, std::string_view track, bool isMirrored,
+                std::optional<assets::TrackMarkers> markers)
+        : vfs_(&vfs), track_(track), isMirrored_(isMirrored), markers_(std::move(markers)) {}
+
+    const assets::Vfs* vfs_;
+    std::string track_;
+    bool isMirrored_;
+    std::optional<assets::TrackMarkers> markers_;
+};
 
 std::vector<RacerStart> GridStarts(const assets::StartGridAsset& grid) {
     std::vector<RacerStart> starts;
@@ -134,17 +221,9 @@ float LowestPoint(const CollisionWorld& world) {
 
 Result<CheckpointGraph> LoadCheckpoints(const assets::Vfs& vfs, std::string_view track,
                                         bool isMirrored) {
-    return vfs.List(std::format("GAMEDATA/{}", track))
-        .and_then([&](const std::vector<assets::VfsEntry>& folder) {
-            if (!assets::HasFile(folder, kCheckpoints)) {
-                return CheckpointGraph::Create({});
-            }
-            return ReadParsed(vfs, track, kCheckpoints,
-                              assets::MirroredIf(isMirrored, assets::ParseCpb))
-                .and_then([](assets::CheckpointsAsset asset) {
-                    return CheckpointGraph::Create(std::move(asset));
-                });
-        });
+    return MarkerFiles::Load(vfs, track, isMirrored).and_then([](const MarkerFiles& markers) {
+        return markers.Checkpoints();
+    });
 }
 
 RaceCourse CourseOf(const RaceTrack& track, const CollisionQuery& world) {
@@ -164,21 +243,17 @@ RaceCourse CourseOf(const RaceTrack& track, const CollisionQuery& world) {
 
 Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track, bool isMirrored,
                                 BrickSet bricks) {
-    Result<CheckpointGraph> checkpoints = LoadCheckpoints(vfs, track, isMirrored);
-    Result<assets::StartGridAsset> grid = checkpoints.and_then([&](const CheckpointGraph&) {
-        return ReadParsed(vfs, track, "STARTPOS.SPB",
-                          assets::MirroredIf(isMirrored, assets::ParseSpb));
-    });
+    const Result<MarkerFiles> markers = MarkerFiles::Load(vfs, track, isMirrored);
+    Result<CheckpointGraph> checkpoints =
+        markers.and_then([](const MarkerFiles& files) { return files.Checkpoints(); });
+    Result<assets::StartGridAsset> grid =
+        checkpoints.and_then([&](const CheckpointGraph&) { return markers->Grid(); });
     Result<TrackCollision> collision = grid.and_then(
         [&](const assets::StartGridAsset&) { return LoadTrackCollision(vfs, track, isMirrored); });
-    Result<GridRoutes> routes = collision.and_then([&](const TrackCollision&) {
-        return LoadGridRoutes(vfs, track, grid->slots.size(), isMirrored);
-    });
-    Result<assets::BrickLayout> layout = routes.and_then([&](const GridRoutes&) {
-        return ReadParsed(vfs, track,
-                          bricks == BrickSet::TimeTrial ? "POWERUP2.PWB" : "POWERUP.PWB",
-                          assets::MirroredIf(isMirrored, assets::ParsePwb));
-    });
+    Result<GridRoutes> routes = collision.and_then(
+        [&](const TrackCollision&) { return markers->Routes(grid->slots.size()); });
+    Result<assets::BrickLayout> layout =
+        routes.and_then([&](const GridRoutes&) { return markers->Bricks(bricks); });
     Result<std::vector<assets::TargetPoint>> targets = layout.and_then(
         [&](const assets::BrickLayout&) { return LoadTargetPoints(vfs, track, isMirrored); });
     Result<TrackEventSources> events =
@@ -187,10 +262,8 @@ Result<RaceTrack> LoadRaceTrack(const assets::Vfs& vfs, std::string_view track, 
         });
     Result<TrackEntitySources> entities = events.and_then(
         [&](const TrackEventSources&) { return LoadTrackEntities(vfs, track, isMirrored); });
-    Result<std::vector<assets::Hazard>> hazards = entities.and_then([&](const TrackEntitySources&) {
-        return ReadParsed(vfs, track, "HAZARDS.HZB",
-                          assets::MirroredIf(isMirrored, assets::ParseHazards));
-    });
+    Result<std::vector<assets::Hazard>> hazards =
+        entities.and_then([&](const TrackEntitySources&) { return markers->Hazards(); });
     if (!hazards) {
         return std::unexpected(std::move(hazards.error()));
     }

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "assets/race_route.hpp"
+#include "assets/track_markers.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 
@@ -22,6 +23,10 @@ using GridRoutes = std::vector<std::vector<assets::RaceRoute>>;
 /// `track` is a race track folder under `GAMEDATA`, such as `RACEC0R0`.
 [[nodiscard]] Result<assets::RaceRoute> LoadRoute(const assets::Vfs& vfs, std::string_view track,
                                                   std::string_view name, bool isMirrored);
+
+/// Routes past `slotCount` are dropped.
+[[nodiscard]] GridRoutes GridRoutesOf(std::span<const assets::SlotRoute> routes,
+                                      std::size_t slotCount);
 
 [[nodiscard]] Result<GridRoutes> LoadGridRoutes(const assets::Vfs& vfs, std::string_view track,
                                                 std::size_t slotCount, bool isMirrored);
