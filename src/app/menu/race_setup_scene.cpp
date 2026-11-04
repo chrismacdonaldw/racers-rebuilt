@@ -15,6 +15,7 @@
 #include "app/race_settings.hpp"
 #include "app/video_settings.hpp"
 #include "core/log.hpp"
+#include "core/utf16_text.hpp"
 
 namespace rr::app {
 namespace {
@@ -302,9 +303,13 @@ void RaceSetupScene::PlaySounds(const sim::InputFrame& input, RaceSetupRow focus
 std::vector<std::u16string> RaceSetupScene::CourseNames() const {
     std::vector<std::u16string> names;
     for (const CourseChoice& course : menu_.Courses()) {
-        names.push_back(mode_ == RaceSetupMode::Circuit
-                            ? std::u16string(text_.Line(kFirstNumberLine + course.circuitIndex))
-                            : Lookup(raceNames_, course.nameLine, course.track));
+        if (!course.title.empty()) {
+            names.push_back(Utf16FromUtf8(course.title));
+        } else if (mode_ == RaceSetupMode::Circuit) {
+            names.emplace_back(text_.Line(kFirstNumberLine + course.circuitIndex));
+        } else {
+            names.push_back(Lookup(raceNames_, course.nameLine, course.track));
+        }
     }
     return names;
 }

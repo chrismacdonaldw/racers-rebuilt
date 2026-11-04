@@ -13,7 +13,8 @@ namespace rr::mods {
 [[nodiscard]] std::vector<std::string> ModProblems(const ModList& mods,
                                                    const settings::Registry& registry);
 
-/// Logs every problem. Fails with all of them when there are any.
-[[nodiscard]] Result<void> CheckMods(const ModList& mods, const settings::Registry& registry);
+/// Logs every problem, then `contentProblems`. Fails with all of them when there are any.
+[[nodiscard]] Result<void> CheckMods(const ModList& mods, const settings::Registry& registry,
+                                     std::vector<std::string> contentProblems);
 
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <span>
@@ -18,6 +20,7 @@
 #include "core/duration.hpp"
 #include "core/result.hpp"
 #include "render/render_view.hpp"
+#include "render/renderer.hpp"
 #include "sim/physics/version_rules.hpp"
 #include "sim/track/track_entities.hpp"
 
@@ -61,9 +64,15 @@ private:
         render::Rect rect;
     };
 
-    TrackPreview(Loading loading, std::unique_ptr<CutsceneView> view, render::Rect bounds,
+    TrackPreview(render::Renderer& renderer, const assets::Vfs& vfs, Loading loading,
+                 std::unique_ptr<CutsceneView> view, render::Rect bounds,
                  std::optional<Border> border)
-        : loading_(std::move(loading)), view_(std::move(view)), bounds_(bounds), border_(border) {}
+        : renderer_(&renderer),
+          vfs_(&vfs),
+          loading_(std::move(loading)),
+          view_(std::move(view)),
+          bounds_(bounds),
+          border_(border) {}
 
     [[nodiscard]] static std::optional<Border> LoadBorder(render::Renderer& renderer,
                                                           const assets::Vfs& vfs,
@@ -71,13 +80,18 @@ private:
     void DrawBorder(std::vector<render::SpriteDraw>& sprites) const;
 
     void ShowRace(std::size_t race);
+    [[nodiscard]] std::optional<render::TextureId> ImageOf(const std::string& path);
 
+    render::Renderer* renderer_;
+    const assets::Vfs* vfs_;
     Loading loading_;
     std::unique_ptr<CutsceneView> view_;
     render::Rect bounds_;
     std::optional<Border> border_;
     sim::VersionRules rules_;
     std::optional<RacePreview> shown_;
+    std::optional<render::TextureId> shownImage_;
+    std::map<std::string, std::optional<render::TextureId>, std::less<>> images_;
     std::vector<std::optional<RacePreview>> previews_;
     bool isLocked_ = false;
     PreviewCycle cycle_;

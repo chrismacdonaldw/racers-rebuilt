@@ -146,7 +146,7 @@ TEST_CASE_FIXTURE(ModsFixture, "the mod check lists skipped mods and mods held b
     CHECK(problems[0].find("broken") != std::string::npos);
     CHECK(problems[1].ends_with("mod.toml: Needs base"));
     CHECK(problems[1].find("addon") != std::string::npos);
-    CHECK_FALSE(CheckMods(mods, registry).has_value());
+    CHECK_FALSE(CheckMods(mods, registry, {}).has_value());
 }
 
 TEST_CASE_FIXTURE(ModsFixture,

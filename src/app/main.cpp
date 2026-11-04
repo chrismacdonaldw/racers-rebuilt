@@ -15,6 +15,7 @@
 #include "app/restart.hpp"
 #include "app/save_import.hpp"
 #include "app/texture_pack.hpp"
+#include "app/track_info.hpp"
 #include "core/result.hpp"
 #include "core/utf8_path.hpp"
 #include "mods/mod_check.hpp"
@@ -29,7 +30,8 @@ rr::Result<void> Run(std::span<const std::string_view> argv) {
     }
     boot->relaunch = rr::app::RelaunchCommand(argv);
     if (boot->commandLine.checkMods) {
-        return rr::mods::CheckMods(boot->extensions.mods, boot->settings);
+        return rr::mods::CheckMods(boot->extensions.mods, boot->settings,
+                                   rr::app::TrackInfoProblems(boot->vfs));
     }
     if (boot->commandLine.importSaveFile) {
         const rr::Result<bool> imported = rr::app::ImportOriginalSave(

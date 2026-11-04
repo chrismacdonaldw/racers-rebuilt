@@ -109,6 +109,32 @@ Keep the `EMITC0R0` files as they are: the track's worlds refer to them by name.
 
 New tracks aren't part of any circuit, so they race with the first circuit's grid.
 
+### Track info
+
+A `TRACK.TOML` in the track's folder sets how the menus show it and how it races. Every key is optional.
+
+```toml
+name = "Lava Lane"
+preview = "PREVIEW.png"
+laps = 5
+grid = "c2"
+time_trial = true
+mirrored = true
+music = ["lavalane", "circuit3"]
+```
+
+- `name`: the name in the track lists and the **Scenes** menu, instead of the folder name.
+- `preview`: a PNG in the track's folder, shown in the race setup preview box.
+- `laps`: 1 to 9. Single races use it. Versus keeps its own lap setting and time trials stay at 3 laps.
+- `grid`: the circuit whose racers line up, `c0` to `c6`.
+- `time_trial`: lists the track in time trials too.
+- `mirrored`: adds a mirrored copy to the single race and versus lists.
+- `music`: [music](#music) ids. The list replaces the race music: the first plays as the race music and the rest are picked from at random. The intro, lose and win music stay as they are.
+
+A `TRACK.TOML` in an original track's folder only changes its `music` and its name in the **Scenes** menu.
+
+`--check-mods` also reports a broken `TRACK.TOML`, a `grid` that names no circuit and a missing `preview`.
+
 ## Racers, driver parts and bricks
 
 These tables merge with the game's instead of replacing it, so a mod only needs the entries it adds or changes:

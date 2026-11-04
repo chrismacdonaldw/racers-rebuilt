@@ -10,6 +10,7 @@
 #include "app/cutscene/cutscene_screen.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/race_scene_name.hpp"
+#include "app/track_info.hpp"
 #include "assets/game_path.hpp"
 #include "assets/race_catalog.hpp"
 #include "assets/racer_catalog.hpp"
@@ -28,6 +29,7 @@ constexpr std::string_view kRaceNamesFolder = "MENUDATA";
 constexpr std::string_view kRaceNames = "CIRCUIT.SRF";
 constexpr std::size_t kTrialCircuits = 3;
 constexpr std::string_view kTrialDriver = "VV";
+constexpr std::string_view kMirroredSuffix = "MIRRORED";
 
 std::string CircuitStart(const RaceSceneSetup& race, std::span<const RacerChoice> racers) {
     std::string circuit = CircuitSceneName({.race = race});
@@ -116,16 +118,44 @@ bool IsCircuitTrack(const assets::RaceCatalog& races, std::string_view track) {
     });
 }
 
-std::vector<CourseChoice> ModTrackChoices(const assets::Vfs& vfs, const Catalogs& catalogs) {
+CourseChoice ModTrackChoice(const Catalogs& catalogs, std::string track, const TrackInfo& info) {
+    const std::size_t grid = info.grid
+                                 .and_then([&](const std::string& circuit) {
+                                     return catalogs.races.FindCircuit(circuit);
+                                 })
+                                 .value_or(0);
+    std::optional<RacePreview> preview;
+    if (info.preview) {
+        preview = RacePreview{.image = *info.preview};
+    }
+    return {.track = std::move(track),
+            .racers = CircuitChoice(catalogs, grid).racers,
+            .previews = {std::move(preview)},
+            .title = info.name,
+            .lapCount = info.lapCount};
+}
+
+std::vector<CourseChoice> ModTrackChoices(const assets::Vfs& vfs, const Catalogs& catalogs,
+                                          bool isTrial) {
     std::vector<CourseChoice> choices;
     if (catalogs.races.Circuits().empty()) {
         return choices;
     }
-    const std::vector<RacerChoice> grid = CircuitChoice(catalogs, 0).racers;
-    for (std::string& track : assets::ListRaceTracks(vfs)) {
-        if (!IsCircuitTrack(catalogs.races, track)) {
-            choices.push_back(
-                {.track = std::move(track), .racers = grid, .previews = {std::nullopt}});
+    for (const std::string& track : assets::ListRaceTracks(vfs)) {
+        if (IsCircuitTrack(catalogs.races, track)) {
+            continue;
+        }
+        const TrackInfo info = FindTrackInfo(vfs, track).value_or(TrackInfo{});
+        if (isTrial && !info.hasTimeTrial) {
+            continue;
+        }
+        choices.push_back(ModTrackChoice(catalogs, track, info));
+        if (!isTrial && info.hasMirrored) {
+            CourseChoice mirrored = choices.back();
+            mirrored.isMirrored = true;
+            mirrored.title =
+                std::format("{} {}", info.name.empty() ? track : info.name, kMirroredSuffix);
+            choices.push_back(std::move(mirrored));
         }
     }
     return choices;
@@ -157,7 +187,7 @@ Result<std::vector<CourseChoice>> LoadTrackChoices(const assets::Vfs& vfs) {
     for (std::size_t circuit = 0; circuit < catalogs->races.Circuits().size(); ++circuit) {
         std::ranges::move(TrackChoicesOf(*catalogs, circuit), std::back_inserter(choices));
     }
-    std::ranges::move(ModTrackChoices(vfs, *catalogs), std::back_inserter(choices));
+    std::ranges::move(ModTrackChoices(vfs, *catalogs, false), std::back_inserter(choices));
     if (choices.empty()) {
         return Fail(ErrorCode::NotFound, "no circuit has an unmirrored race");
     }
@@ -183,6 +213,7 @@ Result<std::vector<CourseChoice>> LoadTrialChoices(const assets::Vfs& vfs,
             choices.push_back(std::move(choice));
         }
     }
+    std::ranges::move(ModTrackChoices(vfs, *catalogs, true), std::back_inserter(choices));
     if (choices.empty()) {
         return Fail(ErrorCode::NotFound, "no time trial circuit has an unmirrored race");
     }
@@ -263,6 +294,10 @@ std::optional<std::string> RaceSetupMenu::Confirm(const RaceSceneSetup& rules) {
             race.track = Course().track;
             race.circuit = Course().circuit;
             race.players = players_;
+            race.isMirrored = Course().isMirrored;
+            if (Course().lapCount && players_ == 1 && !race.isTimeTrial) {
+                race.lapCount = *Course().lapCount;
+            }
             return PickingRacers(race.track.empty() ? CircuitStart(race, Course().racers)
                                                     : RaceSceneName(race));
         case RaceSetupRow::Back:

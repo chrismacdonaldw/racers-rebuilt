@@ -38,7 +38,6 @@ constexpr std::string_view kDemoKey = "demo";
 constexpr std::string_view kPlayersKey = "players";
 constexpr std::string_view kSecondRacerKey = "racer2";
 constexpr std::string_view kLapsKey = "laps";
-constexpr int kMaxLaps = 9;
 constexpr std::string_view kOpponentsKey = "opponents";
 constexpr std::string_view kRaceKey = "race";
 constexpr std::string_view kPointsKey = "points";
@@ -197,7 +196,7 @@ bool ReadRaceField(Field field, RaceSceneSetup& setup) {
     }
     if (field.key == kLapsKey) {
         setup.lapCount = ParseNumber<int>(field.value).value_or(0);
-        return setup.lapCount >= 1 && setup.lapCount <= kMaxLaps;
+        return setup.lapCount >= 1 && setup.lapCount <= kMaxLapCount;
     }
     if (field.key == kOpponentsKey) {
         setup.opponents = ParseNumber<std::size_t>(field.value).value_or(assets::kGridSlots);

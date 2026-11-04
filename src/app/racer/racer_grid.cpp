@@ -15,6 +15,7 @@
 #include "app/racer/built_racer.hpp"
 #include "app/racer/racer_bounds.hpp"
 #include "app/racer/racer_draws.hpp"
+#include "app/track_info.hpp"
 #include "app/track_space.hpp"
 #include "app/voice_reactions.hpp"
 #include "assets/race_catalog.hpp"
@@ -64,7 +65,12 @@ Result<std::vector<std::string>> GridOf(const assets::Vfs& vfs, const RaceSceneS
     return assets::RaceCatalog::Load(vfs).and_then([&](const assets::RaceCatalog& races) {
         const bool offCircuit = setup.circuit.empty() && !races.HomeCircuit(setup.track);
         if (offCircuit && !races.Circuits().empty()) {
-            return Result<std::vector<std::string>>(races.Circuits().front().grid);
+            const std::size_t circuit =
+                FindTrackInfo(vfs, setup.track)
+                    .and_then([](const TrackInfo& info) { return info.grid; })
+                    .and_then([&](const std::string& name) { return races.FindCircuit(name); })
+                    .value_or(0);
+            return Result<std::vector<std::string>>(races.Circuits()[circuit].grid);
         }
         return races.Grid(setup.track, setup.circuit);
     });

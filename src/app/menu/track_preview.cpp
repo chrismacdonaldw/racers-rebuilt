@@ -9,6 +9,7 @@
 #include "app/cutscene/cutscene_screen.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_widgets.hpp"
+#include "assets/png_image.hpp"
 #include "core/log.hpp"
 
 namespace rr::app {
@@ -44,7 +45,7 @@ Result<std::unique_ptr<TrackPreview>> TrackPreview::Load(const RaceOutputs& outp
         return std::unexpected(std::move(view.error()));
     }
     return std::unique_ptr<TrackPreview>(
-        new TrackPreview(std::move(loading), std::move(*view), placed->rect,
+        new TrackPreview(*outputs.renderer, vfs, std::move(loading), std::move(*view), placed->rect,
                          LoadBorder(*outputs.renderer, vfs, layout)));
 }
 
@@ -92,6 +93,9 @@ render::RenderView TrackPreview::Render(std::span<const sim::EntityClock> clocks
                                         std::vector<render::SpriteDraw>& sprites) {
     DrawBorder(sprites);
     const render::RenderView view = view_->Render(clocks, sprites);
+    if (shownImage_) {
+        sprites.push_back({.texture = *shownImage_, .bounds = bounds_});
+    }
     if (isLocked_) {
         sprites.push_back(Shade(bounds_, kDimmerAlpha));
     }
@@ -106,19 +110,41 @@ void TrackPreview::DrawBorder(std::vector<render::SpriteDraw>& sprites) const {
         return;
     }
     MenuFrameLook look = border_->look;
-    if (shown_) {
+    if (shown_ && shown_->image.empty()) {
         look.borderTint = FrameTintOf(*shown_, rules_).value_or(look.borderTint);
     }
     DrawMenuFrameBorder(look, border_->rect, sprites);
 }
 
+std::optional<render::TextureId> TrackPreview::ImageOf(const std::string& path) {
+    const auto cached = images_.find(path);
+    if (cached != images_.end()) {
+        return cached->second;
+    }
+    Result<render::TextureId> texture =
+        vfs_->Read(path)
+            .and_then([](const assets::FileData& file) { return assets::DecodePng(file.Bytes()); })
+            .and_then(
+                [&](const assets::ImageAsset& image) { return renderer_->UploadTexture(image); });
+    if (!texture) {
+        log::Warn("the race preview shows no image: {}", texture.error().message);
+    }
+    return images_.emplace(path, texture ? std::optional(*texture) : std::nullopt).first->second;
+}
+
 void TrackPreview::ShowRace(std::size_t race) {
+    shownImage_.reset();
     if (race >= previews_.size() || !previews_[race]) {
         cycle_.Shown(true);
         return;
     }
     const RacePreview& preview = *previews_[race];
     shown_ = preview;
+    if (!preview.image.empty()) {
+        shownImage_ = ImageOf(preview.image);
+        cycle_.Shown(true);
+        return;
+    }
     const Result<void> dressed = preview.driver.empty()
                                      ? Result<void>{}
                                      : view_->ShowDriver(preview.driver, *loading_.loader);

@@ -24,6 +24,7 @@
 namespace rr::app {
 
 inline constexpr int kDefaultLapCount = 3;
+inline constexpr int kMaxLapCount = 9;
 inline constexpr std::size_t kDefaultOpponentCount = 5;
 inline constexpr int kDefaultAiPace = 100;
 inline constexpr int kMinAiPace = 50;

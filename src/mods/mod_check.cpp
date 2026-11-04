@@ -1,6 +1,8 @@
 #include "mods/mod_check.hpp"
 
+#include <algorithm>
 #include <format>
+#include <iterator>
 #include <utility>
 
 #include "core/log.hpp"
@@ -17,8 +19,10 @@ std::vector<std::string> ModProblems(const ModList& mods, const settings::Regist
     return problems;
 }
 
-Result<void> CheckMods(const ModList& mods, const settings::Registry& registry) {
-    const std::vector<std::string> problems = ModProblems(mods, registry);
+Result<void> CheckMods(const ModList& mods, const settings::Registry& registry,
+                       std::vector<std::string> contentProblems) {
+    std::vector<std::string> problems = ModProblems(mods, registry);
+    std::ranges::move(contentProblems, std::back_inserter(problems));
     if (problems.empty()) {
         log::Info("checked {} mods, no problems", mods.All().size());
         return {};
