@@ -94,6 +94,9 @@ public:
     /// The sounds the last `Tick` set off.
     [[nodiscard]] std::span<const SoundEvent> Sounds() const { return sounds_.Events(); }
 
+    /// Players, and a demo's first racer, which the original sets up as a player.
+    [[nodiscard]] bool HasCarSounds(std::size_t racer) const { return hasCarSounds_.at(racer); }
+
     /// Whether the last `Tick` respawned `racer`.
     [[nodiscard]] bool WasRespawned(std::size_t racer) const { return wasRespawned_.at(racer); }
 
@@ -138,6 +141,7 @@ private:
     PlayerCheats playerCheats_;
     Milliseconds headStartLeft_{0};
     std::vector<bool> isPlayer_;
+    std::vector<bool> hasCarSounds_;
     bool isDemo_ = false;
     const VersionRules* rules_ = nullptr;
     bool lagsInput_ = false;

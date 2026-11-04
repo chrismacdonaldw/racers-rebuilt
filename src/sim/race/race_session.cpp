@@ -103,6 +103,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
             StartComputer(i, setup);
         }
         isPlayer_.push_back(entry.isPlayer);
+        hasCarSounds_.push_back(entry.isPlayer || (setup.isDemo && i == 0));
         localBounds_.push_back(entry.localBounds);
         aiPowerups_.emplace_back(entry.habits);
         taunts_.emplace_back();
@@ -184,7 +185,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
         racer.UpdateTimers(elapsed);
     }
     for (std::size_t i = 0; i < racers_.size(); ++i) {
-        sounds_.HearRacer(i, racers_[i], isPlayer_[i], clock_.IsRunning(), elapsed);
+        sounds_.HearRacer(i, racers_[i], hasCarSounds_[i], clock_.IsRunning(), elapsed);
     }
     PaceRoutes(elapsed);
     hazards_.Hear(triggers_, hazards);
@@ -198,7 +199,7 @@ void RaceSession::Tick(Milliseconds elapsed, std::span<const RacerControls> cont
 void RaceSession::AdvanceClock(Milliseconds elapsed) {
     const RaceClock before = clock_;
     clock_.Advance(elapsed, HasPlayerFinished());
-    sounds_.HearClock(before, clock_, isPlayer_);
+    sounds_.HearClock(before, clock_, hasCarSounds_);
     if (before.Phase() == RacePhase::Countdown && clock_.Phase() == RacePhase::Racing) {
         StartRacing();
     }

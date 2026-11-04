@@ -115,14 +115,14 @@ void RaceSounds::BeginTick() {
 }
 
 void RaceSounds::HearClock(const RaceClock& before, const RaceClock& after,
-                           const std::vector<bool>& isPlayer) {
+                           const std::vector<bool>& hasCarSounds) {
     const bool hasCountdown = !after.IsTestDrive();
     if (before.Phase() == RacePhase::Intro && after.Phase() == RacePhase::Countdown) {
         if (hasCountdown) {
             Add(RaceSound::CountdownBeep, 0);
         }
-        for (std::size_t racer = 0; racer < isPlayer.size(); ++racer) {
-            if (isPlayer[racer]) {
+        for (std::size_t racer = 0; racer < hasCarSounds.size(); ++racer) {
+            if (hasCarSounds[racer]) {
                 Add(RaceSound::EngineStart, racer);
             }
         }
@@ -138,7 +138,7 @@ void RaceSounds::HearClock(const RaceClock& before, const RaceClock& after,
     }
 }
 
-void RaceSounds::HearRacer(std::size_t racer, const Racer& car, bool isPlayer, bool isRacing,
+void RaceSounds::HearRacer(std::size_t racer, const Racer& car, bool hasCarSounds, bool isRacing,
                            Milliseconds elapsed) {
     const RacerEvents& events = car.Events();
     if (events.turboStarted) {
@@ -158,7 +158,7 @@ void RaceSounds::HearRacer(std::size_t racer, const Racer& car, bool isPlayer, b
              .racer = static_cast<std::uint8_t>(racer),
              .variant = *events.scrapeSound});
     }
-    if (isPlayer && events.hasDriftStarted) {
+    if (hasCarSounds && events.hasDriftStarted) {
         Add(RaceSound::DriftStart, racer);
     }
     Milliseconds& cooldown = wallCooldowns_.at(racer);

@@ -428,6 +428,9 @@ void RaceAudio::HearShields(const sim::RaceSession& session) {
 
 void RaceAudio::HearBoosts(const sim::RaceSession& session) {
     for (std::size_t i = 0; i < turboLoops_.size(); ++i) {
+        if (!session.HasCarSounds(i)) {
+            continue;
+        }
         const sim::Racer& racer = session.Racers()[i];
         const audio::VoiceMix mix = PlaceSound(listener_, racer.Body().motion.position, {});
         if (const std::optional<sim::Turbo>& turbo = racer.ActiveTurbo()) {
