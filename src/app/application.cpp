@@ -30,6 +30,7 @@
 #include "app/menu/menu_scene_factory.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_sounds.hpp"
+#include "app/modifier_settings.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/pacing_presets.hpp"
 #include "app/race_loading_screen.hpp"
@@ -387,6 +388,8 @@ Result<std::unique_ptr<RaceScene>> Application::LoadRace(RaceSceneSetup setup,
     if (Result<void> resolved = ResolvePlayers(vfs_, RacersFile(), setup); !resolved) {
         return std::unexpected(std::move(resolved.error()));
     }
+    setup.modifiers =
+        setup.isDemo || setup.isTestDrive ? RaceModifiers{} : ModifiersFrom(settings_);
     setup.isMirrored = LoadsMirrored(setup);
     setup.cheats = RaceCheats(setup.cheats, cheats_);
     setup.carBody = CarBodyFrom(settings_);

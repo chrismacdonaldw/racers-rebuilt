@@ -10,6 +10,7 @@ namespace rr::sim {
 inline constexpr int kWheelCount = 4;
 inline constexpr int kBodyPointCount = 4;
 inline constexpr float kBaseMaxSpeed = 120.0F;
+inline constexpr float kGravity = 39.0F;
 
 struct ChassisSpec {
     float baseMass = 2500.0F;
@@ -44,6 +45,7 @@ struct BodyConstants {
     float wheelbase = 0.0F;
     std::array<Vector3, kBodyPointCount> bodyPoints{};
     float boundsRadius = 0.0F;
+    float gravity = kGravity;
     bool ignoresSurfaces = false;
     VersionRules rules;
 };

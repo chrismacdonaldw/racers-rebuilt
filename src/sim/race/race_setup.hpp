@@ -12,6 +12,7 @@
 #include "sim/physics/chassis.hpp"
 #include "sim/powerup/powerup_effect.hpp"
 #include "sim/race/cheats.hpp"
+#include "sim/race/modifiers.hpp"
 #include "sim/race/respawn.hpp"
 
 namespace rr::sim {
@@ -44,6 +45,7 @@ struct RaceSetup {
     float aiPace = 1.0F;
     EffectFactories effects;
     Cheats cheats;
+    Modifiers modifiers;
     assets::GameVersion version = assets::GameVersion::Release1999;
     bool lagsInput = false;
     bool isTestDrive = false;

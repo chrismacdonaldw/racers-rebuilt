@@ -331,7 +331,7 @@ std::size_t RacerCount(const RaceSceneSetup& setup, std::size_t gridSize) {
 }
 
 bool LoadsMirrored(const RaceSceneSetup& setup) {
-    return setup.isMirrored ||
+    return setup.isMirrored || setup.modifiers.mirrorsTracks ||
            (setup.cheats.Has(sim::Cheat::MirroredBoss) && setup.circuit == kRocketRacerCircuit);
 }
 

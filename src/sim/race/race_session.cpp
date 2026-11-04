@@ -36,6 +36,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
     : course_(course),
       respawn_(setup.respawn),
       cheats_(setup.cheats),
+      modifiers_(setup.modifiers),
       isDemo_(setup.isDemo),
       rules_(&RulesFor(setup.version)),
       lagsInput_(setup.lagsInput && rules_->allowsInputLag),
@@ -69,7 +70,8 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       routeSpeeds_(setup.racers.size(), 1.0F),
       bricks_(BricksFor(course, setup.cheats)),
       inventories_(setup.racers.size()),
-      powerups_(setup.effects, UsesPerTick(setup, course), setup.cheats),
+      powerups_(setup.effects, UsesPerTick(setup, course), setup.cheats,
+                setup.modifiers.onlyPowerup),
       weapons_(WeaponEventCount(setup, course)),
       reaches_(setup.racers.size()),
       contactBodies_(setup.racers.size()) {
@@ -84,6 +86,8 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
         if (setup.cheats.Has(Cheat::IgnoreSurfaces)) {
             racer.IgnoreSurfaces();
         }
+        racer.ScaleGravity(setup.modifiers.gravityScale);
+        racer.ScaleSpeed(setup.modifiers.speedScale);
         const std::span<const assets::RaceRoute> routes = RoutesFor(course, setup.firstSlot + i);
         drivers_.emplace_back();
         if (!entry.isPlayer && !routes.empty()) {
@@ -231,7 +235,7 @@ void RaceSession::PaceRoutes(Milliseconds elapsed) {
     }
     rubberBand_.Update(elapsed, paced_, routeSpeeds_);
     for (std::size_t i = 0; i < racers_.size(); ++i) {
-        racers_[i].SetRouteSpeed(routeSpeeds_[i]);
+        racers_[i].SetRouteSpeed(routeSpeeds_[i] * modifiers_.speedScale);
     }
 }
 
@@ -310,7 +314,19 @@ void RaceSession::TickBricks(Milliseconds elapsed) {
         if (event.kind == BrickEventKind::WhiteCollected && event.whiteCount == kMaxPowerupLevel) {
             racers_[event.racer].React(VoiceReaction::Positive);
         }
+        const bool tookColour =
+            event.kind == BrickEventKind::Collected || event.kind == BrickEventKind::Swapped;
+        if (modifiers_.hasChaosBricks && tookColour) {
+            RollChaosBrick(inventories_[event.racer]);
+        }
     }
+}
+
+void RaceSession::RollChaosBrick(PowerupInventory& inventory) {
+    bricks_.Spend(inventory);
+    const auto colour = static_cast<assets::BrickColour>(
+        random_.Below(static_cast<std::uint32_t>(kBrickColourCount)));
+    inventory.Grant(colour, random_.Below(kMaxPowerupLevel + 1));
 }
 
 void RaceSession::ReactToPlaces() {

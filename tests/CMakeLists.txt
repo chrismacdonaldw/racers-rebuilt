@@ -64,6 +64,7 @@ add_executable(racers-rebuilt-tests
     app/input_bindings_test.cpp
     app/install_discovery_test.cpp
     app/loop_sidecar_test.cpp
+    app/modifier_settings_test.cpp
     app/menu/attract_demo_test.cpp
     app/menu/award_scene_name_test.cpp
     app/menu/best_time_panel_test.cpp
@@ -382,6 +383,7 @@ add_executable(racers-rebuilt-tests
     sim/race/lap_tracker_test.cpp
     sim/race/lap_zones_test.cpp
     sim/race/race_clock_test.cpp
+    sim/race/race_modifiers_test.cpp
     sim/race/race_progress_test.cpp
     sim/race/race_session_test.cpp
     sim/race/race_start_test.cpp

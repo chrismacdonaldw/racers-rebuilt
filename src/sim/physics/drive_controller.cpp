@@ -86,7 +86,7 @@ float SteeringFor(float radius) {
     return std::copysign(std::max(steering, 0.0F), radius);
 }
 
-float GripLimit(const BodyState& body) {
+float GripLimit(const BodyState& body, float gravity) {
     if (!IsGrounded(body.motion)) {
         return kAirborneGripLimit;
     }
@@ -95,7 +95,7 @@ float GripLimit(const BodyState& body) {
         return kGriplessLimit;
     }
     const float speed = body.derived.forwardSpeed;
-    return speed * speed * 1.0e6F / (grip * kGravity);
+    return speed * speed * 1.0e6F / (grip * gravity);
 }
 
 bool CanStartDrift(const BodyState& body) {
@@ -122,7 +122,7 @@ void ApplyDriveCommand(BodyState& body, const BodyConstants& constants, const Dr
         SetTurnRadius(body, radius);
         return;
     }
-    const float limit = GripLimit(body);
+    const float limit = GripLimit(body, constants.gravity);
     const float magnitude = command.isDrifting
                                 ? AssistDrift(body, radius, limit, command.isHardDrift)
                                 : AssistGrip(body, radius, limit);

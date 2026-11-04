@@ -13,4 +13,7 @@ namespace rr::sim {
 /// What a racer's use fires instead, or nothing when the brick is spent without effect.
 [[nodiscard]] std::optional<PowerupUse> CheatUse(const Cheats& cheats, PowerupUse use);
 
+/// The colour and level that fire `kind`. A shield keeps the use's level, and a turbo up to 2.
+[[nodiscard]] PowerupUse OnlyUse(PowerupKind kind, PowerupUse use);
+
 }

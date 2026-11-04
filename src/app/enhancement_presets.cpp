@@ -6,6 +6,7 @@
 #include "app/audio_settings.hpp"
 #include "app/cheat_settings.hpp"
 #include "app/fix_settings.hpp"
+#include "app/modifier_settings.hpp"
 #include "app/race_settings.hpp"
 #include "app/video_settings.hpp"
 
@@ -21,7 +22,8 @@ std::vector<settings::SettingPreset> EnhancementPresets() {
     return {
         {.label = "Original",
          .menu = std::string(kMenu),
-         .resets = {gameplay, std::string(kCheatsCategory), std::string(kFixesCategory)},
+         .resets = {gameplay, std::string(kCheatsCategory), std::string(kModifiersCategory),
+                    std::string(kFixesCategory)},
          .values = {{std::string(kRespawn.key), false},
                     {std::string(kSmoothTexturesSetting.key), false},
                     {std::string(kFarCarsSetting.key), false},

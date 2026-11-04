@@ -48,6 +48,7 @@ struct RaceAudioSetup {
     std::span<const std::int32_t> voices;
     std::span<const float> enginePitches;
     VoiceChoice voiceChoice;
+    float voicePitch = 1.0F;
 };
 
 /// Only reads the session, so it never changes a race's outcome.

@@ -95,7 +95,7 @@ RacerControls RouteDriver::Drive(const Racer& racer, std::span<const Vector3> ra
         return {.isThrottleHeld = isThrottleHeld, .isBrakeHeld = isBrakeHeld};
     }
     const float radius = 1.0F / std::abs(curvature);
-    const float limit = GripLimit(racer.Body());
+    const float limit = GripLimit(racer.Body(), racer.Constants().gravity);
     const float handling = racer.Stats().handling;
     const float gripLock = LockFor(GripTurnRadius(radius, limit), handling);
     const bool isDrifting = gripLock > (racer.Driver().isDrifting ? kDriftReleaseLock : 1.0F);

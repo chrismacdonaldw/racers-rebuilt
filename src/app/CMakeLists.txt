@@ -80,6 +80,7 @@ rr_add_module(app
         install_discovery.cpp
         loop_sidecar.cpp
         loop_voice.cpp
+        modifier_settings.cpp
         menu/best_time_panel.cpp
         menu/attract_demo.cpp
         menu/award_scene_name.cpp

@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "app/race_scene_name.hpp"
@@ -25,6 +27,11 @@
 #include "sim/render_snapshot.hpp"
 
 namespace rr::app {
+
+inline constexpr std::string_view kRocketRacer = "RR";
+
+/// Every slot from `players` on races as Rocket Racer.
+void RushRocketRacer(std::span<std::string> codes, std::size_t players);
 
 /// The racer in each grid slot of a track's circuit, prebuilt but for a player's own.
 class RacerGrid {

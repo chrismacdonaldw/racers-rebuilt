@@ -89,6 +89,10 @@ public:
     void Go();
 
     void IgnoreSurfaces() { constants_.ignoresSurfaces = true; }
+    void ScaleGravity(float scale) { constants_.gravity *= scale; }
+
+    /// Also scales acceleration. Only before the race starts.
+    void ScaleSpeed(float scale);
 
     /// Replaces any turbo already running. A hover turbo halts the racer until it ends.
     void StartTurbo(TurboLevel level);
@@ -200,6 +204,7 @@ public:
     [[nodiscard]] Transform Pose() const;
 
     [[nodiscard]] const BodyState& Body() const { return body_; }
+    [[nodiscard]] const BodyConstants& Constants() const { return constants_; }
 
     [[nodiscard]] Vector3 CentreOfMass() const;
 

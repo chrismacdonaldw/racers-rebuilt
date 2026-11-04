@@ -67,7 +67,8 @@ private:
 /// `banks` must outlive it. `voices` has one entry per racer.
 class VoiceReactions {
 public:
-    VoiceReactions(VoiceBanks banks, std::vector<std::int32_t> voices, sim::Random random);
+    VoiceReactions(VoiceBanks banks, std::vector<std::int32_t> voices, sim::Random random,
+                   float pitch = 1.0F);
 
     void Hear(const sim::RaceSession& session, const Listener& listener, Milliseconds elapsed,
               audio::Mixer& mixer);
@@ -76,6 +77,7 @@ private:
     VoiceBanks banks_;
     std::vector<std::int32_t> voices_;
     ReactionTimers timers_;
+    float pitch_ = 1.0F;
 };
 
 }

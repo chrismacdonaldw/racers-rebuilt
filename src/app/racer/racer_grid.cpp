@@ -2,11 +2,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <limits>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -51,6 +53,9 @@ Result<std::vector<std::string>> PlayersFirst(std::vector<std::string> codes,
     std::swap(codes.front(), codes[setup.racer]);
     if (hasSecond) {
         codes.at(1) = second;
+    }
+    if (setup.modifiers.rushesRocketRacer) {
+        RushRocketRacer(codes, setup.players);
     }
     return codes;
 }
@@ -105,6 +110,10 @@ void Dress(const Vector3& origin, const CarLook& look, std::span<render::MeshDra
     }
 }
 
+}
+
+void RushRocketRacer(std::span<std::string> codes, std::size_t players) {
+    std::ranges::fill(codes.subspan(std::min(players, codes.size())), std::string(kRocketRacer));
 }
 
 Result<RacerGrid> RacerGrid::Load(render::Renderer& renderer, const assets::Vfs& vfs,

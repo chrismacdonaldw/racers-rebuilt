@@ -124,6 +124,7 @@ private:
     void PaceRoutes(Milliseconds elapsed);
     void MeasureReaches();
     void TickBricks(Milliseconds elapsed);
+    void RollChaosBrick(PowerupInventory& inventory);
     void ReactToPlaces();
     void TickTriggers(Milliseconds elapsed);
     void SwitchOnTriggerWorlds();
@@ -136,6 +137,7 @@ private:
     RaceCourse course_;
     RespawnRule respawn_;
     Cheats cheats_;
+    Modifiers modifiers_;
     std::vector<bool> isPlayer_;
     bool isDemo_ = false;
     const VersionRules* rules_ = nullptr;
