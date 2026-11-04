@@ -19,7 +19,6 @@
 #include "app/game_settings.hpp"
 #include "app/hud/race_map_view.hpp"
 #include "app/menu/menu_scenes.hpp"
-#include "app/powerup_tools.hpp"
 #include "app/race_scene_parts.hpp"
 #include "app/race_step.hpp"
 #include "app/racer/far_cars.hpp"
@@ -163,48 +162,6 @@ void RaceScene::JoinTimeTrial(TimeTrialRun& run, assets::TrackLoader& loader) {
     trial_.emplace(run);
     hud_.SetTimeTrial(trial_->Ghosts());
     ghostCars_ = GhostCars::Load(*parts_.renderer, *parts_.vfs, loader, parts_.racers, kPlayerSlot);
-}
-
-overlay::RacerTools RaceScene::OverlayRacerTools() {
-    overlay::RacerTools tools{.selected = &chosenRacer_};
-    const std::span<const sim::Racer> racers = std::as_const(parts_.session).Racers();
-    for (std::size_t i = 0; i < racers.size(); ++i) {
-        tools.racers.push_back(i == kPlayerSlot ? std::format("Racer {} (you)", i + 1)
-                                                : std::format("Racer {}", i + 1));
-    }
-    tools.groups.push_back(EffectTools());
-    tools.groups.push_back(PowerupTools());
-    return tools;
-}
-
-overlay::RacerActionGroup RaceScene::EffectTools() {
-    overlay::RacerActionGroup group{.name = "Effects"};
-    const sim::Racer& racer = std::as_const(parts_.session).Racers()[chosenRacer_];
-    for (const RacerEffect effect : kRacerEffects) {
-        group.actions.push_back({.name = RacerEffectLabel(effect, racer), .run = [this, effect] {
-                                     chosenTools_.emplace_back(
-                                         [racer = chosenRacer_, effect](sim::RaceSession& race) {
-                                             ApplyRacerEffect(effect, race.Racers()[racer]);
-                                         });
-                                 }});
-    }
-    return group;
-}
-
-overlay::RacerActionGroup RaceScene::PowerupTools() {
-    overlay::RacerActionGroup group{.name = "Give power-up"};
-    for (const assets::BrickColour colour : kBrickColours) {
-        for (std::uint8_t level = 0; level <= sim::kMaxPowerupLevel; ++level) {
-            group.actions.push_back(
-                {.name = PowerupLabel(colour, level), .run = [this, colour, level] {
-                     chosenTools_.emplace_back(
-                         [racer = chosenRacer_, colour, level](sim::RaceSession& race) {
-                             race.GivePowerup(racer, colour, level);
-                         });
-                 }});
-        }
-    }
-    return group;
 }
 
 void RaceScene::Tick(const sim::InputFrame& input) {
@@ -456,13 +413,6 @@ void RaceScene::LeaveAfterResults() {
     }
 }
 
-void RaceScene::ApplyChosenTools() {
-    for (const std::function<void(sim::RaceSession&)>& tool : chosenTools_) {
-        tool(parts_.session);
-    }
-    chosenTools_.clear();
-}
-
 std::optional<PauseView> RaceScene::PauseShown() const {
     if (trial_ && trial_->IsAsking(parts_.session.Clock())) {
         return trial_->Question();
@@ -476,22 +426,6 @@ std::optional<PauseView> RaceScene::PauseShown() const {
     }
     return PauseView{.dialog = PauseDialog::Menu,
                      .focus = static_cast<std::size_t>(pause_.Focus())};
-}
-
-void RaceScene::DrawDebugLines() {
-    debugLines_.clear();
-    if (showsCheckpoints_) {
-        DrawGates(parts_.raceTrack->checkpoints,
-                  parts_.session.Progress().OfRacer(kPlayerSlot).laps, debugLines_);
-    }
-    if (showsCollision_) {
-        debugLines_.insert(debugLines_.end(), collisionLines_.begin(), collisionLines_.end());
-    }
-    if (showsTriggers_) {
-        triggerRings_.Light(parts_.session.Triggers());
-        debugLines_.insert(debugLines_.end(), triggerRings_.Lines().begin(),
-                           triggerRings_.Lines().end());
-    }
 }
 
 }
