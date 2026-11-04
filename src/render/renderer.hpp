@@ -51,6 +51,9 @@ public:
     /// Draws textures with their enhanced look where they have one.
     void SetSmoothTextures(bool isOn) { settings_.isSmoothingTextures = isOn; }
 
+    /// 16x on linear-filtered textures only.
+    void SetAnisotropicFiltering(bool isOn) { settings_.isAnisotropicFiltering = isOn; }
+
     /// The scene renders at this fraction of the window size, then scales to fit.
     void SetResolutionScale(float scale);
 

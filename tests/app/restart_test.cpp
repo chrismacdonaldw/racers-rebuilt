@@ -29,9 +29,21 @@ settings::Registry Declared() {
 }
 
 TEST_CASE("a relaunch keeps the program and its arguments but drops one-shot work") {
-    const std::array<std::string_view, 12> argv{
-        "racers-rebuilt.exe", "--race", "RACEC0R0",     "--record",      "a.rpl", "--replay=b.rpl",
-        "--players",          "2",      "--recordings", "--dump-images", "out",   "--import-save"};
+    const std::array<std::string_view, 15> argv{"racers-rebuilt.exe",
+                                                "--race",
+                                                "RACEC0R0",
+                                                "--record",
+                                                "a.rpl",
+                                                "--replay=b.rpl",
+                                                "--players",
+                                                "2",
+                                                "--recordings",
+                                                "--dump-images",
+                                                "out",
+                                                "--dump-textures",
+                                                "mods/a",
+                                                "--dump-textures=mods/b",
+                                                "--import-save"};
 
     CHECK(RelaunchCommand(argv) == std::vector<std::string>{"racers-rebuilt.exe", "--race",
                                                             "RACEC0R0", "--players", "2",

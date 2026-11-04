@@ -160,6 +160,8 @@ add_executable(racers-rebuilt-tests
     app/sound_banks_test.cpp
     app/startup_settings_test.cpp
     app/startup_timer_test.cpp
+    app/texture_keys_test.cpp
+    app/texture_pack_test.cpp
     app/texture_scroll_test.cpp
     app/time_trial/ghost_car_test.cpp
     app/time_trial/ghost_cars_test.cpp
@@ -286,6 +288,7 @@ add_executable(racers-rebuilt-tests
     render/light_uniforms_test.cpp
     render/particle_bank_test.cpp
     render/quad_batch_test.cpp
+    render/sampler_slot_test.cpp
     render/sprite_batch_test.cpp
     render/ui_layout_test.cpp
     settings/command_line_test.cpp

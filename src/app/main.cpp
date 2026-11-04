@@ -12,6 +12,7 @@
 #include "app/image_dump.hpp"
 #include "app/restart.hpp"
 #include "app/save_import.hpp"
+#include "app/texture_pack.hpp"
 #include "core/result.hpp"
 #include "core/utf8_path.hpp"
 #include "platform/fatal_error.hpp"
@@ -34,6 +35,10 @@ rr::Result<void> Run(std::span<const std::string_view> argv) {
     }
     if (boot->commandLine.imageDumpFolder) {
         return rr::app::DumpImages(boot->vfs, rr::PathFromUtf8(*boot->commandLine.imageDumpFolder));
+    }
+    if (boot->commandLine.texturePackFolder) {
+        return rr::app::DumpTexturePack(boot->vfs, boot->extensions.gameLayers - 1,
+                                        rr::PathFromUtf8(*boot->commandLine.texturePackFolder));
     }
     rr::Result<rr::app::Application> application = rr::app::Application::Create(std::move(*boot));
     if (!application) {

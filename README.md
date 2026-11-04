@@ -138,6 +138,7 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `video.stretch_ui` | `false` | `true`, `false` |
 | `video.widescreen` | `false` | `true`, `false`. Races and cutscenes fill the window and see more to the sides, instead of the original's 4:3 frame. |
 | `video.smooth_textures` | `true` | `true`, `false`. Gives the game's textures their mipmaps and fills their see-through edges with nearby colours, so distant and filtered edges don't shimmer or show a dark fringe. `false` draws them as the original does, down to the materials the game asks to be drawn with blocky unfiltered pixels. PNG replacements always keep their mipmaps. |
+| `video.anisotropic_filtering` | `false` | `true`, `false`. Filters textures 16x where they're seen at a slant, so roads and walls stay sharp into the distance. Materials drawn with blocky unfiltered pixels keep them. The **Enhanced** preset turns it on. Applies at once. |
 | `audio.music_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.effects_volume` | `1.0` | `0.0` to `1.0` |
 | `audio.voice_volume` | `1.0` | `0.0` to `1.0` |
@@ -292,7 +293,7 @@ enabled = true
 | `priority` | No | Whole number, default `0`. Higher wins when two mods replace the same file. On a tie, the id that sorts first wins. |
 | `enabled` | No | Default `true`. Sets the starting value of `mods.<id>.enabled`. |
 
-Once a setting in **Mods** changes, two items appear there. **Apply now** remounts the mods and overrides, reloads the music, and returns to the main menu; it isn't offered while recording or playing a replay. **Restart now** relaunches the game with the same command line, minus `--record`, `--replay`, `--import-save` and `--dump-images`. A newly added mod folder, or a change to the menu cursor, still needs a restart. A mod with a broken `mod.toml` is skipped with a warning in the log.
+Once a setting in **Mods** changes, two items appear there. **Apply now** remounts the mods and overrides, reloads the music, and returns to the main menu; it isn't offered while recording or playing a replay. **Restart now** relaunches the game with the same command line, minus `--record`, `--replay`, `--import-save`, `--dump-images` and `--dump-textures`. A newly added mod folder, or a change to the menu cursor, still needs a restart. A mod with a broken `mod.toml` is skipped with a warning in the log.
 
 ### Tracks
 
@@ -341,6 +342,15 @@ A PNG next to a game image's path, named like it but ending in `.png`, replaces 
 - It can be any size. Menus and the HUD lay it out at the original image's size.
 - Its alpha is used as is: the original's colour key doesn't apply.
 - **HQ textures** in the **Mods** menu (`mods.hq_textures`) turns replacements off. It applies on the next start.
+
+### Make a texture pack
+
+1. Run `racers-rebuilt.exe --dump-textures <data>/mods/my-pack`. It writes every image in `LEGO.JAM` as a PNG under `my-pack/files/`, named for the image it replaces, plus a `mod.toml`, then exits. It won't overwrite a folder that already has a `mod.toml`.
+2. Edit or upscale the PNGs, e.g. with an upscaler such as Real-ESRGAN. Any size works.
+   - Keep the alpha channel. Colour-keyed images are dumped with their key already transparent and the see-through pixels filled with nearby colours, so edges don't pick up the key colour. Upscale the alpha separately if the tool supports it.
+   - Pad textures that tile before upscaling, then crop, to avoid seams.
+3. Delete the PNGs you didn't change, so the originals still load for those.
+4. Turn the pack on in the **Mods** menu: it starts disabled. **HQ textures** turns every pack's PNGs off at once.
 
 ### Models
 

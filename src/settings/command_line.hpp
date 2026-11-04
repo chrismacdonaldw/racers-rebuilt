@@ -20,6 +20,7 @@ struct SettingOverride {
 struct CommandLine {
     std::optional<std::string> gamePath;
     std::optional<std::string> imageDumpFolder;
+    std::optional<std::string> texturePackFolder;
     std::optional<std::string> track;
     std::optional<std::string> race;
     std::optional<std::size_t> players;

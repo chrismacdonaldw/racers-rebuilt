@@ -12,12 +12,6 @@
 namespace rr::mods {
 namespace {
 
-bool IsValidId(std::string_view id) {
-    return !id.empty() && std::ranges::all_of(id, [](char c) {
-        return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
-    });
-}
-
 class FieldReader {
 public:
     explicit FieldReader(const toml::table& table) : table_(&table) {}
@@ -78,13 +72,19 @@ Result<ModManifest> ReadManifest(const toml::table& table) {
     if (fields.Problem()) {
         return Fail(ErrorCode::InvalidData, *fields.Problem());
     }
-    if (!IsValidId(manifest.id)) {
+    if (!IsValidModId(manifest.id)) {
         return Fail(ErrorCode::InvalidData,
                     std::format("id {} may only use a-z, 0-9, _ and -", manifest.id));
     }
     return manifest;
 }
 
+}
+
+bool IsValidModId(std::string_view id) {
+    return !id.empty() && std::ranges::all_of(id, [](char c) {
+        return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
+    });
 }
 
 Result<ModManifest> ParseModManifest(std::string_view text, std::string_view sourceName) {

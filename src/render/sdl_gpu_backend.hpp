@@ -23,6 +23,7 @@
 #include "render/pipelines.hpp"
 #include "render/quad_batch.hpp"
 #include "render/render_view.hpp"
+#include "render/sampler_slot.hpp"
 #include "render/sprite_batch.hpp"
 
 namespace rr::render {
@@ -53,7 +54,6 @@ public:
 
 private:
     static constexpr std::size_t kBlendModeCount = 3;
-    static constexpr std::size_t kSamplerCount = 4;
 
     struct DeviceDeleter {
         SDL_Window* window = nullptr;
@@ -98,6 +98,7 @@ private:
 
     Result<void> CreatePipelines();
     Result<void> CreateResources();
+    Result<void> CreateSamplers();
     Result<GpuBuffer> CreateBuffer(SDL_GPUBufferUsageFlags usage, std::size_t sizeBytes);
     Result<StreamBuffer> CreateStream(std::size_t sizeBytes);
     Result<GpuTransferBuffer> Stage(std::span<const std::span<const std::byte>> parts);
