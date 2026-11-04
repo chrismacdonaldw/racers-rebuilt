@@ -402,6 +402,11 @@ void RaceSetupScene::DrawValue(const MenuButtonState& state, std::u16string_view
     DrawLabel(text_, state, value, at.x, at.y, sprites_);
 }
 
+std::u16string RaceSetupScene::BossName(const RacerChoice& boss) const {
+    return boss.title.empty() ? OneLine(Lookup(driverNames_, boss.nameIndex, boss.code))
+                              : Utf16FromUtf8(boss.title);
+}
+
 void RaceSetupScene::DrawChampion() {
     const MenuButtonState& state = look_.states.at(kNormalState);
     DrawLabel(text_, state, OneLine(text_.Line(kHostingLine)), kLeft, kChampionTop, sprites_);
@@ -409,7 +414,7 @@ void RaceSetupScene::DrawChampion() {
     DrawValue(state,
               course.boss.code.empty()
                   ? OneLine(text_.Line(kFirstChampionLine + course.circuitIndex))
-                  : OneLine(Lookup(driverNames_, course.boss.nameIndex, course.boss.code)),
+                  : BossName(course.boss),
               kChampionTop);
 }
 

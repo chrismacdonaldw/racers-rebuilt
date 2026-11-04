@@ -162,6 +162,32 @@ intro = "circuit3"
 
 A new circuit needs `after`, `title`, `grid` and `races`. A change that can't apply is left out with a warning in the log, and `--check-mods` lists it with any race or driver that doesn't exist.
 
+## Drivers
+
+A mod adds or changes opponent drivers with `files/GAMEDATA/COMMON/DRIVERS.TOML`. Mods' tables apply in load order, after `DRIVERS.DDB`.
+
+```toml
+[[driver]]
+code = "MG"
+name = "Magma Max"
+racer = "MAGMA MAX"
+voice = "KK"
+use_chances = { red = 200, green = 255 }
+charge = { colour = "green", level = 3 }
+start_boost = true
+```
+
+- `code`: the driver code that circuit grids and `boss` use, in any case. An existing code such as `CR` changes that driver: only the keys given replace its own.
+- `name`: the name on the grid, in the results and in the circuit list.
+- `racer`: a game racer the driver races as, with its car and look: a prebuilt racer from `RACERS.TOML` or a quick build.
+- `champion`: the champion car from `CHAMPS.CCB` for a driver without `racer`.
+- `voice`: the code of a driver whose voice lines it uses.
+- `use_chances`: out of 255, how often the driver uses a power-up of each colour, `red`, `blue`, `green` and `yellow`. They replace the chances from the driver's stats.
+- `charge`: the colour the driver charges, or `none`, and how many white bricks it charges to, 0 to 3.
+- `start_boost`: `true` or `false` to always or never take the start boost, in place of the green chance.
+
+A new driver needs `name` and `racer`. A change that can't apply is left out with a warning in the log, and `--check-mods` lists it with any `racer` that doesn't exist.
+
 ## Racers, driver parts and bricks
 
 These tables merge with the game's instead of replacing it, so a mod only needs the entries it adds or changes:

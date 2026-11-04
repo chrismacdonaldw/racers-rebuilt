@@ -2,6 +2,8 @@
 
 #include <doctest/doctest.h>
 
+#include <cstddef>
+
 namespace rr::sim {
 namespace {
 
@@ -23,6 +25,18 @@ TEST_CASE("a driver's habits give each colour its own stat's chance") {
     CHECK(habits.UseChance(BrickColour::Yellow) == 153);
     CHECK(habits.UseChance(BrickColour::Green) == 221);
     CHECK(habits.UseChance(BrickColour::Blue) == 255);
+}
+
+TEST_CASE("a mod driver's use chances and start boost override its stats") {
+    assets::DriverEntry driver{.redStat = 0, .greenStat = 75};
+    driver.useChances[static_cast<std::size_t>(BrickColour::Red)] = 200;
+    driver.startBoost = true;
+
+    const PowerupHabits habits = HabitsOf(driver);
+
+    CHECK(habits.UseChance(BrickColour::Red) == 200);
+    CHECK(habits.UseChance(BrickColour::Green) == 221);
+    CHECK(habits.startBoost == true);
 }
 
 TEST_CASE("a driver's charge colour counts red, blue, green, yellow from 1") {

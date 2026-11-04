@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "assets/circuit_database.hpp"
+#include "assets/mod_tables.hpp"
 #include "assets/race_list.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -39,13 +40,8 @@ struct CircuitPatch {
 [[nodiscard]] Result<std::vector<CircuitPatch>> ParseCircuitTable(std::string_view text,
                                                                   std::string_view sourceName);
 
-struct CircuitTables {
-    std::vector<CircuitPatch> patches;
-    std::vector<std::string> problems;
-};
-
 /// Every layer's table, lowest first. A table that doesn't parse is left out as a problem.
-[[nodiscard]] Result<CircuitTables> ReadCircuitTables(const Vfs& vfs);
+[[nodiscard]] Result<ModTables<CircuitPatch>> ReadCircuitTables(const Vfs& vfs);
 
 /// Applies `patches` in order. Returns why each one that can't apply was skipped.
 [[nodiscard]] std::vector<std::string> ApplyCircuitPatches(std::span<const CircuitPatch> patches,

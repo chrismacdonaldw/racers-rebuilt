@@ -78,6 +78,7 @@ private:
     void DrawRow(RaceSetupRow row);
     void DrawValue(const MenuButtonState& state, std::u16string_view value, float top);
     void DrawChampion();
+    [[nodiscard]] std::u16string BossName(const RacerChoice& boss) const;
     void ShowBestTimes();
     void DrawBestTimes();
 

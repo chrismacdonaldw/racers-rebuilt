@@ -28,14 +28,15 @@ std::uint8_t UseChance(std::int32_t stat) {
 
 PowerupHabits HabitsOf(const assets::DriverEntry& driver) {
     PowerupHabits habits;
-    habits.useChances[static_cast<std::size_t>(assets::BrickColour::Red)] =
-        UseChance(driver.redStat);
-    habits.useChances[static_cast<std::size_t>(assets::BrickColour::Blue)] =
-        UseChance(driver.blueStat);
-    habits.useChances[static_cast<std::size_t>(assets::BrickColour::Green)] =
-        UseChance(driver.greenStat);
-    habits.useChances[static_cast<std::size_t>(assets::BrickColour::Yellow)] =
-        UseChance(driver.yellowStat);
+    const auto chance = [&](assets::BrickColour colour, std::int32_t stat) {
+        const auto index = static_cast<std::size_t>(colour);
+        habits.useChances[index] = driver.useChances[index].value_or(UseChance(stat));
+    };
+    chance(assets::BrickColour::Red, driver.redStat);
+    chance(assets::BrickColour::Blue, driver.blueStat);
+    chance(assets::BrickColour::Green, driver.greenStat);
+    chance(assets::BrickColour::Yellow, driver.yellowStat);
+    habits.startBoost = driver.startBoost;
     habits.chargeColour = ChargeColour(driver.aiChargeColor);
     habits.chargeWhites =
         habits.chargeColour ? static_cast<std::size_t>(std::max(0, driver.aiWhiteBrickTarget)) : 0;

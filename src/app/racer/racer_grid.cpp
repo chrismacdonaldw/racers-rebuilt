@@ -15,6 +15,7 @@
 #include "app/racer/built_racer.hpp"
 #include "app/racer/racer_bounds.hpp"
 #include "app/racer/racer_draws.hpp"
+#include "app/racer/racer_lookup.hpp"
 #include "app/track_info.hpp"
 #include "app/track_space.hpp"
 #include "app/voice_reactions.hpp"
@@ -31,12 +32,32 @@ namespace {
 constexpr float kLookRangeSquared = 200.0F * 200.0F;
 constexpr float kSelfDistanceSquared = 2.0F;
 
+Result<RacerAssets> LoadComputerRacer(const assets::Vfs& vfs, assets::TrackLoader& loader,
+                                      const assets::RacerCatalog& catalog, std::string_view code) {
+    const Result<assets::DriverEntry> driver = catalog.FindDriver(code);
+    const Result<std::optional<settings::Racer>> racer = driver.and_then(
+        [&](const assets::DriverEntry& entry) { return FindDriverRacer(vfs, entry); });
+    if (!racer) {
+        return std::unexpected(racer.error());
+    }
+    if (!*racer) {
+        return LoadRacer(vfs, loader, catalog, code);
+    }
+    return LoadBuiltRacer(vfs, loader, catalog, **racer).transform([&](RacerAssets built) {
+        assets::DriverEntry entry = *driver;
+        entry.model = built.files.driver.model;
+        entry.champion = built.files.driver.champion;
+        built.files.driver = std::move(entry);
+        return built;
+    });
+}
+
 Result<std::unique_ptr<RacerAssets>> LoadSlot(const assets::Vfs& vfs, assets::TrackLoader& loader,
                                               const assets::RacerCatalog& catalog,
                                               std::string_view code, const settings::Racer* own,
                                               CarBody body) {
     Result<RacerAssets> racer = own != nullptr ? LoadBuiltRacer(vfs, loader, catalog, *own, body)
-                                               : LoadRacer(vfs, loader, catalog, code);
+                                               : LoadComputerRacer(vfs, loader, catalog, code);
     return racer.transform(
         [](RacerAssets assets) { return std::make_unique<RacerAssets>(std::move(assets)); });
 }
@@ -106,6 +127,10 @@ std::optional<Vector3> NearestRacer(std::span<const sim::EntitySnapshot> poses, 
         }
     }
     return nearest;
+}
+
+bool IsOwnBuild(const RacerAssets& racer) {
+    return racer.build && racer.files.driver.racer.empty();
 }
 
 void Dress(const Vector3& origin, const CarLook& look, std::span<render::MeshDraw> draws) {
@@ -201,16 +226,19 @@ Milliseconds RacerGrid::SuddenStopLength(std::size_t slot) const {
 }
 
 DriverName RacerGrid::Name(std::size_t slot) const {
-    const RacerAssets& racer = *slots_.at(slot).assets;
-    if (racer.build) {
-        return Utf16FromUtf8(racer.files.driver.name);
+    const assets::DriverEntry& driver = slots_.at(slot).assets->files.driver;
+    if (!driver.title.empty()) {
+        return Utf16FromUtf8(driver.title);
     }
-    return racer.files.driver.nameIndex;
+    if (IsOwnBuild(*slots_.at(slot).assets)) {
+        return Utf16FromUtf8(driver.name);
+    }
+    return driver.nameIndex;
 }
 
 std::int32_t RacerGrid::Voice(std::size_t slot) const {
     const RacerAssets& racer = *slots_.at(slot).assets;
-    return racer.build ? BuiltCarVoice(slot) : DriverVoice(racer.files.driver.voiceBank);
+    return IsOwnBuild(racer) ? BuiltCarVoice(slot) : DriverVoice(racer.files.driver.voiceBank);
 }
 
 float RacerGrid::EnginePitch(std::size_t slot) const {

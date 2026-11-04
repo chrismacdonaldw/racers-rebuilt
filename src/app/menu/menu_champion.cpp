@@ -88,8 +88,9 @@ Result<StandRacer> BuildChampion(render::Renderer& renderer, const assets::Vfs& 
     assets::LoaderPool pool(kLoaderWorkers);
     assets::TrackLoader loader(vfs, pool);
     return assets::RacerCatalog::Load(vfs)
-        .and_then([&](const assets::RacerCatalog& catalog) { return catalog.Find(champion); })
-        .and_then([](const assets::RacerFiles& racer) { return DriverLookOf(racer.driver); })
+        .and_then([&](const assets::RacerCatalog& catalog) {
+            return DriverLookOfCode(vfs, catalog, champion);
+        })
         .and_then([&](const assets::DriverLook& look) {
             return BuildStandDriver(renderer, vfs, loader, look);
         });

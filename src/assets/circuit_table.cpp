@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <format>
 #include <functional>
-#include <iterator>
 #include <map>
 #include <set>
 #include <utility>
@@ -13,6 +12,7 @@
 #include "assets/game_path.hpp"
 #include "assets/race_catalog.hpp"
 #include "assets/racer_catalog.hpp"
+#include "assets/toml_entries.hpp"
 #include "assets/track_loader.hpp"
 
 #include <toml++/toml.hpp>
@@ -50,85 +50,40 @@ std::optional<CircuitRace> RaceOf(const toml::node& item) {
     return CircuitRace{.track = ToUpperAscii(*track), .isMirrored = *isMirrored};
 }
 
-class PatchReader {
-public:
-    explicit PatchReader(const toml::table& table) : table_(&table) {}
-
-    std::optional<std::string> Text(std::string_view key) {
-        const toml::node* node = table_->get(key);
-        if (node == nullptr) {
-            return std::nullopt;
-        }
-        std::optional<std::string> value = node->value_exact<std::string>();
-        if (!value) {
-            Complain(std::format("{} must be text", key));
-        }
-        return value;
+std::optional<std::vector<CircuitRace>> ReadRaces(TomlFields& fields) {
+    const toml::node* node = fields.Find("races");
+    if (node == nullptr) {
+        return std::nullopt;
     }
-
-    std::optional<std::vector<std::string>> Grid() {
-        const toml::node* node = table_->get("grid");
-        if (node == nullptr) {
-            return std::nullopt;
-        }
-        const toml::array* codes = node->as_array();
-        if (codes == nullptr || codes->empty() || codes->size() > kGridSlots ||
-            !codes->is_homogeneous(toml::node_type::string)) {
-            Complain(std::format("grid must list 1 to {} driver codes", kGridSlots));
-            return std::nullopt;
-        }
-        std::vector<std::string> grid;
-        codes->for_each([&](const toml::value<std::string>& code) { grid.push_back(code.get()); });
-        return grid;
+    const toml::array* list = node->as_array();
+    if (list == nullptr || list->empty() || list->size() > kCircuitRaces) {
+        fields.Complain(std::format("races must list 1 to {} races", kCircuitRaces));
+        return std::nullopt;
     }
-
-    std::optional<std::vector<CircuitRace>> Races() {
-        const toml::node* node = table_->get("races");
-        if (node == nullptr) {
+    std::vector<CircuitRace> races;
+    for (const toml::node& item : *list) {
+        std::optional<CircuitRace> race = RaceOf(item);
+        if (!race) {
+            fields.Complain("each race must be a track folder or a table with track and mirrored");
             return std::nullopt;
         }
-        const toml::array* list = node->as_array();
-        if (list == nullptr || list->empty() || list->size() > kCircuitRaces) {
-            Complain(std::format("races must list 1 to {} races", kCircuitRaces));
-            return std::nullopt;
-        }
-        std::vector<CircuitRace> races;
-        for (const toml::node& item : *list) {
-            std::optional<CircuitRace> race = RaceOf(item);
-            if (!race) {
-                Complain("each race must be a track folder or a table with track and mirrored");
-                return std::nullopt;
-            }
-            races.push_back(std::move(*race));
-        }
-        return races;
+        races.push_back(std::move(*race));
     }
-
-    void Complain(std::string problem) {
-        if (!problem_) {
-            problem_ = std::move(problem);
-        }
-    }
-
-    [[nodiscard]] const std::optional<std::string>& Problem() const { return problem_; }
-
-private:
-    const toml::table* table_;
-    std::optional<std::string> problem_;
-};
+    return races;
+}
 
 Result<CircuitPatch> ParsePatch(const toml::table& table) {
-    PatchReader reader(table);
-    CircuitPatch patch{.name = reader.Text("name").value_or(std::string()),
-                       .title = reader.Text("title"),
-                       .boss = reader.Text("boss"),
-                       .grid = reader.Grid(),
-                       .races = reader.Races(),
-                       .after = reader.Text("after"),
-                       .partSet = reader.Text("part_set"),
-                       .intro = reader.Text("intro")};
-    if (reader.Problem()) {
-        return Fail(ErrorCode::InvalidData, *reader.Problem());
+    TomlFields fields(table);
+    CircuitPatch patch{.name = fields.Text("name").value_or(std::string()),
+                       .title = fields.Text("title"),
+                       .boss = fields.Text("boss"),
+                       .grid = fields.TextList("grid", kGridSlots, "driver codes"),
+                       .races = ReadRaces(fields),
+                       .after = fields.Text("after"),
+                       .partSet = fields.Text("part_set"),
+                       .intro = fields.Text("intro")};
+    if (fields.Problem()) {
+        return Fail(ErrorCode::InvalidData, *fields.Problem());
     }
     if (!IsCircuitName(patch.name)) {
         return Fail(ErrorCode::InvalidData, "name must be lowercase letters, digits, - or _");
@@ -254,7 +209,7 @@ void AddMissingParts(const RaceCatalog& catalog, std::size_t circuit,
         codes.push_back(entry.boss);
     }
     for (const std::string& code : codes) {
-        if (racers != nullptr && !racers->Find(code)) {
+        if (racers != nullptr && !racers->FindDriver(code)) {
             problems.push_back(std::format("{}: circuit {}: there's no driver {}",
                                            kCircuitTablePath, entry.name, code));
         }
@@ -265,51 +220,11 @@ void AddMissingParts(const RaceCatalog& catalog, std::size_t circuit,
 
 Result<std::vector<CircuitPatch>> ParseCircuitTable(std::string_view text,
                                                     std::string_view sourceName) {
-    toml::parse_result parsed = toml::parse(text, sourceName);
-    if (!parsed) {
-        return Fail(ErrorCode::InvalidData,
-                    std::format("{} line {}: {}", sourceName, parsed.error().source().begin.line,
-                                parsed.error().description()));
-    }
-    const toml::node* node = parsed.table().get(kCircuitsKey);
-    if (node == nullptr) {
-        return std::vector<CircuitPatch>{};
-    }
-    const toml::array* list = node->as_array();
-    if (list == nullptr || (!list->empty() && !list->is_homogeneous(toml::node_type::table))) {
-        return Fail(ErrorCode::InvalidData,
-                    std::format("{}: circuits must be [[circuit]] tables", sourceName));
-    }
-    std::vector<CircuitPatch> patches;
-    for (std::size_t index = 0; index < list->size(); ++index) {
-        Result<CircuitPatch> patch = ParsePatch(*list->get(index)->as_table());
-        if (!patch) {
-            return Fail(patch.error().code, std::format("{}: circuit {}: {}", sourceName, index + 1,
-                                                        patch.error().message));
-        }
-        patches.push_back(std::move(*patch));
-    }
-    return patches;
+    return ParseTomlEntries<CircuitPatch>(text, sourceName, kCircuitsKey, ParsePatch);
 }
 
-Result<CircuitTables> ReadCircuitTables(const Vfs& vfs) {
-    Result<std::vector<FileData>> files = vfs.ReadEveryLayer(kCircuitTablePath);
-    if (!files) {
-        return std::unexpected(std::move(files.error()));
-    }
-    CircuitTables tables;
-    for (const FileData& file : *files) {
-        const std::span<const std::byte> bytes = file.Bytes();
-        Result<std::vector<CircuitPatch>> patches = ParseCircuitTable(
-            std::string_view(reinterpret_cast<const char*>(bytes.data()), bytes.size()),
-            kCircuitTablePath);
-        if (patches) {
-            std::ranges::move(*patches, std::back_inserter(tables.patches));
-        } else {
-            tables.problems.push_back(std::move(patches.error().message));
-        }
-    }
-    return tables;
+Result<ModTables<CircuitPatch>> ReadCircuitTables(const Vfs& vfs) {
+    return ReadModTables(vfs, kCircuitTablePath, ParseCircuitTable);
 }
 
 std::vector<std::string> ApplyCircuitPatches(std::span<const CircuitPatch> patches,
@@ -338,8 +253,8 @@ std::vector<std::string> CircuitTableProblems(const Vfs& vfs) {
         return problems;
     }
     std::set<std::string, std::less<>> patched;
-    if (const Result<CircuitTables> tables = ReadCircuitTables(vfs)) {
-        for (const CircuitPatch& patch : tables->patches) {
+    if (const Result<ModTables<CircuitPatch>> tables = ReadCircuitTables(vfs)) {
+        for (const CircuitPatch& patch : tables->entries) {
             patched.insert(patch.name);
         }
     }
