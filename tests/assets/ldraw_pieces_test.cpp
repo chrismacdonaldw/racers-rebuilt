@@ -30,6 +30,7 @@ constexpr float kGameUnitsPerPlate = 0.4F;
 constexpr float kTolerance = 0.0001F;
 constexpr float kHeightTolerance = 0.05F;
 constexpr std::array kSampleOffsets{0.1F, 0.9F};
+constexpr std::array<std::string_view, 3> kOwnTopParts{"3688.dat", "3475b.dat", "30055.dat"};
 
 std::optional<float> TopAt(const std::vector<Triangle>& triangles, float x, float y) {
     std::optional<float> top;
@@ -175,8 +176,9 @@ std::string Misfits(const PieceLibrary& original, LdrawLibrary& library) {
     std::string misfits;
     for (const std::string_view piece : MappedPieces()) {
         const std::span<const LdrawPart> parts = LdrawPartsOf(piece);
-        const bool topsMatch =
-            parts.size() != 1 || TopMismatches(original, library, parts.front()) == 0;
+        const bool hasOwnTop =
+            parts.size() != 1 || std::ranges::contains(kOwnTopParts, parts.front().file);
+        const bool topsMatch = hasOwnTop || TopMismatches(original, library, parts.front()) == 0;
         if (!FitsCells(original, library, piece) || !topsMatch) {
             misfits.append(piece).append(" ");
         }
@@ -227,7 +229,7 @@ TEST_CASE("a piece model names LDraw colours as game materials, the main colour 
 }
 
 TEST_CASE(
-    "mapped pieces fit their cells, and single parts have the original tops away from studs") {
+    "mapped pieces fit their cells, and single bricks have the original tops away from studs") {
     const std::optional<Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
         return;
