@@ -247,6 +247,7 @@ peg = false
 - Torso and leg textures replace the image of the first torso or legs. `hook = true` gives hook hands, and `peg = true` a peg leg.
 - Images are PNG. A face, torso or legs image copies the first part's material and texture settings.
 - Parts are always available, and come after the game's and `BODYPART.PCB`'s parts. A part named like one before it replaces it. Each mod's file merges in priority order, lowest first.
+- A torso, legs or `[[colour]]` named like a game material, or a face whose expression materials are, replaces that material, wherever the game uses it.
 - A broken entry, or an image or model that doesn't load, is skipped with a warning in the log.
 
 ## Power-ups

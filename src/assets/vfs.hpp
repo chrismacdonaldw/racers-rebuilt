@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -60,12 +61,19 @@ public:
     /// Merges every layer's children, sorted by name.
     [[nodiscard]] Result<std::vector<VfsEntry>> List(std::string_view directory) const;
 
+    /// Changes whenever the layers or the resolver change, and no two `Vfs`es share one, so it
+    /// keys caches of what the files hold.
+    [[nodiscard]] std::uint64_t Generation() const { return generation_; }
+
 private:
+    [[nodiscard]] static std::uint64_t NextGeneration();
+
     [[nodiscard]] Result<FileData> ReadLayers(std::string_view normalized,
                                               std::string_view shown) const;
 
     std::vector<std::unique_ptr<VfsLayer>> layers_;
     AssetResolver resolver_;
+    std::uint64_t generation_ = NextGeneration();
 };
 
 /// `name` must be upper case.

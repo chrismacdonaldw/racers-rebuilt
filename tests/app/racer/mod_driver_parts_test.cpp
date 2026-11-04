@@ -151,6 +151,23 @@ TEST_CASE("parts files merge by name, a later mod's part replacing an earlier on
     CHECK(parts.legs.size() == 1);
 }
 
+TEST_CASE("mod parts and hats load once until the mods change") {
+    ModFolders mods;
+    mods.AddLava();
+
+    const std::shared_ptr<const ModDriverParts> parts = CachedModDriverParts(mods.Vfs());
+    const std::shared_ptr<const assets::PartLibrary> heads = CachedModHeadParts(mods.Vfs());
+
+    CHECK(CachedModDriverParts(mods.Vfs()) == parts);
+    CHECK(CachedModHeadParts(mods.Vfs()) == heads);
+    REQUIRE(heads->parts.size() == 1);
+    mods.Add("[[torso]]\nname = \"coat\"\ntexture = \"c.png\"\n");
+    const std::shared_ptr<const ModDriverParts> changed = CachedModDriverParts(mods.Vfs());
+    CHECK(changed != parts);
+    CHECK(changed->torsos.size() == 2);
+    CHECK(CachedModHeadParts(mods.Vfs()) != heads);
+}
+
 TEST_CASE("mod parts become catalogue entries, each hat with its own head part") {
     const assets::DriverPartCatalog catalog = ModPartCatalog(Parsed(kLavaParts));
 

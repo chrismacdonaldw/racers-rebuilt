@@ -162,7 +162,7 @@ Result<assets::DriverPartCatalog> LoadDriverParts(const assets::Vfs& vfs) {
     return assets::ParseEveryLayer(vfs, std::format("{}/BODYPART.PCB", kPartFolder),
                                    assets::ParseDriverParts)
         .transform([&](std::vector<assets::DriverPartCatalog> catalogs) {
-            catalogs.push_back(ModPartCatalog(LoadModDriverParts(vfs)));
+            catalogs.push_back(ModPartCatalog(*CachedModDriverParts(vfs)));
             return assets::MergeDriverParts(std::move(catalogs));
         });
 }
@@ -170,7 +170,7 @@ Result<assets::DriverPartCatalog> LoadDriverParts(const assets::Vfs& vfs) {
 Result<assets::PartLibrary> LoadHeadParts(const assets::Vfs& vfs, std::string_view path) {
     return assets::ParseEveryLayer(vfs, path, assets::ParsePartLibrary)
         .transform([&](std::vector<assets::PartLibrary> libraries) {
-            libraries.push_back(ModHeadParts(vfs, LoadModDriverParts(vfs)));
+            libraries.push_back(*CachedModHeadParts(vfs));
             return assets::MergePartLibraries(std::move(libraries));
         });
 }
@@ -180,7 +180,7 @@ Result<assets::TrackAssets> LoadDriverLooks(const assets::Vfs& vfs, assets::Trac
     const assets::ModelFiles files{.materials = "BODYPART", .textures = "BODYPART"};
     return loader.LoadModels(kPartFolder, std::span(&files, 1))
         .transform([&](assets::TrackAssets looks) {
-            AddModLooks(vfs, parts, LoadModDriverParts(vfs), looks);
+            AddModLooks(vfs, parts, *CachedModDriverParts(vfs), looks);
             return looks;
         });
 }

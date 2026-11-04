@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -60,5 +61,11 @@ struct ModDriverParts {
 
 /// Each hat's model as a head part. A model that doesn't load is logged and skipped.
 [[nodiscard]] assets::PartLibrary ModHeadParts(const assets::Vfs& vfs, const ModDriverParts& parts);
+
+/// `LoadModDriverParts`, read once for each `Vfs::Generation`.
+[[nodiscard]] std::shared_ptr<const ModDriverParts> CachedModDriverParts(const assets::Vfs& vfs);
+
+/// `ModHeadParts` of the cached parts, imported once for each `Vfs::Generation`.
+[[nodiscard]] std::shared_ptr<const assets::PartLibrary> CachedModHeadParts(const assets::Vfs& vfs);
 
 }
