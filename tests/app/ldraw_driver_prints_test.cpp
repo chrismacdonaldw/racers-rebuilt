@@ -25,6 +25,7 @@ namespace rr::app {
 namespace {
 
 constexpr std::string_view kTorsoPath = "MENUDATA/PARTDB/IN_CHST.BMP";
+constexpr std::string_view kFacePath = "MENUDATA/PARTDB/KK_HAPPY.BMP";
 constexpr std::uint32_t kTorsoSizePx = 8;
 
 void PutU32(std::vector<std::byte>& bytes, std::size_t at, std::uint32_t value) {
@@ -53,7 +54,8 @@ std::vector<std::byte> GreyBmp(std::uint32_t sizePx) {
 class PrintsFixture {
 public:
     PrintsFixture() {
-        WriteTorso(game_.Path(), kTorsoSizePx);
+        WriteImage(game_.Path(), "in_chst.bmp", kTorsoSizePx);
+        WriteImage(game_.Path(), "kk_happy.bmp", kTorsoSizePx);
         test::WritePng(game_.Path() / "menudata" / "partdb" / "in_chst.png",
                        test::SolidImage(4, 4, std::byte{0xFF}));
         Mount(game_.Path());
@@ -69,26 +71,31 @@ public:
         settings_.Set(kHqTextures, isHqOn);
     }
 
-    void MountModTorso(std::uint32_t sizePx) {
-        WriteTorso(mod_.Path(), sizePx);
+    void MountModImages(std::uint32_t sizePx) {
+        WriteImage(mod_.Path(), "in_chst.bmp", sizePx);
+        WriteImage(mod_.Path(), "kk_happy.bmp", sizePx);
         Mount(mod_.Path());
     }
 
-    [[nodiscard]] std::uint32_t TorsoWidthPx() const {
+    [[nodiscard]] std::uint32_t TorsoWidthPx() const { return WidthPx(kTorsoPath); }
+    [[nodiscard]] std::uint32_t FaceWidthPx() const { return WidthPx(kFacePath); }
+
+private:
+    [[nodiscard]] std::uint32_t WidthPx(std::string_view path) const {
         Result<assets::ImageAsset> image =
-            vfs_.Read(kTorsoPath).and_then([](const assets::FileData& file) {
+            vfs_.Read(path).and_then([](const assets::FileData& file) {
                 return assets::DecodeImage(file.Bytes(), assets::TextureFileKind::Bmp);
             });
         REQUIRE(image.has_value());
         return image->widthPx;
     }
 
-private:
-    static void WriteTorso(const std::filesystem::path& root, std::uint32_t sizePx) {
-        const std::filesystem::path torso = root / "menudata" / "partdb" / "in_chst.bmp";
-        std::filesystem::create_directories(torso.parent_path());
+    static void WriteImage(const std::filesystem::path& root, std::string_view name,
+                           std::uint32_t sizePx) {
+        const std::filesystem::path image = root / "menudata" / "partdb" / name;
+        std::filesystem::create_directories(image.parent_path());
         const std::vector<std::byte> bmp = GreyBmp(sizePx);
-        std::ofstream(torso, std::ios::binary)
+        std::ofstream(image, std::ios::binary)
             .write(reinterpret_cast<const char*>(bmp.data()), std::ssize(bmp));
     }
 
@@ -127,13 +134,23 @@ TEST_CASE_FIXTURE(PrintsFixture, "a mapped torso reads as its print only while p
     CHECK(TorsoWidthPx() == kTorsoSizePx);
 }
 
-TEST_CASE_FIXTURE(PrintsFixture, "a mod's own torso image wins over its print") {
+TEST_CASE_FIXTURE(PrintsFixture, "a drawn face reads as its LDraw face only while prints are on") {
+    Turn(false, false);
+    CHECK(FaceWidthPx() == kTorsoSizePx);
+
+    Turn(true, false);
+    CHECK(FaceWidthPx() == assets::kFaceDrawingSizePx);
+}
+
+TEST_CASE_FIXTURE(PrintsFixture, "a mod's own torso and face images win over their prints") {
     Turn(true, false);
     REQUIRE(TorsoWidthPx() == kTorsoPrintSizePx);
+    REQUIRE(FaceWidthPx() == assets::kFaceDrawingSizePx);
 
-    MountModTorso(16);
+    MountModImages(16);
 
     CHECK(TorsoWidthPx() == 16);
+    CHECK(FaceWidthPx() == 16);
 }
 
 TEST_CASE_FIXTURE(PrintsFixture, "a high quality torso wins over its print") {

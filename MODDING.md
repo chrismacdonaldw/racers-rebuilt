@@ -235,7 +235,7 @@ A PNG next to a game image's path, named like it but ending in `.png`, replaces 
 - It can be any size. Menus and the HUD lay it out at the original image's size.
 - Its alpha is used as is: the original's colour key doesn't apply.
 - **HQ textures** in the **Mods** menu (`mods.hq_textures`) turns replacements off. It applies on **Apply now** or the next start.
-- A torso PNG or BMP from a mod wins over **LDraw driver prints** (`enhancements.ldraw_prints`), which draws LDraw torso prints onto some drivers' torsos.
+- A torso or face PNG or BMP from a mod wins over **LDraw driver prints** (`enhancements.ldraw_prints`), which draws LDraw torso prints onto some drivers' torsos and redraws original driver faces.
 
 ## Make a texture pack
 

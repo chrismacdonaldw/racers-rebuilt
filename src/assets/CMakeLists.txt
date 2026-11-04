@@ -21,6 +21,8 @@ rr_add_module(assets
         driver_parts.cpp
         emitter_library.cpp
         event_table.cpp
+        face_drawing.cpp
+        face_shapes.cpp
         folder_layer.cpp
         font_list.cpp
         game_path.cpp
@@ -40,6 +42,7 @@ rr_add_module(assets
         jam.cpp
         ldraw.cpp
         ldraw_part.cpp
+        ldraw_head.cpp
         ldraw_extra_pieces.cpp
         ldraw_minifig.cpp
         ldraw_piece_table.cpp

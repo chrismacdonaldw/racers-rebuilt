@@ -205,7 +205,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md#building). Builds need Visual Studio 2022,
 - [toml++](https://github.com/marzer/tomlplusplus) for settings and mod manifests
 - [cgltf](https://github.com/jkuhlmann/cgltf) for reading glTF models from mods
 - [glm](https://github.com/g-truc/glm) for rendering math
-- The [LDraw Parts Library](https://library.ldraw.org/) for car piece models, driver minifigs and torso prints, under CC BY 4.0 and CC BY 2.0, shipped as converted data in `content/ldraw` ([notice](content/ldraw/NOTICE.md))
+- The [LDraw Parts Library](https://library.ldraw.org/) for car piece models, driver minifigs and torso and head prints, under CC BY 4.0 and CC BY 2.0, shipped as converted data in `content/ldraw` ([notice](content/ldraw/NOTICE.md))
 - [doctest](https://github.com/doctest/doctest) for unit tests
 - The [LEGO Racers decompilation](https://github.com/isledecomp/racers) by the isledecomp team, used as a reference for game behavior and file formats
 

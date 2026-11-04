@@ -46,6 +46,7 @@ rr_add_module(app
         ground_decal.cpp
         free_camera.cpp
         hq_textures.cpp
+        ldraw_driver_faces.cpp
         ldraw_driver_prints.cpp
         ldraw_minifig_models.cpp
         ldraw_piece_models.cpp

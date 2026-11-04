@@ -44,11 +44,13 @@ constexpr std::array kColours{
     KnownColour{.code = "4", .rgba = {0xB4, 0x00, 0x00, kOpaque}},
     KnownColour{.code = "6", .rgba = {0x54, 0x33, 0x24, kOpaque}},
     KnownColour{.code = "7", .rgba = {0x8A, 0x92, 0x8D, kOpaque}},
+    KnownColour{.code = "8", .rgba = {0x54, 0x59, 0x55, kOpaque}},
     KnownColour{.code = "14", .rgba = {0xFA, 0xC8, 0x0A, kOpaque}},
     KnownColour{.code = "15", .rgba = {0xF4, 0xF4, 0xF4, kOpaque}},
     KnownColour{.code = "71", .rgba = {0x96, 0x96, 0x96, kOpaque}},
     KnownColour{.code = "80", .rgba = {0x76, 0x76, 0x76, kOpaque}},
     KnownColour{.code = "82", .rgba = {0xDB, 0xAC, 0x34, kOpaque}},
+    KnownColour{.code = "320", .rgba = {0x72, 0x00, 0x12, kOpaque}},
 };
 
 constexpr std::array kPrints{
