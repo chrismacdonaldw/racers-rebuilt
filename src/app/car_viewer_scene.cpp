@@ -38,8 +38,12 @@ Result<assets::GeometryAsset> BuildCar(const assets::Vfs& vfs, std::string_view 
         FindGameRacer(vfs, {.name = std::string(name)}).transform([](const settings::Racer& racer) {
             return racer.car;
         });
-    const Result<assets::PieceCatalog> catalog = data.and_then([&](const assets::CarData&) {
-        return assets::PieceCatalog::Load(vfs, assets::PieceDetail::Menu);
+    const Result<assets::PieceCatalog> catalog = data.and_then([&](const assets::CarData& car) {
+        return assets::PieceCatalog::Load(vfs, assets::PieceDetail::Menu)
+            .transform([&](assets::PieceCatalog loaded) {
+                loaded.ReadExtraModels(vfs, assets::PieceTypesOf(car));
+                return loaded;
+            });
     });
     Result<sim::CarMesh> mesh = catalog.and_then([&](const assets::PieceCatalog& pieces) {
         return sim::BuiltCar::Load(*data, pieces.library).and_then([&](const sim::BuiltCar& car) {

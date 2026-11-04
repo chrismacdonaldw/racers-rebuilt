@@ -22,7 +22,10 @@ using PieceModels = std::unordered_map<std::string, GeometryAsset>;
 
 [[nodiscard]] std::optional<std::string> PieceOfModelPath(std::string_view path);
 
-/// Chassis and the stud have none. A model that can't be read is logged and skipped.
+/// Chassis, the stud and extra pieces have none. A model that can't be read is logged and skipped.
 [[nodiscard]] PieceModels ReadPieceModels(const Vfs& vfs, const PieceLibrary& library);
+
+/// Empty when it can't be read, which is logged unless the model is missing.
+[[nodiscard]] std::optional<GeometryAsset> ReadPieceModel(const Vfs& vfs, const PieceRecord& piece);
 
 }

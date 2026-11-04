@@ -112,8 +112,7 @@ PaletteTick PaletteControls::Tick(const sim::InputFrame& input, bool usesKeys, b
 }
 
 std::uint8_t PaletteControls::ColourOf(const PaletteEntry& entry) const {
-    return swatches_.Chosen().value_or(
-        catalog_->partSets.at(entry.set).choices.at(entry.choice).colour);
+    return swatches_.Chosen().value_or(catalog_->Choices(entry.set)[entry.choice].colour);
 }
 
 void PaletteControls::Render(PieceModels& models, std::span<const MenuPicture> under,
@@ -146,7 +145,7 @@ render::RenderView PaletteControls::DrawTile(PieceModels& models,
                                              std::span<const MenuPicture> under,
                                              const PaletteEntry& entry, const render::Rect& area,
                                              Tile& tile) const {
-    const assets::PartChoice& choice = catalog_->partSets.at(entry.set).choices.at(entry.choice);
+    const assets::PartChoice& choice = catalog_->Choices(entry.set)[entry.choice];
     const PartPreview& model =
         models.Model(catalog_->library.pieces.at(choice.piece), ColourOf(entry), 0);
     const render::Camera camera = TileCamera(model.bounds);

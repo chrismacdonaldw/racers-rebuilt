@@ -47,13 +47,18 @@ enum class BuildOutcome : std::uint8_t { None, CarChanged, TooManyPieces, Done }
 
 enum class BuildControls : std::uint8_t { Original, Palette };
 
+struct BuildMode {
+    BuildControls controls = BuildControls::Original;
+    bool offersExtraPieces = false;
+};
+
 struct BuildServices {
     const assets::Vfs* vfs = nullptr;
     CarStand* stand = nullptr;
-    const assets::PieceCatalog* catalog = nullptr;
+    assets::PieceCatalog* catalog = nullptr;
     const MenuText* text = nullptr;
     MenuSounds sounds;
-    BuildControls controls = BuildControls::Original;
+    BuildMode mode;
 };
 
 /// Draws over the edit car stand. What `services` points to must outlive it.
@@ -64,7 +69,7 @@ public:
         sim::BuiltCar car, std::vector<std::size_t> sets);
 
     void HandleKey(SDL_Keycode key, SDL_Keymod mod);
-    void UseControls(BuildControls controls);
+    void UseControls(BuildMode mode);
     [[nodiscard]] BuildOutcome Tick(const sim::InputFrame& input);
     [[nodiscard]] bool HoldsPointer() const { return menu_.Held().has_value(); }
 
@@ -106,6 +111,8 @@ private:
     void RenderScene(bool showsHeld, std::vector<render::RenderView>& views);
 
     void ShowPaletteSet();
+    void OfferExtraPieces(bool offers);
+    void DrawExtraSetLabel(std::vector<render::SpriteDraw>& sprites) const;
     [[nodiscard]] std::vector<PointerTarget> PaletteTargets() const;
     [[nodiscard]] BuildOutcome TickPalette(const sim::InputFrame& input);
     [[nodiscard]] GrabTick GrabFor(const sim::MenuPointer& pointer, const PaletteTick& tick,

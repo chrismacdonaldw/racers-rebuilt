@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "assets/game_path.hpp"
+#include "assets/ldraw_extra_pieces.hpp"
 #include "assets/material_library.hpp"
 #include "assets/merged_table.hpp"
 #include "assets/part_sets.hpp"
@@ -115,6 +116,16 @@ Result<void> LoadPartSets(const Vfs& vfs, PieceCatalog& catalog) {
     return {};
 }
 
+void AddExtraPieces(PieceCatalog& catalog) {
+    for (PieceRecord& extra : ExtraPieceRecords()) {
+        if (catalog.library.Find(extra.type, 0) == nullptr &&
+            catalog.library.Find(extra.name) == nullptr) {
+            catalog.extras.push_back({.piece = catalog.library.pieces.size()});
+            catalog.library.pieces.push_back(std::move(extra));
+        }
+    }
+}
+
 Result<std::optional<PieceLayer>> ReadPieceLayer(const Vfs& vfs, std::size_t layer,
                                                  std::string_view stem) {
     const std::string libraryFile = std::format("{}.LEB", stem);
@@ -172,9 +183,37 @@ std::string BinaryPartSetFile(std::string_view listed) {
     return ToUpperAscii(stem) + ".LEB";
 }
 
+std::span<const PartChoice> PieceCatalog::Choices(std::size_t set) const {
+    if (set == ExtraSet()) {
+        return extras;
+    }
+    return set < partSets.size() ? std::span(partSets[set].choices) : std::span<const PartChoice>();
+}
+
 const GeometryAsset* PieceCatalog::ModelOf(const PieceRecord& piece) const {
     const auto found = models.find(ToUpperAscii(piece.name));
     return found == models.end() ? nullptr : &found->second;
+}
+
+void PieceCatalog::ReadExtraModels(const Vfs& vfs) {
+    std::vector<std::uint16_t> types;
+    types.reserve(extras.size());
+    for (const PartChoice& extra : extras) {
+        types.push_back(library.pieces[extra.piece].type);
+    }
+    ReadExtraModels(vfs, types);
+}
+
+void PieceCatalog::ReadExtraModels(const Vfs& vfs, std::span<const std::uint16_t> types) {
+    for (const PartChoice& extra : extras) {
+        const PieceRecord& piece = library.pieces[extra.piece];
+        if (!std::ranges::contains(types, piece.type) || ModelOf(piece) != nullptr) {
+            continue;
+        }
+        if (std::optional<GeometryAsset> model = ReadPieceModel(vfs, piece)) {
+            models.emplace(ToUpperAscii(piece.name), std::move(*model));
+        }
+    }
 }
 
 Result<PieceCatalog> PieceCatalog::Load(const Vfs& vfs, PieceDetail detail) {
@@ -184,6 +223,7 @@ Result<PieceCatalog> PieceCatalog::Load(const Vfs& vfs, PieceDetail detail) {
         .transform(MergePieceLayers)
         .and_then([&](PieceLayer merged) {
             catalog.library = std::move(merged.library);
+            AddExtraPieces(catalog);
             catalog.materials = std::move(merged.materials);
             catalog.models = ReadPieceModels(vfs, catalog.library);
             return ReadPieceFile(vfs, "L_COLORS.LEB", ParsePieceColours);

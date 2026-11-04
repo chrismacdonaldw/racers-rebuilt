@@ -4,14 +4,17 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <utility>
 #include <vector>
 
+#include "app/menu/build_help.hpp"
 #include "app/menu/build_sounds.hpp"
 #include "app/menu/car_build_screen.hpp"
 #include "app/menu/grid_pick.hpp"
 #include "app/menu/menu_frame.hpp"
 #include "app/menu/menu_page.hpp"
+#include "app/menu/menu_widgets.hpp"
 
 namespace rr::app {
 namespace {
@@ -20,6 +23,7 @@ constexpr std::size_t kSetControl = 0;
 constexpr std::size_t kDoneControl = 1;
 constexpr std::size_t kDoneButton = 5;
 constexpr int kTurns = 4;
+constexpr std::u16string_view kExtraSetLabel = u"LDraw";
 
 std::optional<std::size_t> DirectionOf(const sim::InputFrame& input) {
     constexpr std::array kDirections{std::pair{sim::MenuAction::Up, std::size_t{0}},
@@ -36,8 +40,10 @@ std::optional<std::size_t> DirectionOf(const sim::InputFrame& input) {
 
 }
 
-void CarBuildScreen::UseControls(BuildControls controls) {
-    if ((controls == BuildControls::Palette) == (palette_ != nullptr)) {
+void CarBuildScreen::UseControls(BuildMode mode) {
+    const bool usesPalette = mode.controls == BuildControls::Palette;
+    OfferExtraPieces(usesPalette && mode.offersExtraPieces);
+    if (usesPalette == (palette_ != nullptr)) {
         return;
     }
     builder_.Release();
@@ -45,8 +51,8 @@ void CarBuildScreen::UseControls(BuildControls controls) {
     selected_.reset();
     blockers_.clear();
     grab_.Forget();
-    builder_.RecordEdits(controls == BuildControls::Palette);
-    if (controls == BuildControls::Original) {
+    builder_.RecordEdits(usesPalette);
+    if (!usesPalette) {
         palette_.reset();
         builder_.Choose(builder_.Choice());
         ShowSet();
@@ -63,6 +69,42 @@ void CarBuildScreen::ShowPaletteSet() {
     palette_->ShowSet(builder_.Set());
     if (hold_ == PaletteHold::None) {
         builder_.Release();
+    }
+}
+
+void CarBuildScreen::OfferExtraPieces(bool offers) {
+    const std::size_t extra = services_.catalog->ExtraSet();
+    const bool isOffered = !sets_.empty() && sets_.back() == extra;
+    if (offers == isOffered || services_.catalog->extras.empty()) {
+        return;
+    }
+    if (offers) {
+        services_.catalog->ReadExtraModels(*services_.vfs);
+        sets_.push_back(extra);
+        setIcons_.push_back(look_.setImages.size());
+    } else {
+        sets_.pop_back();
+        setIcons_.pop_back();
+    }
+    if (!offers && builder_.Set() == extra && !sets_.empty()) {
+        builder_.Release();
+        hold_ = PaletteHold::None;
+        set_ = 0;
+        builder_.SelectSet(sets_.front());
+        ShowSet();
+        ShowPaletteSet();
+    }
+    setStrip_.Snap(set_, sets_.size());
+}
+
+void CarBuildScreen::DrawExtraSetLabel(std::vector<render::SpriteDraw>& sprites) const {
+    const UiFont* font = services_.text->Font(kBuildHelpFont);
+    for (const std::optional<StripPage>& page : setStrip_.Pages()) {
+        if (font != nullptr && page && page->shift == 0.0F && page->item < sets_.size() &&
+            sets_[page->item] == services_.catalog->ExtraSet()) {
+            DrawSelectorValue(*font, kExtraSetLabel, look_.sets, kFocusedSelectorValueColor,
+                              sprites);
+        }
     }
 }
 
@@ -222,6 +264,7 @@ void CarBuildScreen::RenderPalette(std::vector<render::RenderView>& views,
     palette_->Render(models_, under_, views, sprites);
     DrawSelectorArrows(look_.arrows, look_.sets, true, sprites);
     DrawStrip(setStrip_, look_.setImages, setIcons_, look_.setBox, sprites);
+    DrawExtraSetLabel(sprites);
     const StateButton& done = look_.buttons.at(kDoneButton);
     sprites.push_back({.texture = done.images.at(kNormalState), .bounds = done.bounds});
 }

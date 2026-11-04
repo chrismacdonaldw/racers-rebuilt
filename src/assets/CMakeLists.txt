@@ -6,6 +6,7 @@ rr_add_module(assets
         bmp_image.cpp
         brick_layout.cpp
         byte_reader.cpp
+        car_data.cpp
         cgltf.cpp
         champion_database.cpp
         circuit_database.cpp
@@ -14,6 +15,7 @@ rr_add_module(assets
         collision_mesh.cpp
         cutscene_effects.cpp
         cutscene_timeline.cpp
+        derived_shape.cpp
         driver_database.cpp
         driver_model.cpp
         driver_parts.cpp
@@ -38,6 +40,7 @@ rr_add_module(assets
         jam.cpp
         ldraw.cpp
         ldraw_part.cpp
+        ldraw_extra_pieces.cpp
         ldraw_piece_table.cpp
         ldraw_pieces.cpp
         ldraw_prints.cpp

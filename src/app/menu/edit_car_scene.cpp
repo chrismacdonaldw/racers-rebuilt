@@ -68,6 +68,7 @@ Result<std::unique_ptr<EditCarScene>> EditCarScene::Create(render::Renderer& ren
                     std::format("car editor: {}", quickBuilds.error().message));
     }
     const settings::Racer& record = store->racers.at(racer.index);
+    pieces->ReadExtraModels(vfs, assets::PieceTypesOf(record.car));
     sim::BuiltCar built = LoadEditedCar(record.car, pieces->library);
     std::vector<std::size_t> sets = AvailablePartSets(partSets, built, *pieces);
     const std::size_t chassisSet =
@@ -122,7 +123,7 @@ void EditCarScene::OpenBuilder() {
                               .catalog = &car_.pieces,
                               .text = &text_,
                               .sounds = sounds_,
-                              .controls = buildControls_},
+                              .mode = buildMode_},
                              car_.built, car_.sets);
     if (!build) {
         log::Warn("{}, the car editor stays open", build.error().message);
@@ -145,10 +146,11 @@ void EditCarScene::ApplySettings(const settings::Registry& settings) {
     if (views_.stand) {
         views_.stand->DrawFarScenery(settings.Get(kFarScenerySetting));
     }
-    buildControls_ =
-        settings.Get(kEnhancedBuilder) ? BuildControls::Palette : BuildControls::Original;
+    buildMode_ = {.controls = settings.Get(kEnhancedBuilder) ? BuildControls::Palette
+                                                             : BuildControls::Original,
+                  .offersExtraPieces = settings.Get(kExtraPiecesSetting)};
     if (build_) {
-        build_->UseControls(buildControls_);
+        build_->UseControls(buildMode_);
     }
 }
 

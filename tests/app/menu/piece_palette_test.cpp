@@ -34,6 +34,18 @@ TEST_CASE("the palette shows only the chosen set's pieces") {
     CHECK(palette.Entries().empty());
 }
 
+TEST_CASE("the set past the last part set shows the extra pieces") {
+    assets::PieceCatalog catalog = Catalog();
+    catalog.extras.resize(3);
+    PiecePalette palette(kGrid);
+
+    palette.Show(catalog, catalog.ExtraSet());
+
+    REQUIRE(palette.Entries().size() == 3);
+    CHECK(palette.Entries().front() == PaletteEntry{.set = 2, .choice = 0});
+    CHECK(catalog.Choices(catalog.ExtraSet() + 1).empty());
+}
+
 TEST_CASE("tiles fill the grid row by row and scroll a row at a time") {
     const assets::PieceCatalog catalog = Catalog();
     PiecePalette palette(kGrid);

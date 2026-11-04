@@ -9,6 +9,7 @@
 #include <span>
 
 #include "app/menu/car_edit.hpp"
+#include "assets/ldraw_extra_pieces.hpp"
 #include "sim/car_build/car_pieces.hpp"
 #include "sim/car_build/retail_cars.hpp"
 
@@ -143,6 +144,25 @@ TEST_CASE_FIXTURE(Pieces, "a placed piece keeps the selected set's chassis type"
     CHECK(placed.partType == kTechnicChassis);
     CHECK(placed.colour == 5);
     CHECK(builder.Choice() == 1);
+}
+
+TEST_CASE_FIXTURE(Pieces, "an extra piece places with no part type and loads back unchanged") {
+    catalog.library.pieces.push_back(Block(assets::kFirstExtraPieceType, 2, 2, 1));
+    catalog.extras = {{.piece = catalog.library.pieces.size() - 1}};
+    CarBuilder builder = Builder();
+    builder.Pick(catalog.ExtraSet(), 0, 7);
+    builder.PutAt({.x = 3, .y = 2});
+
+    REQUIRE(builder.Place() == PlaceResult::Placed);
+
+    const sim::CarPiece& placed = builder.Car().Pieces().back();
+    CHECK(placed.partType == 0);
+    CHECK(placed.colour == 7);
+    const assets::CarData saved = builder.Car().Save();
+    const Result<sim::BuiltCar> loaded = sim::BuiltCar::Load(saved, catalog.library);
+    REQUIRE(loaded.has_value());
+    CHECK(loaded->Save() == saved);
+    CHECK(loaded->Pieces().back().piece->type == assets::kFirstExtraPieceType);
 }
 
 TEST_CASE_FIXTURE(Pieces, "undo reselects the set and choice the piece came from") {

@@ -202,6 +202,7 @@ add_executable(racers-rebuilt-tests
     assets/cutscene_effects_test.cpp
     assets/cutscene_retail_test.cpp
     assets/cutscene_timeline_test.cpp
+    assets/derived_shape_test.cpp
     assets/driver_database_test.cpp
     assets/driver_model_test.cpp
     assets/driver_parts_test.cpp
@@ -225,6 +226,7 @@ add_executable(racers-rebuilt-tests
     assets/install_test.cpp
     assets/jam_archive_test.cpp
     assets/jam_test.cpp
+    assets/ldraw_extra_pieces_test.cpp
     assets/ldraw_part_test.cpp
     assets/ldraw_pieces_test.cpp
     assets/ldraw_prints_test.cpp
