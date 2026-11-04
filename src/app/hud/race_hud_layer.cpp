@@ -142,7 +142,8 @@ std::span<const render::SpriteDraw> RaceHudLayer::Draw(
             DrawHudText(texts_, hud.Fonts(), sprites_);
             std::size_t first = sprites_.size();
             if (!isGhost) {
-                LayoutPowerupPanel(racers[player], images_, sprites_, placement.bottom);
+                LayoutPowerupPanel(racers[player], session.PowerupTunings().slots, images_,
+                                   sprites_, placement.bottom);
             }
             AnchorSprites(std::span(sprites_).subspan(first), render::SpriteAnchor::Left);
             first = sprites_.size();

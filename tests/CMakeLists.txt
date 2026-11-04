@@ -131,6 +131,7 @@ add_executable(racers-rebuilt-tests
     app/powerup/powerup_particles_test.cpp
     app/powerup/powerup_quads_test.cpp
     app/powerup/powerup_sounds_test.cpp
+    app/powerup/powerup_tuning_file_test.cpp
     app/powerup/powerup_visuals_test.cpp
     app/powerup/warp_start_test.cpp
     app/powerup/warp_tube_test.cpp

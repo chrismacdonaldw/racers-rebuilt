@@ -11,6 +11,7 @@
 #include "app/game_boot.hpp"
 #include "app/image_dump.hpp"
 #include "app/model_export.hpp"
+#include "app/powerup/powerup_tuning_file.hpp"
 #include "app/restart.hpp"
 #include "app/save_import.hpp"
 #include "app/texture_pack.hpp"
@@ -40,6 +41,9 @@ rr::Result<void> Run(std::span<const std::string_view> argv) {
     }
     if (boot->commandLine.imageDumpFolder) {
         return rr::app::DumpImages(boot->vfs, rr::PathFromUtf8(*boot->commandLine.imageDumpFolder));
+    }
+    if (boot->commandLine.powerupDumpFile) {
+        return rr::app::DumpPowerupTuning(rr::PathFromUtf8(*boot->commandLine.powerupDumpFile));
     }
     if (boot->commandLine.texturePackFolder) {
         return rr::app::DumpTexturePack(boot->vfs, boot->extensions.gameLayers - 1,

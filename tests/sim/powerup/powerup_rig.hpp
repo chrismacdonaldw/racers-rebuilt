@@ -85,6 +85,14 @@ public:
 
     void GiveWhite(std::size_t racer) { REQUIRE(inventories_[racer].TakeWhite(0)); }
 
+    void Use(assets::BrickColour colour, std::uint8_t level, std::uint8_t racer = 0) {
+        inventories_[racer].Grant(colour, level);
+        system_.BeginTick();
+        weapons_.Clear();
+        sim::PowerupContext context = Context();
+        system_.Use(racer, inventories_[racer], bricks_, context);
+    }
+
     void CrossFirstGate() {
         for (std::size_t i = 0; i < racers_.size(); ++i) {
             const Vector3 at = racers_[i].Body().motion.position;

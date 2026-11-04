@@ -33,12 +33,12 @@ TEST_CASE("the gameplay fingerprint names each enabled mod, its version and its 
 
     const std::string expected =
         std::format("mod:faster@1.2#{:016x}", mods.All().front().ContentHash());
-    CHECK(GameplayFingerprint(registry, mods, std::nullopt, {}) ==
+    CHECK(GameplayFingerprint(registry, mods, std::nullopt, {}, {}) ==
           std::vector<std::string>{expected});
 }
 
 TEST_CASE("the gameplay fingerprint records the overrides folder's hash") {
-    CHECK(GameplayFingerprint(settings::Registry{}, mods::ModList{}, 0xABCULL, {}) ==
+    CHECK(GameplayFingerprint(settings::Registry{}, mods::ModList{}, 0xABCULL, {}, {}) ==
           std::vector<std::string>{"overrides:0000000000000abc"});
 }
 
@@ -54,12 +54,12 @@ TEST_CASE("the gameplay fingerprint names gameplay settings away from their defa
     registry.Declare(kVsync);
     registry.Set(kSeconds, 3);
     registry.Set(kVsync, false);
-    CHECK(GameplayFingerprint(registry, mods::ModList{}, std::nullopt, {}).empty());
+    CHECK(GameplayFingerprint(registry, mods::ModList{}, std::nullopt, {}, {}).empty());
 
     registry.Set(kRespawn, false);
     registry.Set(kSeconds, 7);
 
-    CHECK(GameplayFingerprint(registry, mods::ModList{}, std::nullopt, {}) ==
+    CHECK(GameplayFingerprint(registry, mods::ModList{}, std::nullopt, {}, {}) ==
           std::vector<std::string>{"setting:race.respawn=false", "setting:race.respawn_seconds=7"});
 }
 
@@ -68,13 +68,13 @@ TEST_CASE("the gameplay fingerprint changes with the player's car but not their 
     const settings::Registry registry;
     PlayerRacers players{.first = settings::Racer{.name = "MINE", .chassis = "XXJMW"}};
     const std::vector<std::string> before =
-        GameplayFingerprint(registry, mods, std::nullopt, players);
+        GameplayFingerprint(registry, mods, std::nullopt, {}, players);
     players.first->trophies.emplace("c0", settings::Trophy::Gold);
     const std::vector<std::string> trophied =
-        GameplayFingerprint(registry, mods, std::nullopt, players);
+        GameplayFingerprint(registry, mods, std::nullopt, {}, players);
     players.first->car[0] = std::byte{1};
     const std::vector<std::string> rebuilt =
-        GameplayFingerprint(registry, mods, std::nullopt, players);
+        GameplayFingerprint(registry, mods, std::nullopt, {}, players);
 
     REQUIRE(before.size() == 1);
     CHECK(before.front().starts_with("racer:MINE@"));
@@ -82,11 +82,28 @@ TEST_CASE("the gameplay fingerprint changes with the player's car but not their 
     CHECK(rebuilt != before);
 }
 
+TEST_CASE("the gameplay fingerprint hashes power-up values only once they change") {
+    sim::PowerupTuning tuning;
+    CHECK(GameplayFingerprint(settings::Registry{}, mods::ModList{}, std::nullopt, tuning, {})
+              .empty());
+
+    tuning.missile.range = 600.0F;
+    const std::vector<std::string> longer =
+        GameplayFingerprint(settings::Registry{}, mods::ModList{}, std::nullopt, tuning, {});
+    tuning.missile.range = 700.0F;
+    const std::vector<std::string> longest =
+        GameplayFingerprint(settings::Registry{}, mods::ModList{}, std::nullopt, tuning, {});
+
+    REQUIRE(longer.size() == 1);
+    CHECK(longer.front().starts_with("powerups:"));
+    CHECK(longest != longer);
+}
+
 TEST_CASE("the gameplay fingerprint names player 2's racer apart from player 1's") {
     const settings::Racer racer{.name = "MINE", .chassis = "XXJMW"};
 
-    const std::vector<std::string> second =
-        GameplayFingerprint(settings::Registry{}, mods::ModList{}, std::nullopt, {.second = racer});
+    const std::vector<std::string> second = GameplayFingerprint(
+        settings::Registry{}, mods::ModList{}, std::nullopt, {}, {.second = racer});
 
     REQUIRE(second.size() == 1);
     CHECK(second.front().starts_with("racer2:MINE@"));

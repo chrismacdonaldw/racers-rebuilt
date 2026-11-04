@@ -109,8 +109,8 @@ struct ShieldTuning {
 
 /// Indexed by level.
 struct TurboTuning {
-    std::array<TurboLevel, kMaxPowerupLevel> levels{TurboLevel::Weak, TurboLevel::Strong,
-                                                    TurboLevel::Hover};
+    std::array<TurboLevel, kMaxPowerupLevel + 1> levels{TurboLevel::Weak, TurboLevel::Strong,
+                                                        TurboLevel::Hover, TurboLevel::Hover};
 };
 
 struct WarpTuning {
@@ -121,6 +121,7 @@ struct WarpTuning {
 
 /// Defaults are the original game's values.
 struct PowerupTuning {
+    PowerupSlots slots = kOriginalSlots;
     CannonballTuning cannonball;
     GrappleTuning grapple;
     LightningTuning lightning;

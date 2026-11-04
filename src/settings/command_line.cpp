@@ -32,6 +32,7 @@ constexpr std::array kTextFlags{
     TextFlag{.flag = "--dump-images", .field = &CommandLine::imageDumpFolder},
     TextFlag{.flag = "--dump-textures", .field = &CommandLine::texturePackFolder},
     TextFlag{.flag = "--export-gltf", .field = &CommandLine::gltfExportFolder},
+    TextFlag{.flag = "--dump-powerups", .field = &CommandLine::powerupDumpFile},
     TextFlag{.flag = "--track", .field = &CommandLine::track},
     TextFlag{.flag = "--race", .field = &CommandLine::race},
     TextFlag{.flag = "--cutscene", .field = &CommandLine::cutscene},

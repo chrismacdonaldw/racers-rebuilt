@@ -33,6 +33,36 @@ TEST_CASE("missiles launch at their tuned arm times") {
     CHECK(PhaseOf(rig, 2) == static_cast<std::uint8_t>(ShotPhase::Armed));
 }
 
+TEST_CASE("missiles armed for 1 ms launch on their first tick") {
+    Rig rig;
+    PowerupTuning tuning;
+    tuning.missile.armTimes = {Milliseconds{1}, Milliseconds{1}, Milliseconds{1}};
+    rig.Tune(tuning);
+    rig.Fire(BrickColour::Red, 3);
+
+    rig.TickFor(1);
+
+    for (std::size_t shot = 0; shot < 3; ++shot) {
+        CHECK(PhaseOf(rig, shot) == static_cast<std::uint8_t>(ShotPhase::Flying));
+    }
+}
+
+TEST_CASE("a racer's brick fires its tuned slot, while a direct fire keeps the original") {
+    Rig rig;
+    PowerupTuning tuning;
+    tuning.slots[static_cast<std::size_t>(BrickColour::Yellow)][0] = PowerupKind::Shield;
+    rig.Tune(tuning);
+
+    rig.Use(BrickColour::Yellow, 0);
+    rig.Fire(BrickColour::Yellow, 0);
+
+    const PowerupSystem& system = rig.System();
+    REQUIRE(system.Active().size() == 2);
+    CHECK(system.Slots()[system.Active()[0]].kind == PowerupKind::Shield);
+    CHECK(system.Slots()[system.Active()[1]].kind == PowerupKind::OilSlick);
+    CHECK(rig.Car().IsShielded());
+}
+
 TEST_CASE("an untouched oil slick lasts its tuned lifetime") {
     Rig rig;
     PowerupTuning tuning;

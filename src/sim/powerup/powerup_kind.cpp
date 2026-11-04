@@ -7,11 +7,6 @@
 namespace rr::sim {
 namespace {
 
-constexpr std::array kRedKinds{PowerupKind::Cannonball, PowerupKind::GrapplingHook,
-                               PowerupKind::Lightning, PowerupKind::Missile};
-constexpr std::array kYellowKinds{PowerupKind::OilSlick, PowerupKind::Dynamite, PowerupKind::Magnet,
-                                  PowerupKind::Curse};
-
 constexpr std::array<PowerupKindSpec, kPowerupKindCount> kSpecs{{
     {.poolSize = 4},
     {.poolSize = 3},
@@ -28,19 +23,9 @@ constexpr std::array<PowerupKindSpec, kPowerupKindCount> kSpecs{{
 
 }
 
-PowerupKind KindFor(assets::BrickColour colour, std::uint8_t level) {
+PowerupKind KindFor(assets::BrickColour colour, std::uint8_t level, const PowerupSlots& slots) {
     RR_ASSERT(level <= kMaxPowerupLevel);
-    switch (colour) {
-        case assets::BrickColour::Red:
-            return kRedKinds.at(level);
-        case assets::BrickColour::Yellow:
-            return kYellowKinds.at(level);
-        case assets::BrickColour::Blue:
-            return PowerupKind::Shield;
-        case assets::BrickColour::Green:
-            return level == kMaxPowerupLevel ? PowerupKind::Warp : PowerupKind::Turbo;
-    }
-    return PowerupKind::Turbo;
+    return slots.at(static_cast<std::size_t>(colour)).at(level);
 }
 
 const PowerupKindSpec& SpecFor(PowerupKind kind) {

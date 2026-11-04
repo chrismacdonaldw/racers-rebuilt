@@ -54,11 +54,12 @@ public:
 
     void BeginTick();
 
-    /// Fires and spends what `inventory` holds, or taunts when it holds no colour.
+    /// Fires and spends what `inventory` holds through the tuned slots, or taunts when it holds no
+    /// colour.
     void Use(std::size_t racer, PowerupInventory& inventory, BrickField& bricks,
              PowerupContext& context);
 
-    /// Skips a launch when entities run short, or the pool is full with no effect of this level.
+    /// Fires the original game's kind for the colour and level, ignoring the tuned slots.
     void Fire(const PowerupUse& use, PowerupContext& context);
 
     void Tick(Milliseconds elapsed, PowerupContext& context);
@@ -78,6 +79,8 @@ public:
     [[nodiscard]] std::span<const PowerupEvent> Events() const { return events_; }
 
 private:
+    /// Skips a launch when entities run short, or the pool is full with no effect of this level.
+    void Launch(PowerupKind kind, const PowerupUse& use, PowerupContext& context);
     [[nodiscard]] std::optional<std::size_t> FreeSlot(PowerupKind kind) const;
     [[nodiscard]] std::optional<std::size_t> Reclaim(PowerupKind kind, std::uint8_t level,
                                                      PowerupContext& context);

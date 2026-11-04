@@ -191,7 +191,7 @@ Modifiers apply to all racers from the next race of any kind, circuits and time 
 Once a setting in **Mods** changes, two items appear there:
 
 - **Apply now** remounts the mods and overrides, reloads the music, and returns to the main menu. It isn't offered while recording or playing a replay.
-- **Restart now** relaunches the game with the same command line, minus `--record`, `--replay`, `--import-save`, `--dump-images`, `--dump-textures` and `--export-gltf`.
+- **Restart now** relaunches the game with the same command line, minus `--record`, `--replay`, `--import-save`, `--dump-images`, `--dump-textures`, `--export-gltf` and `--dump-powerups`.
 
 A newly added mod folder, or a change to the menu cursor, still needs a restart.
 
@@ -267,6 +267,7 @@ name = "Race night"
 | `--cutscene <folder>/<file>` | Play a menu cutscene on a loop instead of the main menu, by its `MENUDATA` folder and file, e.g. `CIRCUIT1/CIR1-01` |
 | `--dump-textures <folder>` | Write every image in `LEGO.JAM` as a PNG texture pack and exit. See [Make a texture pack](MODDING.md#make-a-texture-pack). |
 | `--export-gltf <folder>` | Write every model in `LEGO.JAM` as a `.glb` and exit. See [Models](MODDING.md#models). |
+| `--dump-powerups <file>` | Write every power-up value as a `POWERUPS.TOML` and exit. See [Power-ups](MODDING.md#power-ups). |
 | `--check-mods` | Check every mod and exit. Each problem is logged with its `mod.toml`, and a message lists them all. See [Dependencies](MODDING.md#dependencies). |
 
 ```powershell

@@ -1,8 +1,12 @@
 #include "app/gameplay_fingerprint.hpp"
 
 #include <format>
+#include <optional>
+#include <string>
+#include <utility>
 #include <variant>
 
+#include "app/powerup/powerup_tuning_file.hpp"
 #include "app/racer/racer_ref.hpp"
 #include "mods/mod.hpp"
 
@@ -27,6 +31,7 @@ void AppendChangedSettings(const settings::Registry& settings, std::vector<std::
 std::vector<std::string> GameplayFingerprint(const settings::Registry& settings,
                                              const mods::ModList& mods,
                                              std::optional<std::uint64_t> overridesHash,
+                                             const sim::PowerupTuning& powerups,
                                              const PlayerRacers& players) {
     std::vector<std::string> entries;
     for (const mods::Mod* mod : mods.Enabled(settings)) {
@@ -35,6 +40,9 @@ std::vector<std::string> GameplayFingerprint(const settings::Registry& settings,
     }
     if (overridesHash) {
         entries.push_back(std::format("overrides:{:016x}", *overridesHash));
+    }
+    if (std::optional<std::string> tuning = PowerupTuningFingerprint(powerups)) {
+        entries.push_back(std::move(*tuning));
     }
     AppendChangedSettings(settings, entries);
     for (const auto& [key, racer] :

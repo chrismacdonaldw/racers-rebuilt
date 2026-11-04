@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 
+#include "app/powerup/powerup_tuning_file.hpp"
 #include "app/race_step.hpp"
 #include "assets/race_catalog.hpp"
 #include "core/log.hpp"
@@ -46,6 +47,7 @@ sim::RaceSetup GridSetup(const assets::Vfs& vfs, const RaceSceneSetup& scene,
                          .aiCraft = scene.aiCraft,
                          .aiSkill = scene.aiSkill,
                          .effects = sim::EveryEffect(scene.warp),
+                         .powerups = LoadPowerupTuning(vfs),
                          .cheats = scene.cheats,
                          .modifiers = scene.modifiers.rules,
                          .playerCheats = scene.playerCheats,
