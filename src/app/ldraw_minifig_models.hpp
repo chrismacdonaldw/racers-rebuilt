@@ -12,8 +12,16 @@
 #include "assets/ldraw_part.hpp"
 #include "assets/vfs.hpp"
 #include "mods/enhancement.hpp"
+#include "settings/setting_spec.hpp"
 
 namespace rr::app {
+
+inline constexpr settings::SettingSpec<bool> kLdrawMinifigsSetting{
+    .key = "enhancements.ldraw_minifigs",
+    .defaultValue = false,
+    .label = "LDraw minifigs (beta, very buggy)",
+    .category = "Enhancements/Visuals",
+    .tooltip = "Drivers can bend, stretch and clip in odd ways."};
 
 class LdrawMinifigModels final : public mods::Enhancement {
 public:

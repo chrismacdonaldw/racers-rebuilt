@@ -5,7 +5,6 @@
 #include <span>
 #include <utility>
 
-#include "app/ldraw_piece_models.hpp"
 #include "assets/geometry_database.hpp"
 #include "assets/geometry_writer.hpp"
 #include "assets/ldraw_minifig.hpp"
@@ -72,11 +71,13 @@ Result<std::vector<std::byte>> FitHeads(assets::LdrawLibrary& library,
 
 }
 
-void LdrawMinifigModels::DeclareSettings([[maybe_unused]] settings::Registry& registry) const {}
+void LdrawMinifigModels::DeclareSettings(settings::Registry& registry) const {
+    registry.Declare(kLdrawMinifigsSetting);
+}
 
 void LdrawMinifigModels::Attach(mods::HookRegistry& hooks, const settings::Registry& settings) {
     hooks.Subscribe<mods::AssetResolving>([this, &settings](mods::AssetResolving& event) {
-        if (event.request.generated || !settings.Get(kLdrawPiecesSetting)) {
+        if (event.request.generated || !settings.Get(kLdrawMinifigsSetting)) {
             return;
         }
         if (std::optional<std::vector<std::byte>> file = ModelFile(event.vfs, event.request.path)) {
