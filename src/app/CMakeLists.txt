@@ -55,6 +55,7 @@ rr_add_module(app
         hazard/crane_shadow.cpp
         hazard/ghost_trail.cpp
         hazard/water_scroll.cpp
+        hazard/hazard_fx_effects.cpp
         hazard/hazard_materials.cpp
         hazard/hazard_particles.cpp
         hazard/hazard_sounds.cpp
