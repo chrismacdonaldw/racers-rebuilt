@@ -13,7 +13,6 @@
 #include <utility>
 #include <vector>
 
-#include "app/ldraw_piece_models.hpp"
 #include "app/racer/racer_models.hpp"
 #include "assets/archive_survey.hpp"
 #include "assets/folder_layer.hpp"
@@ -31,12 +30,12 @@ constexpr std::string_view kRaceBody = "MENUDATA/PARTDB/GAMEPART/LEG_BOX.GDB";
 class MinifigFixture {
 public:
     explicit MinifigFixture(assets::Vfs vfs) : vfs_(std::move(vfs)) {
-        settings_.Declare(kLdrawPiecesSetting);
+        settings_.Declare(kLdrawMinifigsSetting);
         mods::ResolveThroughHooks(vfs_, hooks_);
         models_.Attach(hooks_, settings_);
     }
 
-    void Turn(bool isEnabled) { settings_.Set(kLdrawPiecesSetting, isEnabled); }
+    void Turn(bool isEnabled) { settings_.Set(kLdrawMinifigsSetting, isEnabled); }
 
     [[nodiscard]] assets::Vfs& Vfs() { return vfs_; }
 

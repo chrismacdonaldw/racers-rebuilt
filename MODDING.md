@@ -394,7 +394,7 @@ A model at `MENUDATA/PIECEDB/MODELS/<brick name>.GDB`, or a `.glb` there, replac
 - A material named `piece` (case doesn't matter) takes the colour the brick is placed in. Other names pick a material from `LPIECEHI.MDB`.
 - The model draws its own studs: the game adds none on the brick's cells.
 - **LDraw pieces** (`enhancements.ldraw_pieces`) draws the bricks, minifig accessories and other car pieces that match parts in the shipped LDraw library this way. A mod's model wins over it.
-- The same setting rebuilds the driver bodies in `MENUDATA/PARTDB/MENUPART` and `GAMEPART`, and the heads in their `.GCB` libraries, from LDraw minifig parts. A mod's body `.GDB` or head library wins over it.
+- **LDraw minifigs** (`enhancements.ldraw_minifigs`, beta) rebuilds the driver bodies in `MENUDATA/PARTDB/MENUPART` and `GAMEPART`, and the heads in their `.GCB` libraries, from LDraw minifig parts. A mod's body `.GDB` or head library wins over it.
 
 ## Overrides
 
