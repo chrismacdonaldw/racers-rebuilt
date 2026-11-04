@@ -119,6 +119,8 @@ target_sources(racers-rebuilt-tests PRIVATE
     app/menu/side_tiles_test.cpp
     app/menu/stand_scene_test.cpp
     app/menu/track_preview_test.cpp
+    app/menu/workshop/bench_drag_test.cpp
+    app/menu/workshop/bench_pick_test.cpp
     app/menu/workshop/orbit_camera_test.cpp
     app/menu/workshop/workshop_scenery_test.cpp
     app/menu_pointer_test.cpp

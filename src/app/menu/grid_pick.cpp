@@ -33,29 +33,31 @@ std::optional<Ray> RayInCar(const GridView& at, float x, float y) {
 
 }
 
-std::optional<GridCellPick> PickGridCell(const GridView& at, const sim::CarGrid& grid, float x,
-                                         float y) {
+std::optional<GridHit> HitGridCell(const GridView& at, const sim::CarGrid& grid, float x, float y) {
     const std::optional<Ray> ray = RayInCar(at, x, y);
     if (!ray || ray->direction.z >= 0.0F) {
         return std::nullopt;
     }
-    std::optional<GridCellPick> nearest;
-    float nearestDistance = 0.0F;
-    for (int cellX = 0; cellX < sim::kCarGridWidth; ++cellX) {
-        for (int cellY = 0; cellY < sim::kCarGridDepth; ++cellY) {
+    std::optional<GridHit> nearest;
+    for (int cellX = 0; cellX < grid.Size().width; ++cellX) {
+        for (int cellY = 0; cellY < grid.Size().height; ++cellY) {
             const float top =
                 at.corner.z + (static_cast<float>(grid.At(cellX, cellY).height) * kPlateHeight);
             const float distance = (top - ray->origin.z) / ray->direction.z;
             const Vector3 hit = ray->origin + (ray->direction * distance);
             const bool isInside = std::floor(hit.x - at.corner.x) == static_cast<float>(cellX) &&
                                   std::floor(hit.y - at.corner.y) == static_cast<float>(cellY);
-            if (distance > 0.0F && isInside && (!nearest || distance < nearestDistance)) {
-                nearest = GridCellPick{.x = cellX, .y = cellY};
-                nearestDistance = distance;
+            if (distance > 0.0F && isInside && (!nearest || distance < nearest->distance)) {
+                nearest = GridHit{.cell = {.x = cellX, .y = cellY}, .distance = distance};
             }
         }
     }
     return nearest;
+}
+
+std::optional<GridCellPick> PickGridCell(const GridView& at, const sim::CarGrid& grid, float x,
+                                         float y) {
+    return HitGridCell(at, grid, x, y).transform([](const GridHit& hit) { return hit.cell; });
 }
 
 std::optional<std::size_t> PickPiece(const GridView& at, const sim::BuiltCar& car, float x,
@@ -68,12 +70,13 @@ std::optional<std::size_t> PickPiece(const GridView& at, const sim::BuiltCar& ca
     return height > 0 ? car.PieceAt(cell->x, cell->y, height - 1) : std::nullopt;
 }
 
-sim::PiecePlacement CentredOn(GridCellPick cell, assets::CellSize size, unsigned rotation) {
-    return {.x = std::clamp(cell.x - ((size.width - 1) / 2), 0,
-                            std::max(sim::kCarGridWidth - size.width, 0)),
-            .y = std::clamp(cell.y - ((size.height - 1) / 2), 0,
-                            std::max(sim::kCarGridDepth - size.height, 0)),
-            .rotation = rotation};
+sim::PiecePlacement CentredOn(GridCellPick cell, assets::CellSize size, unsigned rotation,
+                              assets::CellSize area) {
+    return {
+        .x = std::clamp(cell.x - ((size.width - 1) / 2), 0, std::max(area.width - size.width, 0)),
+        .y =
+            std::clamp(cell.y - ((size.height - 1) / 2), 0, std::max(area.height - size.height, 0)),
+        .rotation = rotation};
 }
 
 }

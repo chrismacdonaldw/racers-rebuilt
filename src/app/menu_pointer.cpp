@@ -1,5 +1,6 @@
 #include "app/menu_pointer.hpp"
 
+#include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_mouse.h>
 #include <SDL3/SDL_video.h>
 
@@ -68,7 +69,8 @@ void MenuPointer::Handle(const SDL_Event& event, sim::InputLatch& latch) {
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             Move(event.button.x, event.button.y, latch);
-            latch.PressPointer(ButtonOf(event.button.button));
+            latch.PressPointer(ButtonOf(event.button.button),
+                               (SDL_GetModState() & SDL_KMOD_SHIFT) != 0);
             break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
             Move(event.button.x, event.button.y, latch);

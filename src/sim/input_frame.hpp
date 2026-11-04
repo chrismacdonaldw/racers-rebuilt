@@ -54,9 +54,14 @@ struct MenuPointer {
     bool moved = false;
     bool pressed = false;
     bool rightPressed = false;
+    bool middlePressed = false;
     bool released = false;
+    /// Whether Shift was down at the newest press.
+    bool isShifted = false;
     /// The buttons down at the end of the tick, one bit per `PointerButton`.
     std::uint8_t held = 0;
+
+    [[nodiscard]] bool LeftPressed() const { return pressed && !rightPressed && !middlePressed; }
 
     [[nodiscard]] bool IsHeld(PointerButton button) const {
         return ((held >> static_cast<unsigned>(button)) & 1U) != 0;

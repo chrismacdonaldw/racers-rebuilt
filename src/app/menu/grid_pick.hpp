@@ -29,6 +29,16 @@ struct GridCellPick {
     friend bool operator==(const GridCellPick&, const GridCellPick&) = default;
 };
 
+/// `distance` only compares hits along the same ray.
+struct GridHit {
+    GridCellPick cell;
+    float distance = 0.0F;
+};
+
+/// The cell whose top the ray through canvas point (`x`, `y`) meets first.
+[[nodiscard]] std::optional<GridHit> HitGridCell(const GridView& at, const sim::CarGrid& grid,
+                                                 float x, float y);
+
 /// The cell whose top the ray through canvas point (`x`, `y`) meets first.
 [[nodiscard]] std::optional<GridCellPick> PickGridCell(const GridView& at, const sim::CarGrid& grid,
                                                        float x, float y);
@@ -37,8 +47,9 @@ struct GridCellPick {
 [[nodiscard]] std::optional<std::size_t> PickPiece(const GridView& at, const sim::BuiltCar& car,
                                                    float x, float y);
 
-/// Clamped so the whole footprint stays on the grid.
+/// Clamped so the whole footprint stays on a grid of `area`.
 [[nodiscard]] sim::PiecePlacement CentredOn(GridCellPick cell, assets::CellSize size,
-                                            unsigned rotation);
+                                            unsigned rotation,
+                                            assets::CellSize area = assets::kBuildGridSize);
 
 }
