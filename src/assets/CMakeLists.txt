@@ -41,6 +41,7 @@ rr_add_module(assets
         ldraw.cpp
         ldraw_part.cpp
         ldraw_extra_pieces.cpp
+        ldraw_minifig.cpp
         ldraw_piece_table.cpp
         ldraw_pieces.cpp
         ldraw_prints.cpp
@@ -52,9 +53,12 @@ rr_add_module(assets
         material_library.cpp
         menu_layout.cpp
         menu_styles.cpp
+        minifig_fit.cpp
+        minifig_head_fit.cpp
         mirror.cpp
         original_save.cpp
         part_library.cpp
+        part_library_writer.cpp
         part_sets.cpp
         path_index.cpp
         piece_catalog.cpp
@@ -76,6 +80,7 @@ rr_add_module(assets
         stb_image.cpp
         string_table.cpp
         surface_table.cpp
+        surface_transfer.cpp
         target_points.cpp
         texture_database.cpp
         tga_image.cpp

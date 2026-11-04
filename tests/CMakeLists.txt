@@ -63,6 +63,7 @@ add_executable(racers-rebuilt-tests
     app/free_camera_test.cpp
     app/hq_textures_test.cpp
     app/ldraw_driver_prints_test.cpp
+    app/ldraw_minifig_models_test.cpp
     app/ldraw_piece_models_test.cpp
     app/input_bindings_test.cpp
     app/install_discovery_test.cpp
@@ -228,6 +229,7 @@ add_executable(racers-rebuilt-tests
     assets/jam_archive_test.cpp
     assets/jam_test.cpp
     assets/ldraw_extra_pieces_test.cpp
+    assets/ldraw_minifig_test.cpp
     assets/ldraw_part_test.cpp
     assets/ldraw_pieces_test.cpp
     assets/ldraw_prints_test.cpp
@@ -240,9 +242,11 @@ add_executable(racers-rebuilt-tests
     assets/merged_table_test.cpp
     assets/menu_layout_test.cpp
     assets/menu_styles_test.cpp
+    assets/minifig_fit_test.cpp
     assets/mirror_test.cpp
     assets/original_save_test.cpp
     assets/part_library_test.cpp
+    assets/part_library_writer_test.cpp
     assets/piece_merge_test.cpp
     assets/piece_models_test.cpp
     assets/model_survey_test.cpp
@@ -261,6 +265,7 @@ add_executable(racers-rebuilt-tests
     assets/start_grid_test.cpp
     assets/string_table_test.cpp
     assets/surface_table_test.cpp
+    assets/surface_transfer_test.cpp
     assets/target_points_test.cpp
     assets/texture_database_test.cpp
     assets/tga_image_test.cpp

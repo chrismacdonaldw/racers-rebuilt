@@ -38,13 +38,21 @@ template <typename Entry>
     return merged;
 }
 
-/// Lowest layer first. A higher copy that doesn't parse is skipped with a warning.
+/// Lowest layer first. A higher copy that doesn't parse is skipped with a warning. A file only one
+/// layer has is read through the resolver.
 template <typename T>
 [[nodiscard]] Result<std::vector<T>> ParseEveryLayer(
     const Vfs& vfs, std::string_view path, Result<T> (*parse)(std::span<const std::byte>)) {
     Result<std::vector<FileData>> files = vfs.ReadEveryLayer(path);
     if (!files) {
         return std::unexpected(std::move(files.error()));
+    }
+    if (files->size() == 1) {
+        Result<FileData> resolved = vfs.Read(path);
+        if (!resolved) {
+            return std::unexpected(std::move(resolved.error()));
+        }
+        files->front() = std::move(*resolved);
     }
     if (files->empty()) {
         return Fail(ErrorCode::NotFound,
