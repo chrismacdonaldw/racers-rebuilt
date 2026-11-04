@@ -248,6 +248,7 @@ add_executable(racers-rebuilt-tests
     assets/menu_layout_test.cpp
     assets/menu_styles_test.cpp
     assets/minifig_fit_test.cpp
+    assets/minifig_skin_test.cpp
     assets/mirror_test.cpp
     assets/original_save_test.cpp
     assets/part_library_test.cpp

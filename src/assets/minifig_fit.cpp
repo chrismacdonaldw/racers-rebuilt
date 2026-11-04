@@ -17,6 +17,7 @@
 
 #include "assets/game_path.hpp"
 #include "assets/ldraw_part.hpp"
+#include "assets/minifig_skin.hpp"
 #include "assets/surface_transfer.hpp"
 #include "core/transform.hpp"
 
@@ -179,21 +180,17 @@ std::optional<std::size_t> JointNamed(const SkeletonAsset& skeleton, std::string
 }
 
 Result<void> Swing(std::vector<PlacedPiece>& pieces, std::string_view swingJoint, const Rest& rest,
-                   const SkeletonAsset& skeleton, const Vector3& anchor) {
+                   const SkeletonAsset& skeleton) {
     const std::optional<std::size_t> joint = JointNamed(skeleton, swingJoint);
     if (!joint || *joint >= rest.joints.size()) {
         return Fail(ErrorCode::InvalidData, std::format("the body has no {} joint", swingJoint));
     }
     const Vector3 shoulder = rest.joints[*joint].position;
-    std::optional<Vector3> pivot;
     std::vector<Vector3> figurePoints;
     std::vector<Vector3> bodyPoints;
     for (const PlacedPiece& placed : pieces) {
         if (placed.piece->swingJoint != swingJoint) {
             continue;
-        }
-        if (!pivot) {
-            pivot = FigurePoint(placed.piece->placement.position, anchor);
         }
         for (const FigureVertex& vertex : placed.vertices) {
             figurePoints.push_back(vertex.position);
@@ -202,17 +199,17 @@ Result<void> Swing(std::vector<PlacedPiece>& pieces, std::string_view swingJoint
             bodyPoints.insert(bodyPoints.end(), triangle.corners.begin(), triangle.corners.end());
         }
     }
-    if (!pivot) {
+    if (figurePoints.empty()) {
         return {};
     }
     const Quaternion turn =
-        Between(TipOf(figurePoints, *pivot) - *pivot, TipOf(bodyPoints, shoulder) - shoulder);
+        Between(TipOf(figurePoints, shoulder) - shoulder, TipOf(bodyPoints, shoulder) - shoulder);
     for (PlacedPiece& placed : pieces) {
         if (placed.piece->swingJoint != swingJoint) {
             continue;
         }
         for (FigureVertex& vertex : placed.vertices) {
-            vertex.position = shoulder + Rotate(turn, vertex.position - *pivot);
+            vertex.position = shoulder + Rotate(turn, vertex.position - shoulder);
             vertex.normal = Rotate(turn, vertex.normal);
         }
     }
@@ -230,48 +227,92 @@ std::vector<std::string_view> SwingJoints(std::span<const FigurePiece> pieces) {
     return joints;
 }
 
-std::uint16_t FollowedJoint(const SkeletonAsset& skeleton, const MinifigPiece& piece) {
-    if (!piece.swingJoint.empty()) {
-        if (const std::optional<std::size_t> joint = JointNamed(skeleton, piece.swingJoint)) {
-            return static_cast<std::uint16_t>(*joint);
+struct Bone {
+    std::uint16_t joint = 0;
+    Vector3 from;
+    Vector3 to;
+};
+
+std::vector<Bone> BonesOf(const MinifigPiece& piece, const Rest& rest,
+                          const SkeletonAsset& skeleton) {
+    std::vector<Bone> bones;
+    for (std::size_t joint = 0; joint < rest.joints.size(); ++joint) {
+        if (!std::ranges::any_of(piece.bones, [&](std::string_view prefix) {
+                return IsJoint(skeleton, joint, prefix);
+            })) {
+            continue;
+        }
+        const auto id = static_cast<std::uint16_t>(joint);
+        const Vector3 from = rest.joints[joint].position;
+        bones.push_back({.joint = id, .from = from, .to = from});
+        for (std::size_t child = joint + 1; child < rest.joints.size(); ++child) {
+            if (skeleton.nodes[child].parent == joint) {
+                bones.push_back({.joint = id, .from = from, .to = rest.joints[child].position});
+            }
         }
     }
-    for (const std::string_view prefix : piece.joints) {
-        if (const std::optional<std::size_t> joint = JointNamed(skeleton, prefix)) {
-            return static_cast<std::uint16_t>(*joint);
-        }
+    return bones;
+}
+
+float DistanceSquaredToBone(const Vector3& point, const Bone& bone) {
+    const Vector3 along = bone.to - bone.from;
+    const float lengthSquared = Dot(along, along);
+    const float t = lengthSquared > 0.0F
+                        ? std::clamp(Dot(point - bone.from, along) / lengthSquared, 0.0F, 1.0F)
+                        : 0.0F;
+    const Vector3 offset = bone.from + (along * t) - point;
+    return Dot(offset, offset);
+}
+
+JointLocator LocatorOf(const PlacedPiece& placed, const Rest& rest, const SkeletonAsset& skeleton) {
+    std::vector<Bone> bones = BonesOf(*placed.piece, rest, skeleton);
+    if (bones.empty()) {
+        return [&surface = placed.surface](const Vector3& point) {
+            const SurfacePoint nearest = NearestSurfacePoint(surface, point, {});
+            return nearest.triangle == nullptr ? std::uint16_t{0} : nearest.triangle->joint;
+        };
     }
-    return 0;
+    return [bones = std::move(bones)](const Vector3& point) {
+        return std::ranges::min(
+                   bones, {}, [&](const Bone& bone) { return DistanceSquaredToBone(point, bone); })
+            .joint;
+    };
 }
 
 using Buckets = std::map<std::pair<std::uint32_t, std::uint16_t>, std::vector<GeometryVertex>>;
 
 void Bind(const PlacedPiece& placed, const Rest& rest, const SkeletonAsset& skeleton,
           std::uint32_t material, Buckets& buckets) {
-    const std::uint16_t joint = FollowedJoint(skeleton, *placed.piece);
-    const Transform undo = Inverse(JointAt(rest.joints, joint));
-    std::vector<GeometryVertex>& bucket = buckets[{material, joint}];
+    const JointLocator locator = LocatorOf(placed, rest, skeleton);
     for (std::size_t first = 0; first + 2 < placed.indices.size(); first += 3) {
-        std::array<const FigureVertex*, 3> corners{};
+        std::array<SkinCorner, 3> corners;
         for (std::size_t corner = 0; corner < 3; ++corner) {
-            corners.at(corner) = &placed.vertices.at(placed.indices[first + corner]);
+            const FigureVertex& vertex = placed.vertices.at(placed.indices[first + corner]);
+            corners.at(corner) = {.position = vertex.position, .normal = vertex.normal};
         }
-        const Vector3 facing = Normalized(Cross(corners[1]->position - corners[0]->position,
-                                                corners[2]->position - corners[0]->position),
+        const Vector3 facing = Normalized(Cross(corners[1].position - corners[0].position,
+                                                corners[2].position - corners[0].position),
                                           {});
         if (Dot(facing, facing) == 0.0F) {
             continue;
         }
-        const std::array<SurfacePoint, 3> sources = NearestSurfacePoints(
-            placed.surface, {corners[0]->position, corners[1]->position, corners[2]->position},
-            facing);
-        for (std::size_t corner = 0; corner < 3; ++corner) {
-            bucket.push_back({.position = Apply(undo, corners.at(corner)->position),
-                              .normal = Rotate(undo.rotation, corners.at(corner)->normal),
-                              .u = sources.at(corner).u,
-                              .v = sources.at(corner).v,
-                              .rgba = kOpaqueWhite,
-                              .joint = joint});
+        for (const SkinnedTriangle& skinned : SkinTriangle(locator, corners)) {
+            const std::array<SurfacePoint, 3> sources =
+                NearestSurfacePoints(placed.surface,
+                                     {skinned.corners[0].position, skinned.corners[1].position,
+                                      skinned.corners[2].position},
+                                     facing);
+            std::vector<GeometryVertex>& bucket = buckets[{material, skinned.joints[0]}];
+            for (std::size_t corner = 0; corner < 3; ++corner) {
+                const Transform undo = Inverse(JointAt(rest.joints, skinned.joints.at(corner)));
+                bucket.push_back(
+                    {.position = Apply(undo, skinned.corners.at(corner).position),
+                     .normal = Rotate(undo.rotation, skinned.corners.at(corner).normal),
+                     .u = sources.at(corner).u,
+                     .v = sources.at(corner).v,
+                     .rgba = kOpaqueWhite,
+                     .joint = skinned.joints.at(corner)});
+            }
         }
     }
 }
@@ -339,7 +380,7 @@ Result<GeometryAsset> FitMinifigBody(const GeometryAsset& body, const SkeletonAs
         placed.push_back(Place(pieces[i], anchor, std::move(surfaces[i])));
     }
     for (const std::string_view joint : SwingJoints(pieces)) {
-        if (Result<void> swung = Swing(placed, joint, rest, skeleton, anchor); !swung) {
+        if (Result<void> swung = Swing(placed, joint, rest, skeleton); !swung) {
             return std::unexpected(std::move(swung.error()));
         }
     }

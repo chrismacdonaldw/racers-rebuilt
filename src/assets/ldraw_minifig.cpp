@@ -12,6 +12,7 @@ namespace {
 
 using Rows = std::array<float, 9>;
 using Joints = std::array<std::string_view, 4>;
+using Bones = std::array<std::string_view, 2>;
 
 constexpr Rows kUnturned{1, 0, 0, 0, 1, 0, 0, 0, 1};
 constexpr Rows kSeatedTurn{1, 0, 0, 0, 0, 1, 0, -1, 0};
@@ -43,12 +44,13 @@ constexpr LdrawMatrix Placed(const Rows& rows, Vector3 position) {
 
 constexpr MinifigPiece Piece(std::string_view file, const LdrawMatrix& placement,
                              std::string_view material, const Joints& joints,
-                             std::string_view swingJoint = {}) {
+                             std::string_view swingJoint = {}, const Bones& bones = {}) {
     return {.file = file,
             .placement = placement,
             .material = material,
             .joints = joints,
-            .swingJoint = swingJoint};
+            .swingJoint = swingJoint,
+            .bones = bones};
 }
 
 constexpr MinifigPiece kStandingTorso =
@@ -61,16 +63,16 @@ constexpr MinifigPiece kLeftLeg =
     Piece("3817c.dat", Placed(kUnturned, kLegs), kLegsMaterial, {"l_th", "l_kn", "l_an", "l_ba"});
 constexpr MinifigPiece kPegLeg =
     Piece("2532.dat", Placed(kUnturned, kLegs), kLegsMaterial, {"r_th", "r_kn", "r_an", "r_ba"});
-constexpr MinifigPiece kRightArm =
-    Piece("3818.dat", Placed(kRightArmTurn, kRightShoulder), kTorso, {"r_sh", "r_el"}, "r_sh");
-constexpr MinifigPiece kLeftArm =
-    Piece("3819.dat", Placed(kLeftArmTurn, kLeftShoulder), kTorso, {"l_sh", "l_el"}, "l_sh");
+constexpr MinifigPiece kRightArm = Piece("3818.dat", Placed(kRightArmTurn, kRightShoulder), kTorso,
+                                         {"r_sh", "r_el"}, "r_sh", {"r_sh", "r_el"});
+constexpr MinifigPiece kLeftArm = Piece("3819.dat", Placed(kLeftArmTurn, kLeftShoulder), kTorso,
+                                        {"l_sh", "l_el"}, "l_sh", {"l_sh", "l_el"});
 constexpr MinifigPiece kRightHand =
-    Piece("3820.dat", Placed(kRightHandTurn, kRightWrist), kTorso, {"r_hand"}, "r_sh");
+    Piece("3820.dat", Placed(kRightHandTurn, kRightWrist), kTorso, {"r_hand"}, "r_sh", {"r_el"});
 constexpr MinifigPiece kLeftHand =
-    Piece("3820.dat", Placed(kLeftHandTurn, kLeftWrist), kTorso, {"l_hand"}, "l_sh");
+    Piece("3820.dat", Placed(kLeftHandTurn, kLeftWrist), kTorso, {"l_hand"}, "l_sh", {"l_el"});
 constexpr MinifigPiece kLeftHook =
-    Piece("2531.dat", Placed(kLeftHookTurn, kLeftWrist), kTorso, {"hook"}, "l_sh");
+    Piece("2531.dat", Placed(kLeftHookTurn, kLeftWrist), kTorso, {"hook"}, "l_sh", {"l_el"});
 
 constexpr std::array kTwoHandsTwoLegs{kStandingTorso, kStandingHips, kRightLeg, kLeftLeg,
                                       kRightArm,      kRightHand,    kLeftArm,  kLeftHand};

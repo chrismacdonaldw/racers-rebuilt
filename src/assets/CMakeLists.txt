@@ -58,6 +58,7 @@ rr_add_module(assets
         menu_styles.cpp
         minifig_fit.cpp
         minifig_head_fit.cpp
+        minifig_skin.cpp
         mirror.cpp
         original_save.cpp
         part_library.cpp

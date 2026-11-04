@@ -67,8 +67,13 @@ std::optional<Fitted> FitRetail(const Vfs& vfs, std::string_view folder, std::st
 std::set<std::string> JointsOf(const Fitted& fitted, std::string_view material) {
     std::set<std::string> joints;
     for (const GeometryRange& range : fitted.model.ranges) {
-        if (fitted.model.materials.at(range.material) == material) {
-            joints.insert(fitted.skeleton.nodes.at(range.joint).name);
+        if (fitted.model.materials.at(range.material) != material) {
+            continue;
+        }
+        for (std::uint32_t index = range.firstIndex; index < range.firstIndex + range.indexCount;
+             ++index) {
+            const GeometryVertex& vertex = fitted.model.vertices.at(fitted.model.indices.at(index));
+            joints.insert(fitted.skeleton.nodes.at(vertex.joint).name);
         }
     }
     return joints;
@@ -100,16 +105,15 @@ void CheckCommon(const Fitted& fitted) {
     CHECK(fitted.model.indices.size() > fitted.original.indices.size() * 4);
 }
 
-bool JointsStartWith(const std::set<std::string>& joints,
-                     std::initializer_list<std::string_view> prefixes) {
-    return joints.size() == prefixes.size() &&
-           std::ranges::all_of(prefixes, [&](std::string_view prefix) {
-               return std::ranges::any_of(
-                   joints, [&](const std::string& joint) { return joint.starts_with(prefix); });
-           });
+bool HasJointsStarting(const std::set<std::string>& joints,
+                       std::initializer_list<std::string_view> prefixes) {
+    return std::ranges::all_of(prefixes, [&](std::string_view prefix) {
+        return std::ranges::any_of(
+            joints, [&](const std::string& joint) { return joint.starts_with(prefix); });
+    });
 }
 
-TEST_CASE("standing bodies move LDraw limbs only at the shoulders and hips") {
+TEST_CASE("standing bodies bend LDraw parts at the original joints") {
     const std::optional<Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
         return;
@@ -121,8 +125,9 @@ TEST_CASE("standing bodies move LDraw limbs only at the shoulders and hips") {
             continue;
         }
         CheckCommon(*fitted);
-        CHECK(JointsStartWith(JointsOf(*fitted, "torso"), {"chest", "l_sh", "r_sh"}));
-        CHECK(JointsStartWith(JointsOf(*fitted, "legs"), {body, "l_th", "r_th"}));
+        CHECK(HasJointsStarting(JointsOf(*fitted, "torso"),
+                                {"chest", "waist", body, "l_sh", "l_el", "r_sh", "r_el"}));
+        CHECK(HasJointsStarting(JointsOf(*fitted, "legs"), {body, "l_th", "l_kn", "l_an", "r_th"}));
     }
 }
 
