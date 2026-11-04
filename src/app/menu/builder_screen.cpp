@@ -26,7 +26,8 @@ Result<std::unique_ptr<BuilderScreen>> OpenBuilderScreen(render::Renderer& rende
         return std::unique_ptr<BuilderScreen>(std::move(screen));
     };
     if (services.mode.controls == BuildControls::Workshop) {
-        return WorkshopScreen::Load(renderer, services, std::move(car)).transform(opened);
+        return WorkshopScreen::Load(renderer, services, std::move(car), std::move(sets))
+            .transform(opened);
     }
     return CarBuildScreen::Load(renderer, vfs, services, std::move(car), std::move(sets))
         .transform(opened);

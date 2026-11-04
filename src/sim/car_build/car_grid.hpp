@@ -52,6 +52,9 @@ public:
 
     [[nodiscard]] const GridCell& At(int x, int y) const;
 
+    /// The highest cell top, in plates.
+    [[nodiscard]] int Tallest() const;
+
     /// In plates. `allowsEmpty` also rests the piece on bare cells, as the chassis does.
     [[nodiscard]] std::expected<int, PlacementFailure> RestingHeight(
         const assets::PieceRecord& piece, PiecePlacement placement, bool allowsEmpty) const;
