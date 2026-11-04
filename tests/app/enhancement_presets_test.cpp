@@ -103,7 +103,7 @@ TEST_CASE("every enhancement defaults off and the default preset matches a fresh
     }));
 }
 
-TEST_CASE("only the enhanced preset turns on widescreen, HUD width, far models and the palette") {
+TEST_CASE("only the enhanced preset turns on widescreen, HUD width, far models and the workshop") {
     settings::Registry registry = DeclaredRegistry();
     const std::vector<settings::SettingPreset> presets = EnhancementPresets();
     REQUIRE(presets.size() == 2);

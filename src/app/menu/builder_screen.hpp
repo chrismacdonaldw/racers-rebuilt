@@ -25,7 +25,7 @@ namespace rr::app {
 
 enum class BuildOutcome : std::uint8_t { None, CarChanged, TooManyPieces, Done };
 
-enum class BuildControls : std::uint8_t { Original, Palette, Workshop };
+enum class BuildControls : std::uint8_t { Original, Workshop };
 
 struct BuildMode {
     BuildControls controls = BuildControls::Original;

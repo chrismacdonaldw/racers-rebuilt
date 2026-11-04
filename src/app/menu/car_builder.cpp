@@ -63,27 +63,12 @@ void CarBuilder::SelectSet(std::size_t set) {
 
 void CarBuilder::Choose(std::size_t choice) {
     const std::span<const assets::PartChoice> choices = catalog_->Choices(set_);
-    if (choice >= choices.size() || lifted_) {
+    if (choice >= choices.size()) {
         return;
     }
     choice_ = choice;
     colour_ = choices[choice].colour;
     cursor_.Hold(catalog_->library.pieces[choices[choice].piece]);
-}
-
-void CarBuilder::Pick(std::size_t set, std::size_t choice, std::uint8_t colour) {
-    if (set > catalog_->ExtraSet()) {
-        return;
-    }
-    set_ = set;
-    Choose(choice);
-    colour_ = colour;
-}
-
-void CarBuilder::PutAt(sim::PiecePlacement placement) {
-    if (cursor_.Piece() != nullptr) {
-        cursor_.PutAt(*cursor_.Piece(), placement);
-    }
 }
 
 bool CarBuilder::Move(std::size_t direction, std::size_t view) {
@@ -114,59 +99,8 @@ PlaceResult CarBuilder::Place() {
     if (cursor_.Piece() == nullptr) {
         return PlaceResult::Refused;
     }
-    const sim::PiecePlacement at = cursor_.Placement();
-    if (const std::optional<Lifted> lifted = PutBack()) {
-        return ResultOf(history_.Do(car_, sim::MovePiece{.index = lifted->index, .placement = at}));
-    }
-    const sim::CarPiece piece{.piece = cursor_.Piece(),
-                              .placement = at,
-                              .colour = colour_,
-                              .partType = PartTypeOf(*catalog_, set_)};
-    if (recordsEdits_) {
-        return ResultOf(history_.Do(car_, sim::PlacePiece{.piece = piece}));
-    }
-    return ResultOf(car_.Place(*piece.piece, at, piece.colour, piece.partType));
-}
-
-void CarBuilder::Release() {
-    static_cast<void>(PutBack());
-    cursor_ = {};
-}
-
-void CarBuilder::RecordEdits(bool records) {
-    recordsEdits_ = records;
-    history_ = {};
-}
-
-std::expected<void, sim::PlacementFailure> CarBuilder::Lift(std::size_t index) {
-    Release();
-    std::expected<sim::CarPiece, sim::PlacementFailure> removed = car_.Remove(index);
-    if (!removed) {
-        return std::unexpected(removed.error());
-    }
-    lifted_ = Lifted{.index = index, .piece = *removed};
-    colour_ = removed->colour;
-    cursor_.PutAt(*removed->piece, removed->placement);
-    return {};
-}
-
-bool CarBuilder::RemoveLifted() {
-    const std::optional<Lifted> lifted = PutBack();
-    return lifted && history_.Do(car_, sim::RemovePiece{.index = lifted->index}).has_value();
-}
-
-std::expected<void, sim::PlacementFailure> CarBuilder::Edit(const sim::BuildEdit& edit) {
-    static_cast<void>(PutBack());
-    return history_.Do(car_, edit);
-}
-
-std::optional<CarBuilder::Lifted> CarBuilder::PutBack() {
-    const std::optional<Lifted> lifted = std::exchange(lifted_, std::nullopt);
-    if (lifted) {
-        cursor_ = {};
-        car_.Insert(lifted->index, lifted->piece);
-    }
-    return lifted;
+    return ResultOf(
+        car_.Place(*cursor_.Piece(), cursor_.Placement(), colour_, PartTypeOf(*catalog_, set_)));
 }
 
 PlaceResult CarBuilder::Check() const {
