@@ -1,11 +1,16 @@
 #include "assets/driver_model.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <format>
+#include <optional>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
+
+#include "assets/game_path.hpp"
 
 namespace rr::assets {
 namespace {
@@ -33,10 +38,44 @@ struct ChosenParts {
     const std::string* headPart = nullptr;
 };
 
-void FitIndex(std::uint8_t& index, std::size_t count) {
-    if (index >= count) {
-        index = 0;
+struct LookSlot {
+    std::uint8_t DriverLook::* index;
+    std::string DriverLook::* name;
+    const std::vector<DriverPart>& (*parts)(const DriverPartCatalog&);
+};
+
+constexpr std::array kLookSlots{
+    LookSlot{.index = &DriverLook::face,
+             .name = &DriverLook::faceName,
+             .parts = [](const DriverPartCatalog& catalog) -> const std::vector<DriverPart>& {
+                 return catalog.faces.parts;
+             }},
+    LookSlot{.index = &DriverLook::hat,
+             .name = &DriverLook::hatName,
+             .parts = [](const DriverPartCatalog& catalog) -> const std::vector<DriverPart>& {
+                 return catalog.hats;
+             }},
+    LookSlot{.index = &DriverLook::legs,
+             .name = &DriverLook::legsName,
+             .parts = [](const DriverPartCatalog& catalog) -> const std::vector<DriverPart>& {
+                 return catalog.legs.parts;
+             }},
+    LookSlot{.index = &DriverLook::torso,
+             .name = &DriverLook::torsoName,
+             .parts = [](const DriverPartCatalog& catalog) -> const std::vector<DriverPart>& {
+                 return catalog.torsos.parts;
+             }},
+};
+
+std::optional<std::uint8_t> FindPart(const std::vector<DriverPart>& parts, std::string_view name) {
+    const std::string upper = ToUpperAscii(name);
+    const auto found = std::ranges::find_if(
+        parts, [&](const DriverPart& part) { return ToUpperAscii(part.name) == upper; });
+    const auto index = static_cast<std::size_t>(found - parts.begin());
+    if (found == parts.end() || !std::in_range<std::uint8_t>(index)) {
+        return std::nullopt;
     }
+    return static_cast<std::uint8_t>(index);
 }
 
 Result<ChosenParts> ChooseParts(const DriverPartCatalog& catalog, const DriverLook& worn) {
@@ -99,11 +138,39 @@ GeometryAsset MergeHead(GeometryAsset body, const GeometryAsset& head, std::uint
 }
 
 DriverLook FitLook(const DriverPartCatalog& catalog, DriverLook look) {
-    FitIndex(look.face, catalog.faces.parts.size());
-    FitIndex(look.hat, catalog.headParts.size());
-    FitIndex(look.torso, catalog.torsos.parts.size());
-    FitIndex(look.legs, catalog.legs.parts.size());
+    for (const LookSlot& slot : kLookSlots) {
+        const std::vector<DriverPart>& parts = slot.parts(catalog);
+        std::uint8_t& index = look.*slot.index;
+        const std::string& name = look.*slot.name;
+        const std::optional<std::uint8_t> named =
+            name.empty() ? std::nullopt : FindPart(parts, name);
+        if (named) {
+            index = *named;
+        } else if (index >= parts.size()) {
+            index = 0;
+        }
+    }
     return look;
+}
+
+DriverLook NameLook(const DriverPartCatalog& catalog, const DriverLook& look) {
+    DriverLook named = FitLook(catalog, look);
+    for (const LookSlot& slot : kLookSlots) {
+        const std::vector<DriverPart>& parts = slot.parts(catalog);
+        std::string& name = named.*slot.name;
+        const std::uint8_t index = named.*slot.index;
+        if (name.empty() && index < parts.size()) {
+            name = parts[index].name;
+        }
+    }
+    return named;
+}
+
+bool HasMissingParts(const DriverPartCatalog& catalog, const DriverLook& look) {
+    return std::ranges::any_of(kLookSlots, [&](const LookSlot& slot) {
+        const std::string& name = look.*slot.name;
+        return !name.empty() && !FindPart(slot.parts(catalog), name);
+    });
 }
 
 Result<std::string> DriverBodyName(const DriverPartCatalog& catalog, const DriverLook& look,

@@ -10,6 +10,7 @@
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
 #include "app/menu/pointer_buttons.hpp"
+#include "app/menu/racer_lock.hpp"
 #include "app/menu/racer_pick_look.hpp"
 #include "app/menu/racer_pick_menu.hpp"
 #include "app/menu/racer_stand.hpp"
@@ -59,7 +60,7 @@ private:
     void Start();
     void CheerInto(std::string next);
     void ShowPicked();
-    [[nodiscard]] bool IsPickLocked() const;
+    void LockPicked();
     [[nodiscard]] std::string Reopened() const;
     [[nodiscard]] std::string Left() const;
     void PlaySounds(const sim::InputFrame& input, RacerPickRequest request,
@@ -75,7 +76,8 @@ private:
     RacerPickLook look_;
     RacerPickRoute route_;
     bool isVersus_;
-    bool allowsExtraPieces_ = false;
+    RacerLocks locks_;
+    RacerLock shownLock_ = RacerLock::None;
     Racers racers_;
     RacerPickMenu menu_;
     MenuText text_;

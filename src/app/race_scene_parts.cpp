@@ -7,6 +7,8 @@
 
 #include "app/powerup/powerup_tuning_file.hpp"
 #include "app/race_step.hpp"
+#include "app/racer/racer_models.hpp"
+#include "assets/driver_model.hpp"
 #include "assets/race_catalog.hpp"
 #include "core/log.hpp"
 #include "platform/clock.hpp"
@@ -94,9 +96,13 @@ RacerSounds RacerSoundsOf(const RacerGrid& racers, std::size_t slots) {
             .enginePitches = PerSlot(racers, slots, &RacerGrid::EnginePitch)};
 }
 
-RaceAudioSetup AudioSetup(const RaceSceneSetup& setup, const sim::RaceTrack& raceTrack,
-                          const RacerSounds& racers, std::uint64_t seed) {
-    const auto faceOf = [](const settings::Racer& racer) { return racer.look.face; };
+RaceAudioSetup AudioSetup(const assets::Vfs& vfs, const RaceSceneSetup& setup,
+                          const sim::RaceTrack& raceTrack, const RacerSounds& racers,
+                          std::uint64_t seed) {
+    const Result<assets::DriverPartCatalog> parts = LoadDriverParts(vfs);
+    const auto faceOf = [&](const settings::Racer& racer) {
+        return parts ? assets::FitLook(*parts, racer.look).face : racer.look.face;
+    };
     const std::optional<std::uint8_t> secondFace =
         setup.players > 1 ? setup.secondPlayerRacer.transform(faceOf) : std::nullopt;
     return {.racerCount = racers.voices.size(),

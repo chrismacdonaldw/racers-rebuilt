@@ -10,11 +10,11 @@
 #include "app/fix_settings.hpp"
 #include "app/frame_loop.hpp"
 #include "app/menu/builder_settings.hpp"
-#include "app/menu/extra_pieces_lock.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_widgets.hpp"
+#include "app/menu/racer_lock.hpp"
 #include "app/menu/racer_pick_list.hpp"
 #include "app/race_scene_name.hpp"
 #include "app/racer/racer_lookup.hpp"
@@ -105,7 +105,8 @@ Result<std::unique_ptr<RacerPickScene>> RacerPickScene::Create(render::Renderer&
 
 void RacerPickScene::ApplySettings(const settings::Registry& settings) {
     static_cast<void>(text_.Apply(*renderer_, *vfs_, settings));
-    allowsExtraPieces_ = settings.Get(kExtraPiecesSetting);
+    locks_.AllowExtraPieces(settings.Get(kExtraPiecesSetting));
+    LockPicked();
     if (!stand_) {
         return;
     }
@@ -137,7 +138,7 @@ void RacerPickScene::Tick(const sim::InputFrame& input) {
     }
     const sim::InputFrame clicked = WithClick(input, pointed);
     RacerPickRequest request = menu_.Tick(clicked);
-    if (request == RacerPickRequest::Start && IsPickLocked()) {
+    if (request == RacerPickRequest::Start && shownLock_ != RacerLock::None) {
         sounds_.Play(kLockedSound);
         request = RacerPickRequest::None;
     }
@@ -184,8 +185,8 @@ void RacerPickScene::Render(const sim::RenderSnapshot& interpolated) {
     DrawBanner(text_, look_.banner, text_.Line(title), look_.backdrop, look_.bannerTop, sprites_);
     DrawPicker();
     DrawButtons();
-    if (stand_ && IsPickLocked()) {
-        DrawLockNotice(text_, stand_->Bounds(), sprites_);
+    if (stand_) {
+        DrawLockNotice(text_, shownLock_, stand_->Bounds(), sprites_);
     }
     view.sprites = sprites_;
     Result<void> drawn = renderer_->Draw(view);
@@ -205,6 +206,7 @@ RacerPickScene::RacerPickScene(render::Renderer& renderer, const assets::Vfs& vf
       isVersus_(
           std::ranges::any_of(std::views::split(route_.next, kSceneChainMark),
                               [](const auto part) { return IsVersus(std::string_view(part)); })),
+      locks_(RacerLocks::Load(vfs)),
       racers_(std::move(racers)),
       menu_(racers_.pickable.size(),
             route_.player == 0 ? SelectedPick(racers_.pickable, racers_.store) : 0) {}
@@ -233,14 +235,15 @@ void RacerPickScene::CheerInto(std::string next) {
 }
 
 void RacerPickScene::ShowPicked() {
+    LockPicked();
     if (stand_ && !racers_.pickable.empty()) {
         stand_->Show(racers_.pickable.at(menu_.Racer()));
     }
 }
 
-bool RacerPickScene::IsPickLocked() const {
-    return !racers_.pickable.empty() &&
-           IsLockedCar(racers_.pickable.at(menu_.Racer()).car, allowsExtraPieces_);
+void RacerPickScene::LockPicked() {
+    shownLock_ =
+        racers_.pickable.empty() ? RacerLock::None : locks_.Of(racers_.pickable.at(menu_.Racer()));
 }
 
 std::string RacerPickScene::Reopened() const {

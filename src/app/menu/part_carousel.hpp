@@ -16,7 +16,10 @@ enum class DriverSlot : std::uint8_t { Hat, Face, Torso, Legs };
 
 inline constexpr std::size_t kDriverSlots = 4;
 
-[[nodiscard]] std::uint8_t& PartOf(assets::DriverLook& look, DriverSlot slot);
+[[nodiscard]] std::uint8_t PartOf(const assets::DriverLook& look, DriverSlot slot);
+
+/// Drops the slot's part name, which `NameLook` then fills from the new index.
+void PickPart(assets::DriverLook& look, DriverSlot slot, std::uint8_t part);
 
 /// The catalogue's parts in order, leaving out locked ones other than `current`.
 [[nodiscard]] std::vector<std::uint8_t> UnlockedParts(const assets::DriverPartCatalog& catalog,

@@ -9,13 +9,13 @@
 #include "app/fix_settings.hpp"
 #include "app/frame_loop.hpp"
 #include "app/menu/builder_settings.hpp"
-#include "app/menu/extra_pieces_lock.hpp"
 #include "app/menu/garage_racers.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_widgets.hpp"
 #include "app/menu/racer_edit_flow.hpp"
+#include "app/menu/racer_lock.hpp"
 #include "app/race_settings.hpp"
 #include "app/racer/racer_ref.hpp"
 #include "app/video_settings.hpp"
@@ -88,7 +88,7 @@ void GarageScene::ApplySettings(const settings::Registry& settings) {
         dialog_->Measure(text_);
     }
     rules_ = RaceRulesFrom(settings);
-    allowsExtraPieces_ = settings.Get(kExtraPiecesSetting);
+    locks_.AllowExtraPieces(settings.Get(kExtraPiecesSetting));
     LockShownRacer();
     if (!views_.stand) {
         return;
@@ -147,8 +147,8 @@ void GarageScene::Render(const sim::RenderSnapshot& interpolated) {
     DrawBanner(text_, look_.banner, text_.Line(title), look_.backdrop, look_.bannerTop, sprites_);
     DrawPicker();
     DrawButtons();
-    if (views_.stand && menu_.IsTestDriveLocked()) {
-        DrawLockNotice(text_, views_.stand->Bounds(), sprites_);
+    if (views_.stand) {
+        DrawLockNotice(text_, shownLock_, views_.stand->Bounds(), sprites_);
     }
     if (dialog_) {
         dialog_->Draw(text_, sprites_);
@@ -168,7 +168,8 @@ GarageScene::GarageScene(render::Renderer& renderer, const assets::Vfs& vfs, Men
       look_(std::move(look)),
       views_(std::move(views)),
       racers_(std::move(racers)),
-      menu_(racers_.store.racers.size()) {
+      menu_(racers_.store.racers.size()),
+      locks_(RacerLocks::Load(vfs)) {
     for (const settings::Racer& racer : racers_.store.racers) {
         names_.push_back(Utf16FromUtf8(racer.name));
     }
@@ -293,9 +294,9 @@ void GarageScene::ShowRacer() {
 }
 
 void GarageScene::LockShownRacer() {
-    menu_.LockTestDrive(
-        menu_.Racers() != 0 &&
-        IsLockedCar(racers_.store.racers.at(menu_.Racer()).car, allowsExtraPieces_));
+    shownLock_ =
+        menu_.Racers() == 0 ? RacerLock::None : locks_.Of(racers_.store.racers.at(menu_.Racer()));
+    menu_.LockTestDrive(shownLock_ != RacerLock::None);
 }
 
 void GarageScene::PlaySounds(const sim::InputFrame& input, GarageRequest request,

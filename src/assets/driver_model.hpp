@@ -13,8 +13,15 @@ namespace rr::assets {
 
 enum class DriverDetail : std::uint8_t { Menu, Race };
 
-/// Indices past their list, as a removed mod's part leaves them, become the first part.
+/// Each named part takes its index from the catalogue. A part the catalogue lacks keeps its name
+/// and index, and an index past its list becomes the first part.
 [[nodiscard]] DriverLook FitLook(const DriverPartCatalog& catalog, DriverLook look);
+
+/// Fits `look` and names each part that has no name yet.
+[[nodiscard]] DriverLook NameLook(const DriverPartCatalog& catalog, const DriverLook& look);
+
+/// True when `look` names a part the catalogue lacks, as a mod that's off leaves it.
+[[nodiscard]] bool HasMissingParts(const DriverPartCatalog& catalog, const DriverLook& look);
 
 /// Menus pick the body by torso and legs variant. Races always use `leg_box`.
 [[nodiscard]] Result<std::string> DriverBodyName(const DriverPartCatalog& catalog,

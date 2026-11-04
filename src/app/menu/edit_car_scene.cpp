@@ -220,7 +220,7 @@ void EditCarScene::Render(const sim::RenderSnapshot& interpolated) {
     }
     DrawControls();
     if (views_.stand && IsLocked()) {
-        DrawLockNotice(text_, views_.stand->Framing().interior, sprites_);
+        DrawLockNotice(text_, RacerLock::ExtraPieces, views_.stand->Framing().interior, sprites_);
     }
     if (dialog_) {
         dialog_->Draw(text_, sprites_);

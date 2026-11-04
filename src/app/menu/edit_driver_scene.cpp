@@ -14,6 +14,7 @@
 #include "app/menu/menu_scenes.hpp"
 #include "app/menu/menu_widgets.hpp"
 #include "app/video_settings.hpp"
+#include "assets/driver_model.hpp"
 #include "assets/loader_pool.hpp"
 #include "core/log.hpp"
 
@@ -93,7 +94,8 @@ EditDriverScene::EditDriverScene(render::Renderer& renderer, const assets::Vfs& 
       views_(std::move(views)),
       racers_(std::move(racers)),
       buttons_(ButtonsOf(RacerEditor::Driver, racers_.racer.isNew)),
-      saved_(racers_.store.racers.at(racers_.racer.index).look),
+      saved_(assets::FitLook(views_.kit->Catalog(),
+                             racers_.store.racers.at(racers_.racer.index).look)),
       driver_(saved_),
       random_(kMixSeed) {
     for (std::size_t row = 0; row < kDriverSlots; ++row) {
@@ -227,7 +229,7 @@ CarouselStep EditDriverScene::Step() {
     PartCarousel& carousel = carousels_.at(static_cast<std::size_t>(*slot));
     const CarouselStep step = carousel.Step(menu_.Direction());
     if (step == CarouselStep::Moved) {
-        PartOf(driver_, *slot) = carousel.Part();
+        PickPart(driver_, *slot, carousel.Part());
         ShowDriver();
         if (views_.stand) {
             views_.stand->React(*slot);
@@ -240,13 +242,14 @@ void EditDriverScene::Mix() {
     for (std::size_t row = 0; row < kDriverSlots; ++row) {
         PartCarousel& carousel = carousels_.at(row);
         carousel.Select(random_.Below(static_cast<std::uint32_t>(carousel.Count())));
-        PartOf(driver_, static_cast<DriverSlot>(row)) = carousel.Part();
+        PickPart(driver_, static_cast<DriverSlot>(row), carousel.Part());
     }
     ShowDriver();
 }
 
 void EditDriverScene::Done() {
-    racers_.store.racers.at(racers_.racer.index).look = driver_;
+    racers_.store.racers.at(racers_.racer.index).look =
+        assets::NameLook(views_.kit->Catalog(), driver_);
     if (Result<void> saved = settings::SaveRacers(racers_.store, racers_.file); !saved) {
         log::Warn("{}, the driver isn't saved", saved.error().message);
     }

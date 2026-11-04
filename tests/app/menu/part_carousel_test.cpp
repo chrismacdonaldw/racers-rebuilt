@@ -130,14 +130,17 @@ TEST_CASE("a carousel of the slots but one wraps") {
 }
 
 TEST_CASE("a look's parts are its hat, face, torso and legs") {
-    assets::DriverLook look{.face = 1, .hat = 2, .legs = 3, .torso = 4};
+    assets::DriverLook look{
+        .face = 1, .hat = 2, .legs = 3, .torso = 4, .hatName = "kk_hats", .torsoName = "tu_chst"};
 
-    PartOf(look, DriverSlot::Torso) = 9;
+    PickPart(look, DriverSlot::Torso, 9);
 
     CHECK(PartOf(look, DriverSlot::Hat) == 2);
     CHECK(PartOf(look, DriverSlot::Face) == 1);
     CHECK(PartOf(look, DriverSlot::Legs) == 3);
     CHECK(look.torso == 9);
+    CHECK(look.torsoName.empty());
+    CHECK(look.hatName == "kk_hats");
 }
 
 }

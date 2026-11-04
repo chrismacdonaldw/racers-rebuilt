@@ -51,7 +51,6 @@ public:
 
     /// Moves the focus on from TEST DRIVE when it locks.
     void LockTestDrive(bool isLocked);
-    [[nodiscard]] bool IsTestDriveLocked() const { return isTestDriveLocked_; }
 
     [[nodiscard]] std::span<const GarageButton> Buttons() const;
     [[nodiscard]] bool IsEnabled(GarageButton button) const;

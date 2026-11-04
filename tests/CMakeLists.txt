@@ -87,7 +87,6 @@ add_executable(racers-rebuilt-tests
     app/scene_music_test.cpp
     app/menu/dialog_layout_test.cpp
     app/menu/edit_driver_menu_test.cpp
-    app/menu/extra_pieces_lock_test.cpp
     app/menu/edit_car_test.cpp
     app/menu/licence_menu_test.cpp
     app/menu/garage_menu_test.cpp
@@ -112,6 +111,7 @@ add_executable(racers-rebuilt-tests
     app/menu/pointer_buttons_test.cpp
     app/menu/pause_menu_test.cpp
     app/menu/racer_edit_flow_test.cpp
+    app/menu/racer_lock_test.cpp
     app/menu/preview_cycle_test.cpp
     app/menu/race_preview_test.cpp
     app/menu/racer_pick_list_test.cpp
