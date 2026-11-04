@@ -1,6 +1,6 @@
 # LDraw parts
 
-This folder holds a subset of the LDraw Parts Library: the bricks, minifig accessories and other parts racers-rebuilt maps onto the original game's car pieces, the minifig torso prints it maps onto driver torsos, and the sub-files and primitives they use.
+This folder holds a subset of the LDraw Parts Library: the bricks, minifig accessories and other parts racers-rebuilt maps onto the original game's car pieces, the minifig torso prints it maps onto driver torsos, the extra pieces its car builder offers, and the sub-files and primitives they use.
 
 - **Work:** the LDraw Parts Library, by the LDraw contributors named in each file's `0 Author:` line
 - **Source:** the official library at https://library.ldraw.org/library/official/, downloaded on 2026-11-04. Files are unchanged, in the library's `parts/`, `parts/s/` and `p/` layout.
