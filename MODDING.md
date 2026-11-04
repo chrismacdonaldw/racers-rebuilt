@@ -147,7 +147,7 @@ A model at `MENUDATA/PIECEDB/MODELS/<brick name>.GDB`, or a `.glb` there, replac
 - Units are studs: one cell per unit along x and y, and a plate is 0.4 high. Model the brick unturned, with its first cell's corner at the origin and its bottom at z 0. The game turns and places it.
 - A material named `piece` (case doesn't matter) takes the colour the brick is placed in. Other names pick a material from `LPIECEHI.MDB`.
 - The model draws its own studs: the game adds none on the brick's cells.
-- **LDraw pieces** (`enhancements.ldraw_pieces`) draws the bricks that match a part in the shipped LDraw library this way. A mod's model wins over it.
+- **LDraw pieces** (`enhancements.ldraw_pieces`) draws the bricks and minifig accessories that match parts in the shipped LDraw library this way. A mod's model wins over it.
 
 ## Overrides
 

@@ -38,6 +38,7 @@ rr_add_module(assets
         jam.cpp
         ldraw.cpp
         ldraw_part.cpp
+        ldraw_piece_table.cpp
         ldraw_pieces.cpp
         jam_archive.cpp
         loader_pool.cpp
