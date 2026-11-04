@@ -3,6 +3,17 @@
 #include "app/frame_loop.hpp"
 
 namespace rr::app {
+namespace {
+
+bool HasFinished(const sim::RaceSession& session, std::size_t slot) {
+    return session.Progress().OfRacer(slot).finishPlace.has_value();
+}
+
+bool HasEngineStarted(const sim::RaceSession& session) {
+    return session.Clock().Phase() != sim::RacePhase::Intro;
+}
+
+}
 
 render::Viewport PlayerViewport(std::size_t player, std::size_t players) {
     const float height = 1.0F / static_cast<float>(players);
@@ -34,14 +45,18 @@ PlayerCameras::PlayerCameras(const sim::RaceSession& session, std::size_t player
 }
 
 void PlayerCameras::CycleView(std::size_t player, const sim::RaceSession& session) {
-    const bool hasFinished = session.Progress().OfRacer(player).finishPlace.has_value();
-    if (session.Clock().Phase() != sim::RacePhase::Intro && !hasFinished) {
+    if (HasEngineStarted(session) && !HasFinished(session, player)) {
         cameras_.at(player).CycleView();
     }
 }
 
 void PlayerCameras::SetLookBack(std::size_t player, bool isLookingBack) {
     cameras_.at(player).SetLookBack(isLookingBack);
+}
+
+bool PlayerCameras::HidesOwnCar(std::size_t player, const sim::RaceSession& session) const {
+    return HidesSubject(cameras_.at(player).View(), HasEngineStarted(session),
+                        HasFinished(session, player));
 }
 
 void PlayerCameras::Follow(const sim::RaceSession& session) {
@@ -52,9 +67,9 @@ void PlayerCameras::Follow(const sim::RaceSession& session) {
         if (session.WasRespawned(slot) || racer.Events().hasWarpLanded) {
             camera.Cut();
         }
-        const bool hasFinished = session.Progress().OfRacer(slot).finishPlace.has_value();
-        if (hasFinished && camera.View() != CameraView::Finish && !racer.Status().isGhost &&
-            !racer.Status().isWarping && !session.Clock().IsTestDrive()) {
+        if (HasFinished(session, slot) && camera.View() != CameraView::Finish &&
+            !racer.Status().isGhost && !racer.Status().isWarping &&
+            !session.Clock().IsTestDrive()) {
             camera.SetView(CameraView::Finish, isSplitScreen);
         }
         camera.Follow(SubjectOf(racer), static_cast<float>(kSimTick.count()));

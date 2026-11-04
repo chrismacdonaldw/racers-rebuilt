@@ -215,4 +215,13 @@ TEST_CASE("the map keeps the chase heading while the finish view swings round") 
     CheckNear(camera.ViewDirection(), {.x = 1.0F});
 }
 
+TEST_CASE("only the cockpit view hides the car, and only while racing") {
+    CHECK(HidesSubject(CameraView::Cockpit, true, false));
+    CHECK_FALSE(HidesSubject(CameraView::Cockpit, false, false));
+    CHECK_FALSE(HidesSubject(CameraView::Cockpit, true, true));
+    CHECK_FALSE(HidesSubject(CameraView::Standard, true, false));
+    CHECK_FALSE(HidesSubject(CameraView::Close, true, false));
+    CHECK_FALSE(HidesSubject(CameraView::Finish, true, false));
+}
+
 }

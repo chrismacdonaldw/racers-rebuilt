@@ -37,6 +37,8 @@ public:
     void CycleView(std::size_t player, const sim::RaceSession& session);
     void SetLookBack(std::size_t player, bool isLookingBack);
 
+    [[nodiscard]] bool HidesOwnCar(std::size_t player, const sim::RaceSession& session) const;
+
     /// Call after each session tick.
     void Follow(const sim::RaceSession& session);
 

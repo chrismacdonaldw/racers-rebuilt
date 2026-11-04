@@ -204,6 +204,7 @@ rr_add_module(app
         racer/car_shadows.cpp
         racer/car_silhouette.cpp
         racer/shadow_silhouette.cpp
+        racer/slot_draws.cpp
         racer/far_cars.cpp
         racer/body_lean.cpp
         racer/built_racer.cpp

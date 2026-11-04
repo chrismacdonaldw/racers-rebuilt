@@ -200,7 +200,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md#building). Builds need Visual Studio 2022,
 - [SDL3](https://www.libsdl.org/) for the window, input, file dialogs and GPU API
 - [miniaudio](https://miniaud.io/) for audio output, mixing and decoding
 - [stb_vorbis and stb_image](https://github.com/nothings/stb) for OGG Vorbis and PNG decoding
-- [FFmpeg](https://ffmpeg.org/) for the intro videos' Indeo 5 decoder, built from source under the [LGPL-2.1-or-later](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html) with only that decoder enabled
+- [FFmpeg](https://ffmpeg.org/) for the intro videos' Indeo 5 decoder, built under the [LGPL-2.1-or-later](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html) with only that decoder enabled. The release uses the source of FFmpeg's [`n9.0.2`](https://github.com/FFmpeg/FFmpeg/tree/n9.0.2) tag, built by [`vcpkg-ports/ffmpeg-indeo5`](vcpkg-ports/ffmpeg-indeo5)
 - [Dear ImGui](https://github.com/ocornut/imgui) for the overlay
 - [toml++](https://github.com/marzer/tomlplusplus) for settings and mod manifests
 - [cgltf](https://github.com/jkuhlmann/cgltf) for reading glTF models from mods
@@ -211,6 +211,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md#building). Builds need Visual Studio 2022,
 
 ## License
 
-[GPL-3.0](LICENSE).
+[GPL-3.0](LICENSE). The release zip's `licenses` folder holds the license of each library built into the exe.
 
 racers-rebuilt isn't affiliated with or endorsed by the LEGO Group. LEGO is a trademark of the LEGO Group.

@@ -27,6 +27,9 @@ struct CameraSubject {
 
 enum class CameraView : std::uint8_t { Standard, Far, Close, Cockpit, Finish };
 
+/// The original leaves the followed car, driver and wheels out of the cockpit view while racing.
+[[nodiscard]] bool HidesSubject(CameraView view, bool hasEngineStarted, bool hasFinished);
+
 /// Follows in game space and eases toward each new view.
 class RaceCamera {
 public:
