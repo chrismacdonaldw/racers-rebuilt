@@ -12,6 +12,7 @@ namespace {
 
 constexpr std::string_view kSetFlag = "--set";
 constexpr std::string_view kPlayersFlag = "--players";
+constexpr std::string_view kTrackExportFlag = "--export-track";
 struct SwitchFlag {
     std::string_view flag;
     bool CommandLine::* field;
@@ -62,6 +63,15 @@ Result<FlagValue> TakeFlag(std::span<const std::string_view> args, std::size_t& 
     return FlagValue{.flag = arg, .value = args[index]};
 }
 
+Result<TrackExport> TakeTrackExport(std::span<const std::string_view> args, std::size_t& index) {
+    if (index + 2 >= args.size()) {
+        return Fail(ErrorCode::InvalidData,
+                    std::format("{} needs a track and a folder", kTrackExportFlag));
+    }
+    index += 2;
+    return TrackExport{.track = std::string(args[index - 1]), .folder = std::string(args[index])};
+}
+
 Result<std::size_t> ParsePlayers(std::string_view text) {
     std::size_t players = 0;
     const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), players);
@@ -90,6 +100,14 @@ Result<CommandLine> ParseCommandLine(std::span<const std::string_view> args) {
         const auto switchFlag = std::ranges::find(kSwitchFlags, args[index], &SwitchFlag::flag);
         if (switchFlag != kSwitchFlags.end()) {
             commandLine.*(switchFlag->field) = true;
+            continue;
+        }
+        if (args[index] == kTrackExportFlag) {
+            Result<TrackExport> trackExport = TakeTrackExport(args, index);
+            if (!trackExport) {
+                return std::unexpected(std::move(trackExport.error()));
+            }
+            commandLine.trackExport = std::move(*trackExport);
             continue;
         }
         Result<FlagValue> flag = TakeFlag(args, index);

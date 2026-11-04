@@ -20,10 +20,6 @@ constexpr std::array<std::string_view, 5> kTrackWorldNames{"collide", "igcollid"
                                                            "aracol"};
 constexpr std::string_view kCheckpointPrefix = "chckpt";
 
-bool IsTrackWorld(std::string_view name) {
-    return std::ranges::contains(kTrackWorldNames, name);
-}
-
 bool IsCheckpointWorld(std::string_view name) {
     return name.starts_with(kCheckpointPrefix);
 }
@@ -44,7 +40,7 @@ auto ReadParsed(const assets::Vfs& vfs, const std::string& path, Parse parse) {
 
 CollisionWorld MakeWorld(CollisionMesh mesh, std::vector<MaterialBinding> materials,
                          const assets::WorldEntity& entity) {
-    if (IsTrackWorld(entity.name)) {
+    if (IsTrackCollisionWorld(entity.name)) {
         return CollisionWorld::Track(std::move(mesh), std::move(materials));
     }
     const Placement placement{.position = entity.position,
@@ -86,7 +82,7 @@ Result<TrackCollision> LoadWorlds(const assets::Vfs& vfs, std::string_view folde
         if (!world) {
             return std::unexpected(std::move(world.error()));
         }
-        if (IsTrackWorld(entity.name)) {
+        if (IsTrackCollisionWorld(entity.name)) {
             track = collision.worlds.size();
         } else if (IsCheckpointWorld(entity.name)) {
             collision.checkpoints = collision.worlds.size();
@@ -100,6 +96,10 @@ Result<TrackCollision> LoadWorlds(const assets::Vfs& vfs, std::string_view folde
     return collision;
 }
 
+}
+
+bool IsTrackCollisionWorld(std::string_view name) {
+    return std::ranges::contains(kTrackWorldNames, name);
 }
 
 Result<TrackCollision> LoadTrackCollision(const assets::Vfs& vfs, std::string_view folder,

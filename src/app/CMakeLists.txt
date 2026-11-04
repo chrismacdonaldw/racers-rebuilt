@@ -258,6 +258,7 @@ rr_add_module(app
         menu_pointer.cpp
         mod_content.cpp
         model_export.cpp
+        json_fields.cpp
         save_import.cpp
         sprite_test_scene.cpp
         startup_scene.cpp
@@ -273,8 +274,10 @@ rr_add_module(app
         time_trial/time_trial_run.cpp
         time_trial/trial_records.cpp
         track_entity_draws.cpp
+        track_export.cpp
         track_info.cpp
         track_map.cpp
+        track_marker_nodes.cpp
         track_material_anims.cpp
         sky_backdrop.cpp
         track_model.cpp
