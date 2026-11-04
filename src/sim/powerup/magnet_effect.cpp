@@ -8,21 +8,8 @@
 namespace rr::sim {
 namespace {
 
-constexpr Milliseconds kArmed{20'000};
-constexpr Milliseconds kHolding{4000};
-constexpr Milliseconds kFade{1000};
-constexpr Milliseconds kHaltedHold{1000};
-constexpr float kTriggerRadius = 10.0F;
 constexpr Vector3 kModelHeight{.z = 30.0F};
-constexpr float kGrabDistanceSquared = 81.0F;
-constexpr float kLiftStopDistanceSquared = 100.0F;
-constexpr float kStoppedSpeed = 0.002F;
-constexpr float kPullPerMs = 1.0F;
 constexpr Vector3 kWorldUp{.z = 1.0F};
-
-float PullFor(Milliseconds elapsed) {
-    return static_cast<float>(elapsed.count()) * kPullPerMs;
-}
 
 std::optional<Quaternion> TiltToward(const Vector3& model, const Vector3& racer) {
     const Vector3 up = Normalized(model - racer, {});
@@ -38,8 +25,9 @@ std::optional<Quaternion> TiltToward(const Vector3& model, const Vector3& racer)
 void MagnetEffect::Start(const PowerupUse& use, PowerupContext& context) {
     RR_ASSERT(context.world != nullptr && context.weapons != nullptr);
     owner_ = use.racer;
+    tuning_ = &context.tuning->magnet;
     phase_ = MagnetPhase::Armed;
-    remaining_ = kArmed;
+    remaining_ = tuning_->armed;
     isDropped_ = false;
     dropPoint_ = context.racers[owner_].Body().motion.position;
     heading_ = {.x = 1.0F};
@@ -54,7 +42,7 @@ bool MagnetEffect::Tick(Milliseconds elapsed, PowerupContext& context) {
     if (!isDropped_) {
         Drop(context);
     } else if (TouchRacers(context,
-                           {.position = dropPoint_, .radius = kTriggerRadius, .owner = owner_},
+                           {.position = dropPoint_, .radius = tuning_->radius, .owner = owner_},
                            [&](Racer& racer, std::uint8_t index) {
                                Touch(racer, index, context);
                                return false;
@@ -122,10 +110,10 @@ void MagnetEffect::Touch(Racer& racer, std::uint8_t index, PowerupContext& conte
     }
     if (phase_ == MagnetPhase::Armed) {
         phase_ = MagnetPhase::Holding;
-        remaining_ = kHolding;
+        remaining_ = tuning_->holding;
     }
     const Vector3 offset = racer.Body().motion.position - dropPoint_;
-    if (Dot(offset, offset) > kGrabDistanceSquared) {
+    if (Dot(offset, offset) > tuning_->grabDistanceSquared) {
         if (!pulled_) {
             pulled_ = index;
         }
@@ -147,7 +135,7 @@ void MagnetEffect::Expire(PowerupContext& context) {
         return;
     }
     phase_ = MagnetPhase::Fading;
-    remaining_ = kFade;
+    remaining_ = tuning_->fade;
     context.weapons->Add({.kind = WeaponEventKind::Ended,
                           .weapon = PowerupKind::Magnet,
                           .racer = owner_,
@@ -156,17 +144,18 @@ void MagnetEffect::Expire(PowerupContext& context) {
 
 void MagnetEffect::Hold(Racer& racer, Milliseconds elapsed) {
     const float speed = racer.Body().derived.speed;
-    if (speed <= kStoppedSpeed) {
+    if (speed <= tuning_->stoppedSpeed) {
         hasStopped_ = true;
-        if (!racer.Status().isHalted && remaining_ > kHaltedHold) {
-            remaining_ = kHaltedHold;
+        if (!racer.Status().isHalted && remaining_ > tuning_->haltedHold) {
+            remaining_ = tuning_->haltedHold;
         }
         racer.Halt();
     }
     if (!racer.Route() && hasStopped_ && !hasLifted_) {
         const Vector3 toDrop = dropPoint_ - racer.Body().motion.position;
         racer.Push(Normalized(toDrop, {}), PullFor(elapsed));
-        if (speed <= kStoppedSpeed && Dot(toDrop, toDrop) <= kLiftStopDistanceSquared) {
+        if (speed <= tuning_->stoppedSpeed &&
+            Dot(toDrop, toDrop) <= tuning_->liftStopDistanceSquared) {
             hasLifted_ = true;
         }
     }
@@ -185,6 +174,10 @@ void MagnetEffect::Face(const PowerupContext& context) {
     } else if (!caught) {
         facing_ = ToQuaternion(OrthonormalBasis(heading_, kWorldUp));
     }
+}
+
+float MagnetEffect::PullFor(Milliseconds elapsed) const {
+    return static_cast<float>(elapsed.count()) * tuning_->pullPerMs;
 }
 
 void MagnetEffect::Pull(Racer& racer, Milliseconds elapsed) const {

@@ -28,6 +28,7 @@ private:
     void Strike(std::uint8_t racer, PowerupContext& context);
     [[nodiscard]] bool IsOnBolt(const BoundingSphere& reach) const;
 
+    const LightningTuning* tuning_ = &kOriginalPowerups.lightning;
     std::optional<std::uint8_t> owner_;
     std::optional<std::uint8_t> hazard_;
     LightningPhase phase_ = LightningPhase::Done;

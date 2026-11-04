@@ -22,6 +22,7 @@ private:
     [[nodiscard]] Vector3 LaunchFrom(const Racer& owner, const PowerupContext& context);
     [[nodiscard]] Vector3 LaunchFrom(const HazardAim& aim);
 
+    const CannonballTuning* tuning_ = &kOriginalPowerups.cannonball;
     std::optional<std::uint8_t> owner_;
     ShotPhase phase_ = ShotPhase::Done;
     BallisticFlight flight_;

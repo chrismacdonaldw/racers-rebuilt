@@ -6,17 +6,12 @@
 namespace rr::sim {
 namespace {
 
-constexpr float kTriggerRadius = 3.0F;
-constexpr Milliseconds kLifetime{10'000};
-constexpr float kSpinTurns = 1.0F;
-constexpr float kSpinRate = 0.007F;
-constexpr float kSpinAlign = 1.0F;
-
 bool Slip(Racer& racer, std::uint8_t index, PowerupContext& context) {
     if (racer.Status().isHalted) {
         return false;
     }
-    racer.StartSpin(kSpinTurns, kSpinRate, kSpinAlign);
+    const OilSlickTuning& tuning = context.tuning->oilSlick;
+    racer.StartSpin(tuning.spinTurns, tuning.spinRatePerMs, tuning.spinAlign);
     racer.ReactToHit();
     context.weapons->Add({.kind = WeaponEventKind::Struck,
                           .weapon = PowerupKind::OilSlick,
@@ -36,7 +31,8 @@ void OilSlickEffect::Start(const PowerupUse& use, PowerupContext& context) {
 }
 
 bool OilSlickEffect::Tick(Milliseconds elapsed, PowerupContext& context) {
-    const Trap slick{.position = position_, .radius = kTriggerRadius, .owner = owner_};
+    const Trap slick{
+        .position = position_, .radius = context.tuning->oilSlick.radius, .owner = owner_};
     if (phase_ == TrapPhase::Armed &&
         TouchRacers(context, slick, [&](Racer& racer, std::uint8_t index) {
             return Slip(racer, index, context);
@@ -69,7 +65,7 @@ void OilSlickEffect::Drop(PowerupContext& context) {
     position_ = DropUnder(owner, *context.world).position;
     KickOwnerOnDrop(owner);
     phase_ = TrapPhase::Armed;
-    remaining_ = kLifetime;
+    remaining_ = context.tuning->oilSlick.lifetime;
     context.weapons->Add({.kind = WeaponEventKind::Fired,
                           .weapon = PowerupKind::OilSlick,
                           .racer = owner_,

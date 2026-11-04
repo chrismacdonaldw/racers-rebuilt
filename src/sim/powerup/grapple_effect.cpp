@@ -13,24 +13,11 @@
 namespace rr::sim {
 namespace {
 
-constexpr BallisticSpec kHook{.speed = 320.0F, .gravity = -90.176F, .lifetime = Milliseconds{3000}};
-constexpr AimCone kFarCone{
-    .minDistanceSquared = 100.0F, .maxDistanceSquared = 62'500.0F, .cosine = 0.93F};
-constexpr AimCone kNearCone{
-    .minDistanceSquared = 100.0F, .maxDistanceSquared = 160'000.0F, .cosine = 0.6F};
 constexpr Vector3 kLaunchHeight{.z = 5.0F};
 constexpr Vector3 kRopeHeight{.z = 3.0F};
 constexpr Vector3 kHookHeight{.z = 2.0F};
-constexpr float kRangeWithoutTarget = 500.0F;
-constexpr Milliseconds kPullTime{4000};
-constexpr Milliseconds kRetractTime{500};
-constexpr float kPullForce = 180.0F;
-constexpr float kReleaseDistanceSquared = 144.0F;
-constexpr float kChaseSpeed = 300.0F;
 constexpr float kSnapDistanceSquared = 2.0F;
-constexpr float kRetractSpeed = 250.0F;
 constexpr float kRetractedDistanceSquared = 36.0F;
-constexpr float kTensionPerSecond = 1.0F;
 constexpr std::size_t kOwnerForceSlot = 1;
 constexpr std::size_t kVictimForceSlot = 0;
 
@@ -54,6 +41,7 @@ bool MoveToward(Vector3& current, const Vector3& target, float reachSquared, flo
 void GrappleEffect::Start(const PowerupUse& use, PowerupContext& context) {
     RR_ASSERT(context.world != nullptr && context.weapons != nullptr);
     owner_ = use.racer;
+    tuning_ = &context.tuning->grapple;
     hasTouched_ = false;
     tension_ = 0.0F;
     isSnapped_ = false;
@@ -63,20 +51,20 @@ void GrappleEffect::Start(const PowerupUse& use, PowerupContext& context) {
     const Vector3& facing = owner.Body().motion.basis.forward;
     const Vector3 start = position + kLaunchHeight;
     std::optional<std::size_t> target =
-        FindFarthestRacerInCone(context.racers, position, facing, kFarCone);
+        FindFarthestRacerInCone(context.racers, position, facing, tuning_->farCone);
     if (!target) {
-        target = FindNearestRacerInCone(context.racers, position, facing, kNearCone);
+        target = FindNearestRacerInCone(context.racers, position, facing, tuning_->nearCone);
     }
     if (target) {
-        flight_.LaunchAtRacer(kHook, owner, start, context.racers[*target]);
+        flight_.LaunchAtRacer(tuning_->hook, owner, start, context.racers[*target]);
     } else {
         const std::optional<Vector3> point =
-            FindNearestTargetPoint(context.targets, position, facing, kTargetPointCone);
-        flight_.LaunchAtPoint(kHook, owner, start,
-                              point.value_or(start + (facing * kRangeWithoutTarget)));
+            FindNearestTargetPoint(context.targets, position, facing, tuning_->pointCone);
+        flight_.LaunchAtPoint(tuning_->hook, owner, start,
+                              point.value_or(start + (facing * tuning_->range)));
     }
     phase_ = GrapplePhase::Flying;
-    timer_ = kHook.lifetime;
+    timer_ = tuning_->hook.lifetime;
     context.weapons->Add({.kind = WeaponEventKind::Fired,
                           .weapon = PowerupKind::GrapplingHook,
                           .racer = owner_,
@@ -148,7 +136,7 @@ void GrappleEffect::Hook(std::uint8_t victim, PowerupContext& context) {
     }
     hook_ = flight_.Position();
     phase_ = GrapplePhase::Pulling;
-    timer_ = kPullTime;
+    timer_ = tuning_->pullTime;
     HoldOrRelease(context);
 }
 
@@ -156,12 +144,12 @@ void GrappleEffect::Pull(Milliseconds elapsed, PowerupContext& context) {
     const float seconds = Seconds(elapsed);
     const Vector3 target = context.racers[victim_].Body().motion.position + kHookHeight;
     if (!isSnapped_) {
-        isSnapped_ = MoveToward(hook_, target, kSnapDistanceSquared, kChaseSpeed * seconds);
+        isSnapped_ = MoveToward(hook_, target, kSnapDistanceSquared, tuning_->chaseSpeed * seconds);
     }
     if (isSnapped_) {
         hook_ = target;
     }
-    tension_ = std::min(tension_ + (kTensionPerSecond * seconds), 1.0F);
+    tension_ = std::min(tension_ + (tuning_->tensionPerSecond * seconds), 1.0F);
     if (tension_ >= 1.0F) {
         const Vector3 rope = context.racers[owner_].Body().motion.position + kRopeHeight;
         if (const std::optional<SegmentHit> hit = CastSolid(ShotsOf(context), rope, hook_)) {
@@ -176,12 +164,12 @@ void GrappleEffect::HoldOrRelease(PowerupContext& context) {
     Racer& owner = context.racers[owner_];
     Racer& victim = context.racers[victim_];
     const Vector3 pull = victim.Body().motion.position - owner.Body().motion.position;
-    if (victim.IsProtected() || Dot(pull, pull) < kReleaseDistanceSquared ||
+    if (victim.IsProtected() || Dot(pull, pull) < tuning_->releaseDistanceSquared ||
         Dot(pull, owner.Body().motion.basis.forward) < 0.0F) {
         Release(victim.Body().motion.position, context);
         return;
     }
-    const Vector3 force = Normalized(pull, {}) * kPullForce;
+    const Vector3 force = Normalized(pull, {}) * tuning_->pullForce;
     owner.StartExternalForce(kOwnerForceSlot, force);
     victim.StartExternalForce(kVictimForceSlot, -force);
     isPulling_ = true;
@@ -194,13 +182,14 @@ void GrappleEffect::Release(const Vector3& at, PowerupContext& context) {
                           .racer = owner_,
                           .position = at});
     phase_ = GrapplePhase::Retracting;
-    timer_ = kRetractTime;
+    timer_ = tuning_->retractTime;
     hook_ = at;
 }
 
 void GrappleEffect::Retract(Milliseconds elapsed, const PowerupContext& context) {
     const Vector3 rope = context.racers[owner_].Body().motion.position + kRopeHeight;
-    if (MoveToward(hook_, rope, kRetractedDistanceSquared, kRetractSpeed * Seconds(elapsed))) {
+    if (MoveToward(hook_, rope, kRetractedDistanceSquared,
+                   tuning_->retractSpeed * Seconds(elapsed))) {
         phase_ = GrapplePhase::Done;
     }
 }

@@ -76,6 +76,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       inventories_(setup.racers.size()),
       powerups_(setup.effects, UsesPerTick(setup, course), setup.cheats,
                 setup.modifiers.onlyPowerup),
+      powerupTuning_(setup.powerups),
       weapons_(WeaponEventCount(setup, course)),
       reaches_(setup.racers.size()),
       pickupReaches_(setup.racers.size()),

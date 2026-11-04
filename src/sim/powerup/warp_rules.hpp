@@ -23,6 +23,6 @@ struct WarpPace {
 };
 
 /// Catching up leaves a race leader a third of what the warp gains over driving.
-[[nodiscard]] WarpPace PaceFor(const WarpRules& rules, bool isLeading);
+[[nodiscard]] WarpPace PaceFor(const WarpRules& rules, const WarpPace& original, bool isLeading);
 
 }

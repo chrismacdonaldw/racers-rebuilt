@@ -50,6 +50,7 @@ struct RaceSetup {
     AiCraft aiCraft;
     std::optional<AiSkill> aiSkill;
     EffectFactories effects;
+    PowerupTuning powerups;
     Cheats cheats;
     Modifiers modifiers;
     PlayerCheats playerCheats;

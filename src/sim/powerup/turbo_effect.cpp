@@ -1,6 +1,5 @@
 #include "sim/powerup/turbo_effect.hpp"
 
-#include <array>
 #include <optional>
 
 #include "sim/physics/rigid_body.hpp"
@@ -8,7 +7,6 @@
 namespace rr::sim {
 namespace {
 
-constexpr std::array kLevels{TurboLevel::Weak, TurboLevel::Strong, TurboLevel::Hover};
 constexpr float kFlameBehind = 2.0F;
 constexpr float kFlameAbove = 3.0F;
 
@@ -25,7 +23,7 @@ void TurboEffect::Start(const PowerupUse& use, PowerupContext& context) {
     racer_ = use.racer;
     Racer& racer = context.racers[racer_];
     racer.React(VoiceReaction::Positive);
-    racer.StartTurbo(kLevels.at(use.level));
+    racer.StartTurbo(context.tuning->turbo.levels.at(use.level));
     turbo_ = racer.TurboCount();
     Follow(racer);
 }

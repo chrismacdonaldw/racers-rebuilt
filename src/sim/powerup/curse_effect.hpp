@@ -27,6 +27,7 @@ private:
     void Drop(PowerupContext& context);
     void Advance();
 
+    const CurseTuning* tuning_ = &kOriginalPowerups.curse;
     std::optional<std::uint8_t> owner_;
     std::uint8_t level_ = 0;
     TrapPhase phase_ = TrapPhase::Done;

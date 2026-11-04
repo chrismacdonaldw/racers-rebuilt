@@ -14,15 +14,8 @@
 namespace rr::sim {
 namespace {
 
-constexpr BallisticSpec kMissile{
-    .speed = 170.0F, .gravity = -32.176F, .lifetime = Milliseconds{5500}};
-constexpr std::array kArmTimes{Milliseconds{933}, Milliseconds{1200}, Milliseconds{1333}};
 constexpr Vector3 kLaunchHeight{.z = 4.0F};
 constexpr Vector3 kAimHeight{.z = 5.0F};
-constexpr float kRangeWithoutTarget = 500.0F;
-constexpr std::array kSideOffsets{150.0F, 0.0F, -150.0F};
-constexpr float kSpinTurns = 2.0F;
-constexpr float kSpinRatePerMs = 0.007F;
 
 std::optional<std::size_t> NthRacerAhead(std::span<const Racer> racers, const Vector3& origin,
                                          const Vector3& facing, std::size_t n) {
@@ -33,9 +26,10 @@ std::optional<std::size_t> NthRacerAhead(std::span<const Racer> racers, const Ve
     return found;
 }
 
-Vector3 AimWithoutTarget(const Vector3& position, const Vector3& facing, std::uint8_t shot) {
+Vector3 AimWithoutTarget(const MissileTuning& tuning, const Vector3& position,
+                         const Vector3& facing, std::uint8_t shot) {
     const Vector3 right{.x = facing.y, .y = -facing.x};
-    return position + (facing * kRangeWithoutTarget) + kAimHeight + (right * kSideOffsets.at(shot));
+    return position + (facing * tuning.range) + kAimHeight + (right * tuning.sideOffsets.at(shot));
 }
 
 }
@@ -45,8 +39,9 @@ void MissileEffect::Start(const PowerupUse& use, PowerupContext& context) {
               context.progress != nullptr && context.weapons != nullptr);
     owner_ = use.racer;
     shot_ = use.shot;
+    tuning_ = &context.tuning->missile;
     phase_ = ShotPhase::Armed;
-    armed_ = kArmTimes.at(shot_);
+    armed_ = tuning_->armTimes.at(shot_);
     carried_ = context.racers[owner_].Pose();
     context.weapons->Add({.kind = WeaponEventKind::Fired,
                           .weapon = PowerupKind::Missile,
@@ -97,9 +92,10 @@ void MissileEffect::Launch(const PowerupContext& context) {
         NthRacerAhead(context.racers, position, facing, shot_);
     BallisticFlight aim;
     if (target) {
-        aim.LaunchAtRacer(kMissile, owner, start, context.racers[*target]);
+        aim.LaunchAtRacer(tuning_->shot, owner, start, context.racers[*target]);
     } else {
-        aim.LaunchAtPoint(kMissile, owner, start, AimWithoutTarget(position, facing, shot_));
+        aim.LaunchAtPoint(tuning_->shot, owner, start,
+                          AimWithoutTarget(*tuning_, position, facing, shot_));
     }
     std::optional<std::size_t> gate = context.progress->NextGate(*context.checkpoints, owner_);
     if (gate && Dot(context.checkpoints->Checkpoints()[*gate].normal, facing) > 0.0F) {
@@ -110,7 +106,7 @@ void MissileEffect::Launch(const PowerupContext& context) {
                     .direction = Normalized({.x = velocity.x, .y = velocity.y}, facing),
                     .speed = aim.Speed(),
                     .snapSpeed = Length(velocity),
-                    .lifetime = kMissile.lifetime,
+                    .lifetime = tuning_->shot.lifetime,
                     .target = target,
                     .pathGate = gate});
     phase_ = ShotPhase::Flying;
@@ -131,7 +127,7 @@ bool MissileEffect::Fly(Milliseconds elapsed, PowerupContext& context) {
         owner_ = *outcome.turnedBackBy;
     }
     if (outcome.struck) {
-        context.racers[*outcome.struck].StartSpin(kSpinTurns, kSpinRatePerMs);
+        context.racers[*outcome.struck].StartSpin(tuning_->spinTurns, tuning_->spinRatePerMs);
     }
     if (outcome.isOver) {
         phase_ = ShotPhase::Done;

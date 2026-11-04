@@ -22,6 +22,7 @@ private:
     void Launch(const PowerupContext& context);
     [[nodiscard]] bool Fly(Milliseconds elapsed, PowerupContext& context);
 
+    const MissileTuning* tuning_ = &kOriginalPowerups.missile;
     std::uint8_t owner_ = 0;
     std::uint8_t shot_ = 0;
     ShotPhase phase_ = ShotPhase::Done;

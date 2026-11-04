@@ -15,6 +15,7 @@
 #include "sim/physics/racer.hpp"
 #include "sim/powerup/powerup_inventory.hpp"
 #include "sim/powerup/powerup_kind.hpp"
+#include "sim/powerup/powerup_tuning.hpp"
 #include "sim/race/checkpoint_graph.hpp"
 #include "sim/race/race_progress.hpp"
 #include "sim/race/random.hpp"
@@ -46,6 +47,7 @@ struct PowerupContext {
     TrackEvents* trackEvents = nullptr;
     std::span<const assets::TargetPoint> targets;
     std::span<const HazardAim> hazardAims;
+    const PowerupTuning* tuning = &kOriginalPowerups;
 };
 
 [[nodiscard]] inline std::optional<std::uint8_t> OwnerOf(const PowerupUse& use) {

@@ -409,6 +409,7 @@ add_executable(racers-rebuilt-tests
     sim/powerup/powerup_cheats_test.cpp
     sim/powerup/powerup_inventory_test.cpp
     sim/powerup/powerup_system_test.cpp
+    sim/powerup/powerup_tuning_test.cpp
     sim/powerup/turbo_effect_test.cpp
     sim/powerup/warp_effect_test.cpp
     sim/powerup/warp_landing_test.cpp

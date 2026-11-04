@@ -1,6 +1,5 @@
 #include "sim/powerup/shield_effect.hpp"
 
-#include <array>
 #include <cstddef>
 #include <memory>
 
@@ -9,17 +8,13 @@ namespace {
 
 enum class ShieldPhase : std::uint8_t { Up, Fade };
 
-constexpr std::array kDurations{Milliseconds{4000}, Milliseconds{6000}, Milliseconds{8000},
-                                Milliseconds{10'000}};
-constexpr Milliseconds kFade{1000};
 constexpr float kModelHeight = 2.0F;
-constexpr std::uint8_t kDeflectLevel = 2;
 
 }
 
 void ShieldEffect::Start(const PowerupUse& use, PowerupContext& context) {
     racer_ = use.racer;
-    duration_ = kDurations.at(use.level);
+    duration_ = context.tuning->shield.durations.at(use.level);
     progress_ = {};
     Racer& racer = context.racers[racer_];
     racer.RaiseShield(use.level);
@@ -39,7 +34,7 @@ bool ShieldEffect::Tick(Milliseconds elapsed, PowerupContext& context) {
                      .phaseTime = progress_.phaseTime - duration_};
     }
     if (progress_.phase == static_cast<std::uint8_t>(ShieldPhase::Fade) &&
-        progress_.phaseTime >= kFade) {
+        progress_.phaseTime >= context.tuning->shield.fade) {
         return false;
     }
     Follow(racer);
@@ -71,9 +66,9 @@ void ShieldEffect::Follow(const Racer& racer) {
     pose_.position.z += kModelHeight;
 }
 
-bool TurnsShotsBack(const Racer& racer) {
+bool TurnsShotsBack(const Racer& racer, const ShieldTuning& tuning) {
     const std::optional<std::uint8_t>& level = racer.Status().shield.level;
-    return level && *level >= kDeflectLevel;
+    return level && *level >= tuning.deflectLevel;
 }
 
 void AddBlueEffects(EffectFactories& factories) {

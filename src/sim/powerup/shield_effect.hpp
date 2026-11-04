@@ -28,7 +28,7 @@ private:
 };
 
 /// Only cannonballs and missiles turn back.
-[[nodiscard]] bool TurnsShotsBack(const Racer& racer);
+[[nodiscard]] bool TurnsShotsBack(const Racer& racer, const ShieldTuning& tuning);
 
 void AddBlueEffects(EffectFactories& factories);
 

@@ -68,7 +68,8 @@ PowerupContext RaceSession::EffectContext() {
             .weapons = &weapons_,
             .surfaces = &surfaces_,
             .trackEvents = &triggers_,
-            .hazardAims = hazards_.Aims()};
+            .hazardAims = hazards_.Aims(),
+            .tuning = &powerupTuning_};
 }
 
 void RaceSession::TickBricks(Milliseconds elapsed) {

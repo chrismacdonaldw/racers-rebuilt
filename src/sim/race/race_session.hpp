@@ -188,6 +188,7 @@ private:
     BrickField bricks_;
     std::vector<PowerupInventory> inventories_;
     PowerupSystem powerups_;
+    PowerupTuning powerupTuning_;
     std::vector<AiPowerupUser> aiPowerups_;
     std::vector<AiTaunter> taunts_;
     WeaponEvents weapons_;
