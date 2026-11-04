@@ -15,6 +15,7 @@ namespace rr::app {
 namespace {
 
 constexpr float kPercent = 100.0F;
+constexpr float kSqueakyVoicePitch = 2.0F;
 
 std::string RaceCircuit(const assets::Vfs& vfs, const RaceSceneSetup& scene) {
     if (!scene.circuit.empty()) {
@@ -44,6 +45,7 @@ sim::RaceSetup GridSetup(const assets::Vfs& vfs, const RaceSceneSetup& scene,
                          .aiPace = static_cast<float>(scene.aiPace) / kPercent,
                          .effects = sim::EveryEffect(),
                          .cheats = scene.cheats,
+                         .modifiers = scene.modifiers.rules,
                          .version = scene.version,
                          .lagsInput = scene.lagsInput,
                          .isTestDrive = scene.isTestDrive,
@@ -100,7 +102,8 @@ RaceAudioSetup AudioSetup(const RaceSceneSetup& setup, const sim::RaceTrack& rac
             .enginePitches = racers.enginePitches,
             .voiceChoice = {.builtFace = setup.playerRacer.transform(faceOf),
                             .secondBuiltFace = secondFace,
-                            .isTimeTrial = setup.isTimeTrial}};
+                            .isTimeTrial = setup.isTimeTrial},
+            .voicePitch = setup.modifiers.squeaksVoices ? kSqueakyVoicePitch : 1.0F};
 }
 
 std::unique_ptr<RaceAudio> LoadRaceAudio(const RaceOutputs& outputs, const assets::Vfs& vfs,

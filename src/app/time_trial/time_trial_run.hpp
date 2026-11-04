@@ -15,12 +15,15 @@ namespace rr::app {
 /// Keeps the ghosts and best times from one race of a time trial to the next.
 class TimeTrialRun {
 public:
-    TimeTrialRun(std::string track, std::optional<assets::GhostRun> record);
+    TimeTrialRun(std::string track, std::optional<assets::GhostRun> record,
+                 bool isMirrored = false);
 
-    /// A race without a readable `GHOST.GHB` has no record.
-    [[nodiscard]] static TimeTrialRun Load(const assets::Vfs& vfs, std::string track);
+    /// A race without a readable `GHOST.GHB` has no record. A mirrored trial mirrors the record.
+    [[nodiscard]] static TimeTrialRun Load(const assets::Vfs& vfs, std::string track,
+                                           bool isMirrored);
 
     [[nodiscard]] const std::string& Track() const { return track_; }
+    [[nodiscard]] bool IsMirrored() const { return isMirrored_; }
     [[nodiscard]] std::size_t StartSlot() const;
     [[nodiscard]] sim::TimeTrialGhosts& Ghosts() { return ghosts_; }
     [[nodiscard]] const sim::TimeTrialGhosts& Ghosts() const { return ghosts_; }
@@ -31,6 +34,7 @@ public:
 
 private:
     std::string track_;
+    bool isMirrored_ = false;
     bool hasRecord_ = false;
     sim::TimeTrialGhosts ghosts_;
     settings::TrackRecords times_;

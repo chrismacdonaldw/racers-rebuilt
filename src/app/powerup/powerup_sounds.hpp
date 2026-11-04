@@ -51,7 +51,8 @@ private:
 class PowerupSounds {
 public:
     PowerupSounds(std::span<const audio::SoundId> effects,
-                  std::vector<std::optional<std::size_t>> taunts, sim::Random random);
+                  std::vector<std::optional<std::size_t>> taunts, sim::Random random,
+                  float tauntPitch = 1.0F);
 
     void Hear(const sim::RaceSession& session, const Listener& listener, Milliseconds elapsed,
               audio::Mixer& mixer);
@@ -78,11 +79,12 @@ private:
                      audio::Mixer& mixer);
     void HearSpins(const sim::RaceSession& session, const Listener& listener, audio::Mixer& mixer);
     void PlayOnce(std::size_t effect, const Vector3& source, const Listener& listener,
-                  audio::Mixer& mixer) const;
+                  audio::Mixer& mixer, float pitch = 1.0F) const;
 
     std::span<const audio::SoundId> effects_;
     std::vector<std::optional<std::size_t>> taunts_;
     sim::Random random_;
+    float tauntPitch_ = 1.0F;
     std::vector<SlotSound> slots_;
     std::array<LoopVoice, 4> flights_;
     std::vector<LoopVoice> spins_;

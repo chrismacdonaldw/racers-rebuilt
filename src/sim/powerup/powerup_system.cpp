@@ -30,8 +30,8 @@ std::optional<EffectEntities> Claim(const EffectEntities& used, std::size_t coun
 }
 
 PowerupSystem::PowerupSystem(const EffectFactories& factories, std::size_t usesPerTick,
-                             Cheats cheats)
-    : cheats_(cheats) {
+                             Cheats cheats, std::optional<PowerupKind> onlyKind)
+    : cheats_(cheats), onlyKind_(onlyKind) {
     for (std::size_t kind = 0; kind < kPowerupKindCount; ++kind) {
         poolStarts_.at(kind) = slots_.size();
         if (!factories.at(kind)) {
@@ -62,7 +62,10 @@ void PowerupSystem::Use(std::size_t racer, PowerupInventory& inventory, BrickFie
     const PowerupUse use{.racer = taunt.racer,
                          .colour = *inventory.Colour(),
                          .level = static_cast<std::uint8_t>(inventory.WhiteCount())};
-    const std::optional<PowerupUse> fired = CheatUse(cheats_, use);
+    const std::optional<PowerupUse> fired =
+        CheatUse(cheats_, use).transform([this](PowerupUse cheated) {
+            return onlyKind_ ? OnlyUse(*onlyKind_, cheated) : cheated;
+        });
     AddEvent(PowerupEventKind::Used, fired.value_or(use));
     if (fired) {
         Fire(*fired, context);

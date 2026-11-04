@@ -4,102 +4,18 @@
 #include <cstdint>
 #include <format>
 
-#include "assets/game_path.hpp"
 #include "core/assert.hpp"
 #include "core/transform.hpp"
 #include "sim/ai/ai_aim.hpp"
 #include "sim/physics/body_state.hpp"
 #include "sim/physics/contact_effects.hpp"
-#include "sim/powerup/powerup_cheats.hpp"
+#include "sim/race/session_parts.hpp"
 
 namespace rr::sim {
 namespace {
 
-constexpr std::size_t kMostWeaponEventsPerEffect = 2;
-constexpr std::size_t kMostShotCastsPerEffect = 2;
-constexpr std::size_t kEventsPerShotCast = 2;
-
-BrickField BricksFor(const RaceCourse& course, const Cheats& cheats) {
-    return course.bricks == nullptr ? BrickField()
-                                    : BrickField(*course.bricks, CheatBrickColour(cheats));
-}
-
-std::size_t BrickCount(const RaceCourse& course) {
-    return course.bricks == nullptr ? 0
-                                    : course.bricks->coloured.size() + course.bricks->white.size();
-}
-
-std::size_t EffectSlots(const RaceSetup& setup) {
-    std::size_t slots = 0;
-    for (std::size_t kind = 0; kind < kPowerupKindCount; ++kind) {
-        slots += setup.effects.at(kind) ? SpecFor(static_cast<PowerupKind>(kind)).poolSize : 0;
-    }
-    return slots;
-}
-
-std::size_t UsesPerTick(const RaceSetup& setup, const RaceCourse& course) {
-    return setup.racers.size() + Hazards::MostUsesPerTick(course.hazards, setup.racers.size());
-}
-
-std::size_t WeaponEventCount(const RaceSetup& setup, const RaceCourse& course) {
-    return (EffectSlots(setup) * kMostWeaponEventsPerEffect) +
-           (UsesPerTick(setup, course) * kMaxLaunches);
-}
-
 bool AreBricksAudible(const RaceClock& clock) {
     return clock.Phase() != RacePhase::Intro && clock.Phase() != RacePhase::Countdown;
-}
-
-const TrackEventSources& EventSourcesFor(const RaceCourse& course) {
-    static const TrackEventSources kNone;
-    return course.events == nullptr ? kNone : *course.events;
-}
-
-std::size_t OutsideEventCount(const RaceSetup& setup, const RaceCourse& course) {
-    return (EffectSlots(setup) * kMostShotCastsPerEffect * kEventsPerShotCast) +
-           (setup.racers.size() * SurfaceEvents::MostEventsPerRacer()) +
-           EventResources::MostFiredPerTick(EventSourcesFor(course).table) +
-           Hazards::MostEventsPerTick(course.hazards, setup.racers.size()) +
-           (setup.racers.size() * kEventsPerTaunt);
-}
-
-TrackSurfaces SurfacesFor(const RaceCourse& course) {
-    return course.collision == nullptr ? TrackSurfaces()
-                                       : TrackSurfaces(course.collision->surfaces);
-}
-
-std::optional<std::size_t> FindWorld(std::span<const NamedWorld> worlds, std::string_view name) {
-    const std::string wanted = assets::ToUpperAscii(name);
-    const auto found = std::ranges::find_if(worlds, [&](const NamedWorld& world) {
-        return assets::ToUpperAscii(world.name) == wanted;
-    });
-    if (found == worlds.end()) {
-        return std::nullopt;
-    }
-    return static_cast<std::size_t>(found - worlds.begin());
-}
-
-std::vector<std::optional<std::size_t>> SphereWorldsFor(const RaceCourse& course) {
-    const std::vector<assets::TriggerSphere>& spheres = EventSourcesFor(course).racerSpheres;
-    std::vector<std::optional<std::size_t>> worlds(spheres.size());
-    for (std::size_t i = 0; course.collision != nullptr && i < spheres.size(); ++i) {
-        if (spheres[i].collisionWorld) {
-            worlds[i] = FindWorld(course.collision->worlds, *spheres[i].collisionWorld);
-        }
-    }
-    return worlds;
-}
-
-const TrackEntitySources& EntitySourcesFor(const RaceCourse& course) {
-    static const TrackEntitySources kNone;
-    return course.entities == nullptr ? kNone : *course.entities;
-}
-
-std::span<const assets::RaceRoute> RoutesFor(const RaceCourse& course, std::size_t slot) {
-    if (course.routes == nullptr || slot >= course.routes->size()) {
-        return {};
-    }
-    return (*course.routes)[slot];
 }
 
 }
@@ -120,6 +36,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
     : course_(course),
       respawn_(setup.respawn),
       cheats_(setup.cheats),
+      modifiers_(setup.modifiers),
       isDemo_(setup.isDemo),
       rules_(&RulesFor(setup.version)),
       lagsInput_(setup.lagsInput && rules_->allowsInputLag),
@@ -153,7 +70,8 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       routeSpeeds_(setup.racers.size(), 1.0F),
       bricks_(BricksFor(course, setup.cheats)),
       inventories_(setup.racers.size()),
-      powerups_(setup.effects, UsesPerTick(setup, course), setup.cheats),
+      powerups_(setup.effects, UsesPerTick(setup, course), setup.cheats,
+                setup.modifiers.onlyPowerup),
       weapons_(WeaponEventCount(setup, course)),
       reaches_(setup.racers.size()),
       contactBodies_(setup.racers.size()) {
@@ -168,6 +86,8 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
         if (setup.cheats.Has(Cheat::IgnoreSurfaces)) {
             racer.IgnoreSurfaces();
         }
+        racer.ScaleGravity(setup.modifiers.gravityScale);
+        racer.ScaleSpeed(setup.modifiers.speedScale);
         const std::span<const assets::RaceRoute> routes = RoutesFor(course, setup.firstSlot + i);
         drivers_.emplace_back();
         if (!entry.isPlayer && !routes.empty()) {
@@ -315,7 +235,7 @@ void RaceSession::PaceRoutes(Milliseconds elapsed) {
     }
     rubberBand_.Update(elapsed, paced_, routeSpeeds_);
     for (std::size_t i = 0; i < racers_.size(); ++i) {
-        racers_[i].SetRouteSpeed(routeSpeeds_[i]);
+        racers_[i].SetRouteSpeed(routeSpeeds_[i] * modifiers_.speedScale);
     }
 }
 
@@ -394,7 +314,19 @@ void RaceSession::TickBricks(Milliseconds elapsed) {
         if (event.kind == BrickEventKind::WhiteCollected && event.whiteCount == kMaxPowerupLevel) {
             racers_[event.racer].React(VoiceReaction::Positive);
         }
+        const bool tookColour =
+            event.kind == BrickEventKind::Collected || event.kind == BrickEventKind::Swapped;
+        if (modifiers_.hasChaosBricks && tookColour) {
+            RollChaosBrick(inventories_[event.racer]);
+        }
     }
+}
+
+void RaceSession::RollChaosBrick(PowerupInventory& inventory) {
+    bricks_.Spend(inventory);
+    const auto colour = static_cast<assets::BrickColour>(
+        random_.Below(static_cast<std::uint32_t>(kBrickColourCount)));
+    inventory.Grant(colour, random_.Below(kMaxPowerupLevel + 1));
 }
 
 void RaceSession::ReactToPlaces() {

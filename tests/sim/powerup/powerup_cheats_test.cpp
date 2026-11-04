@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <initializer_list>
 #include <optional>
@@ -21,6 +22,14 @@ Cheats With(std::initializer_list<Cheat> cheats) {
 
 PowerupUse Use(BrickColour colour, std::uint8_t level) {
     return {.racer = 2, .colour = colour, .level = level};
+}
+
+void CheckEveryLevelFiresAs(PowerupKind only) {
+    for (std::uint8_t level = 0; level <= kMaxPowerupLevel; ++level) {
+        const PowerupUse fired = OnlyUse(only, Use(BrickColour::Red, level));
+        CHECK(KindFor(fired.colour, fired.level) == only);
+        CHECK(fired.racer == 2);
+    }
 }
 
 TEST_CASE("bricks keep the track's colours without a brick cheat") {
@@ -62,6 +71,20 @@ TEST_CASE("the hover cheat spends a green short of three white bricks without fi
     CHECK(CheatUse(hover, Use(BrickColour::Red, 0)) == Use(BrickColour::Red, 0));
     CHECK(CheatUse(With({Cheat::HoverTurbo, Cheat::MaxPower}), Use(BrickColour::Green, 0)) ==
           Use(BrickColour::Green, 3));
+}
+
+TEST_CASE("only this power-up fires every use as that kind") {
+    for (std::size_t kind = 0; kind < kPowerupKindCount; ++kind) {
+        CheckEveryLevelFiresAs(static_cast<PowerupKind>(kind));
+    }
+    CHECK(OnlyUse(PowerupKind::Shield, Use(BrickColour::Red, 2)) == Use(BrickColour::Blue, 2));
+    CHECK(OnlyUse(PowerupKind::Turbo, Use(BrickColour::Red, 1)) == Use(BrickColour::Green, 1));
+}
+
+TEST_CASE("red only still wins over max power when both are on") {
+    const Cheats both = With({Cheat::RedOnly, Cheat::MaxPower});
+
+    CHECK(CheatUse(both, Use(BrickColour::Yellow, 0)) == Use(BrickColour::Red, 1));
 }
 
 }

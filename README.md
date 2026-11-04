@@ -99,7 +99,7 @@ Create `music/`, `mods/` and `overrides/` when you first need them.
 
 ## Configuration
 
-Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Bindings**, **Enhancements**, **Game**, **Mods**, **Race**, **Video**, **Progress** and **Developer**. **Enhancements** holds the **Camera**, **Cheats**, **Fixes** and **Gameplay** submenus. **Bindings** picks each player's device and shows every keyboard and pad binding in one table. Items marked * change gameplay: replays record them and warn when played back with other values. Video, audio and enhancement changes apply on the next frame. Game changes apply on the next start, and mod changes on **Apply now** or the next start. Every change saves when an edit finishes.
+Press <kbd>F1</kbd> to open the overlay. Its menus are **Audio**, **Bindings**, **Enhancements**, **Game**, **Mods**, **Race**, **Video**, **Progress** and **Developer**. **Enhancements** holds the **Camera**, **Cheats**, **Fixes**, **Gameplay** and **Modifiers** submenus. **Bindings** picks each player's device and shows every keyboard and pad binding in one table. Items marked * change gameplay: replays record them and warn when played back with other values. Video, audio and enhancement changes apply on the next frame. Game changes apply on the next start, and mod changes on **Apply now** or the next start. Every change saves when an edit finishes.
 
 **Developer** shows frame time, ticks per frame and startup timings. Its **Scenes** list opens the test scene, a sprite test that draws 1000 UI sprites, or any race track in your copy.
 
@@ -151,6 +151,13 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `race.opponents` | `5` | `0` to `5`. Computer racers in a single race, from the options screen. Applies from the next race. |
 | `race.versus_laps` | `3` | `1` to `5`. Laps in a versus race, from the options screen. |
 | `cheats.<plate>` | `false` | `true`, `false`. Keeps a license plate cheat on, such as `cheats.mxpmx`. Entered after the license's own cheats, from the next single race, versus race or test drive. Circuits and time trials ignore them, as the original does, and so does the attract demo. |
+| `modifiers.gravity` | `100` | `25` to `100`. Gravity as a percentage, for floatier jumps. Every `modifiers` key applies to all racers from the next race of any kind, circuits and time trials too, but not test drives or the attract demo. |
+| `modifiers.speed` | `100` | `100` to `200`. Every racer's top speed and acceleration as a percentage. |
+| `modifiers.mirror` | `false` | `true`, `false`. Mirrors every track. |
+| `modifiers.only_powerup` | `off` | `off`, `cannonball`, `grappling_hook`, `lightning`, `missile`, `oil_slick`, `dynamite`, `magnet`, `curse`, `shield`, `turbo`, `warp`. Every use fires this power-up. A shield keeps the held white count, and a turbo up to 2. |
+| `modifiers.chaos_bricks` | `false` | `true`, `false`. Every coloured brick picked up becomes a random colour with 0 to 3 white bricks. |
+| `modifiers.squeaky_voices` | `false` | `true`, `false`. Drivers' voices and taunts play an octave up. |
+| `modifiers.rocket_rush` | `false` | `true`, `false`. Every computer racer is Rocket Racer. |
 | `mods.<id>.enabled` | The mod's `enabled` value | `true`, `false` |
 | `mods.hq_textures` | `true` | `true`, `false`. Uses PNG replacements for game images. Applies on **Apply now** or the next start. |
 | `mods.gltf_models` | `true` | `true`, `false`. Uses glTF replacements for game models and animations. Applies on **Apply now** or the next start. |

@@ -49,7 +49,8 @@ struct PowerupEvent {
 /// Every effect is built up front, so using, ticking and ending effects never allocates.
 class PowerupSystem {
 public:
-    PowerupSystem(const EffectFactories& factories, std::size_t usesPerTick, Cheats cheats = {});
+    PowerupSystem(const EffectFactories& factories, std::size_t usesPerTick, Cheats cheats = {},
+                  std::optional<PowerupKind> onlyKind = std::nullopt);
 
     void BeginTick();
 
@@ -91,6 +92,7 @@ private:
     std::vector<PowerupEvent> events_;
     EffectEntities entities_;
     Cheats cheats_;
+    std::optional<PowerupKind> onlyKind_;
 };
 
 }

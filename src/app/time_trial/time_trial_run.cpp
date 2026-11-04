@@ -26,14 +26,19 @@ std::optional<assets::GhostRun> LoadRecord(const assets::Vfs& vfs, std::string_v
 
 }
 
-TimeTrialRun::TimeTrialRun(std::string track, std::optional<assets::GhostRun> record)
+TimeTrialRun::TimeTrialRun(std::string track, std::optional<assets::GhostRun> record,
+                           bool isMirrored)
     : track_(std::move(track)),
+      isMirrored_(isMirrored),
       hasRecord_(record && !record->samples.empty()),
       ghosts_(std::move(record)) {}
 
-TimeTrialRun TimeTrialRun::Load(const assets::Vfs& vfs, std::string track) {
+TimeTrialRun TimeTrialRun::Load(const assets::Vfs& vfs, std::string track, bool isMirrored) {
     std::optional<assets::GhostRun> record = LoadRecord(vfs, track);
-    return {std::move(track), std::move(record)};
+    if (record && isMirrored) {
+        record = assets::Mirrored(std::move(*record));
+    }
+    return {std::move(track), std::move(record), isMirrored};
 }
 
 std::size_t TimeTrialRun::StartSlot() const {

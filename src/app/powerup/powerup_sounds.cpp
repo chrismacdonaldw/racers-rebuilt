@@ -127,8 +127,13 @@ std::optional<float> Crackle::Tick(bool isSustained, Milliseconds elapsed, sim::
 }
 
 PowerupSounds::PowerupSounds(std::span<const audio::SoundId> effects,
-                             std::vector<std::optional<std::size_t>> taunts, sim::Random random)
-    : effects_(effects), taunts_(std::move(taunts)), random_(random), spins_(taunts_.size()) {}
+                             std::vector<std::optional<std::size_t>> taunts, sim::Random random,
+                             float tauntPitch)
+    : effects_(effects),
+      taunts_(std::move(taunts)),
+      random_(random),
+      tauntPitch_(tauntPitch),
+      spins_(taunts_.size()) {}
 
 void PowerupSounds::Hear(const sim::RaceSession& session, const Listener& listener,
                          Milliseconds elapsed, audio::Mixer& mixer) {
@@ -157,7 +162,8 @@ void PowerupSounds::HearTaunts(const sim::RaceSession& session, const Listener& 
             continue;
         }
         if (const std::optional<std::size_t> taunt = taunts_[event.racer]) {
-            PlayOnce(*taunt, session.Racers()[event.racer].Body().motion.position, listener, mixer);
+            PlayOnce(*taunt, session.Racers()[event.racer].Body().motion.position, listener, mixer,
+                     tauntPitch_);
         }
     }
 }
@@ -241,9 +247,9 @@ void PowerupSounds::HearSpins(const sim::RaceSession& session, const Listener& l
 }
 
 void PowerupSounds::PlayOnce(std::size_t effect, const Vector3& source, const Listener& listener,
-                             audio::Mixer& mixer) const {
-    const std::array cue{
-        audio::SoundCue{.sound = effects_[effect], .mix = PlaceSound(listener, source, {})}};
+                             audio::Mixer& mixer, float pitch) const {
+    const std::array cue{audio::SoundCue{.sound = effects_[effect],
+                                         .mix = PlaceSound(listener, source, {.pitch = pitch})}};
     mixer.Play(cue);
 }
 

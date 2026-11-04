@@ -15,7 +15,7 @@ namespace rr::sim {
 [[nodiscard]] float SteeringFor(float radius);
 
 /// Steering assist widens any turn radius under this, in units.
-[[nodiscard]] float GripLimit(const BodyState& body);
+[[nodiscard]] float GripLimit(const BodyState& body, float gravity);
 
 [[nodiscard]] bool CanStartDrift(const BodyState& body);
 

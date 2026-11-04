@@ -121,8 +121,8 @@ Milliseconds ReactionTimers::Roll() {
 }
 
 VoiceReactions::VoiceReactions(VoiceBanks banks, std::vector<std::int32_t> voices,
-                               sim::Random random)
-    : banks_(banks), voices_(std::move(voices)), timers_(voices_.size(), random) {}
+                               sim::Random random, float pitch)
+    : banks_(banks), voices_(std::move(voices)), timers_(voices_.size(), random), pitch_(pitch) {}
 
 void VoiceReactions::Hear(const sim::RaceSession& session, const Listener& listener,
                           Milliseconds elapsed, audio::Mixer& mixer) {
@@ -143,8 +143,8 @@ void VoiceReactions::Hear(const sim::RaceSession& session, const Listener& liste
         }
         const std::array cue{audio::SoundCue{
             .sound = *sound,
-            .mix = PlaceSound(listener, session.Racers()[event.racer].Body().motion.position, {},
-                              kReactionRange)}};
+            .mix = PlaceSound(listener, session.Racers()[event.racer].Body().motion.position,
+                              {.pitch = pitch_}, kReactionRange)}};
         mixer.Play(cue);
     }
 }

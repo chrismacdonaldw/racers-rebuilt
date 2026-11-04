@@ -51,6 +51,12 @@ void Racer::Place(const RacerStart& start) {
     status_.suddenStops = kept.suddenStops;
 }
 
+void Racer::ScaleSpeed(float scale) {
+    stats_.topSpeed *= scale;
+    stats_.acceleration *= scale;
+    SetDrive(body_, constants_, 0.0F, kBaseMaxSpeed * stats_.topSpeed);
+}
+
 void Racer::Tick(Milliseconds elapsed, const RacerControls& controls, const CollisionQuery& world) {
     RR_ASSERT(elapsed > Milliseconds{0} && elapsed <= kMaxStep);
     events_ = {};

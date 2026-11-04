@@ -143,7 +143,7 @@ bool BouncesOnLanding(BodyState& body, bool wasAirborne) {
 
 void ApplySupportForces(BodyState& body, const BodyConstants& constants) {
     BodyMotion& motion = body.motion;
-    const float gravityForce = -kGravity * constants.massScale;
+    const float gravityForce = -constants.gravity * constants.massScale;
     const Vector3& normal = motion.supportNormal;
     body.supportForce = (Vector3{.z = 1.0F} - (normal * normal.z)) * gravityForce;
     const Vector3 push{.z = -gravityForce / static_cast<float>(motion.contactCount + 8)};

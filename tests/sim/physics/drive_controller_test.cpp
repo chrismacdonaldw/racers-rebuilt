@@ -30,10 +30,10 @@ TEST_CASE("the grip limit grows with the square of speed") {
         wheel.surface.lateralGrip = 2.0F;
     }
     body.derived.forwardSpeed = 0.1F;
-    const float slow = GripLimit(body);
+    const float slow = GripLimit(body, kGravity);
     body.derived.forwardSpeed = 0.2F;
 
-    CHECK(GripLimit(body) == doctest::Approx(4.0F * slow));
+    CHECK(GripLimit(body, kGravity) == doctest::Approx(4.0F * slow));
     CHECK(slow == doctest::Approx(0.01F * 1.0e6F / (2.0F * kGravity)));
 }
 

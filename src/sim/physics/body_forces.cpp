@@ -20,7 +20,7 @@ constexpr float kCrawlTurnSpeed = 0.03F;
 constexpr float kWheelShare = 0.25F;
 
 float GravityForce(const BodyConstants& constants) {
-    return -kGravity * constants.massScale;
+    return -constants.gravity * constants.massScale;
 }
 
 float AverageOverWheels(const BodyMotion& motion, float Surface::* value) {
@@ -112,7 +112,7 @@ void AddGripForces(BodyState& body, const BodyConstants& constants, float contac
 void AddGroundedForces(BodyState& body, const BodyConstants& constants) {
     const BodyMotion& motion = body.motion;
     const float threshold = AverageOverWheels(motion, &Surface::supportThreshold);
-    if (Length(body.supportForce) > kGravity * constants.massScale * threshold) {
+    if (Length(body.supportForce) > constants.gravity * constants.massScale * threshold) {
         body.force += body.supportForce;
     }
     if (body.hover.isHovering && !constants.rules.hoversOnWheels) {

@@ -12,8 +12,6 @@
 
 namespace rr::sim {
 
-inline constexpr float kGravity = 39.0F;
-
 struct Basis {
     Vector3 forward{.x = 1.0F};
     Vector3 side{.y = 1.0F};

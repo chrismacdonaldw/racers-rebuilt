@@ -199,8 +199,10 @@ RaceAudio::RaceAudio(audio::Mixer& mixer, RaceSoundSet sounds, const RaceAudioSe
       shieldLoops_(setup.racerCount),
       ambience_(sounds_.ambience, sounds_.ambient, sim::Random(setup.seed ^ kAmbienceSeed)),
       hazards_(sounds_.ambient, sim::Random(setup.seed ^ kHazardSeed)),
-      powerups_(sounds_.effects, Taunts(Voices(setup)), sim::Random(setup.seed ^ kPowerupSeed)),
-      reactions_(sounds_.voices, Voices(setup), sim::Random(setup.seed ^ kVoiceSeed)) {
+      powerups_(sounds_.effects, Taunts(Voices(setup)), sim::Random(setup.seed ^ kPowerupSeed),
+                setup.voicePitch),
+      reactions_(sounds_.voices, Voices(setup), sim::Random(setup.seed ^ kVoiceSeed),
+                 setup.voicePitch) {
     RR_ASSERT(sounds_.effects.size() >= kEffectCount && setup.player < setup.racerCount);
 }
 

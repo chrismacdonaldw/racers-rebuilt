@@ -18,6 +18,7 @@
 #include "archive_survey.hpp"
 #include "assets/jam_archive.hpp"
 #include "assets/token_bytes.hpp"
+#include "core/mirror.hpp"
 
 namespace rr::assets {
 namespace {
@@ -151,6 +152,31 @@ void CheckRetailFile(const JamArchive& archive, const std::string& path,
     const auto found = expected.find(path);
     REQUIRE(found != expected.end());
     CheckRetailGhost(*run, found->second);
+}
+
+void CheckTurnsMirrored(const Quaternion& mirrored, const Quaternion& original) {
+    constexpr Vector3 kAhead{.x = 1.0F, .y = 2.0F, .z = 0.5F};
+    const Vector3 actual = Rotate(mirrored, MirroredY(kAhead));
+    const Vector3 expected = MirroredY(Rotate(original, kAhead));
+    CHECK(actual.x == doctest::Approx(expected.x).epsilon(1e-4));
+    CHECK(actual.y == doctest::Approx(expected.y).epsilon(1e-4));
+    CHECK(actual.z == doctest::Approx(expected.z).epsilon(1e-4));
+}
+
+TEST_CASE("a mirrored ghost run drives the mirrored line and turns the mirrored way") {
+    constexpr Quaternion kTurn{.w = 0.8F, .x = 0.36F, .y = 0.48F};
+    constexpr Transform kPose{.position = {.x = 10.0F, .y = 20.5F, .z = 3.0F}, .rotation = kTurn};
+    const GhostRun run{.start = kPose, .samples = {ToGhostSample(kPose)}};
+
+    const GhostRun mirrored = Mirrored(run);
+
+    const Transform original = FromGhostSample(run.samples[0]);
+    const Transform sample = FromGhostSample(mirrored.samples[0]);
+    CHECK(sample.position == MirroredY(original.position));
+    CheckTurnsMirrored(sample.rotation, original.rotation);
+    CHECK(mirrored.start.position == MirroredY(kPose.position));
+    CheckTurnsMirrored(mirrored.start.rotation, kTurn);
+    CHECK(Mirrored(mirrored).samples == run.samples);
 }
 
 TEST_CASE("every retail ghost parses with Veronica Voltage's lap times") {

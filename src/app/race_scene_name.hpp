@@ -5,6 +5,7 @@
 #include <string>
 #include <string_view>
 
+#include "app/race_modifiers.hpp"
 #include "app/racer/champion_car.hpp"
 #include "app/racer/racer_ref.hpp"
 #include "assets/game_version.hpp"
@@ -25,7 +26,7 @@ inline constexpr int kMaxAiPace = 150;
 
 /// Players drive grid slots `racer` then `secondRacer`, two alone. Empty `circuit` means home.
 /// `playerRacer` and `secondPlayerRacer` resolve `player` and `secondPlayer`. They, `carBody`,
-/// `version` and `lagsInput` aren't named.
+/// `version`, `lagsInput` and `modifiers` aren't named.
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct RaceSceneSetup {
     std::string track;
@@ -51,6 +52,7 @@ struct RaceSceneSetup {
     assets::GameVersion version = assets::GameVersion::Release1999;
     bool lagsInput = false;
     sim::Cheats cheats;
+    RaceModifiers modifiers;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
 };
@@ -58,7 +60,7 @@ struct RaceSceneSetup {
 /// A lone player races `opponents` computer racers, and two players race alone.
 [[nodiscard]] std::size_t RacerCount(const RaceSceneSetup& setup, std::size_t gridSize);
 
-/// LNFRRRM also mirrors a race named as the Rocket Racer circuit's.
+/// LNFRRRM also mirrors a race named as the Rocket Racer circuit's, and the mirror modifier any.
 [[nodiscard]] bool LoadsMirrored(const RaceSceneSetup& setup);
 
 /// Such as `race:RACEC0R0:respawn=3000:racer=2`, leaving out fields still at their defaults.

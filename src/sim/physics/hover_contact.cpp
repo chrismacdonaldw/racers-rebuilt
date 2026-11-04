@@ -170,7 +170,7 @@ void UpdateHoverContact(BodyState& body, const BodyConstants& constants, int dtM
     const bool bounces = wasAirborne && BouncesOnLanding(motion, rays);
     CopyToWheels(motion, rays);
     if (!bounces) {
-        const float gravityForce = -kGravity * constants.massScale;
+        const float gravityForce = -constants.gravity * constants.massScale;
         const Vector3& normal = motion.supportNormal;
         body.supportForce = (Vector3{.z = 1.0F} - (normal * normal.z)) * gravityForce;
     }
