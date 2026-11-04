@@ -41,13 +41,15 @@ struct Fitted {
     GeometryAsset original;
     SkeletonAsset skeleton;
     GeometryAsset model;
+    FigureRig rig;
 };
 
 std::optional<Fitted> FitRetail(const Vfs& vfs, std::string_view folder, std::string_view body) {
     const std::string stem = std::format("{}/{}", folder, ToUpperAscii(body));
     Fitted fitted{.original = ReadRetail(vfs, stem + ".GDB", ParseGeometry),
                   .skeleton = ReadRetail(vfs, stem + ".SDB", ParseSkeleton),
-                  .model = {}};
+                  .model = {},
+                  .rig = {}};
     LdrawLibrary library(RR_LDRAW_DIR);
     std::vector<FigurePiece> pieces;
     for (const MinifigPiece& piece : MinifigFigureOf(body)) {
@@ -55,12 +57,13 @@ std::optional<Fitted> FitRetail(const Vfs& vfs, std::string_view folder, std::st
         REQUIRE(part.has_value());
         pieces.push_back({.piece = &piece, .geometry = std::move(part).value_or(GeometryAsset{})});
     }
-    Result<GeometryAsset> model = FitMinifigBody(fitted.original, fitted.skeleton, pieces);
+    Result<FittedMinifig> model = FitMinifigBody(fitted.original, fitted.skeleton, pieces);
     REQUIRE(model.has_value());
     if (!model) {
         return std::nullopt;
     }
-    fitted.model = std::move(*model);
+    fitted.model = std::move(model->geometry);
+    fitted.rig = std::move(model->rig);
     return fitted;
 }
 
@@ -105,6 +108,14 @@ void CheckCommon(const Fitted& fitted) {
     CHECK(fitted.model.indices.size() > fitted.original.indices.size() * 4);
 }
 
+bool HasPivots(const Fitted& fitted) {
+    return std::ranges::all_of(fitted.rig.limbs, [&](const RigLimb& limb) {
+        return std::ranges::all_of(limb.nodes, [&](std::size_t node) {
+            return std::ranges::contains(fitted.rig.pivots, node, &RigPivot::node);
+        });
+    });
+}
+
 bool HasJointsStarting(const std::set<std::string>& joints,
                        std::initializer_list<std::string_view> prefixes) {
     return std::ranges::all_of(prefixes, [&](std::string_view prefix) {
@@ -113,7 +124,18 @@ bool HasJointsStarting(const std::set<std::string>& joints,
     });
 }
 
-TEST_CASE("standing bodies bend LDraw parts at the original joints") {
+void CheckStanding(const Fitted& fitted, std::string_view body) {
+    CheckCommon(fitted);
+    CHECK(HasJointsStarting(JointsOf(fitted, "torso"),
+                            {"chest", "l_sh", "l_el", "r_sh", "r_el", "r_hand"}));
+    CHECK_FALSE(HasJointsStarting(JointsOf(fitted, "torso"), {"waist"}));
+    CHECK(HasJointsStarting(JointsOf(fitted, "legs"),
+                            {body, "l_th", "l_kn", "l_an", "r_th", "r_kn", "r_an"}));
+    CHECK(fitted.rig.limbs.size() == 4);
+    CHECK(HasPivots(fitted));
+}
+
+TEST_CASE("standing bodies rig LDraw arms and legs to bend at their own elbows and knees") {
     const std::optional<Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {
         return;
@@ -121,13 +143,9 @@ TEST_CASE("standing bodies bend LDraw parts at the original joints") {
     for (const std::string_view body : {"rr", "hr", "rp", "hp"}) {
         CAPTURE(body);
         const std::optional<Fitted> fitted = FitRetail(*vfs, kMenuFolder, body);
-        if (!fitted) {
-            continue;
+        if (fitted) {
+            CheckStanding(*fitted, body);
         }
-        CheckCommon(*fitted);
-        CHECK(HasJointsStarting(JointsOf(*fitted, "torso"),
-                                {"chest", "waist", body, "l_sh", "l_el", "r_sh", "r_el"}));
-        CHECK(HasJointsStarting(JointsOf(*fitted, "legs"), {body, "l_th", "l_kn", "l_an", "r_th"}));
     }
 }
 
@@ -143,6 +161,7 @@ TEST_CASE("the race body seats LDraw legs on the leg box and arms on their joint
     CheckCommon(*fitted);
     CHECK(JointsOf(*fitted, "torso") == std::set<std::string>{"chest", "arm_l", "arm_r"});
     CHECK(JointsOf(*fitted, "legs") == std::set<std::string>{"leg_box"});
+    CHECK(fitted->rig.limbs.empty());
 }
 
 bool IsSwapped(const PartGroup& before, const PartGroup& after, std::size_t headTriangles) {

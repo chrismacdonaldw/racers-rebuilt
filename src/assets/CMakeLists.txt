@@ -25,6 +25,7 @@ rr_add_module(assets
         event_table.cpp
         face_drawing.cpp
         face_shapes.cpp
+        figure_rig.cpp
         folder_layer.cpp
         font_list.cpp
         game_path.cpp

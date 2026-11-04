@@ -40,6 +40,19 @@ struct Quaternion {
     return {.w = q.w, .x = -q.x, .y = -q.y, .z = -q.z};
 }
 
+/// No turn when `from` and `to` are parallel or opposite.
+[[nodiscard]] inline Quaternion RotationBetween(const Vector3& from, const Vector3& to) {
+    constexpr float kParallel = 1e-6F;
+    const Vector3 a = Normalized(from, {});
+    const Vector3 b = Normalized(to, {});
+    const Vector3 axis = Cross(a, b);
+    const float sine = Length(axis);
+    if (sine < kParallel) {
+        return {};
+    }
+    return FromAxisAngle(axis * (1.0F / sine), std::atan2(sine, Dot(a, b)));
+}
+
 /// `rotation` must be unit length.
 [[nodiscard]] constexpr Vector3 Rotate(const Quaternion& rotation, const Vector3& v) {
     const Vector3 axis{.x = rotation.x, .y = rotation.y, .z = rotation.z};

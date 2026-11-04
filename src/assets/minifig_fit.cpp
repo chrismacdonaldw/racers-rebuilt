@@ -10,6 +10,7 @@
 #include <limits>
 #include <map>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -26,7 +27,9 @@ namespace {
 
 constexpr std::string_view kFaceMaterial = "face";
 constexpr std::size_t kTipCorners = 8;
-constexpr float kParallel = 1e-6F;
+constexpr float kRootBand = 0.1F;
+constexpr std::array kElbowCut{0.5F};
+constexpr std::array kKneeAnkleCuts{0.54F, 0.73F};
 
 using Rows = std::array<Vector3, 3>;
 
@@ -47,6 +50,12 @@ struct PlacedPiece {
     std::vector<FigureVertex> vertices;
     std::vector<std::uint32_t> indices;
     std::vector<SurfaceTriangle> surface;
+    Vector3 pivot;
+    Transform lookup;
+    std::vector<std::uint16_t> segments;
+    Vector3 root;
+    Vector3 axis;
+    float length = 0.0F;
 };
 
 struct Rest {
@@ -129,7 +138,12 @@ PlacedPiece Place(const FigurePiece& figure, const Vector3& anchor,
     PlacedPiece placed{.piece = figure.piece,
                        .vertices = {},
                        .indices = figure.geometry.indices,
-                       .surface = std::move(surface)};
+                       .surface = std::move(surface),
+                       .pivot = FigurePoint(figure.piece->pivot, anchor),
+                       .lookup = {},
+                       .segments = {},
+                       .axis = {},
+                       .length = 0.0F};
     placed.vertices.reserve(figure.geometry.vertices.size());
     for (const GeometryVertex& vertex : figure.geometry.vertices) {
         const Vector3 ldraw = Times(kLoadedToLdraw, vertex.position) * (1.0F / kGameUnitsPerLdu);
@@ -159,15 +173,18 @@ Vector3 TipOf(const std::vector<Vector3>& points, const Vector3& from) {
     return sum * (1.0F / static_cast<float>(count));
 }
 
-Quaternion Between(const Vector3& from, const Vector3& to) {
-    const Vector3 a = Normalized(from, {});
-    const Vector3 b = Normalized(to, {});
-    const Vector3 axis = Cross(a, b);
-    const float sine = Length(axis);
-    if (sine < kParallel) {
-        return {};
+Vector3 RootOf(const std::vector<Vector3>& points, const Vector3& from, const Vector3& tip) {
+    const Vector3 along = Normalized(tip - from, {});
+    const float band = Length(tip - from) * kRootBand;
+    Vector3 sum;
+    float count = 0.0F;
+    for (const Vector3& point : points) {
+        if (Dot(point - from, along) < band) {
+            sum += point;
+            count += 1.0F;
+        }
     }
-    return FromAxisAngle(axis * (1.0F / sine), std::atan2(sine, Dot(a, b)));
+    return count > 0.0F ? sum * (1.0F / count) : from;
 }
 
 std::optional<std::size_t> JointNamed(const SkeletonAsset& skeleton, std::string_view prefix) {
@@ -202,15 +219,11 @@ Result<void> Swing(std::vector<PlacedPiece>& pieces, std::string_view swingJoint
     if (figurePoints.empty()) {
         return {};
     }
-    const Quaternion turn =
-        Between(TipOf(figurePoints, shoulder) - shoulder, TipOf(bodyPoints, shoulder) - shoulder);
+    const Quaternion turn = RotationBetween(TipOf(figurePoints, shoulder) - shoulder,
+                                            TipOf(bodyPoints, shoulder) - shoulder);
     for (PlacedPiece& placed : pieces) {
-        if (placed.piece->swingJoint != swingJoint) {
-            continue;
-        }
-        for (FigureVertex& vertex : placed.vertices) {
-            vertex.position = shoulder + Rotate(turn, vertex.position - shoulder);
-            vertex.normal = Rotate(turn, vertex.normal);
+        if (placed.piece->swingJoint == swingJoint) {
+            placed.lookup = {.position = shoulder - Rotate(turn, shoulder), .rotation = turn};
         }
     }
     return {};
@@ -227,63 +240,103 @@ std::vector<std::string_view> SwingJoints(std::span<const FigurePiece> pieces) {
     return joints;
 }
 
-struct Bone {
-    std::uint16_t joint = 0;
-    Vector3 from;
-    Vector3 to;
-};
+std::span<const float> CutsOf(const PlacedPiece& placed) {
+    switch (placed.segments.size()) {
+        case kElbowCut.size() + 1:
+            return kElbowCut;
+        case kKneeAnkleCuts.size() + 1:
+            return kKneeAnkleCuts;
+        default:
+            return {};
+    }
+}
 
-std::vector<Bone> BonesOf(const MinifigPiece& piece, const Rest& rest,
-                          const SkeletonAsset& skeleton) {
-    std::vector<Bone> bones;
-    for (std::size_t joint = 0; joint < rest.joints.size(); ++joint) {
-        if (!std::ranges::any_of(piece.bones, [&](std::string_view prefix) {
-                return IsJoint(skeleton, joint, prefix);
-            })) {
+std::span<const std::string_view> SegmentJoints(const MinifigPiece& piece) {
+    return piece.segments.front().empty() ? std::span<const std::string_view>(piece.joints).first(1)
+                                          : std::span<const std::string_view>(piece.segments);
+}
+
+Result<void> Segment(PlacedPiece& placed, const SkeletonAsset& skeleton) {
+    for (const std::string_view prefix : SegmentJoints(*placed.piece)) {
+        if (prefix.empty()) {
             continue;
         }
-        const auto id = static_cast<std::uint16_t>(joint);
-        const Vector3 from = rest.joints[joint].position;
-        bones.push_back({.joint = id, .from = from, .to = from});
-        for (std::size_t child = joint + 1; child < rest.joints.size(); ++child) {
-            if (skeleton.nodes[child].parent == joint) {
-                bones.push_back({.joint = id, .from = from, .to = rest.joints[child].position});
+        const std::optional<std::size_t> joint = JointNamed(skeleton, prefix);
+        if (!joint) {
+            return Fail(ErrorCode::InvalidData, std::format("the body has no {} joint", prefix));
+        }
+        placed.segments.push_back(static_cast<std::uint16_t>(*joint));
+    }
+    std::vector<Vector3> points;
+    points.reserve(placed.vertices.size());
+    std::ranges::transform(placed.vertices, std::back_inserter(points), &FigureVertex::position);
+    const Vector3 tip = TipOf(points, placed.pivot);
+    placed.root = RootOf(points, placed.pivot, tip);
+    const Vector3 reach = tip - placed.root;
+    placed.axis = Normalized(reach, {});
+    placed.length = Length(reach);
+    return {};
+}
+
+std::uint16_t SegmentAt(const PlacedPiece& placed, const Vector3& point) {
+    const float along = Dot(point - placed.root, placed.axis);
+    const auto passed = std::ranges::count_if(
+        CutsOf(placed), [&](float cut) { return along > cut * placed.length; });
+    return placed.segments.at(static_cast<std::size_t>(passed));
+}
+
+Vector3 SegmentStart(const PlacedPiece& placed, std::size_t segment) {
+    if (segment == 0) {
+        return placed.pivot;
+    }
+    return placed.root + (placed.axis * (CutsOf(placed)[segment - 1] * placed.length));
+}
+
+const PlacedPiece* HandOf(std::span<const PlacedPiece> pieces, const PlacedPiece& arm) {
+    const auto hand = std::ranges::find_if(pieces, [&](const PlacedPiece& placed) {
+        return &placed != &arm && !arm.piece->swingJoint.empty() &&
+               placed.piece->swingJoint == arm.piece->swingJoint && placed.segments.size() == 1;
+    });
+    return hand == pieces.end() ? nullptr : &*hand;
+}
+
+std::optional<RigLimb> LimbOf(std::span<const PlacedPiece> pieces, const PlacedPiece& placed) {
+    const std::vector<std::uint16_t>& joints = placed.segments;
+    if (joints.size() == kKneeAnkleCuts.size() + 1) {
+        return RigLimb{.nodes = {joints[0], joints[1], joints[2]}};
+    }
+    const PlacedPiece* hand =
+        joints.size() == kElbowCut.size() + 1 ? HandOf(pieces, placed) : nullptr;
+    if (hand == nullptr) {
+        return std::nullopt;
+    }
+    return RigLimb{.nodes = {joints[0], joints[1], hand->segments.front()}};
+}
+
+FigureRig RigOf(std::span<const PlacedPiece> pieces, float scale) {
+    FigureRig rig;
+    const float unscale = scale > 0.0F ? 1.0F / scale : 1.0F;
+    for (const PlacedPiece& placed : pieces) {
+        for (std::size_t segment = 0; segment < placed.segments.size(); ++segment) {
+            const std::uint16_t joint = placed.segments[segment];
+            if (joint != 0 && !std::ranges::contains(rig.pivots, joint, &RigPivot::node)) {
+                rig.pivots.push_back(
+                    {.node = joint, .position = SegmentStart(placed, segment) * unscale});
             }
         }
+        if (std::optional<RigLimb> limb = LimbOf(pieces, placed)) {
+            rig.limbs.push_back(*limb);
+        }
     }
-    return bones;
-}
-
-float DistanceSquaredToBone(const Vector3& point, const Bone& bone) {
-    const Vector3 along = bone.to - bone.from;
-    const float lengthSquared = Dot(along, along);
-    const float t = lengthSquared > 0.0F
-                        ? std::clamp(Dot(point - bone.from, along) / lengthSquared, 0.0F, 1.0F)
-                        : 0.0F;
-    const Vector3 offset = bone.from + (along * t) - point;
-    return Dot(offset, offset);
-}
-
-JointLocator LocatorOf(const PlacedPiece& placed, const Rest& rest, const SkeletonAsset& skeleton) {
-    std::vector<Bone> bones = BonesOf(*placed.piece, rest, skeleton);
-    if (bones.empty()) {
-        return [&surface = placed.surface](const Vector3& point) {
-            const SurfacePoint nearest = NearestSurfacePoint(surface, point, {});
-            return nearest.triangle == nullptr ? std::uint16_t{0} : nearest.triangle->joint;
-        };
-    }
-    return [bones = std::move(bones)](const Vector3& point) {
-        return std::ranges::min(
-                   bones, {}, [&](const Bone& bone) { return DistanceSquaredToBone(point, bone); })
-            .joint;
-    };
+    return rig;
 }
 
 using Buckets = std::map<std::pair<std::uint32_t, std::uint16_t>, std::vector<GeometryVertex>>;
 
-void Bind(const PlacedPiece& placed, const Rest& rest, const SkeletonAsset& skeleton,
-          std::uint32_t material, Buckets& buckets) {
-    const JointLocator locator = LocatorOf(placed, rest, skeleton);
+void Bind(const PlacedPiece& placed, const Rest& rest, std::uint32_t material, Buckets& buckets) {
+    const JointLocator locator = [&placed](const Vector3& point) {
+        return SegmentAt(placed, point);
+    };
     for (std::size_t first = 0; first + 2 < placed.indices.size(); first += 3) {
         std::array<SkinCorner, 3> corners;
         for (std::size_t corner = 0; corner < 3; ++corner) {
@@ -299,9 +352,10 @@ void Bind(const PlacedPiece& placed, const Rest& rest, const SkeletonAsset& skel
         for (const SkinnedTriangle& skinned : SkinTriangle(locator, corners)) {
             const std::array<SurfacePoint, 3> sources =
                 NearestSurfacePoints(placed.surface,
-                                     {skinned.corners[0].position, skinned.corners[1].position,
-                                      skinned.corners[2].position},
-                                     facing);
+                                     {Apply(placed.lookup, skinned.corners[0].position),
+                                      Apply(placed.lookup, skinned.corners[1].position),
+                                      Apply(placed.lookup, skinned.corners[2].position)},
+                                     Rotate(placed.lookup.rotation, facing));
             std::vector<GeometryVertex>& bucket = buckets[{material, skinned.joints[0]}];
             for (std::size_t corner = 0; corner < 3; ++corner) {
                 const Transform undo = Inverse(JointAt(rest.joints, skinned.joints.at(corner)));
@@ -352,7 +406,7 @@ GeometryAsset Assemble(Buckets& buckets, std::vector<std::string> materials, flo
 
 }
 
-Result<GeometryAsset> FitMinifigBody(const GeometryAsset& body, const SkeletonAsset& skeleton,
+Result<FittedMinifig> FitMinifigBody(const GeometryAsset& body, const SkeletonAsset& skeleton,
                                      std::span<const FigurePiece> pieces) {
     if (pieces.empty()) {
         return Fail(ErrorCode::InvalidData, "a minifig needs pieces");
@@ -379,6 +433,11 @@ Result<GeometryAsset> FitMinifigBody(const GeometryAsset& body, const SkeletonAs
     for (std::size_t i = 0; i < pieces.size(); ++i) {
         placed.push_back(Place(pieces[i], anchor, std::move(surfaces[i])));
     }
+    for (PlacedPiece& piece : placed) {
+        if (Result<void> segmented = Segment(piece, skeleton); !segmented) {
+            return std::unexpected(std::move(segmented.error()));
+        }
+    }
     for (const std::string_view joint : SwingJoints(pieces)) {
         if (Result<void> swung = Swing(placed, joint, rest, skeleton); !swung) {
             return std::unexpected(std::move(swung.error()));
@@ -388,10 +447,11 @@ Result<GeometryAsset> FitMinifigBody(const GeometryAsset& body, const SkeletonAs
     Buckets buckets;
     KeepFace(body, FindOrAddMaterial(materials, std::string(kFaceMaterial)), buckets);
     for (const PlacedPiece& piece : placed) {
-        Bind(piece, rest, skeleton,
-             FindOrAddMaterial(materials, std::string(piece.piece->material)), buckets);
+        Bind(piece, rest, FindOrAddMaterial(materials, std::string(piece.piece->material)),
+             buckets);
     }
-    return Assemble(buckets, std::move(materials), body.scale);
+    return FittedMinifig{.geometry = Assemble(buckets, std::move(materials), body.scale),
+                         .rig = RigOf(placed, body.scale)};
 }
 
 }

@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "assets/figure_rig.hpp"
 #include "core/quaternion.hpp"
 #include "core/result.hpp"
 #include "core/vector3.hpp"
@@ -23,6 +24,7 @@ struct SkeletonNode {
 /// Node `i` is joint `i` of the paired model. A parent always comes before its children.
 struct SkeletonAsset {
     std::vector<SkeletonNode> nodes;
+    std::optional<FigureRig> rig;
 };
 
 [[nodiscard]] Result<SkeletonAsset> ParseSkeleton(std::span<const std::byte> bytes);

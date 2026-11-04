@@ -9,9 +9,11 @@
 #include "assets/driver_look.hpp"
 #include "assets/geometry_asset.hpp"
 #include "assets/racer_catalog.hpp"
+#include "assets/skeleton_database.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
+#include "sim/track/track_entity_sources.hpp"
 
 namespace rr::app {
 
@@ -20,6 +22,7 @@ struct AwardDriver {
     assets::DriverLook look;
     std::string face;
     assets::GeometryAsset minifig;
+    assets::SkeletonAsset skeleton;
     assets::TrackAssets looks;
 };
 
@@ -44,5 +47,8 @@ struct AwardDriver {
 
 /// Swaps the driver in for `guy1` and its legs onto `swap` and `pleg`. Its materials win on a name.
 void DressAwardDriver(const AwardDriver& driver, assets::TrackAssets& assets);
+
+/// Poses each `guy1` on `driver`'s rig when its skeleton joins the same way.
+void RigAwardDriver(const assets::SkeletonAsset& driver, sim::TrackEntitySources& sources);
 
 }

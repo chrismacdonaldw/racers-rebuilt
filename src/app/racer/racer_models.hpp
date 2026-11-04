@@ -45,6 +45,10 @@ struct BuiltCarModel {
                                                          const assets::DriverLook& look,
                                                          assets::DriverDetail detail);
 
+/// `body` names a `MENUPART` body. Its `RIG` sidecar, if any, comes along.
+[[nodiscard]] Result<assets::SkeletonAsset> LoadMenuMinifigSkeleton(const assets::Vfs& vfs,
+                                                                    std::string_view body);
+
 [[nodiscard]] Result<assets::SkeletonAsset> LoadMenuMinifigSkeleton(
     const assets::Vfs& vfs, const assets::DriverPartCatalog& parts, const assets::DriverLook& look);
 

@@ -51,6 +51,7 @@ void TrackEntityDraws::Update(std::span<const sim::EntityClock> clocks) {
         std::vector<Transform>& poses = poses_[entity];
         sim::NodePoses(*sources_, entity, clock, poses);
         const sim::TrackEntity& source = sources_->entities[entity];
+        retargeter_.Run(sources_->skeletons[source.skeleton], source.scale, poses);
         const std::optional<render::UvOffset> reflection = ReflectionOf(source, poses);
         for (Transform& pose : poses) {
             pose = TransformToEngine(pose);

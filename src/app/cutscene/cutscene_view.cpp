@@ -232,6 +232,9 @@ Result<LoadedWorlds> LoadWorlds(render::Renderer& renderer, const assets::Vfs& v
     if (!sources) {
         return std::unexpected(std::move(sources.error()));
     }
+    if (driver) {
+        RigAwardDriver(driver->skeleton, *sources);
+    }
     return LoadedWorlds{.assets = std::move(*assets),
                         .model = std::make_unique<TrackModel>(std::move(*model)),
                         .animations = std::move(*animations),
@@ -337,6 +340,7 @@ Result<void> CutsceneView::ShowDriver(std::string_view code, assets::TrackLoader
         dressed = parts_.dressed.emplace(std::move(key), std::move(*loaded)).first;
     }
     parts_.model->animatedModels.insert_or_assign(*parts_.driverModel, dressed->second.model);
+    RigAwardDriver(dressed->second.skeleton, *parts_.sources);
     parts_.jointed = TrackEntityDraws(parts_.model->animatedModels, *parts_.sources);
     parts_.driver = dressed->second.look;
     parts_.isDriverPending = true;
@@ -359,6 +363,7 @@ Result<CutsceneView::DressedDriver> CutsceneView::Dress(const std::string& code,
     return UploadJointedModel(*parts_.renderer, driver->minifig, *materials)
         .transform([&](JointedModel model) {
             return DressedDriver{.look = driver->look,
+                                 .skeleton = std::move(driver->skeleton),
                                  .model = std::move(model),
                                  .materials = std::move(*materials)};
         });
