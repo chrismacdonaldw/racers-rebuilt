@@ -151,6 +151,9 @@ void RaceScene::ApplySettings(const settings::Registry& settings) {
     hasSlowMotion_ = settings.Get(kSlowMotionCheat);
     parts_.farModels.SetHidden(!settings.Get(kFarCarsSetting), !settings.Get(kFarScenerySetting));
     showsCockpitCar_ = settings.Get(kCockpitCarSetting);
+    if (parts_.particles) {
+        parts_.particles->SetBetter(settings.Get(kBetterParticlesSetting));
+    }
     hud_.SetLanguage(SelectedLanguage(settings));
 }
 
