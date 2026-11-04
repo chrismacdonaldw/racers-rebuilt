@@ -16,7 +16,7 @@ public:
     void MovePointer(float x, float y, bool isOver);
     void AddPointerMotion(float dx, float dy);
     void PressPointer(PointerButton button);
-    void ReleasePointer();
+    void ReleasePointer(PointerButton button);
     void ScrollPointer(float steps);
     void ReleaseAll();
 

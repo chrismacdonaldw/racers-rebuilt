@@ -66,6 +66,10 @@ public:
     [[nodiscard]] render::RenderView Render(std::span<const sim::EntityClock> clocks,
                                             const Transform& car);
 
+    /// The shown car placed at `car` in game space, as engine space draws.
+    void AddCarDraws(const Transform& car, const render::Color& ambient,
+                     std::vector<render::MeshDraw>& draws) const;
+
     /// Leaves the driver out, as the car builder does.
     [[nodiscard]] render::RenderView Render(const Transform& car, const StandShot& shot);
 

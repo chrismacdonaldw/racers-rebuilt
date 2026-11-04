@@ -41,7 +41,7 @@ inline constexpr std::size_t kMenuActionCount = static_cast<std::size_t>(MenuAct
 
 inline constexpr std::size_t kMaxPlayers = 2;
 
-enum class PointerButton : std::uint8_t { Left, Right, Other };
+enum class PointerButton : std::uint8_t { Left, Right, Middle, Other };
 
 /// `x` and `y` are on the UI canvas; the rest covers everything since the previous tick.
 struct MenuPointer {
@@ -55,6 +55,12 @@ struct MenuPointer {
     bool pressed = false;
     bool rightPressed = false;
     bool released = false;
+    /// The buttons down at the end of the tick, one bit per `PointerButton`.
+    std::uint8_t held = 0;
+
+    [[nodiscard]] bool IsHeld(PointerButton button) const {
+        return ((held >> static_cast<unsigned>(button)) & 1U) != 0;
+    }
 
     friend bool operator==(const MenuPointer&, const MenuPointer&) = default;
 };

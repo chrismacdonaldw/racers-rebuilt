@@ -37,6 +37,9 @@ struct UiToClip {
 
 [[nodiscard]] Viewport UiViewport(const Rect& rect);
 
+/// The whole window in UI units, reaching past the canvas on the sides it leaves bare.
+[[nodiscard]] Rect WindowInUi(std::uint32_t widthPx, std::uint32_t heightPx, UiFit fit);
+
 [[nodiscard]] PixelRect ViewportArea(const Viewport& viewport, std::uint32_t widthPx,
                                      std::uint32_t heightPx, UiFit uiFit, SceneFit sceneFit);
 

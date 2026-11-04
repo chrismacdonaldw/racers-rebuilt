@@ -40,11 +40,14 @@ std::optional<std::size_t> DirectionOf(const sim::InputFrame& input) {
 
 }
 
-void CarBuildScreen::UseControls(BuildMode mode) {
+bool CarBuildScreen::UseControls(BuildMode mode) {
+    if (mode.controls == BuildControls::Workshop) {
+        return false;
+    }
     const bool usesPalette = mode.controls == BuildControls::Palette;
     OfferExtraPieces(usesPalette && mode.offersExtraPieces);
     if (usesPalette == (palette_ != nullptr)) {
-        return;
+        return true;
     }
     builder_.Release();
     hold_ = PaletteHold::None;
@@ -56,10 +59,11 @@ void CarBuildScreen::UseControls(BuildMode mode) {
         palette_.reset();
         builder_.Choose(builder_.Choice());
         ShowSet();
-        return;
+        return true;
     }
     palette_ = std::make_unique<PaletteControls>(*services_.catalog);
     ShowPaletteSet();
+    return true;
 }
 
 void CarBuildScreen::ShowPaletteSet() {

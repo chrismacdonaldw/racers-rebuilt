@@ -114,7 +114,7 @@ CarBuildScreen::CarBuildScreen(BuildServices services, CarBuildLook look, PieceM
     setStrip_.Snap(0, sets_.size());
     under_.push_back(look_.backdrop);
     holes_ = {look_.carousel.bounds, look_.garage.interior};
-    UseControls(services_.mode);
+    static_cast<void>(UseControls(services_.mode));
 }
 
 void CarBuildScreen::HandleKey(SDL_Keycode key, SDL_Keymod mod) {

@@ -14,6 +14,7 @@
 #include "app/menu/build_drag.hpp"
 #include "app/menu/build_help_panel.hpp"
 #include "app/menu/build_pointer.hpp"
+#include "app/menu/builder_screen.hpp"
 #include "app/menu/car_build_look.hpp"
 #include "app/menu/car_build_menu.hpp"
 #include "app/menu/car_builder.hpp"
@@ -43,39 +44,22 @@
 
 namespace rr::app {
 
-enum class BuildOutcome : std::uint8_t { None, CarChanged, TooManyPieces, Done };
-
-enum class BuildControls : std::uint8_t { Original, Palette };
-
-struct BuildMode {
-    BuildControls controls = BuildControls::Original;
-    bool offersExtraPieces = false;
-};
-
-struct BuildServices {
-    const assets::Vfs* vfs = nullptr;
-    CarStand* stand = nullptr;
-    assets::PieceCatalog* catalog = nullptr;
-    const MenuText* text = nullptr;
-    MenuSounds sounds;
-    BuildMode mode;
-};
-
 /// Draws over the edit car stand. What `services` points to must outlive it.
-class CarBuildScreen {
+class CarBuildScreen final : public BuilderScreen {
 public:
     [[nodiscard]] static Result<std::unique_ptr<CarBuildScreen>> Load(
         render::Renderer& renderer, const assets::Vfs& vfs, BuildServices services,
         sim::BuiltCar car, std::vector<std::size_t> sets);
 
-    void HandleKey(SDL_Keycode key, SDL_Keymod mod);
-    void UseControls(BuildMode mode);
-    [[nodiscard]] BuildOutcome Tick(const sim::InputFrame& input);
-    [[nodiscard]] bool HoldsPointer() const { return menu_.Held().has_value(); }
+    void HandleKey(SDL_Keycode key, SDL_Keymod mod) override;
+    [[nodiscard]] bool UseControls(BuildMode mode) override;
+    [[nodiscard]] BuildOutcome Tick(const sim::InputFrame& input) override;
+    [[nodiscard]] bool HoldsPointer() const override { return menu_.Held().has_value(); }
 
-    [[nodiscard]] const sim::BuiltCar& Car() const { return builder_.Car(); }
+    [[nodiscard]] const sim::BuiltCar& Car() const override { return builder_.Car(); }
 
-    void Render(std::vector<render::RenderView>& views, std::vector<render::SpriteDraw>& sprites);
+    void Render(std::vector<render::RenderView>& views,
+                std::vector<render::SpriteDraw>& sprites) override;
 
 private:
     struct Fit {
