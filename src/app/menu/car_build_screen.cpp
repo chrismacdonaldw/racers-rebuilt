@@ -32,7 +32,6 @@ namespace {
 constexpr Vector3 kSpot{.z = 1.0F};
 constexpr Vector3 kUp{.z = 1.0F};
 constexpr Vector3 kLookAbove{.z = 4.0F};
-constexpr float kPlateHeight = 0.4F;
 constexpr render::Color kWhite{};
 constexpr auto kFirstButtonRow = static_cast<std::size_t>(BuildRow::Move);
 constexpr std::int32_t kMoveSound = 16;
@@ -123,11 +122,14 @@ CarBuildScreen::CarBuildScreen(BuildServices services, CarBuildLook look, PieceM
     setStrip_.Snap(0, sets_.size());
     under_.push_back(look_.backdrop);
     holes_ = {look_.carousel.bounds, look_.garage.interior};
+    UseControls(services_.controls);
 }
 
 void CarBuildScreen::HandleKey(SDL_Keycode key) {
     if (const std::optional<BuildRequest> request = BuildKeyRequest(key)) {
         keys_.push_back(*request);
+    } else if (palette_ && key == SDLK_R) {
+        keys_.push_back({.command = BuildCommand::Rotate});
     }
 }
 
@@ -145,12 +147,14 @@ BuildOutcome CarBuildScreen::Tick(const sim::InputFrame& input) {
             ChangePad(held);
         }
     } else {
-        outcome = ApplyInput(input);
+        outcome = palette_ ? TickPalette(input) : ApplyInput(input);
     }
     keys_.clear();
     outcome = std::max(outcome, Animate());
-    const auto row = static_cast<std::size_t>(menu_.Focus());
-    help_.Tick(row, RowBounds(row), pressed);
+    if (!palette_) {
+        const auto row = static_cast<std::size_t>(menu_.Focus());
+        help_.Tick(row, RowBounds(row), pressed);
+    }
     return outcome;
 }
 
@@ -247,6 +251,7 @@ void CarBuildScreen::StepSet(int direction) {
     set_ = (set_ + (direction > 0 ? 1 : count - 1)) % count;
     builder_.SelectSet(sets_.at(set_));
     ShowSet();
+    ShowPaletteSet();
 }
 
 void CarBuildScreen::StepPiece(int direction) {
@@ -300,6 +305,9 @@ BuildOutcome CarBuildScreen::Land() {
         return BuildOutcome::TooManyPieces;
     }
     services_.sounds.Play(kPlacedSound);
+    if (palette_ && hold_ == PaletteHold::None) {
+        builder_.Release();
+    }
     return BuildOutcome::CarChanged;
 }
 
@@ -339,21 +347,7 @@ bool CarBuildScreen::Refit() {
 }
 
 float CarBuildScreen::RestHeight() const {
-    const assets::PieceRecord* piece = builder_.Cursor().Piece();
-    if (piece == nullptr) {
-        return 0.0F;
-    }
-    const sim::PiecePlacement at = builder_.Cursor().Placement();
-    const assets::CellSize size = piece->shape.Footprint(at.rotation);
-    int height = 0;
-    for (int y = 0; y < size.height; ++y) {
-        for (int x = 0; x < size.width; ++x) {
-            if (piece->shape.GetCell(x, y, at.rotation).Occupied()) {
-                height = std::max(height, builder_.Car().Grid().At(at.x + x, at.y + y).height);
-            }
-        }
-    }
-    return static_cast<float>(height) * kPlateHeight;
+    return static_cast<float>(builder_.RestPlates()) * kPlateHeight;
 }
 
 BuildOutcome CarBuildScreen::Animate() {
@@ -452,9 +446,21 @@ render::Camera CarBuildScreen::ViewCamera() const {
 
 void CarBuildScreen::Render(std::vector<render::RenderView>& views,
                             std::vector<render::SpriteDraw>& sprites) {
+    if (palette_) {
+        RenderPalette(views, sprites);
+        return;
+    }
     DrawPicturesAround(under_, holes_, sprites);
+    RenderScene(true, views);
+    DrawMenuFrameBorder(look_.garage.look, look_.garage.frame, sprites);
+    carouselView_.Render(carousel_, models_.SetPreviews(builder_.Set()),
+                         menu_.Focus() == BuildRow::Pieces, under_, views, ItemTurn(spin_));
+    DrawControls(sprites);
+}
+
+void CarBuildScreen::RenderScene(bool showsHeld, std::vector<render::RenderView>& views) {
     extras_.clear();
-    if (builder_.Cursor().Piece() != nullptr) {
+    if (showsHeld && builder_.Cursor().Piece() != nullptr) {
         const HeldPieceLayers layers = motion_.Layers(camera_.IsOverhead());
         if (layers.trail) {
             AddPiece(layers.trail->height, layers.trail->alpha);
@@ -473,10 +479,6 @@ void CarBuildScreen::Render(std::vector<render::RenderView>& views,
                          .light = kWhite,
                          .extras = extras_,
                          .carAmbient = isCarLit ? kLitAmbient : render::Color{}}));
-    DrawMenuFrameBorder(look_.garage.look, look_.garage.frame, sprites);
-    carouselView_.Render(carousel_, models_.SetPreviews(builder_.Set()),
-                         menu_.Focus() == BuildRow::Pieces, under_, views, ItemTurn(spin_));
-    DrawControls(sprites);
 }
 
 void CarBuildScreen::DrawControls(std::vector<render::SpriteDraw>& sprites) const {

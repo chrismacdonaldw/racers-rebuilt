@@ -6,6 +6,7 @@
 
 #include "app/racer/racer_bounds.hpp"
 #include "app/track_model.hpp"
+#include "assets/game_path.hpp"
 #include "core/log.hpp"
 #include "sim/car_build/car_mesh.hpp"
 
@@ -55,6 +56,14 @@ const PartPreview& PieceModels::Model(const assets::PieceRecord& piece, std::uin
     }
     model = {.draws = std::move(uploaded->draws), .bounds = ModelBounds(geometry->vertices)};
     return model;
+}
+
+std::optional<render::Material> PieceModels::ColourMaterial(std::uint8_t colour) const {
+    if (colour >= catalog_->colours.size()) {
+        return std::nullopt;
+    }
+    const auto found = materials_.find(assets::ToUpperAscii(catalog_->colours[colour]));
+    return found == materials_.end() ? std::nullopt : std::optional(found->second);
 }
 
 std::span<const PartPreview> PieceModels::SetPreviews(std::size_t set) {

@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "app/frame_loop.hpp"
+#include "app/menu/builder_settings.hpp"
 #include "app/menu/garage_racers.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_frame.hpp"
@@ -40,26 +41,6 @@ constexpr Vector3 kSpot{.z = 1.0F};
 constexpr Vector3 kUp{.z = 1.0F};
 constexpr sim::EntityId kCarId{1};
 constexpr std::uint64_t kStateBase = 256;
-
-std::unique_ptr<CarStand> LoadStand(render::Renderer& renderer, const assets::Vfs& vfs,
-                                    const MenuFiles& files, const settings::Racer& racer) {
-    Result<std::unique_ptr<CarStand>> stand =
-        CarStand::Load(renderer, vfs, files, kEditCarScreen, racer);
-    if (!stand) {
-        log::Warn("{}, the car editor shows no car", stand.error().message);
-        return nullptr;
-    }
-    return std::move(*stand);
-}
-
-std::optional<DialogLook> LoadDialog(render::Renderer& renderer, const assets::Vfs& vfs) {
-    Result<DialogLook> look = LoadDialogLook(renderer, vfs);
-    if (!look) {
-        log::Warn("{}, the car editor discards changes without asking", look.error().message);
-        return std::nullopt;
-    }
-    return std::move(*look);
-}
 
 }
 
@@ -100,8 +81,8 @@ Result<std::unique_ptr<EditCarScene>> EditCarScene::Create(render::Renderer& ren
             .setIcons = SetIcons(*pieces, sets),
             .set = set == sets.end() ? 0 : static_cast<std::size_t>(set - sets.begin()),
             .isReplaceable = isReplaceable};
-    Views views{.stand = LoadStand(renderer, vfs, *menu, record),
-                .dialog = LoadDialog(renderer, vfs)};
+    Views views{.stand = LoadEditCarStand(renderer, vfs, *menu, record),
+                .dialog = LoadEditCarDialog(renderer, vfs)};
     Edit edit{.racers = {.file = racersFile, .store = std::move(*store), .racer = racer},
               .car = std::move(car)};
     return std::unique_ptr<EditCarScene>(new EditCarScene(renderer, vfs, sounds, std::move(*look),
@@ -140,7 +121,8 @@ void EditCarScene::OpenBuilder() {
                               .stand = views_.stand.get(),
                               .catalog = &car_.pieces,
                               .text = &text_,
-                              .sounds = sounds_},
+                              .sounds = sounds_,
+                              .controls = buildControls_},
                              car_.built, car_.sets);
     if (!build) {
         log::Warn("{}, the car editor stays open", build.error().message);
@@ -162,6 +144,11 @@ void EditCarScene::ApplySettings(const settings::Registry& settings) {
     }
     if (views_.stand) {
         views_.stand->DrawFarScenery(settings.Get(kFarScenerySetting));
+    }
+    buildControls_ =
+        settings.Get(kEnhancedBuilder) ? BuildControls::Palette : BuildControls::Original;
+    if (build_) {
+        build_->UseControls(buildControls_);
     }
 }
 

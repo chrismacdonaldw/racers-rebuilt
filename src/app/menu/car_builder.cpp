@@ -1,5 +1,6 @@
 #include "app/menu/car_builder.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <expected>
@@ -69,6 +70,21 @@ void CarBuilder::Choose(std::size_t choice) {
     cursor_.Hold(catalog_->library.pieces[choices[choice].piece]);
 }
 
+void CarBuilder::Pick(std::size_t set, std::size_t choice, std::uint8_t colour) {
+    if (set >= catalog_->partSets.size()) {
+        return;
+    }
+    set_ = set;
+    Choose(choice);
+    colour_ = colour;
+}
+
+void CarBuilder::PutAt(sim::PiecePlacement placement) {
+    if (cursor_.Piece() != nullptr) {
+        cursor_.PutAt(*cursor_.Piece(), placement);
+    }
+}
+
 bool CarBuilder::Move(std::size_t direction, std::size_t view) {
     const std::size_t step =
         ((view % kBuildViews) * kBuildDirections) + (direction % kBuildDirections);
@@ -106,6 +122,24 @@ PlaceResult CarBuilder::Check() const {
         return PlaceResult::Refused;
     }
     return ResultOf(car_.Test(*cursor_.Piece(), cursor_.Placement()));
+}
+
+int CarBuilder::RestPlates() const {
+    const assets::PieceRecord* piece = cursor_.Piece();
+    if (piece == nullptr) {
+        return 0;
+    }
+    const sim::PiecePlacement at = cursor_.Placement();
+    const assets::CellSize size = piece->shape.Footprint(at.rotation);
+    int height = 0;
+    for (int y = 0; y < size.height; ++y) {
+        for (int x = 0; x < size.width; ++x) {
+            if (piece->shape.GetCell(x, y, at.rotation).Occupied()) {
+                height = std::max(height, car_.Grid().At(at.x + x, at.y + y).height);
+            }
+        }
+    }
+    return height;
 }
 
 bool CarBuilder::Undo() {

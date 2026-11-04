@@ -93,12 +93,14 @@ rr_add_module(app
         menu/build_pointer.cpp
         menu/car_build_look.cpp
         menu/car_build_menu.cpp
+        menu/car_build_palette.cpp
         menu/car_build_screen.cpp
         menu/car_builder.cpp
         menu/car_edit.cpp
         menu/car_stand.cpp
         menu/carousel_layout.cpp
         menu/carousel_view.cpp
+        menu/colour_swatches.cpp
         menu/control_bindings.cpp
         menu/controls_look.cpp
         menu/controls_devices.cpp
@@ -124,6 +126,7 @@ rr_add_module(app
         menu/garage_menu.cpp
         menu/garage_racers.cpp
         menu/garage_scene.cpp
+        menu/grid_pick.cpp
         menu/held_piece_motion.cpp
         menu/icon_strip.cpp
         menu/menu_backdrop.cpp
@@ -143,8 +146,11 @@ rr_add_module(app
         menu/options_menu.cpp
         menu/options_scene.cpp
         menu/part_carousel.cpp
+        menu/palette_controls.cpp
+        menu/palette_drag.cpp
         menu/pause_menu.cpp
         menu/piece_models.cpp
+        menu/piece_palette.cpp
         menu/pointer_buttons.cpp
         menu/preview_cycle.cpp
         menu/race_preview.cpp

@@ -9,6 +9,7 @@
 #include "app/fix_settings.hpp"
 #include "app/game_settings.hpp"
 #include "app/input_bindings.hpp"
+#include "app/menu/builder_settings.hpp"
 #include "app/modifier_settings.hpp"
 #include "app/player_cheat_settings.hpp"
 #include "app/race_settings.hpp"
@@ -36,6 +37,7 @@ settings::Registry DeclaredRegistry(const Extensions& extensions) {
     DeclareModifierSettings(registry);
     DeclareFixSettings(registry);
     DeclareWarpSettings(registry);
+    registry.Declare(kEnhancedBuilder);
     DeclareDeveloperSettings(registry);
     DeclareExtensionSettings(extensions, registry);
     return registry;

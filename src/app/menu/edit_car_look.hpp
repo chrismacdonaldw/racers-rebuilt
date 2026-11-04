@@ -1,19 +1,24 @@
 #pragma once
 
 #include <array>
+#include <memory>
+#include <optional>
 #include <string_view>
 
 #include "app/menu/car_edit.hpp"
+#include "app/menu/car_stand.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_frame.hpp"
 #include "app/menu/menu_page.hpp"
 #include "app/menu/menu_widgets.hpp"
+#include "app/menu/message_dialog.hpp"
 #include "app/menu/racer_edit_flow.hpp"
 #include "assets/menu_styles.hpp"
 #include "assets/vfs.hpp"
 #include "core/duration.hpp"
 #include "core/result.hpp"
 #include "render/renderer.hpp"
+#include "settings/racers.hpp"
 
 namespace rr::app {
 
@@ -50,5 +55,15 @@ struct EditCarLook {
 [[nodiscard]] Result<EditCarLook> LoadEditCarLook(render::Renderer& renderer,
                                                   const assets::Vfs& vfs, const MenuFiles& files,
                                                   const EditorButtons& buttons);
+
+/// Null when the stand fails to load, after logging why.
+[[nodiscard]] std::unique_ptr<CarStand> LoadEditCarStand(render::Renderer& renderer,
+                                                         const assets::Vfs& vfs,
+                                                         const MenuFiles& files,
+                                                         const settings::Racer& racer);
+
+/// Unset when the dialog fails to load, after logging why.
+[[nodiscard]] std::optional<DialogLook> LoadEditCarDialog(render::Renderer& renderer,
+                                                          const assets::Vfs& vfs);
 
 }

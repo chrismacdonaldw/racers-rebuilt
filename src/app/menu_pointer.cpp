@@ -72,6 +72,10 @@ void MenuPointer::Handle(const SDL_Event& event, sim::InputLatch& latch) {
             Move(event.button.x, event.button.y, latch);
             latch.ReleasePointer();
             break;
+        case SDL_EVENT_MOUSE_WHEEL:
+            latch.ScrollPointer(event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.y
+                                                                                : event.wheel.y);
+            break;
         case SDL_EVENT_WINDOW_MOUSE_LEAVE:
             if (at_) {
                 latch.MovePointer(at_->x, at_->y, false);

@@ -91,6 +91,22 @@ With the free camera on:
 | Arrow keys | Look |
 | <kbd>Shift</kbd> | Move faster |
 
+## Car builder
+
+| Key | Default | Values |
+|---|---|---|
+| `enhancements.enhanced_builder` | `false` | `true`, `false`. Swaps the builder's move and turn buttons for a palette of the chosen set's pieces, and the piece carousel for ten colour swatches. The **Enhanced** preset turns it on. Applies straight away. |
+
+With the enhanced builder on:
+
+| Input | Action |
+|---|---|
+| Drag a piece onto the car | Place it where you let go |
+| Mouse wheel or <kbd>R</kbd> while dragging | Turn the piece |
+| Right-click, <kbd>Esc</kbd> or letting go off the car | Cancel |
+| Click a swatch | Build in that colour |
+| Arrow keys and confirm | Pick a piece for the original move, turn and place controls |
+
 ## Race
 
 These apply from the next race.

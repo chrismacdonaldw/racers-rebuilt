@@ -88,6 +88,7 @@ add_executable(racers-rebuilt-tests
     app/menu/licence_menu_test.cpp
     app/menu/garage_menu_test.cpp
     app/menu/garage_racers_test.cpp
+    app/menu/grid_pick_test.cpp
     app/menu/held_piece_motion_test.cpp
     app/menu/icon_strip_test.cpp
     app/menu/language_menu_test.cpp
@@ -99,7 +100,9 @@ add_executable(racers-rebuilt-tests
     app/menu/message_dialog_test.cpp
     app/menu/option_settings_test.cpp
     app/menu/options_menu_test.cpp
+    app/menu/palette_drag_test.cpp
     app/menu/part_carousel_test.cpp
+    app/menu/piece_palette_test.cpp
     app/menu/pointer_buttons_test.cpp
     app/menu/pause_menu_test.cpp
     app/menu/racer_edit_flow_test.cpp
