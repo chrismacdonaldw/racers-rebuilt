@@ -209,7 +209,7 @@ These tables merge with the game's instead of replacing it, so a mod only needs 
 - A racer wearing a part from a mod that's off is kept but can't race or test drive, and shows "Needs parts from a mod". Until then it wears the part at the saved position, or the first part. Turning the mod back on unlocks it, and editing the driver keeps the missing part unless it's changed.
 - Each list of hats, faces, torsos or legs holds 256 parts. Parts past that are skipped with a warning.
 - A mod's table that doesn't load is skipped with a warning in the log.
-- A new brick needs a piece type of `0x1389` or more that no other brick uses, since saved cars store the type. A brick named like a game brick must keep its type. Bricks that break either rule are skipped with a warning, and a car saved with a mod's brick loses it once the mod is off.
+- A new brick needs a piece type from `0x1389` to `0x2fff` that no other brick uses, since saved cars store the type. A brick named like a game brick must keep its type. Bricks that break either rule are skipped with a warning. A racer whose car holds a mod's brick can't race while that mod is off.
 - `RACERS.TOML` uses the data folder's `racers.toml` layout, so a racer built in the game can be copied in, and its racers can name their parts. Trophies and `selected` are ignored.
 - Entries can't be removed.
 
@@ -396,6 +396,24 @@ A model at `MENUDATA/PIECEDB/MODELS/<brick name>.GDB`, or a `.glb` there, replac
 - The model draws its own studs: the game adds none on the brick's cells.
 - **LDraw pieces** (`enhancements.ldraw_pieces`) draws the bricks, minifig accessories and other car pieces that match parts in the shipped LDraw library this way. A mod's model wins over it.
 - **LDraw minifigs** (`enhancements.ldraw_minifigs`, beta) rebuilds the driver bodies in `MENUDATA/PARTDB/MENUPART` and `GAMEPART`, and the heads in their `.GCB` libraries, from LDraw minifig parts. A mod's body `.GDB` or head library wins over it.
+
+## New bricks
+
+A mod adds builder bricks from models alone with `files/MENUDATA/PIECEDB/PIECES.TOML`. Each brick's model goes at `MENUDATA/PIECEDB/MODELS/<name>.glb` (or `.GDB`), made as in [Brick models](#brick-models).
+
+```toml
+[[piece]]
+name = "lava-slope"
+set = "DP_CSET"
+colours = ["red", "black"]
+```
+
+- `name`: letters, digits, `-` and `_`. It must not match another brick's name. A later mod's brick with the same name replaces the earlier one.
+- `set`: the part set the brick is offered in, by its file in `CRSTMGR.LEB` without the extension, such as `DP_CSET`. A mod's own part set works too.
+- `colours`: names from `L_COLORS.LEB` to offer it in. Without it, the brick comes in every colour.
+- The cells it fills and how high it stands come from its model, so build it on whole cells.
+- The game gives each brick a type from a hash of its name, so saved cars keep it as long as the same mods are on. A racer whose car holds a brick from a mod that's off can't race until the mod is back, and shows "Needs pieces from a mod".
+- `--check-mods` lists bricks without a model, an unknown set or colour, and `.LEB` bricks whose types clash. A new `.LEB` brick needs a type from `0x1389` to `0x2fff`.
 
 ## Overrides
 

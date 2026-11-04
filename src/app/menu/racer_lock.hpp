@@ -16,18 +16,19 @@ namespace rr::app {
 
 inline constexpr std::int32_t kLockedSound = kBuildRefusedSound;
 
-enum class RacerLock : std::uint8_t { None, ExtraPieces, MissingParts };
+enum class RacerLock : std::uint8_t { None, ExtraPieces, MissingPieces, MissingParts };
 
 /// A car with extra pieces can't race or be saved while their setting is off.
 [[nodiscard]] bool IsLockedCar(const assets::CarData& car, bool allowsExtraPieces);
 
-/// A car with extra pieces while they're off, or a driver wearing a part from a mod that's off,
-/// keeps a racer from racing.
+/// A car with extra pieces while they're off, a car or driver with a piece or part from a mod
+/// that's off, keeps a racer from racing.
 class RacerLocks {
 public:
-    explicit RacerLocks(std::optional<assets::DriverPartCatalog> parts);
+    explicit RacerLocks(std::optional<assets::DriverPartCatalog> parts,
+                        std::optional<std::vector<std::uint16_t>> pieceTypes = std::nullopt);
 
-    /// Locks no driver when the parts don't load.
+    /// Locks no driver when the parts don't load, and no car when the pieces don't.
     [[nodiscard]] static RacerLocks Load(const assets::Vfs& vfs);
 
     void AllowExtraPieces(bool allows) { allowsExtraPieces_ = allows; }
@@ -35,6 +36,7 @@ public:
 
 private:
     std::optional<assets::DriverPartCatalog> parts_;
+    std::optional<std::vector<std::uint16_t>> pieceTypes_;
     bool allowsExtraPieces_ = false;
 };
 

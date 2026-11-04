@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 
+#include "assets/ldraw_extra_pieces.hpp"
+
 namespace rr::assets {
 namespace {
 
@@ -36,7 +38,7 @@ PieceLayer ModLayer() {
     PieceLayer mod;
     mod.library.pieces = {Piece("wing", 0x2000, 2, 0), Piece("BRICK", kFirstBrickType, 1, 14),
                           Piece("clash", kFirstBrickType, 1, 14), Piece("chassis", 0x10, 1, 14),
-                          Piece("broken", 0x3000, 1, 19)};
+                          Piece("broken", 0x2001, 1, 19)};
     mod.library.indices = {0x5003, 0, 1,      0, 1, 0, 0, 2,      1, 0, 0x2000, 2,
                            1,      0, 0x0004, 0, 0, 1, 2, 0x0003, 9, 0, 0,      0};
     mod.library.positions.resize(3);
@@ -56,9 +58,14 @@ std::vector<std::uint16_t> Commands(const PieceLibrary& library, const PieceReco
 }
 
 TEST_CASE("a mod's pieces join the game's with their pools and materials remapped") {
-    const PieceLayer merged = MergePieceLayers({GameLayer(), ModLayer()});
+    std::vector<std::string> problems;
+    const PieceLayer merged = MergePieceLayers({GameLayer(), ModLayer()}, problems);
     const PieceLibrary& library = merged.library;
 
+    CHECK(problems == std::vector<std::string>{
+                          "mod piece clash: another piece has type 0x1389",
+                          "mod piece chassis: a new piece needs a type from 0x1389 to 0x2fff",
+                          "mod piece broken: its commands read past its library"});
     CHECK(merged.materials == std::vector<std::string>{"unassign", "bottom", "nub", "red", "gold"});
     CHECK(library.positions.size() == 5);
     CHECK(library.normals.size() == 3);
@@ -78,12 +85,26 @@ TEST_CASE("a mod without its own materials indexes the game's") {
     mod.library.pieces = {Piece("BRICK", kFirstBrickType, 1, 0)};
     mod.library.indices = {0x0003, 0, 0, 1, 2};
 
-    const PieceLayer merged = MergePieceLayers({GameLayer(), std::move(mod)});
+    std::vector<std::string> problems;
+    const PieceLayer merged = MergePieceLayers({GameLayer(), std::move(mod)}, problems);
 
     CHECK(merged.materials.size() == 4);
     REQUIRE(merged.library.pieces.size() == 1);
     CHECK(Commands(merged.library, merged.library.pieces[0], 1) ==
           std::vector<std::uint16_t>{0x0003});
+}
+
+TEST_CASE("a mod piece with a type the port gives its own pieces is left out") {
+    PieceLayer mod = ModLayer();
+    mod.library.pieces = {Piece("TALL", kFirstExtraPieceType, 1, 0)};
+    mod.library.indices = {0x0003, 0, 0, 1, 2};
+    std::vector<std::string> problems;
+
+    const PieceLayer merged = MergePieceLayers({GameLayer(), std::move(mod)}, problems);
+
+    CHECK(merged.library.pieces.size() == 1);
+    CHECK(problems == std::vector<std::string>{
+                          "mod piece TALL: a new piece needs a type from 0x1389 to 0x2fff"});
 }
 
 }

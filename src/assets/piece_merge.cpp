@@ -2,11 +2,15 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <format>
+#include <optional>
 #include <span>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "assets/game_path.hpp"
-#include "core/log.hpp"
+#include "assets/ldraw_extra_pieces.hpp"
 
 namespace rr::assets {
 namespace {
@@ -140,36 +144,38 @@ PieceRecord* FindNamed(PieceLibrary& library, std::string_view name) {
     return found == library.pieces.end() ? nullptr : &*found;
 }
 
-bool CanTake(const PieceLibrary& library, const PieceRecord& piece, const PieceRecord* same) {
+std::optional<std::string> TakeProblem(const PieceLibrary& library, const PieceRecord& piece,
+                                       const PieceRecord* same) {
     if (same != nullptr) {
-        if (same->type != piece.type) {
-            log::Warn("skipping mod piece {}, it changes the game piece's type", piece.name);
-        }
-        return same->type == piece.type;
+        return same->type == piece.type
+                   ? std::nullopt
+                   : std::optional<std::string>("it changes the game piece's type");
     }
-    if (piece.type < kFirstBrickType) {
-        log::Warn("skipping mod piece {}, a new piece needs a type of 0x1389 or more", piece.name);
-        return false;
+    if (piece.type < kFirstBrickType || piece.type >= kFirstExtraPieceType) {
+        return std::format("a new piece needs a type from {:#x} to {:#x}", kFirstBrickType,
+                           kFirstExtraPieceType - 1);
     }
     if (std::ranges::find(library.pieces, piece.type, &PieceRecord::type) != library.pieces.end()) {
-        log::Warn("skipping mod piece {}, another piece has type {:#x}", piece.name, piece.type);
-        return false;
+        return std::format("another piece has type {:#x}", piece.type);
     }
-    return true;
+    return std::nullopt;
 }
 
 void TakePiece(PieceLayer& merged, const PieceLibrary& from, const PoolBases& bases,
-               std::span<const std::size_t> materials, const PieceRecord& piece) {
+               std::span<const std::size_t> materials, const PieceRecord& piece,
+               std::vector<std::string>& problems) {
     PieceLibrary& library = merged.library;
     PieceRecord* same = FindNamed(library, piece.name);
-    if (!CanTake(library, piece, same)) {
+    if (const std::optional<std::string> problem = TakeProblem(library, piece, same)) {
+        problems.push_back(std::format("mod piece {}: {}", piece.name, *problem));
         return;
     }
     const std::size_t offset = library.indices.size();
     CommandCopy copy(from, bases, materials, library.indices);
     if (!copy.Copy(piece)) {
         library.indices.resize(offset);
-        log::Warn("skipping mod piece {}, its commands read past its library", piece.name);
+        problems.push_back(
+            std::format("mod piece {}: its commands read past its library", piece.name));
         return;
     }
     PieceRecord taken = piece;
@@ -190,7 +196,7 @@ void Append(std::vector<Element>& to, const std::vector<Element>& from) {
     to.insert(to.end(), from.begin(), from.end());
 }
 
-void TakeLayer(PieceLayer& merged, const PieceLayer& layer) {
+void TakeLayer(PieceLayer& merged, const PieceLayer& layer, std::vector<std::string>& problems) {
     PieceLibrary& library = merged.library;
     const PoolBases bases{.positions = library.positions.size(),
                           .normals = library.normals.size(),
@@ -199,7 +205,7 @@ void TakeLayer(PieceLayer& merged, const PieceLayer& layer) {
                       bases.normals + layer.library.normals.size() <= kMaxIndex + 1 &&
                       bases.texCoords + layer.library.texCoords.size() <= kMaxIndex + 1;
     if (!fits) {
-        log::Warn("skipping a mod's pieces, its vertices don't fit beside the game's");
+        problems.emplace_back("a mod's pieces: their vertices don't fit beside the game's");
         return;
     }
     const std::vector<std::size_t> materials = MapMaterials(merged.materials, layer.materials);
@@ -207,19 +213,19 @@ void TakeLayer(PieceLayer& merged, const PieceLayer& layer) {
     Append(library.normals, layer.library.normals);
     Append(library.texCoords, layer.library.texCoords);
     for (const PieceRecord& piece : layer.library.pieces) {
-        TakePiece(merged, layer.library, bases, materials, piece);
+        TakePiece(merged, layer.library, bases, materials, piece, problems);
     }
 }
 
 }
 
-PieceLayer MergePieceLayers(std::vector<PieceLayer> layers) {
+PieceLayer MergePieceLayers(std::vector<PieceLayer> layers, std::vector<std::string>& problems) {
     if (layers.empty()) {
         return {};
     }
     PieceLayer merged = std::move(layers.front());
     for (const PieceLayer& layer : std::span(layers).subspan(1)) {
-        TakeLayer(merged, layer);
+        TakeLayer(merged, layer, problems);
     }
     std::ranges::stable_sort(merged.library.pieces, {}, [](const PieceRecord& piece) {
         return std::pair{piece.type, piece.commandCount};
