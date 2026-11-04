@@ -26,6 +26,8 @@ constexpr Milliseconds kTick{12};
 constexpr render::FloatMilliseconds kFrame{12.0F};
 constexpr float kGrassEndX = 0.0F;
 constexpr Transform kCamera{.position = {.x = -20.0F, .y = 5.0F}};
+constexpr render::TextureId kFxSmoke{50};
+constexpr render::TextureId kFxSpark{51};
 
 render::ParticleBankSetup Bank(const std::vector<std::string>& names, std::size_t slots) {
     render::ParticleBankSetup setup{.slotCount = slots};
@@ -64,7 +66,8 @@ public:
               Bank({"snowkick"}, kTrackParticleSlots),
               [this] {
                   ++fxMade_;
-                  return std::make_unique<render::FxSystem>(RaceFxEffects(), render::FxAssets{});
+                  return std::make_unique<render::FxSystem>(
+                      RaceFxEffects(), render::FxAssets{.smoke = kFxSmoke, .spark = kFxSpark});
               },
               surfaces_, 0) {
         while (session_.Clock().Phase() != sim::RacePhase::Racing) {
@@ -193,6 +196,19 @@ TEST_CASE("computer racers kick up nothing") {
     CHECK(race.QuadCount() == 0);
 }
 
+TEST_CASE("with better particles computer racers spray from their rear wheels on grass") {
+    GrassRace race("grassemt");
+    race.Particles().SetBetter(true);
+    race.Hold(1);
+
+    for (int tick = 0; tick < 30; ++tick) {
+        race.Tick();
+    }
+
+    CHECK(std::ranges::any_of(
+        race.Quads(), [](const render::QuadDraw& quad) { return quad.texture == kFxSpark; }));
+}
+
 TEST_CASE("a wheel particle missing from the common file comes from the track's") {
     GrassRace race("snowkick");
     race.Hold(0);
@@ -251,6 +267,18 @@ TEST_CASE("better particles are made only once they first turn on") {
     CHECK(race.FxMade() == 1);
 }
 
+bool IsOriginal(const render::QuadDraw& quad) {
+    return quad.texture == render::kWhiteTexture;
+}
+
+bool IsFxSmoke(const render::QuadDraw& quad) {
+    return quad.texture == kFxSmoke && quad.uv.width == 0.5F;
+}
+
+bool IsNewSmokeOnly(const std::vector<render::QuadDraw>& quads) {
+    return std::ranges::none_of(quads, IsOriginal) && std::ranges::any_of(quads, IsFxSmoke);
+}
+
 TEST_CASE("with better particles a skid draws the new smoke in place of the original's") {
     GrassRace race("grassemt");
     race.Particles().SetBetter(true);
@@ -262,9 +290,7 @@ TEST_CASE("with better particles a skid draws the new smoke in place of the orig
 
     const std::vector<render::QuadDraw> quads = race.Quads();
     REQUIRE(quads.size() > 10);
-    CHECK(std::ranges::all_of(quads, [](const render::QuadDraw& quad) {
-        return quad.uv.width == doctest::Approx(0.5F);
-    }));
+    CHECK(IsNewSmokeOnly(quads));
 
     race.Particles().SetBetter(false);
     const std::vector<render::QuadDraw> original = race.Quads();
