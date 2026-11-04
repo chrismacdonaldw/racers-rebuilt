@@ -131,10 +131,10 @@ These apply from the next race.
 | `race.ai_passing` | `false` | `true`, `false`. With `race.physics_ai`, computer racers steer around a rival just ahead. |
 | `race.ai_unstick` | `false` | `true`, `false`. With `race.physics_ai`, a stuck computer racer backs up before driving on. |
 | `race.ai_aiming` | `false` | `true`, `false`. With `race.physics_ai`, computer racers steer to line up shots and drops. |
-| `race.ai_skill` | `false` | `true`, `false`. With `race.physics_ai`, computer racers race at a skill level from 1 to 5 instead of `race.ai_pace`. Level 3 drives like a typical boss of the original. With `race.ai_racing_line`, levels 4 and 5 also take the fastest recorded route, shortcuts included. |
-| `race.ai_difficulty` | `3` | `1` to `5`. The skill level for `race.ai_skill`. |
+| `race.ai_skill` | `false` | `true`, `false`. With `race.physics_ai`, computer racers race at a skill level from 1 to 4 instead of `race.ai_pace`. Level 3 drives like a typical boss of the original, and level 4 is Expert. With `race.ai_racing_line`, level 4 also takes the fastest recorded route, shortcuts included. |
+| `race.ai_difficulty` | `3` | `1` to `4`. The skill level for `race.ai_skill`. |
 | `race.ai_spread` | `Original` | `Original`, `Equal`, `Custom`. Original gives fast-route racers and the boss the level, medium-route racers one less and slow-route racers two less. Equal gives everyone the level. Custom uses each grid slot's level. |
-| `race.ai_level_slot1` to `race.ai_level_slot5` | `3` | `1` to `5`. Each grid slot's level when `race.ai_spread` is `Custom`. |
+| `race.ai_level_slot1` to `race.ai_level_slot5` | `3` | `1` to `4`. Each grid slot's level when `race.ai_spread` is `Custom`. |
 | `race.ai_fair_catch_up` | `false` | `true`, `false`. After 15 s, a skilled racer behind the best player drives one level higher, and one a tenth of a lap ahead drives one level lower. |
 | `race.ai_racing_line` | `false` | `true`, `false`. With `race.physics_ai`, computer racers drive a smoothed line inside their route's width, at the fastest speed their car can corner and brake for. `race.ai_pace`, or the skill level, then scales that speed, and they brake for it only with `race.ai_braking`. |
 | `race.better_warp` | `false` | `true`, `false`. A warp lands a player facing a clear way along the track instead of the next checkpoint, which can point into a wall. |

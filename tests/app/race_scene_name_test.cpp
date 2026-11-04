@@ -86,16 +86,16 @@ TEST_CASE("a race scene name records the physics racers' skill and catch-up") {
         .respawn = {},
         .aiDriving = sim::AiDriving::Physics,
         .aiSkill =
-            sim::AiSkill{.spread = sim::SkillSpread::Equal, .difficulty = 5, .catchesUp = true}};
+            sim::AiSkill{.spread = sim::SkillSpread::Equal, .difficulty = 4, .catchesUp = true}};
     RaceSceneSetup paced = skilled;
     paced.aiPace = 120;
 
     CHECK(RaceSceneName(skilled) ==
-          "race:RACEC0R0:respawn=3000:racer=0:ai=physics:skill=e5:catchup");
+          "race:RACEC0R0:respawn=3000:racer=0:ai=physics:skill=e4:catchup");
     CHECK(ParseRaceScene(RaceSceneName(skilled)) == skilled);
     CHECK(RaceSceneName(paced) == RaceSceneName(skilled));
     for (const std::string_view scene :
-         {"race:RACEC0R0:respawn=3000:ai=physics:skill=e6",
+         {"race:RACEC0R0:respawn=3000:ai=physics:skill=e5",
           "race:RACEC0R0:respawn=3000:ai=physics:catchup",
           "race:RACEC0R0:respawn=3000:ai=physics:skill=o3:catchup=1"}) {
         CAPTURE(scene);
@@ -334,7 +334,7 @@ TEST_CASE("race rules take the skill settings only while skill is on") {
     DeclareRaceSettings(registry);
     registry.Set(kAiDifficulty, 4);
     registry.Set(kAiSpread, "Custom");
-    registry.Set(kAiSlotLevels.at(2), 5);
+    registry.Set(kAiSlotLevels.at(2), 4);
 
     CHECK_FALSE(RaceRulesFrom(registry).aiSkill.has_value());
     CHECK(registry.IsAvailable(kAiPace.key));
@@ -345,7 +345,7 @@ TEST_CASE("race rules take the skill settings only while skill is on") {
 
     CHECK(RaceRulesFrom(registry).aiSkill == sim::AiSkill{.spread = sim::SkillSpread::Custom,
                                                           .difficulty = 4,
-                                                          .slotLevels = {3, 3, 5, 3, 3},
+                                                          .slotLevels = {3, 3, 4, 3, 3},
                                                           .catchesUp = true});
     CHECK_FALSE(registry.IsAvailable(kAiPace.key));
     CHECK(registry.IsAvailable(kAiDifficulty.key));

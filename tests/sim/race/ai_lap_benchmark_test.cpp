@@ -45,7 +45,7 @@ Mode LineMode(std::string_view name, AiSkill skill) {
 }
 
 std::array<Mode, 11> Modes() {
-    const AiSkill equalMaster{.spread = SkillSpread::Equal, .difficulty = kMasterLevel};
+    const AiSkill equalExpert{.spread = SkillSpread::Equal, .difficulty = kExpertLevel};
     return {
         Mode{.name = "route"},
         Mode{.name = "physics", .driving = AiDriving::Physics},
@@ -56,16 +56,16 @@ std::array<Mode, 11> Modes() {
              .driving = AiDriving::Physics,
              .craft = kCraft,
              .skill = AiSkill{.spread = SkillSpread::Equal, .difficulty = kEasiestLevel}},
-        Mode{.name = "skill e5",
+        Mode{.name = "skill e4",
              .driving = AiDriving::Physics,
              .craft = kCraft,
-             .skill = equalMaster},
+             .skill = equalExpert},
         Mode{.name = "physics+line", .driving = AiDriving::Physics, .craft = AiCraft::All()},
         LineMode("skill o3+line", AiSkill{}),
         LineMode("skill e1+line",
                  AiSkill{.spread = SkillSpread::Equal, .difficulty = kEasiestLevel}),
         LineMode("skill e3+line", AiSkill{.spread = SkillSpread::Equal}),
-        LineMode("skill e5+line", equalMaster)};
+        LineMode("skill e4+line", equalExpert)};
 }
 
 std::string HomeCircuit(const assets::Vfs& vfs, const std::string& track) {

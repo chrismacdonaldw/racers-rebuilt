@@ -15,7 +15,7 @@ namespace rr::app {
 inline constexpr std::string_view kAiSkillCategory = "Enhancements/Gameplay";
 inline constexpr std::array<std::string_view, 3> kSkillSpreadNames{"Original", "Equal", "Custom"};
 inline constexpr settings::SettingRange<int> kLevelRange{.min = sim::kEasiestLevel,
-                                                         .max = sim::kMasterLevel};
+                                                         .max = sim::kExpertLevel};
 
 inline constexpr settings::SettingSpec<bool> kAiSkill{
     .key = "race.ai_skill",
@@ -23,7 +23,7 @@ inline constexpr settings::SettingSpec<bool> kAiSkill{
     .label = "Physics racers race at a skill level",
     .category = kAiSkillCategory,
     .tooltip =
-        "Replaces the physics racers' pace with levels 1 to 5. Level 3 drives like a "
+        "Replaces the physics racers' pace with levels 1 to 4. Level 3 drives like a "
         "typical boss of the original."};
 
 inline constexpr settings::SettingRequirement kNeedsSkill{.key = kAiSkill.key, .choice = "true"};
