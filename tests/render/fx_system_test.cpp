@@ -3,7 +3,6 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <numbers>
@@ -156,40 +155,20 @@ TEST_CASE("particles past the draw distance are left out") {
     CHECK(Quads(fx).empty());
 }
 
-TEST_CASE("bricks tumble as models in their palette's colours and rings lie flat") {
-    constexpr std::array kPaints{Color{.r = 1.0F, .g = 0.0F, .b = 0.0F}};
-    FxEffect brick = Puff(0.0F, 3);
-    brick.shape = FxShape::Brick;
-    brick.palette = kPaints;
+TEST_CASE("rings lie flat") {
     FxEffect ring = Puff(0.0F, 1);
     ring.shape = FxShape::Ring;
     ring.offset = {.y = -2.0F};
-    FxSystem fx({brick, ring}, kTextures);
+    FxSystem fx = System(ring);
     FxEmission emission;
     fx.Emit(*fx.EffectFor("puff"), {.position = {.y = 5.0F}}, 0.0F, emission);
 
-    std::vector<MeshDraw> meshes;
-    fx.AppendMeshes(meshes);
     const std::vector<QuadDraw> quads = Quads(fx);
 
-    REQUIRE(meshes.size() == 3);
-    CHECK(meshes.front().material.tint.g == doctest::Approx(0.0F));
     REQUIRE(quads.size() == 1);
     CHECK(quads.front().texture == kRing);
     CHECK(std::ranges::all_of(quads.front().corners,
                               [](const Vector3& corner) { return corner.y == 3.0F; }));
-}
-
-TEST_CASE("the brick model is closed and faces outward") {
-    const assets::GeometryAsset brick = MakeBrickGeometry();
-
-    REQUIRE_FALSE(brick.indices.empty());
-    CHECK(brick.indices.size() % 3 == 0);
-    CHECK(std::ranges::all_of(brick.indices,
-                              [&](std::uint32_t index) { return index < brick.vertices.size(); }));
-    CHECK(std::ranges::all_of(brick.vertices, [](const assets::GeometryVertex& vertex) {
-        return Length(vertex.normal) == doctest::Approx(1.0F);
-    }));
 }
 
 TEST_CASE("particles spawn around a flat circle and move in toward its middle") {
@@ -231,8 +210,7 @@ TEST_CASE("bubbles and twinkles draw from their own textures") {
     CHECK(textures == std::vector{kBubble, kStar});
 }
 
-TEST_CASE(
-    "a bubble is clearer in the middle than at its rim, and a twinkle shines along its arms") {
+TEST_CASE("a bubble is clearer in the middle than at its rim, and a star shines along its arms") {
     const assets::ImageAsset bubble = MakeBubbleTexture();
     const assets::ImageAsset star = MakeStarTexture();
     const std::uint32_t middle = bubble.widthPx / 2;
@@ -242,7 +220,7 @@ TEST_CASE(
     CHECK(Alpha(bubble, middle, middle) < Alpha(bubble, rim, middle));
     CHECK(Alpha(bubble, 0, 0) == doctest::Approx(0.0F));
     CHECK(Alpha(star, arm, arm) > 0.9F);
-    CHECK(Alpha(star, arm, 6) > 4.0F * Alpha(star, 10, 10));
+    CHECK(Alpha(star, arm, 16) > 4.0F * Alpha(star, 16, 16));
 }
 
 TEST_CASE("particles grow, fade and die at the end of their life") {
@@ -341,6 +319,38 @@ TEST_CASE("a bank draws an emitter's effect in place of its particles and keeps 
     CHECK(Quads(bank).empty());
     CHECK(fx.Count() == 9);
     CHECK(bank.SpawnCount(*handle) == 1);
+}
+
+TEST_CASE("a following layer spawns with each original particle, scaling its life and size") {
+    FxEffect follow = Puff(100.0F);
+    follow.lifeMs = {.min = 0.5F, .max = 0.5F};
+    follow.startSize = {.min = 3.0F, .max = 3.0F};
+    follow.inherit = 1.0F;
+    follow.followsEmitter = true;
+    FxSystem fx = System(follow);
+    ParticleBank bank({.emitters = {{.name = "puff",
+                                     .emitRate = 10.0F,
+                                     .acceleration = {.y = -100.0F},
+                                     .points = {{.z = 1.0F}},
+                                     .particleLife = Milliseconds{1000},
+                                     .radius = 1000.0F,
+                                     .priority = 10}},
+                       .emitterLooks = {ParticleLook{.texture = kOriginal}},
+                       .slotCount = 2});
+    bank.SetEffects(&fx);
+
+    static_cast<void>(RunPuff(bank));
+    REQUIRE(fx.Count() == 1);
+    const QuadDraw spawned = Quads(fx).front();
+    fx.Update(FloatMilliseconds{100.0F});
+    const QuadDraw fallen = Quads(fx).front();
+    fx.Update(FloatMilliseconds{401.0F});
+
+    CHECK(Length(spawned.corners[0] - spawned.corners[3]) ==
+          doctest::Approx(3.0F * std::numbers::sqrt2_v<float>));
+    CHECK(Centre(fallen).y == doctest::Approx(-1.0F));
+    CHECK(Centre(fallen).z == doctest::Approx(0.1F));
+    CHECK(fx.Count() == 0);
 }
 
 TEST_CASE("a bank without effects draws its own particles again") {

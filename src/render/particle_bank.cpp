@@ -211,6 +211,14 @@ void ParticleBank::Spawn(Slot& slot) {
                 .velocity = Rotate(slot.placement.rotation, point) + slot.placement.velocity,
                 .isAlive = true};
     ++slot.spawnCount;
+    if (slot.effect) {
+        effects_->Follow(*slot.effect, {.position = particle.position,
+                                        .velocity = particle.velocity,
+                                        .acceleration = emitter.acceleration,
+                                        .lifeMs = static_cast<float>(emitter.particleLife.count()),
+                                        .startSize = emitter.startSizeUp,
+                                        .endSize = emitter.startSizeUp + emitter.sizeGrowthUp});
+    }
     if (!slot.anchor) {
         slot.anchor = particle.position;
     }

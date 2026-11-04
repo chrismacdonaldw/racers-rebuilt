@@ -37,13 +37,11 @@ constexpr float kHighlightY = -0.4F;
 constexpr float kHighlightSharpness = 60.0F;
 constexpr float kThirdTurn = 2.0F * std::numbers::pi_v<float> / 3.0F;
 constexpr std::uint32_t kStarPx = 64;
-constexpr float kStarCoreSharpness = 30.0F;
-constexpr float kStarRaySharpness = 400.0F;
-constexpr Vector3 kBrickHalf{.x = 0.5F, .y = 0.3F, .z = 0.25F};
-constexpr float kStudRadius = 0.15F;
-constexpr float kStudHeight = 0.1F;
-constexpr float kStudSpacing = 0.25F;
-constexpr std::uint32_t kStudSegments = 12;
+constexpr float kStarReach = 0.95F;
+constexpr float kStarEdge = 0.1F;
+constexpr float kStarHaloSharpness = 5.0F;
+constexpr float kStarHalo = 0.3F;
+constexpr float kBubbleSheen = 0.45F;
 
 float Hash(int x, int y, std::uint32_t seed) {
     std::uint32_t h = (static_cast<std::uint32_t>(x) * 0x8DA6B343U) ^
@@ -120,24 +118,22 @@ Color BubbleAt(float dx, float dy) {
     const float hx = dx - kHighlightX;
     const float hy = dy - kHighlightY;
     const float highlight = std::exp(-((hx * hx) + (hy * hy)) * kHighlightSharpness);
-    const float base = 0.12F + (rim * 0.5F);
+    const float base = 0.05F + (rim * 0.3F);
     const auto channel = [&](float shift) {
         const float sheen = 0.5F + (0.5F * std::cos(hue + shift));
-        return (base * std::lerp(1.0F, sheen, rim * 0.8F)) + highlight;
+        return (base * std::lerp(1.0F, sheen, rim * kBubbleSheen)) + highlight;
     };
     return {.r = channel(0.0F),
             .g = channel(-kThirdTurn),
             .b = channel(kThirdTurn),
-            .a = std::max((0.55F + (0.4F * rim)) * edge, highlight)};
+            .a = std::max((0.8F + (0.2F * rim)) * edge, highlight)};
 }
 
 float StarAt(float dx, float dy) {
-    const float core = std::exp(-((dx * dx) + (dy * dy)) * kStarCoreSharpness);
-    const float across = std::max(0.0F, 1.0F - std::abs(dx));
-    const float down = std::max(0.0F, 1.0F - std::abs(dy));
-    const float rays = (std::exp(-(dy * dy) * kStarRaySharpness) * across * across) +
-                       (std::exp(-(dx * dx) * kStarRaySharpness) * down * down);
-    return std::min(1.0F, core + rays);
+    const float reach = std::sqrt(std::abs(dx)) + std::sqrt(std::abs(dy));
+    const float body = 1.0F - SmoothStep(kStarReach - kStarEdge, kStarReach, reach);
+    const float halo = std::exp(-((dx * dx) + (dy * dy)) * kStarHaloSharpness) * kStarHalo;
+    return std::max(body, halo);
 }
 
 struct Blob {
@@ -171,49 +167,6 @@ float HeightAt(const std::array<Blob, kBlobs>& blobs, float x, float y) {
         }
     }
     return height;
-}
-
-void AddVertex(assets::GeometryAsset& geometry, const Vector3& position, const Vector3& normal) {
-    geometry.vertices.push_back({.position = position, .normal = normal});
-}
-
-void AddFace(assets::GeometryAsset& geometry, const Vector3& centre, const Vector3& right,
-             const Vector3& up) {
-    const auto first = static_cast<std::uint32_t>(geometry.vertices.size());
-    const Vector3 normal = Normalized(Cross(right, up), up);
-    AddVertex(geometry, centre - right - up, normal);
-    AddVertex(geometry, centre + right - up, normal);
-    AddVertex(geometry, centre + right + up, normal);
-    AddVertex(geometry, centre - right + up, normal);
-    geometry.indices.insert(geometry.indices.end(),
-                            {first, first + 1, first + 2, first, first + 2, first + 3});
-}
-
-Vector3 Around(std::uint32_t segment) {
-    const float angle = static_cast<float>(segment) * 2.0F * std::numbers::pi_v<float> /
-                        static_cast<float>(kStudSegments);
-    return {.x = std::cos(angle), .z = std::sin(angle)};
-}
-
-void AddStud(assets::GeometryAsset& geometry, const Vector3& base) {
-    constexpr Vector3 kUp{.y = 1.0F};
-    const Vector3 top = base + (kUp * kStudHeight);
-    const auto centre = static_cast<std::uint32_t>(geometry.vertices.size());
-    AddVertex(geometry, top, kUp);
-    for (std::uint32_t segment = 0; segment < kStudSegments; ++segment) {
-        const Vector3 from = Around(segment);
-        const Vector3 to = Around(segment + 1);
-        const auto first = static_cast<std::uint32_t>(geometry.vertices.size());
-        AddVertex(geometry, base + (from * kStudRadius), from);
-        AddVertex(geometry, base + (to * kStudRadius), to);
-        AddVertex(geometry, top + (to * kStudRadius), to);
-        AddVertex(geometry, top + (from * kStudRadius), from);
-        AddVertex(geometry, top + (from * kStudRadius), kUp);
-        AddVertex(geometry, top + (to * kStudRadius), kUp);
-        geometry.indices.insert(geometry.indices.end(),
-                                {first, first + 2, first + 1, first, first + 3, first + 2, centre,
-                                 first + 5, first + 4});
-    }
 }
 
 void DrawPuff(assets::ImageAsset& atlas, std::size_t variant) {
@@ -324,21 +277,6 @@ assets::ImageAsset MakeStarTexture() {
         }
     }
     return star;
-}
-
-assets::GeometryAsset MakeBrickGeometry() {
-    assets::GeometryAsset brick;
-    const Vector3& h = kBrickHalf;
-    AddFace(brick, {.y = h.y}, {.x = h.x}, {.z = -h.z});
-    AddFace(brick, {.y = -h.y}, {.x = h.x}, {.z = h.z});
-    AddFace(brick, {.x = h.x}, {.z = -h.z}, {.y = h.y});
-    AddFace(brick, {.x = -h.x}, {.z = h.z}, {.y = h.y});
-    AddFace(brick, {.z = h.z}, {.x = h.x}, {.y = h.y});
-    AddFace(brick, {.z = -h.z}, {.x = -h.x}, {.y = h.y});
-    for (const float x : {-kStudSpacing, kStudSpacing}) {
-        AddStud(brick, {.x = x, .y = h.y});
-    }
-    return brick;
 }
 
 Rect SmokeCell(std::size_t variant) {
