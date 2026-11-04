@@ -50,7 +50,8 @@ HitOutcome HitRacer(PowerupContext& context, const PowerupHit& hit) {
     Racer& victim = context.racers[hit.racer];
     if (context.powerups->Hit(hit, context)) {
         victim.React(VoiceReaction::Positive);
-        return TurnsShotsBack(victim) ? HitOutcome::TurnedBack : HitOutcome::Absorbed;
+        return TurnsShotsBack(victim, context.tuning->shield) ? HitOutcome::TurnedBack
+                                                              : HitOutcome::Absorbed;
     }
     if (victim.IsInvincible()) {
         return HitOutcome::Absorbed;

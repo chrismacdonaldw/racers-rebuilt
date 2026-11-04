@@ -81,6 +81,8 @@ public:
 
     void AimAt(std::vector<assets::TargetPoint> targets) { targets_ = std::move(targets); }
 
+    void Tune(const sim::PowerupTuning& tuning) { tuning_ = tuning; }
+
     void GiveWhite(std::size_t racer) { REQUIRE(inventories_[racer].TakeWhite(0)); }
 
     void CrossFirstGate() {
@@ -198,7 +200,8 @@ private:
                 .spikes = &spikes_,
                 .weapons = &weapons_,
                 .targets = targets_,
-                .hazardAims = aims_};
+                .hazardAims = aims_,
+                .tuning = &tuning_};
     }
 
     void MeasureReaches() {
@@ -222,6 +225,7 @@ private:
     sim::Random random_{1};
     std::vector<assets::TargetPoint> targets_;
     std::array<sim::HazardAim, 1> aims_{};
+    sim::PowerupTuning tuning_;
 };
 
 inline sim::RouteEffects RouteEffectsOf(const sim::Racer& racer) {

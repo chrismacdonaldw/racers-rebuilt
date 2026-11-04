@@ -28,7 +28,9 @@ private:
     void Hold(Racer& racer, Milliseconds elapsed);
     void Pull(Racer& racer, Milliseconds elapsed) const;
     void Face(const PowerupContext& context);
+    [[nodiscard]] float PullFor(Milliseconds elapsed) const;
 
+    const MagnetTuning* tuning_ = &kOriginalPowerups.magnet;
     std::uint8_t owner_ = 0;
     MagnetPhase phase_ = MagnetPhase::Done;
     Milliseconds remaining_{0};

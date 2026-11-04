@@ -168,11 +168,11 @@ TEST_CASE("shots turn back from shields at level 2 and up") {
     for (std::uint8_t level = 0; level <= kMaxPowerupLevel; ++level) {
         CAPTURE(level);
         Racer racer(kNeutralChassis, {}, {});
-        CHECK_FALSE(TurnsShotsBack(racer));
+        CHECK_FALSE(TurnsShotsBack(racer, kOriginalPowerups.shield));
 
         racer.RaiseShield(level);
 
-        CHECK(TurnsShotsBack(racer) == expected.at(level));
+        CHECK(TurnsShotsBack(racer, kOriginalPowerups.shield) == expected.at(level));
     }
 }
 

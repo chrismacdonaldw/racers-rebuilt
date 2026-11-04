@@ -12,15 +12,8 @@
 namespace rr::sim {
 namespace {
 
-constexpr Milliseconds kRampTime{500};
-constexpr Milliseconds kSustainTime{7000};
-constexpr Milliseconds kFadeTime{500};
-constexpr Milliseconds kHoldTime{1000};
-constexpr float kSegmentLength = 50.0F;
 constexpr float kSegmentShare = 0.25F;
 constexpr Vector3 kSourceHeight{.z = 3.0F};
-constexpr AimCone kVictimCone{
-    .minDistanceSquared = 9.0F, .maxDistanceSquared = 40'000.0F, .cosine = 0.5F};
 
 float Share(Milliseconds remaining, Milliseconds total) {
     return static_cast<float>(remaining.count()) / static_cast<float>(total.count());
@@ -32,8 +25,9 @@ void LightningEffect::Start(const PowerupUse& use, PowerupContext& context) {
     RR_ASSERT(context.world != nullptr && context.weapons != nullptr);
     owner_ = OwnerOf(use);
     hazard_ = use.hazard;
+    tuning_ = &context.tuning->lightning;
     phase_ = LightningPhase::RampIn;
-    timer_ = kRampTime;
+    timer_ = tuning_->rampTime;
     isHolding_ = false;
     held_ = Milliseconds{0};
     TraceBolt(context);
@@ -54,7 +48,7 @@ bool LightningEffect::Tick(Milliseconds elapsed, PowerupContext& context) {
     }
     if (isHolding_) {
         held_ += elapsed;
-        if (held_ > kHoldTime) {
+        if (held_ > tuning_->holdTime) {
             isHolding_ = false;
             held_ = Milliseconds{0};
         }
@@ -83,11 +77,11 @@ void LightningEffect::Advance(PowerupContext& context) {
     switch (phase_) {
         case LightningPhase::RampIn:
             phase_ = LightningPhase::Sustain;
-            timer_ = kSustainTime;
+            timer_ = tuning_->sustainTime;
             break;
         case LightningPhase::Sustain:
             phase_ = LightningPhase::Fade;
-            timer_ = kFadeTime;
+            timer_ = tuning_->fadeTime;
             break;
         case LightningPhase::Fade:
         case LightningPhase::Done:
@@ -105,14 +99,14 @@ void LightningEffect::Advance(PowerupContext& context) {
 float LightningEffect::SegmentLength() const {
     switch (phase_) {
         case LightningPhase::RampIn:
-            return (1.0F - Share(timer_, kRampTime)) * kSegmentLength;
+            return (1.0F - Share(timer_, tuning_->rampTime)) * tuning_->segmentLength;
         case LightningPhase::Fade:
-            return Share(timer_, kFadeTime) * kSegmentLength;
+            return Share(timer_, tuning_->fadeTime) * tuning_->segmentLength;
         case LightningPhase::Sustain:
         case LightningPhase::Done:
             break;
     }
-    return kSegmentLength;
+    return tuning_->segmentLength;
 }
 
 void LightningEffect::TraceBolt(const PowerupContext& context) {
@@ -148,9 +142,9 @@ void LightningEffect::FindVictim(PowerupContext& context) {
         return;
     }
     for (std::optional<std::size_t> found =
-             FindRacerInCone(context.racers, origin_, forward_, kVictimCone);
-         found;
-         found = FindRacerInCone(context.racers, origin_, forward_, kVictimCone, *found + 1)) {
+             FindRacerInCone(context.racers, origin_, forward_, tuning_->victimCone);
+         found; found = FindRacerInCone(context.racers, origin_, forward_, tuning_->victimCone,
+                                        *found + 1)) {
         if (*found != owner_ && !context.racers[*found].Status().isGhost &&
             IsOnBolt(context.reaches[*found])) {
             Strike(static_cast<std::uint8_t>(*found), context);
@@ -168,7 +162,7 @@ void LightningEffect::Strike(std::uint8_t racer, PowerupContext& context) {
         HitOutcome::Struck) {
         return;
     }
-    car.LaunchHit(1.0F);
+    car.LaunchHit(tuning_->hitStrength);
     victim_ = racer;
     isHolding_ = true;
     held_ = Milliseconds{0};

@@ -33,6 +33,7 @@ private:
     void Blast(PowerupContext& context, const Vector3& at) const;
     [[nodiscard]] Vector3 Scattered(PowerupContext& context) const;
 
+    const DynamiteTuning* tuning_ = &kOriginalPowerups.dynamite;
     std::uint8_t owner_ = 0;
     std::optional<std::uint8_t> target_;
     DynamitePhase phase_ = DynamitePhase::Done;

@@ -6,10 +6,6 @@
 namespace rr::sim {
 namespace {
 
-constexpr float kTriggerRadius = 10.0F;
-constexpr Milliseconds kActive{15'000};
-constexpr Milliseconds kFade{1000};
-constexpr Milliseconds kCurse{10'000};
 constexpr Vector3 kGroundUp{.z = 1.0F};
 constexpr Vector3 kFacingWithoutGate{.x = 1.0F};
 
@@ -23,6 +19,7 @@ void CurseEffect::Start(const PowerupUse& use, PowerupContext& context) {
     RR_ASSERT(context.world != nullptr);
     owner_ = OwnerOf(use);
     level_ = use.level;
+    tuning_ = &context.tuning->curse;
     phase_ = TrapPhase::Dropping;
     remaining_ = Milliseconds{0};
     if (use.hazard) {
@@ -37,11 +34,11 @@ void CurseEffect::Start(const PowerupUse& use, PowerupContext& context) {
 
 bool CurseEffect::Tick(Milliseconds elapsed, PowerupContext& context) {
     const Trap curse{
-        .position = position_, .radius = kTriggerRadius, .owner = owner_, .level = level_};
+        .position = position_, .radius = tuning_->radius, .owner = owner_, .level = level_};
     if (phase_ != TrapPhase::Dropping &&
         TouchRacers(context, curse, [this](Racer& racer, std::uint8_t /*index*/) {
             if (!racer.Status().isCursed) {
-                racer.AttachCurse(kCurse, {.trap = modelPosition_});
+                racer.AttachCurse(tuning_->curse, {.trap = modelPosition_});
             }
             return false;
         })) {
@@ -81,13 +78,13 @@ void CurseEffect::Drop(PowerupContext& context) {
     position_ = drop.position;
     modelPosition_ = drop.position + (drop.normal * kCurseModelHeight);
     phase_ = TrapPhase::Armed;
-    remaining_ = kActive;
+    remaining_ = tuning_->active;
 }
 
 void CurseEffect::Advance() {
     if (phase_ == TrapPhase::Armed) {
         phase_ = TrapPhase::Fading;
-        remaining_ = kFade;
+        remaining_ = tuning_->fade;
     } else {
         phase_ = TrapPhase::Done;
     }

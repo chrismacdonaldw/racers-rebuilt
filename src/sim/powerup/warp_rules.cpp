@@ -14,8 +14,8 @@ float Shared(float speed, float driving) {
 
 }
 
-WarpPace PaceFor(const WarpRules& rules, bool isLeading) {
-    WarpPace pace = rules.isFair ? kFairPace : WarpPace{};
+WarpPace PaceFor(const WarpRules& rules, const WarpPace& original, bool isLeading) {
+    WarpPace pace = rules.isFair ? kFairPace : original;
     if (rules.catchesUp && isLeading) {
         pace.walkPerMs = Shared(pace.walkPerMs, kDrivingPerMs);
         pace.routeSpeed = Shared(pace.routeSpeed, 1.0F);

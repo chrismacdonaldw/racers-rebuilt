@@ -11,12 +11,7 @@
 namespace rr::sim {
 namespace {
 
-constexpr BallisticSpec kCannonball{
-    .speed = 180.0F, .gravity = -32.176F, .lifetime = Milliseconds{3000}};
-constexpr BallisticSpec kEmplacementCannonball{
-    .speed = 30.0F, .gravity = -96.528F, .lifetime = Milliseconds{3000}};
 constexpr Vector3 kLaunchHeight{.z = 5.0F};
-constexpr float kRangeWithoutTarget = 500.0F;
 
 }
 
@@ -24,6 +19,7 @@ void CannonballEffect::Start(const PowerupUse& use, PowerupContext& context) {
     RR_ASSERT(context.world != nullptr && context.explosions != nullptr &&
               context.weapons != nullptr);
     owner_ = OwnerOf(use);
+    tuning_ = &context.tuning->cannonball;
     const Vector3 from = use.hazard ? LaunchFrom(context.hazardAims[*use.hazard])
                                     : LaunchFrom(context.racers[use.racer], context);
     phase_ = ShotPhase::Flying;
@@ -66,21 +62,21 @@ Vector3 CannonballEffect::LaunchFrom(const Racer& owner, const PowerupContext& c
     const Vector3& facing = owner.Body().motion.basis.forward;
     const Vector3 start = position + kLaunchHeight;
     const std::optional<Vector3> point =
-        FindNearestTargetPoint(context.targets, position, facing, kTargetPointCone);
+        FindNearestTargetPoint(context.targets, position, facing, tuning_->pointCone);
     const std::optional<std::size_t> target =
         point ? std::nullopt
-              : FindNearestRacerInCone(context.racers, position, facing, kRacerAheadCone);
+              : FindNearestRacerInCone(context.racers, position, facing, tuning_->racerCone);
     if (target) {
-        flight_.LaunchAtRacer(kCannonball, owner, start, context.racers[*target]);
+        flight_.LaunchAtRacer(tuning_->shot, owner, start, context.racers[*target]);
     } else {
-        flight_.LaunchAtPoint(kCannonball, owner, start,
-                              point.value_or(start + (facing * kRangeWithoutTarget)));
+        flight_.LaunchAtPoint(tuning_->shot, owner, start,
+                              point.value_or(start + (facing * tuning_->range)));
     }
     return position;
 }
 
 Vector3 CannonballEffect::LaunchFrom(const HazardAim& aim) {
-    flight_.LaunchAtPoint(kEmplacementCannonball, aim.source, aim.target);
+    flight_.LaunchAtPoint(tuning_->hazardShot, aim.source, aim.target);
     return aim.source;
 }
 

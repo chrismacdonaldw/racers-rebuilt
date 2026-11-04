@@ -11,8 +11,6 @@
 namespace rr::sim {
 namespace {
 
-constexpr Milliseconds kStartingTime{500};
-constexpr Milliseconds kActiveTime{1500};
 constexpr Vector3 kDropFrom{.z = 5.0F};
 constexpr Vector3 kDropTo{.z = -50.0F};
 constexpr Vector3 kLandingHeight{.z = 5.0F};
@@ -33,10 +31,11 @@ void WarpEffect::Start(const PowerupUse& use, PowerupContext& context) {
     RR_ASSERT(use.hazard || (context.checkpoints != nullptr && context.progress != nullptr));
     racer_ = use.racer;
     aim_ = use.hazard ? std::optional(context.hazardAims[*use.hazard]) : std::nullopt;
-    pace_ = aim_ ? WarpPace{} : PaceFor(rules_, IsLeading(context));
+    const WarpTuning& tuning = context.tuning->warp;
+    pace_ = aim_ ? tuning.pace : PaceFor(rules_, tuning.pace, IsLeading(context));
     Racer& racer = context.racers[racer_];
     phase_ = racer.BeginWarp() ? WarpPhase::Starting : WarpPhase::Done;
-    remaining_ = kStartingTime;
+    remaining_ = tuning.startingTime;
     from_ = racer.Body().motion.position;
     pose_ = racer.Pose();
     if (aim_ && phase_ == WarpPhase::Starting) {
@@ -91,7 +90,7 @@ void WarpEffect::Advance(PowerupContext& context) {
     if (phase_ == WarpPhase::Starting) {
         context.racers[racer_].EnterWarp(pace_.routeSpeed);
         phase_ = WarpPhase::Active;
-        remaining_ = kActiveTime;
+        remaining_ = context.tuning->warp.activeTime;
         return;
     }
     Land(context);
@@ -99,8 +98,8 @@ void WarpEffect::Advance(PowerupContext& context) {
 }
 
 void WarpEffect::Lerp(PowerupContext& context, Milliseconds elapsed, const Vector3& to) {
-    const float left =
-        Share(remaining_ > elapsed ? remaining_ - elapsed : Milliseconds{0}, kActiveTime);
+    const float left = Share(remaining_ > elapsed ? remaining_ - elapsed : Milliseconds{0},
+                             context.tuning->warp.activeTime);
     context.racers[racer_].MoveWarp({.x = to.x + ((from_.x - to.x) * left),
                                      .y = to.y + ((from_.y - to.y) * left),
                                      .z = to.x + ((from_.z - to.z) * left)});

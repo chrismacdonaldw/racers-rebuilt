@@ -29,6 +29,7 @@ private:
     void TimeOut(PowerupContext& context);
     [[nodiscard]] Vector3 HookPosition() const;
 
+    const GrappleTuning* tuning_ = &kOriginalPowerups.grapple;
     std::uint8_t owner_ = 0;
     std::uint8_t victim_ = 0;
     bool hasTouched_ = false;

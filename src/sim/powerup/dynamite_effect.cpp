@@ -14,26 +14,21 @@
 namespace rr::sim {
 namespace {
 
-constexpr BallisticSpec kDynamite{
-    .speed = 40.0F, .gravity = -32.176F, .lifetime = Milliseconds{3000}, .leadsOnlyBehind = true};
 constexpr Vector3 kLaunchHeight{.z = 5.0F};
-constexpr float kRangeWithoutTarget = -90.0F;
-constexpr Milliseconds kFuse{5000};
-constexpr Milliseconds kBlastInterval{500};
 constexpr float kTumblePerMs = 0.012F;
-constexpr std::uint32_t kScatterSpan = 13;
-constexpr int kScatterOffset = 6;
 
 }
 
 void DynamiteEffect::Start(const PowerupUse& use, PowerupContext& context) {
     RR_ASSERT(context.world != nullptr && context.spikes != nullptr && context.weapons != nullptr);
     owner_ = use.racer;
+    tuning_ = &context.tuning->dynamite;
     const Racer& owner = context.racers[owner_];
     landing_ = owner.Body().motion.position;
     target_.reset();
-    if (const std::optional<std::size_t> target = FindRacerInCone(
-            context.racers, landing_, owner.Body().motion.basis.forward * -1.0F, kRacerAheadCone)) {
+    if (const std::optional<std::size_t> target =
+            FindRacerInCone(context.racers, landing_, owner.Body().motion.basis.forward * -1.0F,
+                            tuning_->targetCone)) {
         target_ = static_cast<std::uint8_t>(*target);
     }
     phase_ = DynamitePhase::Lit;
@@ -50,7 +45,7 @@ bool DynamiteEffect::Tick(Milliseconds elapsed, PowerupContext& context) {
                               .racer = owner_,
                               .position = landing_});
         phase_ = DynamitePhase::Blasting;
-        remaining_ = kBlastInterval;
+        remaining_ = tuning_->blastInterval;
     }
     tumble_ += kTumblePerMs * static_cast<float>(elapsed.count());
     if (RunsOut(remaining_, elapsed)) {
@@ -80,13 +75,13 @@ void DynamiteEffect::Launch(const PowerupContext& context) {
     const Racer& owner = context.racers[owner_];
     const Vector3 start = owner.Body().motion.position + kLaunchHeight;
     if (target_) {
-        flight_.LaunchAtRacer(kDynamite, owner, start, context.racers[*target_]);
+        flight_.LaunchAtRacer(tuning_->shot, owner, start, context.racers[*target_]);
     } else {
-        flight_.LaunchAtPoint(kDynamite, owner, start,
-                              start + (owner.Body().motion.basis.forward * kRangeWithoutTarget));
+        flight_.LaunchAtPoint(tuning_->shot, owner, start,
+                              start + (owner.Body().motion.basis.forward * -tuning_->range));
     }
     phase_ = DynamitePhase::Flying;
-    remaining_ = kFuse;
+    remaining_ = tuning_->fuse;
 }
 
 bool DynamiteEffect::HasLanded(Milliseconds elapsed, const PowerupContext& context) {
@@ -110,7 +105,7 @@ void DynamiteEffect::Advance(PowerupContext& context) {
         case DynamitePhase::Blasting:
             Blast(context, Scattered(context));
             phase_ = DynamitePhase::LastBlast;
-            remaining_ = kBlastInterval;
+            remaining_ = tuning_->blastInterval;
             return;
         case DynamitePhase::LastBlast:
             Blast(context, Scattered(context));
@@ -126,9 +121,10 @@ void DynamiteEffect::Blast(PowerupContext& context, const Vector3& at) const {
 }
 
 Vector3 DynamiteEffect::Scattered(PowerupContext& context) const {
-    const auto scatter = [&context] {
-        return static_cast<float>(static_cast<int>(context.random->Below(kScatterSpan)) -
-                                  kScatterOffset);
+    const int spread = tuning_->scatter;
+    const auto scatter = [&context, spread] {
+        const auto span = static_cast<std::uint32_t>((2 * spread) + 1);
+        return static_cast<float>(static_cast<int>(context.random->Below(span)) - spread);
     };
     const float x = scatter();
     const float y = scatter();
