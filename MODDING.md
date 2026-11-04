@@ -160,6 +160,42 @@ These tables merge with the game's instead of replacing it, so a mod only needs 
 - `RACERS.TOML` uses the data folder's `racers.toml` layout, so a racer built in the game can be copied in, and its racers can name their parts. Trophies and `selected` are ignored.
 - Entries can't be removed.
 
+## Driver parts
+
+`files/MENUDATA/PARTDB/PARTS.TOML` adds hats, faces, torsos and legs without binary tables. Paths are relative to `MENUDATA/PARTDB`:
+
+```toml
+[[hat]]
+name = "lava-helmet"
+model = "lava/helmet.glb"
+
+[[colour]]
+name = "lava_red"
+rgb = [200, 60, 20]
+
+[[face]]
+name = "lv_"
+default = "lava/face.png"
+happy = "lava/happy.png"
+
+[[torso]]
+name = "lava-suit"
+texture = "lava/suit.png"
+hook = true
+
+[[legs]]
+name = "lava-legs"
+texture = "lava/legs.png"
+peg = false
+```
+
+- A hat's `.glb` is the whole head, hat included, as `--export-gltf` writes the game's heads under `MENUDATA/PARTDB/MENUPART/CBBODIES/`. The material named `face` shows the driver's face. Other materials name a game material from `BODYPART.MDB` or a `[[colour]]`. Menus and races use the same model.
+- A face needs only `default`. `angry`, `blink`, `happy`, `sad` and `surprised` each fall back to it. A face's `name` is its material prefix, as in `BODYPART.PCB`.
+- Torso and leg textures replace the image of the first torso or legs. `hook = true` gives hook hands, and `peg = true` a peg leg.
+- Images are PNG. A face, torso or legs image copies the first part's material and texture settings.
+- Parts are always available, and come after the game's and `BODYPART.PCB`'s parts. A part named like one before it replaces it. Each mod's file merges in priority order, lowest first.
+- A broken entry, or an image or model that doesn't load, is skipped with a warning in the log.
+
 ## Power-ups
 
 `files/GAMEDATA/COMMON/POWERUPS.TOML` changes how power-ups behave. A mod only lists the keys it changes:
@@ -291,7 +327,7 @@ A glTF binary next to a game model's path, named like it but ending in `.glb`, r
 - A `.glb` that can't be read is skipped with a warning in the log, and the game's model or animations are kept.
 - **glTF models** in the **Mods** menu (`mods.gltf_models`) turns replacements of both models and animations off. It applies on **Apply now** or the next start.
 
-To start from the game's own models, run `racers-rebuilt.exe --export-gltf <folder>`. It writes every model in `LEGO.JAM` as a `.glb` at its game path under that folder, e.g. `<folder>/GAMEDATA/COMMON/RRJMW.GLB`, then exits.
+To start from the game's own models, run `racers-rebuilt.exe --export-gltf <folder>`. It writes every model in `LEGO.JAM` as a `.glb` at its game path under that folder, e.g. `<folder>/GAMEDATA/COMMON/RRJMW.GLB`, and each driver head in a folder named after its head file such as `<folder>/MENUDATA/PARTDB/MENUPART/CBBODIES/`, then exits.
 
 - Materials keep the game's names but carry no textures.
 - A jointed model is one skinned mesh in its rest pose, with nodes named after the skeleton's, and its animations as glTF animations of the same names. Driver parts carry the shared `PELVIS.ADB` animations, which only `PELVIS.glb` replaces.

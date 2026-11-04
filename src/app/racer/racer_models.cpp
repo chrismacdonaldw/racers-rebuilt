@@ -11,12 +11,14 @@
 #include <utility>
 #include <vector>
 
+#include "app/racer/mod_driver_parts.hpp"
 #include "assets/game_path.hpp"
 #include "assets/geometry_database.hpp"
 #include "assets/merged_table.hpp"
 #include "assets/part_library.hpp"
 #include "assets/skeleton_database.hpp"
 #include "assets/texture_database.hpp"
+#include "core/log.hpp"
 #include "sim/car_build/built_car.hpp"
 #include "sim/car_build/car_mesh.hpp"
 #include "sim/physics/racer_chassis.hpp"
@@ -43,22 +45,100 @@ Result<T> ReadParsed(const assets::Vfs& vfs, const std::string& path,
         [parse](const assets::FileData& data) { return parse(data.Bytes()); });
 }
 
-Result<assets::TextureDefinition> DefaultFaceTexture(const assets::Vfs& vfs,
-                                                     std::string_view name) {
+Result<std::vector<assets::TextureDefinition>> PartTextures(const assets::Vfs& vfs) {
     return assets::ReadMergedTable(vfs, std::format("{}/BODYPART.TDB", kPartFolder),
-                                   assets::ParseTextureDatabase)
-        .and_then([&](const std::vector<assets::TextureDefinition>& definitions)
-                      -> Result<assets::TextureDefinition> {
-            const std::string upper = assets::ToUpperAscii(name);
-            const auto found =
-                std::ranges::find_if(definitions, [&](const assets::TextureDefinition& definition) {
-                    return assets::ToUpperAscii(definition.name) == upper;
-                });
-            if (found == definitions.end()) {
-                return Fail(ErrorCode::NotFound, std::format("BODYPART.TDB has no {}", name));
-            }
-            return *found;
+                                   assets::ParseTextureDatabase);
+}
+
+Result<assets::TextureDefinition> TextureNamed(
+    const std::vector<assets::TextureDefinition>& definitions, std::string_view name) {
+    const std::string upper = assets::ToUpperAscii(name);
+    const auto found =
+        std::ranges::find_if(definitions, [&](const assets::TextureDefinition& definition) {
+            return assets::ToUpperAscii(definition.name) == upper;
         });
+    if (found == definitions.end()) {
+        return Fail(ErrorCode::NotFound, std::format("BODYPART.TDB has no {}", name));
+    }
+    return *found;
+}
+
+class ModLooks {
+public:
+    ModLooks(const assets::Vfs& vfs, std::vector<assets::TextureDefinition> definitions,
+             assets::TrackAssets& looks)
+        : vfs_(&vfs), definitions_(std::move(definitions)), looks_(&looks) {}
+
+    /// Copies `like`'s material and texture settings onto `file`'s image.
+    void Add(std::string_view like, std::string_view name, std::string_view file) {
+        const auto material = looks_->materials.find(assets::ToUpperAscii(like));
+        if (material == looks_->materials.end()) {
+            log::Warn("there's no {} material to copy for {}, skipping it", like, name);
+            return;
+        }
+        Result<assets::TextureDefinition> definition =
+            TextureNamed(definitions_, material->second.texture);
+        const std::string path = assets::JoinGamePath(kPartFolder, file);
+        Result<assets::ImageAsset> image =
+            definition.and_then([&](assets::TextureDefinition& found) {
+                found.name = name;
+                return vfs_->Read(path).and_then([&](const assets::FileData& data) {
+                    return assets::DecodeTexture(data.Bytes(), found);
+                });
+            });
+        if (!image) {
+            log::Warn("{}: {}, skipping {}", path, image.error().message, name);
+            return;
+        }
+        assets::MaterialAsset shown = material->second;
+        shown.name = name;
+        shown.texture = name;
+        const std::string key = assets::ToUpperAscii(name);
+        looks_->materials.insert_or_assign(key, std::move(shown));
+        looks_->textures.insert_or_assign(
+            key, std::make_shared<const assets::ImageAsset>(std::move(*image)));
+    }
+
+private:
+    const assets::Vfs* vfs_;
+    std::vector<assets::TextureDefinition> definitions_;
+    assets::TrackAssets* looks_;
+};
+
+void AddModLooks(const assets::Vfs& vfs, const assets::DriverPartCatalog& parts,
+                 const ModDriverParts& mod, assets::TrackAssets& looks) {
+    for (const ModColour& colour : mod.colours) {
+        looks.materials.insert_or_assign(
+            assets::ToUpperAscii(colour.name),
+            assets::MaterialAsset{
+                .name = colour.name, .ambient = colour.rgba, .diffuse = colour.rgba});
+    }
+    const bool hasModels =
+        !parts.faces.parts.empty() && !parts.torsos.parts.empty() && !parts.legs.parts.empty();
+    if (!hasModels || (mod.faces.empty() && mod.torsos.empty() && mod.legs.empty())) {
+        return;
+    }
+    Result<std::vector<assets::TextureDefinition>> definitions = PartTextures(vfs);
+    if (!definitions) {
+        log::Warn("{}, mods add no driver part looks", definitions.error().message);
+        return;
+    }
+    ModLooks added(vfs, std::move(*definitions), looks);
+    const std::string face = assets::FaceMaterial(parts.faces.parts.front().name, 0);
+    for (const ModFace& modFace : mod.faces) {
+        for (std::size_t expression = 0; expression < kFaceExpressions; ++expression) {
+            const std::string& image = modFace.images.at(expression);
+            added.Add(face,
+                      assets::FaceMaterial(modFace.name, static_cast<std::int32_t>(expression)),
+                      image.empty() ? modFace.images.front() : image);
+        }
+    }
+    for (const ModDress& torso : mod.torsos) {
+        added.Add(parts.torsos.parts.front().name, torso.name, torso.texture);
+    }
+    for (const ModDress& legs : mod.legs) {
+        added.Add(parts.legs.parts.front().name, legs.name, legs.texture);
+    }
 }
 
 }
@@ -81,12 +161,28 @@ Result<BuiltCarModel> BuildCarModel(const assets::Vfs& vfs, const assets::CarDat
 Result<assets::DriverPartCatalog> LoadDriverParts(const assets::Vfs& vfs) {
     return assets::ParseEveryLayer(vfs, std::format("{}/BODYPART.PCB", kPartFolder),
                                    assets::ParseDriverParts)
-        .transform(assets::MergeDriverParts);
+        .transform([&](std::vector<assets::DriverPartCatalog> catalogs) {
+            catalogs.push_back(ModPartCatalog(LoadModDriverParts(vfs)));
+            return assets::MergeDriverParts(std::move(catalogs));
+        });
 }
 
 Result<assets::PartLibrary> LoadHeadParts(const assets::Vfs& vfs, std::string_view path) {
     return assets::ParseEveryLayer(vfs, path, assets::ParsePartLibrary)
-        .transform(assets::MergePartLibraries);
+        .transform([&](std::vector<assets::PartLibrary> libraries) {
+            libraries.push_back(ModHeadParts(vfs, LoadModDriverParts(vfs)));
+            return assets::MergePartLibraries(std::move(libraries));
+        });
+}
+
+Result<assets::TrackAssets> LoadDriverLooks(const assets::Vfs& vfs, assets::TrackLoader& loader,
+                                            const assets::DriverPartCatalog& parts) {
+    const assets::ModelFiles files{.materials = "BODYPART", .textures = "BODYPART"};
+    return loader.LoadModels(kPartFolder, std::span(&files, 1))
+        .transform([&](assets::TrackAssets looks) {
+            AddModLooks(vfs, parts, LoadModDriverParts(vfs), looks);
+            return looks;
+        });
 }
 
 Result<assets::GeometryAsset> BuildMinifig(const assets::Vfs& vfs,
@@ -138,8 +234,13 @@ Result<assets::TrackAssets> LoadExpressionFaces(
     if (material == materials.end()) {
         return Fail(ErrorCode::NotFound, std::format("there's no {} material", defaultFace));
     }
+    if (materials.contains(assets::ToUpperAscii(assets::FaceMaterial(face, 1)))) {
+        return assets::TrackAssets{};
+    }
     const Result<assets::TextureDefinition> texture =
-        DefaultFaceTexture(vfs, material->second.texture);
+        PartTextures(vfs).and_then([&](const std::vector<assets::TextureDefinition>& definitions) {
+            return TextureNamed(definitions, material->second.texture);
+        });
     if (!texture) {
         return std::unexpected(texture.error());
     }

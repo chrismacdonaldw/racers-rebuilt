@@ -33,6 +33,12 @@ struct BuiltCarModel {
 [[nodiscard]] Result<assets::PartLibrary> LoadHeadParts(const assets::Vfs& vfs,
                                                         std::string_view path);
 
+/// `BODYPART`'s materials and textures, with the looks of the parts mods add in `PARTS.TOML`. A mod
+/// part's look copies the first part's material, and one that doesn't load is logged and skipped.
+[[nodiscard]] Result<assets::TrackAssets> LoadDriverLooks(const assets::Vfs& vfs,
+                                                          assets::TrackLoader& loader,
+                                                          const assets::DriverPartCatalog& parts);
+
 /// Menus build on `MENUPART` bodies and races on `GAMEPART`'s `leg_box`.
 [[nodiscard]] Result<assets::GeometryAsset> BuildMinifig(const assets::Vfs& vfs,
                                                          const assets::DriverPartCatalog& parts,

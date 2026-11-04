@@ -35,6 +35,9 @@ struct PartLibrary {
 /// Pools are appended in order. Parts merge by name as `MergeNamed` does.
 [[nodiscard]] PartLibrary MergePartLibraries(std::vector<PartLibrary> libraries);
 
+/// Appends `geometry`'s vertices to the pool unscaled, with a group per material.
+void AddLibraryPart(PartLibrary& library, std::string name, const GeometryAsset& geometry);
+
 /// Copies only the vertices the part uses, scaled by `scale` rather than the part's own scale.
 [[nodiscard]] Result<GeometryAsset> BuildPartGeometry(const PartLibrary& library,
                                                       std::string_view name, float scale);

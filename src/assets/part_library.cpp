@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <format>
 #include <limits>
+#include <span>
+#include <string>
 #include <utility>
 
 #include "assets/game_path.hpp"
@@ -187,6 +189,28 @@ PartLibrary MergePartLibraries(std::vector<PartLibrary> libraries) {
     }
     merged.parts = MergeNamed(std::move(parts));
     return merged;
+}
+
+void AddLibraryPart(PartLibrary& library, std::string name, const GeometryAsset& geometry) {
+    const auto first = static_cast<std::int32_t>(library.vertices.size());
+    library.vertices.insert(library.vertices.end(), geometry.vertices.begin(),
+                            geometry.vertices.end());
+    LibraryPart part{.name = std::move(name)};
+    for (const GeometryRange& range : geometry.ranges) {
+        const std::string& material = geometry.materials.at(range.material);
+        auto group = std::ranges::find(part.groups, material, &PartGroup::material);
+        if (group == part.groups.end()) {
+            group = part.groups.insert(part.groups.end(), PartGroup{.material = material});
+        }
+        const std::span<const std::uint32_t> indices =
+            std::span(geometry.indices).subspan(range.firstIndex, range.indexCount);
+        for (std::size_t corner = 0; corner + 2 < indices.size(); corner += 3) {
+            group->triangles.push_back({first + static_cast<std::int32_t>(indices[corner]),
+                                        first + static_cast<std::int32_t>(indices[corner + 1]),
+                                        first + static_cast<std::int32_t>(indices[corner + 2])});
+        }
+    }
+    library.parts.push_back(std::move(part));
 }
 
 Result<GeometryAsset> BuildPartGeometry(const PartLibrary& library, std::string_view name,

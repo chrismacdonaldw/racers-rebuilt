@@ -11,6 +11,7 @@
 
 #include "assets/geometry_writer.hpp"
 #include "assets/gltf_model.hpp"
+#include "assets/part_library_writer.hpp"
 #include "assets/token_bytes.hpp"
 #include "game_layers.hpp"
 
@@ -46,6 +47,17 @@ std::vector<std::byte> Pelvis() {
                           Join({Bytes({0x28}), Floats({0, 0, 45}), Bytes({0x2A}), Text("root")}))});
 }
 
+std::vector<std::byte> Heads() {
+    const assets::PartLibrary library{
+        .vertices = {{.normal = {.z = 1.0F}},
+                     {.position = {.x = 10.0F}, .normal = {.z = 1.0F}},
+                     {.position = {.y = 10.0F}, .normal = {.z = 1.0F}}},
+        .parts = {{.name = "head", .groups = {{.material = "face", .triangles = {{0, 1, 2}}}}}}};
+    Result<std::vector<std::byte>> gcb = assets::WritePartLibrary(library);
+    REQUIRE(gcb.has_value());
+    return std::move(*gcb);
+}
+
 class ExportFixture {
 public:
     ExportFixture() {
@@ -53,6 +65,7 @@ public:
         layers_.WriteGame("GAMEDATA/COMMON/BROKEN.GDB", {kEntry});
         layers_.WriteGame("GAMEDATA/DRIVER/RRPELVIS.GDB", Model(1));
         layers_.WriteGame("GAMEDATA/DRIVER/PELVIS.SDB", Pelvis());
+        layers_.WriteGame("MENUDATA/PARTDB/MENUPART/CBBODIES.GCB", Heads());
         layers_.WriteLoose("LOOSE.GDB", Model(0));
         const std::unique_ptr<assets::Vfs> vfs = layers_.Mount();
         REQUIRE(ExportGameModels(*vfs, test::GameLayers::kGameLayer, Out()).has_value());
@@ -87,6 +100,17 @@ TEST_CASE("a driver part is exported with the shared pelvis skeleton") {
 
     REQUIRE(part.geometry.vertices.size() == 3);
     CHECK(part.geometry.vertices[0].joint == 1);
+}
+
+TEST_CASE("each head part is exported in a folder named after its library") {
+    const ExportFixture fixture;
+
+    const assets::GltfModel head =
+        Import(fixture.Out() / "MENUDATA/PARTDB/MENUPART/CBBODIES/HEAD.GLB", {});
+
+    CHECK(head.geometry.materials == std::vector<std::string>{"face"});
+    REQUIRE(head.geometry.vertices.size() == 3);
+    CHECK(head.geometry.vertices[1].position.x == doctest::Approx(10.0F));
 }
 
 TEST_CASE("models that don't parse and files outside the game layer are skipped") {
