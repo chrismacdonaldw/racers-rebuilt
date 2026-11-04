@@ -1,6 +1,9 @@
 #include "app/ui_text/text_layout.hpp"
 
 #include <algorithm>
+#include <optional>
+
+#include "app/ui_text/drawn_glyphs.hpp"
 
 namespace rr::app {
 namespace {
@@ -33,27 +36,44 @@ const assets::Glyph* GlyphFor(const assets::FontGlyphs& glyphs, char16_t charact
     return glyph;
 }
 
+struct Mark {
+    const assets::Glyph* glyph = nullptr;
+    std::optional<DrawnGlyph> drawn;
+    float widthPx = 0.0F;
+};
+
+std::optional<Mark> MarkFor(const UiFont& font, char16_t character) {
+    if (const assets::Glyph* glyph = GlyphFor(font.glyphs, character)) {
+        return Mark{.glyph = glyph, .widthPx = static_cast<float>(glyph->widthPx)};
+    }
+    if (const std::optional<DrawnGlyph> drawn = DrawnGlyphFor(character)) {
+        return Mark{.drawn = drawn,
+                    .widthPx = DrawnGlyphWidth(*drawn, static_cast<float>(font.heightPx))};
+    }
+    return std::nullopt;
+}
+
 template <typename Visit>
 float ForEachGlyph(const UiFont& font, std::u16string_view text, Visit&& visit) {
     const auto spacing = static_cast<float>(font.spacingPx);
     float pen = 0.0F;
     bool hasAdvanced = false;
     for (const char16_t character : text) {
-        const assets::Glyph* glyph =
-            character == kSpace ? nullptr : GlyphFor(font.glyphs, character);
-        if (character != kSpace && glyph == nullptr) {
+        const std::optional<Mark> mark =
+            character == kSpace ? std::nullopt : MarkFor(font, character);
+        if (character != kSpace && !mark) {
             continue;
         }
         if (hasAdvanced) {
             pen += spacing;
         }
         hasAdvanced = true;
-        if (glyph == nullptr) {
+        if (!mark) {
             pen += static_cast<float>(font.glyphs.spaceWidthPx);
             continue;
         }
-        visit(*glyph, pen);
-        pen += static_cast<float>(glyph->widthPx);
+        visit(*mark, pen);
+        pen += mark->widthPx;
     }
     return pen;
 }
@@ -62,10 +82,8 @@ float Advance(const UiFont& font, char16_t character) {
     if (character == kSpace) {
         return static_cast<float>(font.glyphs.spaceWidthPx) + static_cast<float>(font.spacingPx);
     }
-    const assets::Glyph* glyph = GlyphFor(font.glyphs, character);
-    return glyph == nullptr
-               ? 0.0F
-               : static_cast<float>(glyph->widthPx) + static_cast<float>(font.spacingPx);
+    const std::optional<Mark> mark = MarkFor(font, character);
+    return mark ? mark->widthPx + static_cast<float>(font.spacingPx) : 0.0F;
 }
 
 bool IsLineBreak(char16_t character) {
@@ -139,21 +157,25 @@ private:
 }
 
 float TextWidth(const UiFont& font, std::u16string_view text) {
-    return ForEachGlyph(font, text, [](const assets::Glyph&, float) {});
+    return ForEachGlyph(font, text, [](const Mark&, float) {});
 }
 
 void LayoutText(const UiFont& font, std::u16string_view text, const TextPlacement& placement,
                 std::vector<render::SpriteDraw>& out) {
     const auto imageWidth = static_cast<float>(font.widthPx);
-    ForEachGlyph(font, text, [&](const assets::Glyph& glyph, float pen) {
-        const auto width = static_cast<float>(glyph.widthPx);
+    ForEachGlyph(font, text, [&](const Mark& mark, float pen) {
+        const render::Rect cell{.x = placement.x + (pen * placement.scale),
+                                .y = placement.y,
+                                .width = mark.widthPx * placement.scale,
+                                .height = static_cast<float>(font.heightPx) * placement.scale};
+        if (mark.glyph == nullptr) {
+            DrawGlyphShape(mark.drawn.value_or(DrawnGlyph::Dash), cell, placement.tint, out);
+            return;
+        }
         out.push_back({.texture = font.texture,
-                       .bounds = {.x = placement.x + (pen * placement.scale),
-                                  .y = placement.y,
-                                  .width = width * placement.scale,
-                                  .height = static_cast<float>(font.heightPx) * placement.scale},
-                       .uv = {.x = static_cast<float>(glyph.leftPx) / imageWidth,
-                              .width = width / imageWidth,
+                       .bounds = cell,
+                       .uv = {.x = static_cast<float>(mark.glyph->leftPx) / imageWidth,
+                              .width = mark.widthPx / imageWidth,
                               .height = 1.0F},
                        .tint = placement.tint});
     });
