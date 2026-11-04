@@ -43,7 +43,8 @@ constexpr std::array kEnhancedSettings{&kPhysicsAi,
                                        &kStuckWarpFix,
                                        &kLdrawPiecesSetting,
                                        &kLdrawPrintsSetting,
-                                       &kEnhancedBuilder};
+                                       &kEnhancedBuilder,
+                                       &kExtraPiecesSetting};
 
 }
 

@@ -25,7 +25,7 @@ inline constexpr std::size_t kPartSetCount = 12;
                                                          const sim::BuiltCar& car,
                                                          const assets::PieceCatalog& catalog);
 
-/// A placed piece's part type is its set's chassis type.
+/// A placed piece's part type is its set's chassis type, or 0 for an extra piece.
 [[nodiscard]] std::uint16_t PartTypeOf(const assets::PieceCatalog& catalog, std::size_t set);
 
 [[nodiscard]] std::optional<std::size_t> PartSetOfType(const assets::PieceCatalog& catalog,

@@ -122,7 +122,7 @@ private:
     std::optional<CarRequest> asked_;
     std::optional<std::string> opened_;
     std::unique_ptr<CarBuildScreen> build_;
-    BuildControls buildControls_ = BuildControls::Original;
+    BuildMode buildMode_;
     std::vector<render::RenderView> views3d_;
     float turn_ = 0.0F;
     std::vector<MenuPicture> under_;

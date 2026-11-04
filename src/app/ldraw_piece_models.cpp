@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "assets/geometry_writer.hpp"
+#include "assets/ldraw_extra_pieces.hpp"
 #include "assets/ldraw_pieces.hpp"
 #include "assets/piece_models.hpp"
 #include "core/log.hpp"
@@ -16,12 +17,11 @@ void LdrawPieceModels::DeclareSettings(settings::Registry& registry) const {
 
 void LdrawPieceModels::Attach(mods::HookRegistry& hooks, const settings::Registry& settings) {
     hooks.Subscribe<mods::AssetResolving>([this, &settings](mods::AssetResolving& event) {
-        if (event.request.generated || !settings.Get(kLdrawPiecesSetting) ||
-            event.vfs.Contains(event.request.path)) {
+        if (event.request.generated || event.vfs.Contains(event.request.path)) {
             return;
         }
         const std::optional<std::string> piece = assets::PieceOfModelPath(event.request.path);
-        if (!piece) {
+        if (!piece || (!settings.Get(kLdrawPiecesSetting) && !assets::IsExtraPiece(*piece))) {
             return;
         }
         if (std::optional<std::vector<std::byte>> file = ModelFile(*piece)) {
@@ -47,6 +47,7 @@ std::optional<std::vector<std::byte>> LdrawPieceModels::ModelFile(std::string_vi
     if (!file) {
         log::Warn("Keeping piece {} because its LDraw parts can't be used: {}", parts.front().piece,
                   file.error().message);
+        files_.erase(found);
         return std::nullopt;
     }
     found->second = std::move(*file);

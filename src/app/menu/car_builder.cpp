@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <expected>
 #include <optional>
+#include <span>
 #include <utility>
 #include <vector>
 
@@ -27,7 +28,7 @@ constexpr std::array<int, kBuildViews * kBuildDirections> kDeepSteps = {
 
 std::size_t FindChoice(const assets::PieceCatalog& catalog, std::size_t set, std::uint16_t type,
                        std::uint8_t colour) {
-    const std::vector<assets::PartChoice>& choices = catalog.partSets[set].choices;
+    const std::span<const assets::PartChoice> choices = catalog.Choices(set);
     for (std::size_t i = 0; i < choices.size(); ++i) {
         if (catalog.library.pieces[choices[i].piece].type == type && choices[i].colour == colour) {
             return i;
@@ -53,7 +54,7 @@ CarBuilder::CarBuilder(const assets::PieceCatalog& catalog, sim::BuiltCar car, s
 }
 
 void CarBuilder::SelectSet(std::size_t set) {
-    if (set >= catalog_->partSets.size()) {
+    if (set > catalog_->ExtraSet()) {
         return;
     }
     set_ = set;
@@ -61,7 +62,7 @@ void CarBuilder::SelectSet(std::size_t set) {
 }
 
 void CarBuilder::Choose(std::size_t choice) {
-    const std::vector<assets::PartChoice>& choices = catalog_->partSets[set_].choices;
+    const std::span<const assets::PartChoice> choices = catalog_->Choices(set_);
     if (choice >= choices.size() || lifted_) {
         return;
     }
@@ -71,7 +72,7 @@ void CarBuilder::Choose(std::size_t choice) {
 }
 
 void CarBuilder::Pick(std::size_t set, std::size_t choice, std::uint8_t colour) {
-    if (set >= catalog_->partSets.size()) {
+    if (set > catalog_->ExtraSet()) {
         return;
     }
     set_ = set;

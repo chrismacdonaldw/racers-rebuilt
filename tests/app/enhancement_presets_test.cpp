@@ -32,6 +32,7 @@ settings::Registry DeclaredRegistry() {
     registry.Declare(kLdrawPiecesSetting);
     registry.Declare(kLdrawPrintsSetting);
     registry.Declare(kEnhancedBuilder);
+    registry.Declare(kExtraPiecesSetting);
     return registry;
 }
 
@@ -115,11 +116,13 @@ TEST_CASE("only the enhanced preset turns on widescreen, HUD width, far models a
     CHECK(registry.Get(kFarCarsSetting));
     CHECK(registry.Get(kFarScenerySetting));
     CHECK(registry.Get(kEnhancedBuilder));
+    CHECK(registry.Get(kExtraPiecesSetting));
     static_cast<void>(ApplyPreset(registry, presets[0]));
     CHECK_FALSE(registry.Get(kWidescreenSetting));
     CHECK(registry.Get(kHudWidthSetting) == "Window");
     CHECK_FALSE(registry.Get(kWidescreenCutscenesSetting));
     CHECK_FALSE(registry.Get(kEnhancedBuilder));
+    CHECK_FALSE(registry.Get(kExtraPiecesSetting));
 }
 
 TEST_CASE("quick configs load the user's presets folder beside the shipped presets") {

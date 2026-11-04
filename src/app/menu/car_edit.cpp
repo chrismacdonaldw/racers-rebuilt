@@ -70,7 +70,10 @@ std::vector<std::size_t> AvailablePartSets(const std::set<std::int32_t>& partSet
 }
 
 std::uint16_t PartTypeOf(const assets::PieceCatalog& catalog, std::size_t set) {
-    return catalog.library.pieces.at(catalog.partSets.at(set).chassis).type;
+    if (set >= catalog.partSets.size()) {
+        return 0;
+    }
+    return catalog.library.pieces.at(catalog.partSets[set].chassis).type;
 }
 
 std::optional<std::size_t> PartSetOfType(const assets::PieceCatalog& catalog,

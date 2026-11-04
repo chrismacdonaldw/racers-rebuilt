@@ -38,6 +38,7 @@ settings::Registry DeclaredRegistry(const Extensions& extensions) {
     DeclareFixSettings(registry);
     DeclareWarpSettings(registry);
     registry.Declare(kEnhancedBuilder);
+    registry.Declare(kExtraPiecesSetting);
     DeclareDeveloperSettings(registry);
     DeclareExtensionSettings(extensions, registry);
     return registry;

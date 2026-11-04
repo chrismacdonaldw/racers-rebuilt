@@ -43,7 +43,7 @@ constexpr float kLitLevel = 180.0F / 120.0F;
 constexpr render::Color kLitAmbient{.r = kLitLevel, .g = kLitLevel, .b = kLitLevel};
 
 std::vector<std::uint8_t> ChoiceIndices(const assets::PieceCatalog& catalog, std::size_t set) {
-    std::vector<std::uint8_t> choices(catalog.partSets.at(set).choices.size());
+    std::vector<std::uint8_t> choices(catalog.Choices(set).size());
     for (std::size_t choice = 0; choice < choices.size(); ++choice) {
         choices[choice] = static_cast<std::uint8_t>(choice);
     }
@@ -114,7 +114,7 @@ CarBuildScreen::CarBuildScreen(BuildServices services, CarBuildLook look, PieceM
     setStrip_.Snap(0, sets_.size());
     under_.push_back(look_.backdrop);
     holes_ = {look_.carousel.bounds, look_.garage.interior};
-    UseControls(services_.controls);
+    UseControls(services_.mode);
 }
 
 void CarBuildScreen::HandleKey(SDL_Keycode key, SDL_Keymod mod) {

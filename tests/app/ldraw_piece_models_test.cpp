@@ -78,6 +78,19 @@ TEST_CASE_FIXTURE(LdrawFixture,
     CHECK_FALSE(Read("MENUDATA/PIECEDB/L300100.GDB").has_value());
 }
 
+TEST_CASE_FIXTURE(LdrawFixture, "an extra piece's model is made whatever the setting says") {
+    Turn(false);
+
+    const Result<assets::GeometryAsset> plate = Read(assets::PieceModelPath("x3024"));
+
+    REQUIRE(plate.has_value());
+    const auto [low, high] =
+        std::ranges::minmax(plate->vertices, {},
+                            [](const assets::GeometryVertex& vertex) { return vertex.position.z; });
+    CHECK(low.position.z == doctest::Approx(0.0F));
+    CHECK(high.position.z == doctest::Approx(0.6F));
+}
+
 TEST_CASE("a mod's glb piece model wins over the LDraw part") {
     const test::TempFolder folder;
     const std::filesystem::path file = folder.Path() / "menudata/piecedb/models/l300100.glb";

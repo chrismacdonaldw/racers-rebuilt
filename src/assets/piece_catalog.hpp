@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -40,9 +41,18 @@ struct PieceCatalog {
     std::vector<std::string> materials;
     std::vector<std::string> colours;
     std::vector<CatalogPartSet> partSets;
+    std::vector<PartChoice> extras;
     PieceModels models;
 
     [[nodiscard]] const GeometryAsset* ModelOf(const PieceRecord& piece) const;
+
+    /// `Load` leaves extra pieces' models out, as reading one makes it from LDraw.
+    void ReadExtraModels(const Vfs& vfs);
+    void ReadExtraModels(const Vfs& vfs, std::span<const std::uint16_t> types);
+
+    /// The set past the last part set offers the extra pieces.
+    [[nodiscard]] std::size_t ExtraSet() const { return partSets.size(); }
+    [[nodiscard]] std::span<const PartChoice> Choices(std::size_t set) const;
 
     /// Fails when a set's chassis, piece or colour is missing; skips pieces too big to build.
     [[nodiscard]] static Result<PieceCatalog> Load(const Vfs& vfs, PieceDetail detail);

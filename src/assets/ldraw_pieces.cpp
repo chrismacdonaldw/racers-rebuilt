@@ -11,6 +11,7 @@
 #include <system_error>
 #include <utility>
 
+#include "assets/ldraw_extra_pieces.hpp"
 #include "assets/piece_models.hpp"
 
 namespace rr::assets {
@@ -79,11 +80,14 @@ void Append(GeometryAsset& model, const GeometryAsset& part, const LdrawPart& pl
 }
 
 std::span<const LdrawPart> LdrawPartsOf(std::string_view pieceName) {
-    const std::span<const LdrawPart> all = LdrawParts();
     const auto isPiece = [&](const LdrawPart& part) { return SameName(part.piece, pieceName); };
-    const auto first = std::ranges::find_if(all, isPiece);
-    const auto last = std::find_if_not(first, all.end(), isPiece);
-    return {first, last};
+    for (const std::span<const LdrawPart> table : {LdrawParts(), ExtraPieceParts()}) {
+        const auto first = std::ranges::find_if(table, isPiece);
+        if (first != table.end()) {
+            return {first, std::find_if_not(first, table.end(), isPiece)};
+        }
+    }
+    return {};
 }
 
 Result<GeometryAsset> LoadLdrawPiece(LdrawLibrary& library, std::span<const LdrawPart> parts) {

@@ -13,4 +13,14 @@ inline constexpr settings::SettingSpec<bool> kEnhancedBuilder{
         "Pick pieces from a palette, drag them onto the car, and move, recolour or remove "
         "placed pieces with undo and redo."};
 
+inline constexpr settings::SettingSpec<bool> kExtraPiecesSetting{
+    .key = "enhancements.extra_pieces",
+    .defaultValue = false,
+    .label = "Extra LDraw pieces",
+    .category = "Enhancements/Menus",
+    .changesGameplay = true,
+    .tooltip =
+        "Adds an LDraw tab of bricks, plates, tiles, slopes and wedges to the enhanced car "
+        "builder. Their shapes change how a car handles."};
+
 }

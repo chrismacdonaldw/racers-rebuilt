@@ -98,6 +98,7 @@ With the free camera on:
 | Key | Default | Values |
 |---|---|---|
 | `enhancements.enhanced_builder` | `false` | `true`, `false`. Swaps the builder's move and turn buttons for a palette of the chosen set's pieces, and the piece carousel for ten colour swatches. The **Enhanced** preset turns it on. Applies straight away. |
+| `enhancements.extra_pieces` | `false` | `true`, `false`. Adds an **LDraw** tab to the enhanced builder's palette, with 67 bricks, plates, tiles, slopes and wedges the original never had. They're saved with the car like any piece, and their shapes change how it handles. The **Enhanced** preset turns it on. Applies straight away. |
 
 With the enhanced builder on:
 

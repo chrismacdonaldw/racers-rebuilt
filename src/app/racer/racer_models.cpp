@@ -65,8 +65,9 @@ Result<assets::TextureDefinition> DefaultFaceTexture(const assets::Vfs& vfs,
 
 Result<BuiltCarModel> BuildCarModel(const assets::Vfs& vfs, const assets::CarData& car,
                                     assets::PieceDetail detail) {
-    const Result<assets::PieceCatalog> pieces = assets::PieceCatalog::Load(vfs, detail);
-    const Result<sim::BuiltCar> built = pieces.and_then([&](const assets::PieceCatalog& catalog) {
+    Result<assets::PieceCatalog> pieces = assets::PieceCatalog::Load(vfs, detail);
+    const Result<sim::BuiltCar> built = pieces.and_then([&](assets::PieceCatalog& catalog) {
+        catalog.ReadExtraModels(vfs, assets::PieceTypesOf(car));
         return sim::BuiltCar::Load(car, catalog.library);
     });
     return built

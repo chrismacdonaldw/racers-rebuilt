@@ -14,10 +14,8 @@ std::size_t Stepped(std::size_t value, int step, std::size_t count) {
 
 void PiecePalette::Show(const assets::PieceCatalog& catalog, std::size_t set) {
     entries_.clear();
-    if (set < catalog.partSets.size()) {
-        for (std::size_t choice = 0; choice < catalog.partSets[set].choices.size(); ++choice) {
-            entries_.push_back({.set = set, .choice = choice});
-        }
+    for (std::size_t choice = 0; choice < catalog.Choices(set).size(); ++choice) {
+        entries_.push_back({.set = set, .choice = choice});
     }
     firstRow_ = 0;
     cursor_ = 0;

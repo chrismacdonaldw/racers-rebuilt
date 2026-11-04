@@ -2,12 +2,14 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <optional>
 #include <string_view>
 
 #include "archive_survey.hpp"
+#include "assets/ldraw_extra_pieces.hpp"
 
 namespace rr::assets {
 namespace {
@@ -59,11 +61,21 @@ std::array<std::size_t, 5> Sizes(const PieceLibrary& library) {
             library.normals.size(), library.texCoords.size()};
 }
 
+bool AreUnreadExtras(const PieceCatalog& catalog) {
+    return std::ranges::all_of(catalog.extras, [&](const PartChoice& extra) {
+        const PieceRecord& piece = catalog.library.pieces.at(extra.piece);
+        return IsExtraPieceType(piece.type) && catalog.ModelOf(piece) == nullptr;
+    });
+}
+
 void CheckLibrary(const PieceCatalog& catalog, const ExpectedLibrary& expected) {
-    CHECK(Sizes(catalog.library) == std::array<std::size_t, 5>{161, expected.indices,
+    const std::size_t extras = ExtraPieceRecords().size();
+    CHECK(Sizes(catalog.library) == std::array<std::size_t, 5>{161 + extras, expected.indices,
                                                                expected.positions, expected.normals,
                                                                expected.texCoords});
     CHECK(catalog.library.Find(kStudPieceType, 1)->name == "Cylinder");
+    REQUIRE(catalog.Choices(catalog.ExtraSet()).size() == extras);
+    CHECK(AreUnreadExtras(catalog));
 }
 
 void CheckColours(const PieceCatalog& catalog) {

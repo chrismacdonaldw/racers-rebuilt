@@ -44,6 +44,19 @@ TEST_CASE("a car saves its pieces big-endian and loads back the same") {
     CHECK(loaded->Pieces()[1].height == 1);
 }
 
+TEST_CASE("a car's piece types read straight from its data, cut to the room it has") {
+    const assets::PieceLibrary library = Library();
+    BuiltCar build;
+    REQUIRE(build.Place(library.pieces[0], {}, 4, 3).has_value());
+    REQUIRE(build.Place(library.pieces[2], {.x = 8, .y = 2}, 12, 0).has_value());
+    assets::CarData overfull{};
+    overfull[0] = std::byte{0xFF};
+    overfull[1] = std::byte{0xFF};
+
+    CHECK(assets::PieceTypesOf(build.Save()) == std::vector<std::uint16_t>{17, 0x901});
+    CHECK(assets::PieceTypesOf(overfull).size() == 64);
+}
+
 TEST_CASE("a recoloured piece saves and loads its new colour") {
     const assets::PieceLibrary library = Library();
     BuiltCar build;
