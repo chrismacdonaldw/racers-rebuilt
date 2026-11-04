@@ -58,6 +58,7 @@ public:
     void SetResolutionScale(float scale);
 
     void SetUiFit(UiFit fit) { settings_.uiFit = fit; }
+    [[nodiscard]] Rect UiWindow() const;
     [[nodiscard]] UiFit Fit() const { return settings_.uiFit; }
     void SetSceneFit(SceneFit fit) { settings_.sceneFit = fit; }
     /// Sprites anchored to a side stop at the side of a centred area this wide, else the window's.
@@ -84,9 +85,11 @@ public:
     [[nodiscard]] std::optional<assets::ImageAsset> TakeCapture();
 
 private:
-    explicit Renderer(std::unique_ptr<Backend> backend) : backend_(std::move(backend)) {}
+    Renderer(std::unique_ptr<Backend> backend, const platform::Window& window)
+        : backend_(std::move(backend)), window_(window.Handle()) {}
 
     std::unique_ptr<Backend> backend_;
+    SDL_Window* window_;
     FrameSettings settings_;
     bool isCaptureRequested_ = false;
     std::optional<assets::ImageAsset> capture_;

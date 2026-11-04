@@ -73,6 +73,7 @@ target_sources(racers-rebuilt-tests PRIVATE
     app/menu/award_scene_name_test.cpp
     app/menu/best_time_panel_test.cpp
     app/menu/build_camera_test.cpp
+    app/menu/builder_settings_test.cpp
     app/menu/build_drag_test.cpp
     app/menu/build_help_test.cpp
     app/menu/build_pointer_test.cpp
@@ -118,6 +119,8 @@ target_sources(racers-rebuilt-tests PRIVATE
     app/menu/side_tiles_test.cpp
     app/menu/stand_scene_test.cpp
     app/menu/track_preview_test.cpp
+    app/menu/workshop/orbit_camera_test.cpp
+    app/menu/workshop/workshop_scenery_test.cpp
     app/menu_pointer_test.cpp
     app/model_export_test.cpp
     app/mod_content_test.cpp

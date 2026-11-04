@@ -1,5 +1,9 @@
 #pragma once
 
+#include <optional>
+#include <string_view>
+
+#include "render/render_view.hpp"
 #include "settings/setting_spec.hpp"
 
 namespace rr::app {
@@ -10,8 +14,11 @@ inline constexpr settings::SettingSpec<bool> kEnhancedBuilder{
     .label = "Enhanced car builder",
     .category = "Enhancements/Menus",
     .tooltip =
-        "Pick pieces from a palette, drag them onto the car, and move, recolour or remove "
-        "placed pieces with undo and redo."};
+        "Opens a full-window builder with a free camera, drag and drop, and room to lay bricks on "
+        "the ground."};
+
+inline constexpr settings::SettingSpec<std::string_view> kBuilderColour{
+    .key = "enhancements.builder_colour", .defaultValue = "#3A6EA5"};
 
 inline constexpr settings::SettingSpec<bool> kExtraPiecesSetting{
     .key = "enhancements.extra_pieces",
@@ -22,5 +29,8 @@ inline constexpr settings::SettingSpec<bool> kExtraPiecesSetting{
     .tooltip =
         "Adds an LDraw tab of bricks, plates, tiles, slopes and wedges to the enhanced car "
         "builder. Their shapes change how a car handles."};
+
+/// `#RRGGBB`, else nothing.
+[[nodiscard]] std::optional<render::Color> ParseHexColour(std::string_view text);
 
 }

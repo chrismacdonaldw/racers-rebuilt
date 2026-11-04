@@ -140,6 +140,11 @@ render::RenderView CarStand::Render(const Transform& car, const StandShot& shot)
 void CarStand::DrawCar(const Transform& car, const render::Color& ambient) {
     farModels_.Reset(draws_);
     draws_.assign(model_.draws.begin(), model_.draws.end());
+    AddCarDraws(car, ambient, draws_);
+}
+
+void CarStand::AddCarDraws(const Transform& car, const render::Color& ambient,
+                           std::vector<render::MeshDraw>& draws) const {
     if (!shown_) {
         return;
     }
@@ -147,7 +152,7 @@ void CarStand::DrawCar(const Transform& car, const render::Color& ambient) {
     for (render::MeshDraw draw : cars_.at(*shown_).model.draws) {
         draw.transform = placed;
         draw.material.ambient = draw.material.ambient * ambient;
-        draws_.push_back(draw);
+        draws.push_back(draw);
     }
 }
 

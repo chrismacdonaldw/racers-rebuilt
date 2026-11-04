@@ -29,6 +29,19 @@ PixelRect FitUiArea(std::uint32_t widthPx, std::uint32_t heightPx, UiFit fit) {
             .heightPx = fitHeightPx};
 }
 
+Rect WindowInUi(std::uint32_t widthPx, std::uint32_t heightPx, UiFit fit) {
+    const PixelRect area = FitUiArea(widthPx, heightPx, fit);
+    if (area.widthPx == 0 || area.heightPx == 0) {
+        return {.width = kUiWidth, .height = kUiHeight};
+    }
+    const float unitsX = kUiWidth / static_cast<float>(area.widthPx);
+    const float unitsY = kUiHeight / static_cast<float>(area.heightPx);
+    return {.x = -static_cast<float>(area.xPx) * unitsX,
+            .y = -static_cast<float>(area.yPx) * unitsY,
+            .width = static_cast<float>(widthPx) * unitsX,
+            .height = static_cast<float>(heightPx) * unitsY};
+}
+
 PixelRect ViewportArea(const Viewport& viewport, std::uint32_t widthPx, std::uint32_t heightPx,
                        UiFit uiFit, SceneFit sceneFit) {
     const bool isWithinCanvas = viewport.isOnUiCanvas || sceneFit == SceneFit::Canvas;

@@ -94,6 +94,8 @@ rr_add_module(app
         menu/build_help.cpp
         menu/build_help_panel.cpp
         menu/build_pointer.cpp
+        menu/builder_screen.cpp
+        menu/builder_settings.cpp
         menu/car_build_look.cpp
         menu/car_build_menu.cpp
         menu/car_build_edit.cpp
@@ -173,6 +175,9 @@ rr_add_module(app
         menu/stand_racer.cpp
         menu/stand_scene.cpp
         menu/track_preview.cpp
+        menu/workshop/orbit_camera.cpp
+        menu/workshop/workshop_scenery.cpp
+        menu/workshop/workshop_screen.cpp
         music_folder_source.cpp
         pacing_presets.cpp
         orbiting_cube.cpp

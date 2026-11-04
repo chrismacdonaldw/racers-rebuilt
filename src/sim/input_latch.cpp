@@ -1,5 +1,7 @@
 #include "sim/input_latch.hpp"
 
+#include <cstdint>
+
 namespace rr::sim {
 
 void InputLatch::Press(std::size_t player, Action action) {
@@ -46,10 +48,12 @@ void InputLatch::AddPointerMotion(float dx, float dy) {
 void InputLatch::PressPointer(PointerButton button) {
     pending_.pointer.pressed = true;
     pending_.pointer.rightPressed = pending_.pointer.rightPressed || button == PointerButton::Right;
+    pending_.pointer.held |= static_cast<std::uint8_t>(1U << static_cast<unsigned>(button));
 }
 
-void InputLatch::ReleasePointer() {
+void InputLatch::ReleasePointer(PointerButton button) {
     pending_.pointer.released = true;
+    pending_.pointer.held &= static_cast<std::uint8_t>(~(1U << static_cast<unsigned>(button)));
 }
 
 void InputLatch::ScrollPointer(float steps) {
@@ -62,6 +66,7 @@ void InputLatch::ReleaseAll() {
         input.held.reset();
         input.steerLeftAxis = 0;
     }
+    pending_.pointer.held = 0;
 }
 
 InputFrame InputLatch::TakeFrame() {

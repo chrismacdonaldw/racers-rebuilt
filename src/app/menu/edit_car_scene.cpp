@@ -9,7 +9,6 @@
 #include <utility>
 
 #include "app/frame_loop.hpp"
-#include "app/menu/builder_settings.hpp"
 #include "app/menu/garage_racers.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_frame.hpp"
@@ -116,15 +115,14 @@ void EditCarScene::OpenBuilder() {
     if (!views_.stand) {
         return;
     }
-    Result<std::unique_ptr<CarBuildScreen>> build =
-        CarBuildScreen::Load(*renderer_, *vfs_,
-                             {.vfs = vfs_,
-                              .stand = views_.stand.get(),
-                              .catalog = &car_.pieces,
-                              .text = &text_,
-                              .sounds = sounds_,
-                              .mode = buildMode_},
-                             car_.built, car_.sets);
+    Result<std::unique_ptr<BuilderScreen>> build = OpenBuilderScreen(*renderer_, *vfs_,
+                                                                     {.vfs = vfs_,
+                                                                      .stand = views_.stand.get(),
+                                                                      .catalog = &car_.pieces,
+                                                                      .text = &text_,
+                                                                      .sounds = sounds_,
+                                                                      .mode = buildMode_},
+                                                                     car_.built, car_.sets);
     if (!build) {
         log::Warn("{}, the car editor stays open", build.error().message);
         return;
@@ -146,12 +144,11 @@ void EditCarScene::ApplySettings(const settings::Registry& settings) {
     if (views_.stand) {
         views_.stand->DrawFarScenery(settings.Get(kFarScenerySetting));
     }
-    buildMode_ = {.controls = settings.Get(kEnhancedBuilder) ? BuildControls::Palette
-                                                             : BuildControls::Original,
-                  .offersExtraPieces = settings.Get(kExtraPiecesSetting)};
+    buildMode_ = BuildModeOf(settings);
     menu_.Enable(CarRow::Done, !IsLocked());
-    if (build_) {
-        build_->UseControls(buildMode_);
+    if (build_ && !build_->UseControls(buildMode_)) {
+        car_.built = build_->Car();
+        OpenBuilder();
     }
 }
 

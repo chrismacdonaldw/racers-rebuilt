@@ -13,7 +13,7 @@ TEST_CASE("a pointer click between two ticks reaches the next frame only") {
     latch.AddPointerMotion(2.0F, -1.0F);
     latch.PressPointer(PointerButton::Right);
     latch.PressPointer(PointerButton::Left);
-    latch.ReleasePointer();
+    latch.ReleasePointer(PointerButton::Left);
     latch.ScrollPointer(1.0F);
     latch.ScrollPointer(-3.0F);
     const InputFrame first = latch.TakeFrame();
@@ -26,7 +26,24 @@ TEST_CASE("a pointer click between two ticks reaches the next frame only") {
     CHECK(first.pointer.dx == 5.0F);
     CHECK(first.pointer.dy == -2.0F);
     CHECK(first.pointer.wheel == -2.0F);
-    CHECK(second.pointer == MenuPointer{.x = 12.0F, .y = 34.0F, .isOver = true});
+    CHECK(first.pointer.IsHeld(PointerButton::Right));
+    CHECK(!first.pointer.IsHeld(PointerButton::Left));
+    CHECK(second.pointer == MenuPointer{.x = 12.0F, .y = 34.0F, .isOver = true, .held = 2});
+}
+
+TEST_CASE("a pointer button stays held until it is released or input is dropped") {
+    InputLatch latch;
+
+    latch.PressPointer(PointerButton::Middle);
+    latch.PressPointer(PointerButton::Right);
+    latch.ReleasePointer(PointerButton::Right);
+    const InputFrame held = latch.TakeFrame();
+    latch.ReleaseAll();
+    const InputFrame dropped = latch.TakeFrame();
+
+    CHECK(held.pointer.IsHeld(PointerButton::Middle));
+    CHECK(!held.pointer.IsHeld(PointerButton::Right));
+    CHECK(dropped.pointer.held == 0);
 }
 
 TEST_CASE("a tap between two ticks reaches the next frame") {

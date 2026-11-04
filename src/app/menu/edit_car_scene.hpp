@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#include "app/menu/car_build_screen.hpp"
+#include "app/menu/builder_screen.hpp"
 #include "app/menu/car_edit.hpp"
 #include "app/menu/car_stand.hpp"
 #include "app/menu/edit_car_look.hpp"
@@ -125,7 +125,7 @@ private:
     std::optional<MessageDialog> dialog_;
     std::optional<CarRequest> asked_;
     std::optional<std::string> opened_;
-    std::unique_ptr<CarBuildScreen> build_;
+    std::unique_ptr<BuilderScreen> build_;
     BuildMode buildMode_;
     std::vector<render::RenderView> views3d_;
     float turn_ = 0.0F;

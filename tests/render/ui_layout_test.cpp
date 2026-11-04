@@ -127,5 +127,29 @@ TEST_CASE("a 4:3 window view keeps the canvas's shape, even when stretched") {
     CHECK(ViewAspect(kLowerHalf, wide, SceneFit::Window) == doctest::Approx(1920.0F / 540.0F));
 }
 
+TEST_CASE("the whole window in UI units reaches past the canvas") {
+    const Rect wide = WindowInUi(1920, 1080, UiFit::Centered);
+    const Rect stretched = WindowInUi(1920, 1080, UiFit::Stretched);
+    const Rect tall = WindowInUi(1024, 1024, UiFit::Centered);
+
+    CHECK(wide.x == doctest::Approx(-320.0F / 3.0F));
+    CHECK(wide.width == doctest::Approx(2560.0F / 3.0F));
+    CHECK(wide.height == doctest::Approx(480.0F));
+    CHECK(stretched.width == doctest::Approx(640.0F));
+    CHECK(tall.y == doctest::Approx(-80.0F));
+    CHECK(tall.height == doctest::Approx(640.0F));
+}
+
+TEST_CASE("a view over the whole window fills it whatever the scene fit") {
+    const Viewport wide = UiViewport(WindowInUi(1920, 1080, UiFit::Centered));
+    const Viewport tall = UiViewport(WindowInUi(1024, 1024, UiFit::Centered));
+    const PixelRect wholeWide{.widthPx = 1920, .heightPx = 1080};
+    const PixelRect wholeTall{.widthPx = 1024, .heightPx = 1024};
+
+    CHECK(ViewportArea(wide, 1920, 1080, UiFit::Centered, SceneFit::Canvas) == wholeWide);
+    CHECK(ViewportArea(wide, 1920, 1080, UiFit::Centered, SceneFit::Window) == wholeWide);
+    CHECK(ViewportArea(tall, 1024, 1024, UiFit::Centered, SceneFit::Canvas) == wholeTall);
+}
+
 }
 }

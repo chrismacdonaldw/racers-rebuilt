@@ -21,6 +21,8 @@ sim::PointerButton ButtonOf(std::uint8_t button) {
             return sim::PointerButton::Left;
         case SDL_BUTTON_RIGHT:
             return sim::PointerButton::Right;
+        case SDL_BUTTON_MIDDLE:
+            return sim::PointerButton::Middle;
         default:
             return sim::PointerButton::Other;
     }
@@ -70,7 +72,7 @@ void MenuPointer::Handle(const SDL_Event& event, sim::InputLatch& latch) {
             break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
             Move(event.button.x, event.button.y, latch);
-            latch.ReleasePointer();
+            latch.ReleasePointer(ButtonOf(event.button.button));
             break;
         case SDL_EVENT_MOUSE_WHEEL:
             latch.ScrollPointer(event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.y
