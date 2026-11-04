@@ -5,8 +5,6 @@
 #include <ranges>
 #include <utility>
 
-#include "render/fx_system.hpp"
-
 namespace rr::render {
 namespace {
 
@@ -58,13 +56,11 @@ std::optional<EmitterHandle> ParticleBank::Start(std::string_view name,
         return std::nullopt;
     }
     Slot& slot = slots_[*chosen];
-    const auto emitter = static_cast<std::size_t>(found - setup_.emitters.begin());
-    slot = {.emitter = emitter,
+    slot = {.emitter = static_cast<std::size_t>(found - setup_.emitters.begin()),
             .generation = slot.generation + 1,
             .isSpawning = true,
             .placement = placement,
-            .emitTimerMs = SpawnIntervalMs(*found),
-            .effect = EffectOf(emitter)};
+            .emitTimerMs = SpawnIntervalMs(*found)};
     if (found->duration) {
         return std::nullopt;
     }
@@ -101,14 +97,6 @@ void ParticleBank::StopAll() {
     }
 }
 
-void ParticleBank::SetEffects(FxSystem* effects) {
-    effects_ = effects;
-    for (Slot& slot : slots_) {
-        slot.effect = slot.emitter ? EffectOf(*slot.emitter) : std::nullopt;
-        slot.emission = {};
-    }
-}
-
 void ParticleBank::Update(FloatMilliseconds elapsed) {
     for (Slot& slot : slots_) {
         UpdateSlot(slot, elapsed.count());
@@ -124,10 +112,6 @@ void ParticleBank::AppendQuads(const Transform& camera, std::vector<QuadDraw>& o
 bool ParticleBank::IsLive(EmitterHandle handle) const {
     return handle.slot < slots_.size() && slots_[handle.slot].emitter &&
            slots_[handle.slot].generation == handle.generation;
-}
-
-std::optional<FxEffectId> ParticleBank::EffectOf(std::size_t emitter) const {
-    return effects_ != nullptr ? effects_->EffectFor(setup_.emitters[emitter].name) : std::nullopt;
 }
 
 ParticleBank::Slot* ParticleBank::Find(EmitterHandle handle) {
@@ -181,9 +165,6 @@ void ParticleBank::UpdateSlot(Slot& slot, float elapsedMs) {
         }
         return;
     }
-    if (slot.effect) {
-        effects_->Emit(*slot.effect, slot.placement, elapsedMs, slot.emission);
-    }
     const float intervalMs = SpawnIntervalMs(emitter);
     if (intervalMs <= 0.0F) {
         Spawn(slot);
@@ -211,14 +192,6 @@ void ParticleBank::Spawn(Slot& slot) {
                 .velocity = Rotate(slot.placement.rotation, point) + slot.placement.velocity,
                 .isAlive = true};
     ++slot.spawnCount;
-    if (slot.effect) {
-        effects_->Follow(*slot.effect, {.position = particle.position,
-                                        .velocity = particle.velocity,
-                                        .acceleration = emitter.acceleration,
-                                        .lifeMs = static_cast<float>(emitter.particleLife.count()),
-                                        .startSize = emitter.startSizeUp,
-                                        .endSize = emitter.startSizeUp + emitter.sizeGrowthUp});
-    }
     if (!slot.anchor) {
         slot.anchor = particle.position;
     }
@@ -226,7 +199,7 @@ void ParticleBank::Spawn(Slot& slot) {
 
 void ParticleBank::AppendSlot(const Slot& slot, const Transform& camera,
                               std::vector<QuadDraw>& out) const {
-    if (!slot.emitter || !slot.anchor || slot.effect) {
+    if (!slot.emitter || !slot.anchor) {
         return;
     }
     const std::size_t index = *slot.emitter;

@@ -55,7 +55,6 @@ rr_add_module(app
         hazard/crane_shadow.cpp
         hazard/ghost_trail.cpp
         hazard/water_scroll.cpp
-        hazard/hazard_fx_effects.cpp
         hazard/hazard_materials.cpp
         hazard/hazard_particles.cpp
         hazard/hazard_sounds.cpp
@@ -191,8 +190,6 @@ rr_add_module(app
         particle_assets.cpp
         positional_sound.cpp
         powerup/beam_span.cpp
-        powerup/blast_fx.cpp
-        powerup/powerup_fx_effects.cpp
         powerup/cursed_cars.cpp
         powerup/effect_trail.cpp
         powerup/powerup_models.cpp
@@ -208,7 +205,6 @@ rr_add_module(app
         race_audio.cpp
         race_bindings.cpp
         race_camera.cpp
-        race_fx.cpp
         voice_reactions.cpp
         race_loading_screen.cpp
         race_music.cpp
@@ -247,8 +243,6 @@ rr_add_module(app
         racer/racer_visuals.cpp
         racer/skid_marks.cpp
         racer/skid_trail.cpp
-        racer/surface_fx_effects.cpp
-        racer/wheel_spray.cpp
         replay_session.cpp
         scene_music.cpp
         scene_stack.cpp

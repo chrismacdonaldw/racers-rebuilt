@@ -15,7 +15,6 @@ void DeclareVideoSettings(settings::Registry& registry) {
     registry.Declare(kAnisotropicFilteringSetting);
     registry.Declare(kFarCarsSetting);
     registry.Declare(kFarScenerySetting);
-    registry.Declare(kBetterParticlesSetting);
     registry.Declare(kCockpitCarSetting);
 }
 

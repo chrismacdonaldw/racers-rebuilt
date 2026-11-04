@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
-#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -14,7 +13,6 @@
 
 #include "../sim/physics/plane_world.hpp"
 #include "../sim/race/checkpoint_ring.hpp"
-#include "app/race_fx.hpp"
 #include "app/track_space.hpp"
 #include "sim/physics/racer_controls.hpp"
 
@@ -26,8 +24,6 @@ constexpr Milliseconds kTick{12};
 constexpr render::FloatMilliseconds kFrame{12.0F};
 constexpr float kGrassEndX = 0.0F;
 constexpr Transform kCamera{.position = {.x = -20.0F, .y = 5.0F}};
-constexpr render::TextureId kFxSmoke{50};
-constexpr render::TextureId kFxSpark{51};
 
 render::ParticleBankSetup Bank(const std::vector<std::string>& names, std::size_t slots) {
     render::ParticleBankSetup setup{.slotCount = slots};
@@ -61,15 +57,8 @@ public:
           world_({test::TestPlane{.surface = {.tableEntry = 0}, .maxX = kGrassEndX},
                   test::TestPlane{.minX = kGrassEndX}}),
           session_(Start()),
-          particles_(
-              Bank({"grassemt", "tiresmk"}, kCommonParticleSlots),
-              Bank({"snowkick"}, kTrackParticleSlots),
-              [this] {
-                  ++fxMade_;
-                  return std::make_unique<render::FxSystem>(
-                      RaceFxEffects(), render::FxAssets{.smoke = kFxSmoke, .spark = kFxSpark});
-              },
-              surfaces_, 0) {
+          particles_(Bank({"grassemt", "tiresmk"}, kCommonParticleSlots),
+                     Bank({"snowkick"}, kTrackParticleSlots), surfaces_, 0) {
         while (session_.Clock().Phase() != sim::RacePhase::Racing) {
             Tick();
         }
@@ -92,7 +81,6 @@ public:
     [[nodiscard]] std::size_t QuadCount() const { return Quads().size(); }
 
     [[nodiscard]] RaceParticles& Particles() { return particles_; }
-    [[nodiscard]] int FxMade() const { return fxMade_; }
     [[nodiscard]] sim::Racer& Player() { return session_.Racers()[0]; }
 
     [[nodiscard]] float RacerX(std::size_t racer) const {
@@ -112,7 +100,6 @@ private:
     }
 
     std::size_t players_;
-    int fxMade_ = 0;
     std::vector<assets::SurfaceEntry> surfaces_;
     sim::CheckpointGraph graph_ = test::Ring();
     test::PlaneWorld world_;
@@ -196,19 +183,6 @@ TEST_CASE("computer racers kick up nothing") {
     CHECK(race.QuadCount() == 0);
 }
 
-TEST_CASE("with better particles computer racers spray from their rear wheels on grass") {
-    GrassRace race("grassemt");
-    race.Particles().SetBetter(true);
-    race.Hold(1);
-
-    for (int tick = 0; tick < 30; ++tick) {
-        race.Tick();
-    }
-
-    CHECK(std::ranges::any_of(
-        race.Quads(), [](const render::QuadDraw& quad) { return quad.texture == kFxSpark; }));
-}
-
 TEST_CASE("a wheel particle missing from the common file comes from the track's") {
     GrassRace race("snowkick");
     race.Hold(0);
@@ -252,50 +226,6 @@ TEST_CASE("a skidding player's tyres smoke from either marked wheel until the sk
         race.Tick();
     }
     CHECK(race.QuadCount() == 0);
-}
-
-TEST_CASE("better particles are made only once they first turn on") {
-    GrassRace race("grassemt");
-    race.Particles().SetBetter(false);
-
-    CHECK(race.FxMade() == 0);
-
-    race.Particles().SetBetter(true);
-    race.Particles().SetBetter(false);
-    race.Particles().SetBetter(true);
-
-    CHECK(race.FxMade() == 1);
-}
-
-bool IsOriginal(const render::QuadDraw& quad) {
-    return quad.texture == render::kWhiteTexture;
-}
-
-bool IsFxSmoke(const render::QuadDraw& quad) {
-    return quad.texture == kFxSmoke && quad.uv.width == 0.5F;
-}
-
-bool IsNewSmokeOnly(const std::vector<render::QuadDraw>& quads) {
-    return std::ranges::none_of(quads, IsOriginal) && std::ranges::any_of(quads, IsFxSmoke);
-}
-
-TEST_CASE("with better particles a skid draws the new smoke in place of the original's") {
-    GrassRace race("grassemt");
-    race.Particles().SetBetter(true);
-    race.Skid(SkidWheels{false, false, true, true});
-
-    for (int tick = 0; tick < 30; ++tick) {
-        race.Tick();
-    }
-
-    const std::vector<render::QuadDraw> quads = race.Quads();
-    REQUIRE(quads.size() > 10);
-    CHECK(IsNewSmokeOnly(quads));
-
-    race.Particles().SetBetter(false);
-    const std::vector<render::QuadDraw> original = race.Quads();
-    REQUIRE_FALSE(original.empty());
-    CHECK(original.front().uv.width > 0.9F);
 }
 }
 }
