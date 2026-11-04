@@ -1,10 +1,14 @@
 #include "app/menu/workshop/workshop_screen.hpp"
 
+#include <algorithm>
 #include <format>
+#include <span>
+#include <string>
 #include <string_view>
 #include <utility>
 
 #include "app/frame_loop.hpp"
+#include "app/menu/builder_settings.hpp"
 #include "app/menu/grid_pick.hpp"
 #include "app/menu/stand_scene.hpp"
 #include "app/menu/workshop/workshop_scenery.hpp"
@@ -64,22 +68,25 @@ Result<std::unique_ptr<WorkshopScreen>> WorkshopScreen::Load(render::Renderer& r
         [&](const PieceModels&) { return renderer.UploadTexture(GroundCellImage()); });
     Result<std::vector<UiImage>> icons = groundCell.and_then(
         [&](render::TextureId) { return LoadSetIcons(renderer, *services.vfs); });
+    const std::string_view language =
+        services.text != nullptr ? services.text->Language() : std::string_view{};
     if (!icons) {
         return Fail(icons.error().code, std::format("workshop: {}", icons.error().message));
     }
     if (sets.empty()) {
         return Fail(ErrorCode::InvalidData, "workshop: there are no part sets to build from");
     }
-    return std::unique_ptr<WorkshopScreen>(
-        new WorkshopScreen(renderer, services, std::move(*models), *groundCell, std::move(car),
-                           WorkshopPanels(*services.catalog, std::move(sets), std::move(*icons))));
+    WorkshopPanels panels(*services.catalog, std::move(sets), std::move(*icons),
+                          ListBackdropTracks(*services.vfs, language));
+    return std::unique_ptr<WorkshopScreen>(new WorkshopScreen(
+        renderer, services, std::move(*models), *groundCell, std::move(car), std::move(panels)));
 }
 
-WorkshopScreen::WorkshopScreen(render::Renderer& renderer, const BuildServices& services,
+WorkshopScreen::WorkshopScreen(render::Renderer& renderer, BuildServices services,
                                PieceModels models, render::TextureId groundCell, sim::BuiltCar car,
                                WorkshopPanels panels)
     : renderer_(&renderer),
-      services_(services),
+      services_(std::move(services)),
       models_(std::move(models)),
       groundCell_(groundCell),
       bench_{.car = std::move(car)},
@@ -150,12 +157,54 @@ bool WorkshopScreen::UseControls(BuildMode mode) {
     return true;
 }
 
-void WorkshopScreen::UseMode(BuildMode mode) {
+void WorkshopScreen::UseMode(const BuildMode& mode) {
     services_.mode = mode;
     if (mode.offersExtraPieces) {
         services_.catalog->ReadExtraModels(*services_.vfs);
     }
     panels_.OfferExtras(mode.offersExtraPieces);
+    ShowBackground(services_.mode.background);
+}
+
+std::vector<SettingChange> WorkshopScreen::TakeSettingChanges() {
+    return std::exchange(changes_, {});
+}
+
+void WorkshopScreen::ChooseBackground(const BackgroundChoice& choice) {
+    BuildMode mode = services_.mode;
+    if (choice.colour) {
+        mode.backdrop = *choice.colour;
+        changes_.push_back(
+            {.key = std::string(kBuilderColour.key), .value = FormatHexColour(*choice.colour)});
+    }
+    mode.background = choice.background;
+    changes_.push_back({.key = std::string(kBuilderBackground.key), .value = choice.background});
+    UseMode(mode);
+}
+
+void WorkshopScreen::ShowBackground(std::string_view background) {
+    backdrop_ = nullptr;
+    if (background == kColourBackground) {
+        return;
+    }
+    if (!panels_.Backgrounds().Offers(background)) {
+        log::Warn("the workshop shows its colour, as {} isn't a race track", background);
+        return;
+    }
+    auto found = backdrops_.find(background);
+    if (found == backdrops_.end()) {
+        const Vector3 spot = CarCorner() + Vector3{.x = kGridMiddle.x, .y = kGridMiddle.y};
+        Result<std::unique_ptr<TrackBackdrop>> loaded =
+            TrackBackdrop::Load(*renderer_, *services_.vfs, services_.stand->Loader(), background,
+                                {.x = spot.x, .y = spot.y});
+        if (!loaded) {
+            log::Warn("the workshop shows its colour, not {}: {}", background,
+                      loaded.error().message);
+            return;
+        }
+        found = backdrops_.emplace(std::string(background), std::move(*loaded)).first;
+    }
+    backdrop_ = found->second.get();
 }
 
 BuildOutcome WorkshopScreen::Tick(const sim::InputFrame& input) {
@@ -211,7 +260,7 @@ render::Camera WorkshopScreen::ViewCamera() const {
     camera.target = camera_.Focus();
     camera.fovDegrees = kFovDegrees;
     camera.nearClip = kNearPlane;
-    camera.farClip = kFarPlane;
+    camera.farClip = backdrop_ != nullptr ? std::max(kFarPlane, backdrop_->FarPlane()) : kFarPlane;
     return MenuSceneCamera(camera);
 }
 
@@ -232,6 +281,10 @@ void WorkshopScreen::AddLooseBricks() {
 void WorkshopScreen::Render(std::vector<render::RenderView>& views,
                             std::vector<render::SpriteDraw>& sprites) {
     const render::Camera camera = ViewCamera();
+    const render::Viewport viewport = render::UiViewport(panels_.Layout().scene);
+    if (backdrop_ != nullptr) {
+        views.push_back(backdrop_->View(camera, viewport));
+    }
     draws_.clear();
     services_.stand->AddCarDraws({.position = kCarAt}, {}, draws_);
     AddLooseBricks();
@@ -244,13 +297,15 @@ void WorkshopScreen::Render(std::vector<render::RenderView>& views,
     views.push_back({.camera = camera,
                      .lighting = {.lights = lights_},
                      .meshes = draws_,
-                     .quads = quads_,
-                     .viewport = render::UiViewport(panels_.Layout().scene)});
+                     .quads = backdrop_ != nullptr ? std::span(quads_).subspan(1) : quads_,
+                     .viewport = viewport});
     panels_.Render(models_,
                    {.font = services_.text != nullptr ? services_.text->Font(kPanelFont) : nullptr,
                     .pieces = bench_.car.Pieces().size(),
                     .plates = bench_.car.Grid().Tallest(),
-                    .showsHint = showsHint_},
+                    .showsHint = showsHint_,
+                    .background = services_.mode.background,
+                    .backdrop = services_.mode.backdrop},
                    views, sprites);
 }
 

@@ -1,5 +1,6 @@
 #include "app/menu/builder_screen.hpp"
 
+#include <string>
 #include <utility>
 
 #include "app/menu/builder_settings.hpp"
@@ -14,7 +15,8 @@ BuildMode BuildModeOf(const settings::Registry& settings) {
     return {.controls =
                 settings.Get(kEnhancedBuilder) ? BuildControls::Workshop : BuildControls::Original,
             .offersExtraPieces = settings.Get(kExtraPiecesSetting),
-            .backdrop = ParseHexColour(settings.Get(kBuilderColour)).value_or(fallback)};
+            .backdrop = ParseHexColour(settings.Get(kBuilderColour)).value_or(fallback),
+            .background = std::string(settings.Get(kBuilderBackground))};
 }
 
 Result<std::unique_ptr<BuilderScreen>> OpenBuilderScreen(render::Renderer& renderer,

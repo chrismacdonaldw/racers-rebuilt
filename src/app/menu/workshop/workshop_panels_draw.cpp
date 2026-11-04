@@ -10,7 +10,6 @@
 #include "app/menu/tile_drawing.hpp"
 #include "app/menu/workshop/workshop_panels.hpp"
 #include "app/track_space.hpp"
-#include "app/ui_text/text_layout.hpp"
 #include "render/ui_layout.hpp"
 #include "sim/car_build/built_car.hpp"
 
@@ -25,9 +24,8 @@ constexpr render::Color kHoverColour{.r = 1.0F, .g = 1.0F, .b = 1.0F, .a = 0.6F}
 constexpr render::Color kChosenColour{.r = 1.0F, .g = 0.87F, .b = 0.0F};
 constexpr render::Color kHintColour{.r = 1.0F, .g = 1.0F, .b = 1.0F, .a = 0.75F};
 constexpr float kPanelPadding = 4.0F;
-constexpr float kTextPadding = 6.0F;
-constexpr std::array<std::u16string_view, kWorkshopTools> kToolLabels{u"UNDO", u"REDO", u"TURN",
-                                                                      u"DELETE", u"FRAME"};
+constexpr std::array<std::u16string_view, kWorkshopTools> kToolLabels{
+    u"UNDO", u"REDO", u"TURN", u"DELETE", u"FRAME", u"SCENE"};
 constexpr std::u16string_view kDoneLabel = u"DONE";
 constexpr std::u16string_view kExtraLabel = u"LDRAW";
 constexpr std::u16string_view kHint =
@@ -42,24 +40,6 @@ render::Rect Grown(const render::Rect& area, float by) {
 
 std::u16string Widened(std::string_view text) {
     return {text.begin(), text.end()};
-}
-
-void DrawCentred(const UiFont* font, std::u16string_view text, const render::Rect& area,
-                 const render::Color& tint, std::vector<render::SpriteDraw>& out) {
-    const float width = font != nullptr ? TextWidth(*font, text) : 0.0F;
-    if (width <= 0.0F) {
-        return;
-    }
-    const auto fullHeight = static_cast<float>(font->heightPx);
-    const float scale = std::min({1.0F, (area.width - (2.0F * kTextPadding)) / width,
-                                  area.height / std::max(fullHeight, 1.0F)});
-    const float height = fullHeight * scale;
-    LayoutText(*font, text,
-               {.x = area.x + ((area.width - (width * scale)) / 2.0F),
-                .y = area.y + ((area.height - height) / 2.0F),
-                .scale = scale,
-                .tint = tint},
-               out);
 }
 
 render::Rect Fitted(const UiImage& image, const render::Rect& area) {
@@ -85,6 +65,7 @@ void WorkshopPanels::Render(PieceModels& models, const PanelLook& look,
     if (hovered_) {
         DrawOutline(*hovered_, kHoverColour, sprites);
     }
+    backgrounds_.Render(look.font, look.background, look.backdrop, sprites);
 }
 
 void WorkshopPanels::DrawDrawer(PieceModels& models, std::vector<render::RenderView>& views) {
@@ -133,7 +114,7 @@ void WorkshopPanels::DrawTabs(const PanelLook& look,
             const UiImage& icon = setIcons_[sets_[tab]];
             sprites.push_back({.texture = icon.texture, .bounds = Fitted(icon, area)});
         } else {
-            DrawCentred(look.font, kExtraLabel, area, {}, sprites);
+            DrawFittedText(look.font, kExtraLabel, area, {}, sprites);
         }
         if (tab == tab_) {
             DrawOutline(area, kChosenColour, sprites);
@@ -144,10 +125,10 @@ void WorkshopPanels::DrawTabs(const PanelLook& look,
 void WorkshopPanels::DrawButtons(const UiFont* font,
                                  std::vector<render::SpriteDraw>& sprites) const {
     sprites.push_back({.bounds = layout_.done, .tint = kPanelColour});
-    DrawCentred(font, kDoneLabel, layout_.done, {}, sprites);
+    DrawFittedText(font, kDoneLabel, layout_.done, {}, sprites);
     for (std::size_t tool = 0; tool < kWorkshopTools; ++tool) {
         sprites.push_back({.bounds = layout_.tools.at(tool), .tint = kPanelColour});
-        DrawCentred(font, kToolLabels.at(tool), layout_.tools.at(tool), {}, sprites);
+        DrawFittedText(font, kToolLabels.at(tool), layout_.tools.at(tool), {}, sprites);
     }
 }
 
@@ -173,9 +154,9 @@ void WorkshopPanels::DrawLabels(const PanelLook& look, std::vector<render::Sprit
         counts_ = Widened(std::format("{} OF {} PIECES   {} OF {} HIGH", look.pieces,
                                       sim::kMaxCarPieces, look.plates, sim::kMaxCarHeight));
     }
-    DrawCentred(look.font, counts_, layout_.counts, {}, sprites);
+    DrawFittedText(look.font, counts_, layout_.counts, {}, sprites);
     if (look.showsHint) {
-        DrawCentred(look.font, kHint, layout_.hint, kHintColour, sprites);
+        DrawFittedText(look.font, kHint, layout_.hint, kHintColour, sprites);
     }
 }
 

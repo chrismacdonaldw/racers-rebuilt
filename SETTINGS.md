@@ -101,7 +101,8 @@ With the free camera on:
 |---|---|---|
 | `enhancements.enhanced_builder` | `false` | `true`, `false`. Opens the workshop in place of the original builder: a full-window builder with a free camera, drag and drop, and room to lay bricks on the ground beside the car. The **Enhanced** preset turns it on. Applies straight away, reopening the builder on the same car. |
 | `enhancements.extra_pieces` | `false` | `true`, `false`. Adds an **LDraw** tab to the workshop's drawer, with 67 bricks, plates, tiles, slopes and wedges the original never had. They're saved with the car like any piece, and their shapes change how it handles. With it off, a racer whose car has extra pieces can't be picked to race, test driven or have its car saved until they're taken off. The **Enhanced** preset turns it on. Applies straight away. |
-| `enhancements.builder_colour` | `#3A6EA5` | A colour as `#RRGGBB`. The workshop's background. |
+| `enhancements.builder_colour` | `#3A6EA5` | A colour as `#RRGGBB`. The workshop's background when it isn't a track. |
+| `enhancements.builder_background` | `colour` | `colour`, or a race track's folder, such as `RACEC0R0`. Builds on that track's start line, under its sky. The workshop's **SCENE** button sets this and `builder_colour`. |
 
 In the workshop:
 
@@ -121,6 +122,7 @@ In the workshop:
 | Middle-drag, <kbd>Shift</kbd>+right-drag | Pan the camera |
 | Mouse wheel | Zoom |
 | **FRAME**, <kbd>F</kbd> | Frame the car |
+| **SCENE** | Pick a colour or a race track to build on |
 | <kbd>Home</kbd> | Reset the camera |
 | **DONE**, <kbd>Enter</kbd>, <kbd>Esc</kbd> | Leave the builder |
 

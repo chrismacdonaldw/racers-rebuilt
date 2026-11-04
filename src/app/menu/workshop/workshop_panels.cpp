@@ -14,8 +14,9 @@
 namespace rr::app {
 namespace {
 
-constexpr std::array kActions{PanelAction::Done, PanelAction::Undo,   PanelAction::Redo,
-                              PanelAction::Turn, PanelAction::Delete, PanelAction::Frame};
+constexpr std::array kActions{PanelAction::Done,      PanelAction::Undo,   PanelAction::Redo,
+                              PanelAction::Turn,      PanelAction::Delete, PanelAction::Frame,
+                              PanelAction::Background};
 
 Result<UiImage> SetIcon(const MenuFiles& files, MenuImageCache& images, std::string_view style) {
     const assets::ImageStyle* image = files.FindImageStyle(style);
@@ -51,15 +52,17 @@ Result<std::vector<UiImage>> LoadSetIcons(render::Renderer& renderer, const asse
 }
 
 WorkshopPanels::WorkshopPanels(const assets::PieceCatalog& catalog, std::vector<std::size_t> sets,
-                               std::vector<UiImage> setIcons)
+                               std::vector<UiImage> setIcons, std::vector<BackdropTrack> tracks)
     : catalog_(&catalog),
       sets_(std::move(sets)),
       setIcons_(std::move(setIcons)),
       layout_(LayOutWorkshop({}, sets_.size())),
       drawer_(layout_.tiles),
       swatches_(catalog.colours.size(), layout_.colours),
+      backgrounds_(std::move(tracks)),
       light_{MenuSceneLight()} {
     ShowTab(0);
+    backgrounds_.Place(AreaOf(PanelAction::Background), layout_.scene);
 }
 
 void WorkshopPanels::Fit(const render::Rect& window) {
@@ -80,6 +83,7 @@ void WorkshopPanels::LayOut() {
     ShowTab(tab_);
     drawer_.Scroll(static_cast<int>(firstRow));
     tiles_.resize(layout_.tiles.columns * layout_.tiles.rows);
+    backgrounds_.Place(AreaOf(PanelAction::Background), layout_.scene);
     hovered_.reset();
 }
 
@@ -101,6 +105,11 @@ void WorkshopPanels::OfferExtras(bool offers) {
 PanelTick WorkshopPanels::Tick(const sim::MenuPointer& pointer) {
     const float x = pointer.x;
     const float y = pointer.y;
+    if (backgrounds_.IsOpen()) {
+        if (PanelTick tick = TickBackgrounds(pointer); tick.isOver) {
+            return tick;
+        }
+    }
     PanelTick tick{.isOver = Covers(x, y)};
     hovered_.reset();
     if (const std::optional<std::size_t> entry = drawer_.EntryAt(x, y)) {
@@ -115,7 +124,9 @@ PanelTick WorkshopPanels::Tick(const sim::MenuPointer& pointer) {
         }
     } else if (const std::optional<PanelAction> action = ActionAt(x, y)) {
         hovered_ = AreaOf(*action);
-        if (pointer.LeftPressed()) {
+        if (pointer.LeftPressed() && *action == PanelAction::Background) {
+            backgrounds_.Toggle();
+        } else if (pointer.LeftPressed()) {
             tick.action = action;
         }
     } else if (pointer.LeftPressed()) {
@@ -127,9 +138,22 @@ PanelTick WorkshopPanels::Tick(const sim::MenuPointer& pointer) {
     return tick;
 }
 
+PanelTick WorkshopPanels::TickBackgrounds(const sim::MenuPointer& pointer) {
+    if (backgrounds_.Covers(pointer.x, pointer.y)) {
+        hovered_.reset();
+        return {.background = backgrounds_.Tick(pointer), .isOver = true};
+    }
+    const bool isOnTool = ActionAt(pointer.x, pointer.y) == PanelAction::Background;
+    if (!pointer.LeftPressed() || isOnTool) {
+        return {};
+    }
+    backgrounds_.Close();
+    return {.isOver = true};
+}
+
 bool WorkshopPanels::Covers(float x, float y) const {
     return Contains(layout_.drawer, x, y) || Contains(layout_.colours, x, y) ||
-           ActionAt(x, y).has_value();
+           ActionAt(x, y).has_value() || backgrounds_.Covers(x, y);
 }
 
 void WorkshopPanels::ChooseColour(std::optional<std::uint8_t> colour) {

@@ -46,6 +46,9 @@ public:
     void ApplySettings(const settings::Registry& settings) override;
     void HandleEvent(const SDL_Event& event) override;
     [[nodiscard]] std::optional<std::string> TakeNextScene() override;
+    [[nodiscard]] std::vector<SettingChange> TakeSettingChanges() override {
+        return build_ ? build_->TakeSettingChanges() : std::vector<SettingChange>{};
+    }
     [[nodiscard]] bool ShowsPointer() const override { return true; }
     [[nodiscard]] bool HoldsPointer() const override { return build_ && build_->HoldsPointer(); }
     void Tick(const sim::InputFrame& input) override;
