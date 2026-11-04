@@ -98,8 +98,7 @@ rr_add_module(app
         menu/builder_settings.cpp
         menu/car_build_look.cpp
         menu/car_build_menu.cpp
-        menu/car_build_edit.cpp
-        menu/car_build_palette.cpp
+        menu/car_build_render.cpp
         menu/car_build_screen.cpp
         menu/car_builder.cpp
         menu/car_edit.cpp
@@ -152,11 +151,7 @@ rr_add_module(app
         menu/options_menu.cpp
         menu/options_scene.cpp
         menu/part_carousel.cpp
-        menu/palette_controls.cpp
-        menu/palette_drag.cpp
         menu/pause_menu.cpp
-        menu/piece_edits.cpp
-        menu/piece_grab.cpp
         menu/piece_models.cpp
         menu/piece_palette.cpp
         menu/pointer_buttons.cpp

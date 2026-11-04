@@ -4,10 +4,8 @@
 
 #include <array>
 #include <cstddef>
-#include <cstdint>
 #include <memory>
 #include <optional>
-#include <string>
 #include <vector>
 
 #include "app/menu/build_camera.hpp"
@@ -20,18 +18,13 @@
 #include "app/menu/car_builder.hpp"
 #include "app/menu/car_stand.hpp"
 #include "app/menu/carousel_view.hpp"
-#include "app/menu/grid_pick.hpp"
 #include "app/menu/held_piece_motion.hpp"
 #include "app/menu/icon_strip.hpp"
 #include "app/menu/menu_parts.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
-#include "app/menu/palette_controls.hpp"
 #include "app/menu/part_carousel.hpp"
-#include "app/menu/piece_edits.hpp"
-#include "app/menu/piece_grab.hpp"
 #include "app/menu/piece_models.hpp"
-#include "app/menu/pointer_buttons.hpp"
 #include "assets/piece_catalog.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -92,28 +85,7 @@ private:
     void AddPiece(float height, std::optional<float> alpha);
     [[nodiscard]] render::Camera ViewCamera() const;
     void DrawControls(std::vector<render::SpriteDraw>& sprites) const;
-    void RenderScene(bool showsHeld, std::vector<render::RenderView>& views);
-
-    void ShowPaletteSet();
-    void OfferExtraPieces(bool offers);
-    void DrawExtraSetLabel(std::vector<render::SpriteDraw>& sprites) const;
-    [[nodiscard]] std::vector<PointerTarget> PaletteTargets() const;
-    [[nodiscard]] BuildOutcome TickPalette(const sim::InputFrame& input);
-    [[nodiscard]] GrabTick GrabFor(const sim::MenuPointer& pointer, const PaletteTick& tick,
-                                   bool cancels);
-    [[nodiscard]] BuildOutcome Paint(std::uint8_t colour);
-    [[nodiscard]] BuildOutcome DragPiece(const sim::MenuPointer& pointer, const DragTick& drag);
-    [[nodiscard]] BuildOutcome TickEdits(const GrabTick& grab);
-    void TickEditTimers();
-    [[nodiscard]] BuildOutcome Settle(const EditOutcome& outcome);
-    [[nodiscard]] std::optional<std::size_t> PieceUnder(const sim::MenuPointer& pointer) const;
-    void AddShell(const sim::CarPiece& piece, const render::Color& colour);
-    void AddEditShells();
-    [[nodiscard]] BuildOutcome HoldByKeys(const sim::InputFrame& input, bool skipsMenu);
-    [[nodiscard]] BuildOutcome PointPalette(const sim::InputFrame& input);
-    [[nodiscard]] GridView GridOnScreen() const;
-    void RenderPalette(std::vector<render::RenderView>& views,
-                       std::vector<render::SpriteDraw>& sprites);
+    void RenderScene(std::vector<render::RenderView>& views);
 
     BuildServices services_;
     CarBuildLook look_;
@@ -137,16 +109,6 @@ private:
     std::vector<MenuPicture> under_;
     std::array<render::Rect, 2> holes_{};
     std::vector<render::MeshDraw> extras_;
-    std::unique_ptr<PaletteControls> palette_;
-    PaletteHold hold_ = PaletteHold::None;
-    bool isAimed_ = false;
-    PointerButtons paletteButtons_;
-    std::vector<PieceEditKey> edits_;
-    PieceGrab grab_;
-    std::optional<std::size_t> selected_;
-    std::vector<std::size_t> blockers_;
-    Milliseconds flash_{0};
-    Milliseconds pulse_{0};
 };
 
 }

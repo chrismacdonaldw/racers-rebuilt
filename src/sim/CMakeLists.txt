@@ -18,7 +18,6 @@ rr_add_module(sim
         animation/part_clock.cpp
         animation/skeleton_pose.cpp
         car_build/bench.cpp
-        car_build/build_history.cpp
         car_build/built_car.cpp
         car_build/car_grid.cpp
         car_build/car_mesh.cpp
