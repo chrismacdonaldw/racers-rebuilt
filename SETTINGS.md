@@ -63,7 +63,7 @@ music_volume = 0.6
 | `video.hud_width` | `Window` | `Window`, `21:9`, `16:9`. With `video.widescreen` on, the race HUD moves out to the window's sides, or stops at the sides of a centred area this wide. **Enhanced** sets `21:9`. |
 | `video.widescreen_cutscenes` | `false` | `true`, `false`. With `video.widescreen` on, full-screen cutscenes fill the window instead of the 4:3 frame. |
 | `video.smooth_textures` | `false` | `true`, `false`. Gives the game's textures their mipmaps and fills their see-through edges with nearby colours, so distant and filtered edges don't shimmer or show a dark fringe. `false` draws them as the original does, down to the materials the game asks to be drawn with blocky unfiltered pixels. PNG replacements always keep their mipmaps. |
-| `enhancements.ldraw_pieces` | `false` | `true`, `false`. Draws car bricks and minifig accessories that match LDraw parts with those parts' detailed models, studs included. Applies to the next car loaded or built. |
+| `enhancements.ldraw_pieces` | `false` | `true`, `false`. Draws car pieces that match LDraw parts with those parts' detailed models, studs included. Applies to the next car loaded or built. |
 | `video.anisotropic_filtering` | `false` | `true`, `false`. Filters textures 16x where they're seen at a slant, so roads and walls stay sharp into the distance. Materials drawn with blocky unfiltered pixels keep them. Applies at once. |
 | `video.cockpit_car` | `false` | `true`, `false`. Draws your own car, driver and wheels in the cockpit camera view. `false` leaves them out while racing, as the original does. |
 
