@@ -4,7 +4,7 @@
 
 namespace rr::app {
 
-/// FirstGlyph draws the original's fallback: its lowest-coded glyph, or else its space cell.
+/// FirstGlyph draws the original's fallback; Shapes folds lower case and draws - and / as shapes.
 enum class MissingGlyphs : std::uint8_t { FirstGlyph, Shapes };
 
 struct TextFixes {
