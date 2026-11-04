@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
-Builds the release preset from a clean tree and zips the exe with LICENSE and README.md into
-build/package/racers-rebuilt-windows-x64.zip.
+Builds the release preset from a clean tree and zips the exe with LICENSE, README.md and the
+content/ldraw folder into build/package/racers-rebuilt-windows-x64.zip.
 
 .NOTES
 Needs VCPKG_ROOT, cmake and ninja, like scripts/check.ps1. Prints the version, size and SHA-256 of
@@ -16,6 +16,7 @@ Set-Location $repoRoot
 $exeName = 'racers-rebuilt.exe'
 $binFolder = 'build/release/bin'
 $packageFolder = 'build/package'
+$ldrawFolder = 'content/ldraw'
 $zipPath = Join-Path $packageFolder 'racers-rebuilt-windows-x64.zip'
 
 function Invoke-Native([string]$Description, [scriptblock]$Command) {
@@ -61,7 +62,7 @@ if ($built.Count -ne 1 -or $built[0] -ne $exeName) {
 }
 
 New-Item -ItemType Directory -Force $packageFolder | Out-Null
-$contents = @((Join-Path $binFolder $exeName), 'LICENSE', 'README.md')
+$contents = @((Join-Path $binFolder $exeName), 'LICENSE', 'README.md', $ldrawFolder)
 Compress-Archive -Path $contents -DestinationPath $zipPath -CompressionLevel Optimal
 
 $zip = Get-Item $zipPath

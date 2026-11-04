@@ -214,6 +214,9 @@ add_executable(racers-rebuilt-tests
     assets/install_test.cpp
     assets/jam_archive_test.cpp
     assets/jam_test.cpp
+    assets/ldraw_part_test.cpp
+    assets/ldraw_pieces_test.cpp
+    assets/ldraw_test.cpp
     assets/loader_pool_test.cpp
     assets/loading_screen_test.cpp
     assets/lzss_test.cpp
@@ -441,4 +444,5 @@ target_link_libraries(racers-rebuilt-tests PRIVATE
 add_test(NAME racers-rebuilt-tests COMMAND racers-rebuilt-tests)
 
 target_include_directories(racers-rebuilt-tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-target_compile_definitions(racers-rebuilt-tests PRIVATE RR_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+target_compile_definitions(racers-rebuilt-tests PRIVATE RR_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
+    RR_LDRAW_DIR="${PROJECT_SOURCE_DIR}/content/ldraw")
