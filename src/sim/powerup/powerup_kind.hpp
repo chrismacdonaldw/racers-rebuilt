@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -28,6 +29,18 @@ enum class PowerupKind : std::uint8_t {
 };
 
 inline constexpr std::size_t kPowerupKindCount = static_cast<std::size_t>(PowerupKind::Count);
+inline constexpr std::size_t kPowerupColourCount = 4;
+
+/// Indexed by `assets::BrickColour`, then level.
+using PowerupSlots = std::array<std::array<PowerupKind, kMaxPowerupLevel + 1>, kPowerupColourCount>;
+
+inline constexpr PowerupSlots kOriginalSlots{{
+    {PowerupKind::Cannonball, PowerupKind::GrapplingHook, PowerupKind::Lightning,
+     PowerupKind::Missile},
+    {PowerupKind::Shield, PowerupKind::Shield, PowerupKind::Shield, PowerupKind::Shield},
+    {PowerupKind::Turbo, PowerupKind::Turbo, PowerupKind::Turbo, PowerupKind::Warp},
+    {PowerupKind::OilSlick, PowerupKind::Dynamite, PowerupKind::Magnet, PowerupKind::Curse},
+}};
 
 struct PowerupKindSpec {
     std::size_t poolSize = 0;
@@ -55,7 +68,8 @@ struct PowerupUse {
     friend bool operator==(const PowerupUse&, const PowerupUse&) = default;
 };
 
-[[nodiscard]] PowerupKind KindFor(assets::BrickColour colour, std::uint8_t level);
+[[nodiscard]] PowerupKind KindFor(assets::BrickColour colour, std::uint8_t level,
+                                  const PowerupSlots& slots = kOriginalSlots);
 
 [[nodiscard]] const PowerupKindSpec& SpecFor(PowerupKind kind);
 

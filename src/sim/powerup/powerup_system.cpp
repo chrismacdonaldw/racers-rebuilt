@@ -68,13 +68,17 @@ void PowerupSystem::Use(std::size_t racer, PowerupInventory& inventory, BrickFie
         });
     AddEvent(PowerupEventKind::Used, fired.value_or(use));
     if (fired) {
-        Fire(*fired, context);
+        Launch(onlyKind_.value_or(KindFor(fired->colour, fired->level, context.tuning->slots)),
+               *fired, context);
     }
     bricks.Spend(inventory);
 }
 
 void PowerupSystem::Fire(const PowerupUse& use, PowerupContext& context) {
-    const PowerupKind kind = KindFor(use.colour, use.level);
+    Launch(KindFor(use.colour, use.level), use, context);
+}
+
+void PowerupSystem::Launch(PowerupKind kind, const PowerupUse& use, PowerupContext& context) {
     const PowerupKindSpec& spec = SpecFor(kind);
     for (std::size_t shot = 0; shot < spec.launches; ++shot) {
         if (kEffectEntities - EntitiesInUse() < spec.entities) {

@@ -134,6 +134,100 @@ These tables merge with the game's instead of replacing it, so a mod only needs 
 - `RACERS.TOML` uses the data folder's `racers.toml` layout, so a racer built in the game can be copied in. Trophies and `selected` are ignored.
 - Entries can't be removed.
 
+## Power-ups
+
+`files/GAMEDATA/COMMON/POWERUPS.TOML` changes how power-ups behave. A mod only lists the keys it changes:
+
+```toml
+[missile]
+arm_ms = [933, 1200, 1333]
+range = 500.0
+
+[slots]
+yellow = ["oil_slick", "dynamite", "magnet", "lightning"]
+```
+
+- Every mod's file applies over the original values, in priority order, lowest first. The same key in a later mod wins.
+- `racers-rebuilt.exe --dump-powerups <file>` writes every key with its original value, then exits. It's a good place to start.
+- Values are read when a race starts and stay fixed until it ends.
+- A value outside its range is clamped, and an unknown key, a wrong type or a list of the wrong length is skipped. Each gets a warning in the log. A file that doesn't parse is skipped whole.
+- Changed values are part of a replay's fingerprint, so an old replay warns when they differ.
+
+### Slots
+
+`[slots]` sets what each brick colour gives at 0 to 3 white bricks. Its keys are `red`, `blue`, `green` and `yellow`, each a list of 4 of: `cannonball`, `grappling_hook`, `lightning`, `missile`, `oil_slick`, `dynamite`, `magnet`, `curse`, `shield`, `turbo`, `warp`.
+
+- The HUD shows the icon of the power-up the slot gives, tinted in the brick's colour.
+- Hazards, the start boost and the warp cheat fire the original power-ups.
+- Computer racers still decide by colour, so they use a remapped slot the way they'd use that colour.
+
+### Keys
+
+All `_ms` keys are whole milliseconds, from 1 to 600,000. Distances are in game units.
+
+Shots (`cannonball`, `grappling_hook`, `missile`, `dynamite`) share three keys:
+
+| Key | Unit | Range |
+|---|---|---|
+| `speed` | units/s | 1 to 2,000 |
+| `gravity` | units/s², down is negative | -1,000 to 0 |
+| `lifetime_ms` | ms | |
+
+A cone `<name>` has three keys. A racer or target point is in it when its distance is between `<name>_min` and `<name>_max` (units, 0 to 2,000), and the cosine of its angle from the car's heading is at least `<name>_cosine` (-1 to 1).
+
+| Section | Key | Unit | Original |
+|---|---|---|---|
+| `cannonball` | `speed`, `gravity`, `lifetime_ms` | shot | 180, -32.176, 3000 |
+| | `hazard_speed`, `hazard_gravity`, `hazard_lifetime_ms` | a cannon hazard's shot | 30, -96.528, 3000 |
+| | `racer_cone` | cone | 10 to 400, 0.9 |
+| | `target_cone` | cone, for track target points, tried first | 10 to 400, 0.95 |
+| | `range` | units ahead to aim with no target | 500 |
+| `grappling_hook` | `speed`, `gravity`, `lifetime_ms` | shot | 320, -90.176, 3000 |
+| | `far_cone` | cone, tried first, for the farthest racer | 10 to 250, 0.93 |
+| | `near_cone` | cone, for the nearest racer | 10 to 400, 0.6 |
+| | `target_cone` | cone, for track target points, tried last | 10 to 400, 0.95 |
+| | `range` | units | 500 |
+| | `pull_ms`, `retract_ms` | ms | 4000, 500 |
+| | `pull_force` | units/s², 0 to 10,000 | 180 |
+| | `release_distance` | units, lets go when closer | 12 |
+| | `chase_speed`, `retract_speed` | units/s, 1 to 2,000 | 300, 250 |
+| | `tension_per_second` | 0 to 100, the rope checks for walls once tension reaches 1 | 1 |
+| `lightning` | `ramp_ms`, `sustain_ms`, `fade_ms` | ms | 500, 7000, 500 |
+| | `hold_ms` | ms a struck racer stays held | 1000 |
+| | `segment_length` | units per bolt segment, 1 to 500 | 50 |
+| | `victim_cone` | cone | 3 to 200, 0.5 |
+| | `hit_strength` | 0 to 10 | 1 |
+| `missile` | `speed`, `gravity`, `lifetime_ms` | shot | 170, -32.176, 5500 |
+| | `arm_ms` | list of 3, one per missile | 933, 1200, 1333 |
+| | `side_offsets` | list of 3, units right of the aim with no target, -2,000 to 2,000 | 150, 0, -150 |
+| | `range` | units | 500 |
+| | `spin_turns` | turns, 0 to 10 | 2 |
+| | `spin_rate_per_ms` | 0.0001 to 1 | 0.007 |
+| `oil_slick` | `radius` | units | 3 |
+| | `lifetime_ms` | ms | 10000 |
+| | `spin_turns`, `spin_rate_per_ms`, `spin_align` | as `missile`; `spin_align` 0 to 10 | 1, 0.007, 1 |
+| `dynamite` | `speed`, `gravity`, `lifetime_ms` | shot | 40, -32.176, 3000 |
+| | `target_cone` | cone, behind the car | 10 to 400, 0.9 |
+| | `range` | units behind to land with no target | 90 |
+| | `fuse_ms`, `blast_interval_ms` | ms | 5000, 500 |
+| | `scatter` | whole units, 0 to 100, for later blasts | 6 |
+| `magnet` | `radius` | units | 10 |
+| | `armed_ms`, `holding_ms`, `fade_ms`, `halted_hold_ms` | ms | 20000, 4000, 1000, 1000 |
+| | `grab_distance`, `lift_stop_distance` | units | 9, 10 |
+| | `stopped_speed` | units/ms, 0 to 100 | 0.002 |
+| | `pull_per_ms` | units/ms, 0 to 100 | 1 |
+| `curse` | `radius` | units | 10 |
+| | `active_ms`, `fade_ms`, `curse_ms` | ms | 15000, 1000, 10000 |
+| `shield` | `durations_ms` | list of 4, one per white brick count | 4000, 6000, 8000, 10000 |
+| | `fade_ms` | ms | 1000 |
+| | `deflect_level` | white bricks from which shots turn back, 0 to 4 | 2 |
+| `turbo` | `levels` | list of 4 of `weak`, `strong`, `hover` | weak, strong, hover, hover |
+| `warp` | `starting_ms`, `active_ms` | ms | 500, 1500 |
+| | `walk_per_ms` | units/ms, 0.01 to 10 | 0.6 |
+| | `route_speed` | a computer racer's route speed, 0.1 to 50 | 4.5 |
+
+Distances and ranges not listed run from 0 to 2,000 units.
+
 ## HQ textures
 
 A PNG next to a game image's path, named like it but ending in `.png`, replaces that image, e.g. `files/GAMEDATA/COMMON/BRICK.png` for `GAMEDATA/COMMON/BRICK.TGA`.

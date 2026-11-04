@@ -46,6 +46,39 @@ ColourLook LookOf(std::optional<assets::BrickColour> colour) {
     return {.tint = kWhite};
 }
 
+struct BrickSlot {
+    assets::BrickColour colour = assets::BrickColour::Red;
+    std::size_t level = 0;
+};
+
+BrickSlot OriginalSlotOf(sim::PowerupKind kind, std::size_t level) {
+    std::optional<BrickSlot> first;
+    for (std::size_t colour = 0; colour < sim::kPowerupColourCount; ++colour) {
+        for (std::size_t at = 0; at <= sim::kMaxPowerupLevel; ++at) {
+            if (sim::kOriginalSlots.at(colour).at(at) != kind) {
+                continue;
+            }
+            const BrickSlot slot{.colour = static_cast<assets::BrickColour>(colour), .level = at};
+            if (at == level) {
+                return slot;
+            }
+            first = first.value_or(slot);
+        }
+    }
+    return first.value_or(BrickSlot{});
+}
+
+std::optional<std::size_t> ItemOf(const sim::RacerSnapshot& racer, const sim::PowerupSlots& slots) {
+    if (!racer.heldColour) {
+        return std::nullopt;
+    }
+    const auto level = static_cast<std::uint8_t>(racer.whiteCount);
+    const BrickSlot shown = OriginalSlotOf(sim::KindFor(*racer.heldColour, level, slots), level);
+    return LookOf(shown.colour).firstItem.transform([&shown](std::size_t first) {
+        return first + shown.level;
+    });
+}
+
 float Width(const UiImage& image) {
     return static_cast<float>(image.widthPx);
 }
@@ -56,8 +89,9 @@ float Height(const UiImage& image) {
 
 }
 
-void LayoutPowerupPanel(const sim::RacerSnapshot& racer, std::span<const UiImage> images,
-                        std::vector<render::SpriteDraw>& out, float bottom) {
+void LayoutPowerupPanel(const sim::RacerSnapshot& racer, const sim::PowerupSlots& slots,
+                        std::span<const UiImage> images, std::vector<render::SpriteDraw>& out,
+                        float bottom) {
     const std::size_t level = racer.whiteCount;
     if ((!racer.heldColour && level == 0) || images.size() < kImageCount) {
         return;
@@ -70,8 +104,8 @@ void LayoutPowerupPanel(const sim::RacerSnapshot& racer, std::span<const UiImage
                              .height = Height(holder)};
     out.push_back({.texture = holder.texture, .bounds = panel, .tint = kWhite});
     out.push_back({.texture = images[kHolderTint].texture, .bounds = panel, .tint = look.tint});
-    if (look.firstItem) {
-        const UiImage& item = images[*look.firstItem + level];
+    if (const std::optional<std::size_t> shown = ItemOf(racer, slots)) {
+        const UiImage& item = images[*shown];
         out.push_back(
             {.texture = item.texture,
              .bounds = {.x = panel.x + (panel.width * kItemCentreX) - (Width(item) / 2.0F),

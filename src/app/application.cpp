@@ -33,6 +33,7 @@
 #include "app/modifier_settings.hpp"
 #include "app/music_folder_source.hpp"
 #include "app/pacing_presets.hpp"
+#include "app/powerup/powerup_tuning_file.hpp"
 #include "app/race_loading_screen.hpp"
 #include "app/race_scene.hpp"
 #include "app/race_scene_name.hpp"
@@ -129,7 +130,7 @@ Result<void> Application::Run() {
     Result<ReplaySession> replay =
         ReplaySession::Start(recordFile_, replayFile_, scene_, [this](std::string_view scene) {
             return GameplayFingerprint(
-                settings_, extensions_.mods, extensions_.overrides.Hash(),
+                settings_, extensions_.mods, extensions_.overrides.Hash(), LoadPowerupTuning(vfs_),
                 {.first = FindPlayerRacer(vfs_, RacersFile(), ScenePlayer(scene)),
                  .second = FindPlayerRacer(vfs_, RacersFile(), SceneSecondPlayer(scene))});
         });

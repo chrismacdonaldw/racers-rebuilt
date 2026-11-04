@@ -84,6 +84,7 @@ public:
     [[nodiscard]] const BrickField& Bricks() const { return bricks_; }
     [[nodiscard]] std::span<const PowerupInventory> Inventories() const { return inventories_; }
     [[nodiscard]] const PowerupSystem& Powerups() const { return powerups_; }
+    [[nodiscard]] const PowerupTuning& PowerupTunings() const { return powerupTuning_; }
     [[nodiscard]] const Explosions& Blasts() const { return explosions_; }
     [[nodiscard]] const Explosions& Spikes() const { return spikes_; }
     [[nodiscard]] const TrackEvents& Triggers() const { return triggers_; }

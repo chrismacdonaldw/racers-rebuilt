@@ -185,6 +185,7 @@ rr_add_module(app
         powerup/powerup_particles.cpp
         powerup/powerup_quads.cpp
         powerup/powerup_sounds.cpp
+        powerup/powerup_tuning_file.cpp
         powerup/powerup_visuals.cpp
         powerup/warp_start.cpp
         powerup/warp_tube.cpp

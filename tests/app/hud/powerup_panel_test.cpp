@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -38,7 +39,7 @@ std::vector<UiImage> PanelImages() {
 std::vector<render::SpriteDraw> Layout(const sim::RacerSnapshot& racer,
                                        const std::vector<UiImage>& images) {
     std::vector<render::SpriteDraw> out;
-    LayoutPowerupPanel(racer, images, out);
+    LayoutPowerupPanel(racer, sim::kOriginalSlots, images, out);
     return out;
 }
 
@@ -69,7 +70,8 @@ TEST_CASE("the power-up panel shows the held colour's item and white level") {
 TEST_CASE("a split-screen panel sits at the bottom of its player's half") {
     std::vector<render::SpriteDraw> out;
 
-    LayoutPowerupPanel({.heldColour = assets::BrickColour::Red}, PanelImages(), out, 240.0F);
+    LayoutPowerupPanel({.heldColour = assets::BrickColour::Red}, sim::kOriginalSlots, PanelImages(),
+                       out, 240.0F);
 
     REQUIRE_FALSE(out.empty());
     CHECK(out[0].bounds.y == doctest::Approx(166.0F));
@@ -95,6 +97,25 @@ TEST_CASE("each colour picks its own items and tint") {
     REQUIRE(green.size() == 4);
     CHECK(green[2].texture == ImageTexture(21));
     CHECK(green[1].tint.r == doctest::Approx(0.0F));
+}
+
+TEST_CASE("a remapped slot shows its power-up's original icon in the brick's tint") {
+    sim::PowerupSlots slots = sim::kOriginalSlots;
+    slots[static_cast<std::size_t>(assets::BrickColour::Yellow)][3] = sim::PowerupKind::Lightning;
+    slots[static_cast<std::size_t>(assets::BrickColour::Blue)][1] = sim::PowerupKind::Turbo;
+    std::vector<render::SpriteDraw> yellow;
+    std::vector<render::SpriteDraw> blue;
+
+    LayoutPowerupPanel({.heldColour = assets::BrickColour::Yellow, .whiteCount = 3}, slots,
+                       PanelImages(), yellow);
+    LayoutPowerupPanel({.heldColour = assets::BrickColour::Blue, .whiteCount = 1}, slots,
+                       PanelImages(), blue);
+
+    REQUIRE(yellow.size() == 4);
+    CHECK(yellow[2].texture == ImageTexture(4));
+    CHECK(yellow[1].tint.g == doctest::Approx(1.0F));
+    REQUIRE(blue.size() == 4);
+    CHECK(blue[2].texture == ImageTexture(21));
 }
 
 TEST_CASE("white bricks alone show an untinted holder and the level") {
