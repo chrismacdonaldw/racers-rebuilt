@@ -55,6 +55,23 @@ public:
     /// Takes the newest piece back off for the cursor. The chassis stays.
     std::optional<CarPiece> Undo();
 
+    /// The later pieces that would no longer rest where they are without piece `index`.
+    [[nodiscard]] std::vector<std::size_t> Supports(std::size_t index) const;
+
+    /// Refused for the chassis and for a piece that `Supports` others.
+    std::expected<CarPiece, PlacementFailure> Remove(std::size_t index);
+
+    /// Puts back a piece `Remove` took, at its old index and height.
+    void Insert(std::size_t index, const CarPiece& piece);
+
+    /// Places the piece again as the newest, or leaves it where it was on failure.
+    std::expected<int, PlacementFailure> Move(std::size_t index, PiecePlacement placement);
+
+    bool Recolour(std::size_t index, std::uint8_t colour);
+
+    /// The newest piece filling the cell at `plate` plates up.
+    [[nodiscard]] std::optional<std::size_t> PieceAt(int cellX, int cellY, int plate) const;
+
     void Clear();
 
     [[nodiscard]] std::span<const CarPiece> Pieces() const { return pieces_; }
@@ -66,6 +83,7 @@ public:
 
 private:
     bool Add(const CarPiece& piece, bool allowsEmpty);
+    void Restamp();
 
     CarGrid grid_;
     std::vector<CarPiece> pieces_;

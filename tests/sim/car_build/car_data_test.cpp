@@ -44,6 +44,20 @@ TEST_CASE("a car saves its pieces big-endian and loads back the same") {
     CHECK(loaded->Pieces()[1].height == 1);
 }
 
+TEST_CASE("a recoloured piece saves and loads its new colour") {
+    const assets::PieceLibrary library = Library();
+    BuiltCar build;
+    REQUIRE(build.Place(library.pieces[0], {}, 4, 3).has_value());
+    REQUIRE(build.Place(library.pieces[1], {.x = 2}, 1, 0).has_value());
+
+    REQUIRE(build.Recolour(1, 9));
+    const Result<BuiltCar> loaded = BuiltCar::Load(build.Save(), library);
+
+    REQUIRE(loaded.has_value());
+    REQUIRE(loaded->Pieces().size() == 2);
+    CHECK(loaded->Pieces()[1].colour == 9);
+}
+
 TEST_CASE("a car with over 64 pieces or cut short doesn't load") {
     const assets::PieceLibrary library = Library();
 
