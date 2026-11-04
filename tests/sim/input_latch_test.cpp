@@ -35,12 +35,15 @@ TEST_CASE("a pointer button stays held until it is released or input is dropped"
     InputLatch latch;
 
     latch.PressPointer(PointerButton::Middle);
-    latch.PressPointer(PointerButton::Right);
+    latch.PressPointer(PointerButton::Right, true);
     latch.ReleasePointer(PointerButton::Right);
     const InputFrame held = latch.TakeFrame();
     latch.ReleaseAll();
     const InputFrame dropped = latch.TakeFrame();
 
+    CHECK(held.pointer.middlePressed);
+    CHECK(held.pointer.isShifted);
+    CHECK(!held.pointer.LeftPressed());
     CHECK(held.pointer.IsHeld(PointerButton::Middle));
     CHECK(!held.pointer.IsHeld(PointerButton::Right));
     CHECK(dropped.pointer.held == 0);

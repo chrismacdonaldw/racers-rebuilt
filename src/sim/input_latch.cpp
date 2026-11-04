@@ -45,9 +45,12 @@ void InputLatch::AddPointerMotion(float dx, float dy) {
     pending_.pointer.dy += dy;
 }
 
-void InputLatch::PressPointer(PointerButton button) {
+void InputLatch::PressPointer(PointerButton button, bool isShifted) {
     pending_.pointer.pressed = true;
+    pending_.pointer.isShifted = isShifted;
     pending_.pointer.rightPressed = pending_.pointer.rightPressed || button == PointerButton::Right;
+    pending_.pointer.middlePressed =
+        pending_.pointer.middlePressed || button == PointerButton::Middle;
     pending_.pointer.held |= static_cast<std::uint8_t>(1U << static_cast<unsigned>(button));
 }
 
@@ -82,6 +85,7 @@ InputFrame InputLatch::TakeFrame() {
     pending_.pointer.moved = false;
     pending_.pointer.pressed = false;
     pending_.pointer.rightPressed = false;
+    pending_.pointer.middlePressed = false;
     pending_.pointer.released = false;
     return frame;
 }

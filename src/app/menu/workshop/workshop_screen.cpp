@@ -1,7 +1,5 @@
 #include "app/menu/workshop/workshop_screen.hpp"
 
-#include <SDL3/SDL_keyboard.h>
-
 #include <format>
 #include <utility>
 
@@ -30,6 +28,7 @@ constexpr float kHomePitch = 0.45F;
 constexpr float kHomeDistance = 18.0F;
 constexpr float kTurnPerPx = 0.006F;
 constexpr float kPanPerPx = 0.0015F;
+constexpr int kColourKeys = 10;
 constexpr render::DirectionalLight kKeyLight{.direction = {.x = -0.36F, .y = -0.86F, .z = -0.36F}};
 constexpr render::DirectionalLight kFillLight{.direction = {.x = 0.6F, .y = -0.3F, .z = 0.7F},
                                               .color = {.r = 0.35F, .g = 0.35F, .b = 0.4F}};
@@ -72,9 +71,15 @@ WorkshopScreen::WorkshopScreen(render::Renderer& renderer, const BuildServices& 
                .yaw = kHomeYaw,
                .pitch = kHomePitch,
                .distance = kHomeDistance}),
+      shownCar_(bench_.car.Save()),
       lights_{kKeyLight, kFillLight} {}
 
-void WorkshopScreen::HandleKey(SDL_Keycode key, [[maybe_unused]] SDL_Keymod mod) {
+void WorkshopScreen::HandleKey(SDL_Keycode key, SDL_Keymod mod) {
+    const bool isCtrl = (mod & SDL_KMOD_CTRL) != 0;
+    if (key >= SDLK_0 && key <= SDLK_9) {
+        Paint(static_cast<std::uint8_t>((key - SDLK_0 + kColourKeys - 1) % kColourKeys));
+        return;
+    }
     switch (key) {
         case SDLK_F:
             FrameCar();
@@ -82,7 +87,30 @@ void WorkshopScreen::HandleKey(SDL_Keycode key, [[maybe_unused]] SDL_Keymod mod)
         case SDLK_HOME:
             camera_.Home();
             break;
+        case SDLK_R:
+            Turn(1);
+            break;
+        case SDLK_DELETE:
+        case SDLK_BACKSPACE:
+            DeleteSelected();
+            break;
+        case SDLK_Z:
+            if (isCtrl) {
+                StepHistory((mod & SDL_KMOD_SHIFT) == 0);
+            }
+            break;
+        case SDLK_Y:
+            if (isCtrl) {
+                StepHistory(false);
+            }
+            break;
         case SDLK_ESCAPE:
+            if (held_) {
+                PutBack();
+            } else {
+                isDone_ = true;
+            }
+            break;
         case SDLK_RETURN:
             isDone_ = true;
             break;
@@ -102,19 +130,23 @@ bool WorkshopScreen::UseControls(BuildMode mode) {
 BuildOutcome WorkshopScreen::Tick(const sim::InputFrame& input) {
     camera_.Tick(kSimTick);
     Steer(input.pointer);
-    return std::exchange(isDone_, false) ? BuildOutcome::Done : BuildOutcome::None;
+    TickEdits(input.pointer);
+    return Outcome();
 }
 
 void WorkshopScreen::Steer(const sim::MenuPointer& pointer) {
-    const bool pans =
-        pointer.IsHeld(sim::PointerButton::Middle) ||
-        (pointer.IsHeld(sim::PointerButton::Right) && (SDL_GetModState() & SDL_KMOD_SHIFT) != 0);
+    const bool pans = pointer.IsHeld(sim::PointerButton::Middle) ||
+                      (pointer.IsHeld(sim::PointerButton::Right) && pointer.isShifted);
     if (pans) {
         camera_.Pan(pointer.dx * kPanPerPx, -pointer.dy * kPanPerPx);
     } else if (pointer.IsHeld(sim::PointerButton::Right)) {
         camera_.Turn(-pointer.dx * kTurnPerPx, pointer.dy * kTurnPerPx);
     }
-    camera_.Zoom(pointer.wheel);
+    if (held_ && pointer.wheel != 0.0F) {
+        Turn(pointer.wheel > 0.0F ? 1 : -1);
+    } else {
+        camera_.Zoom(pointer.wheel);
+    }
     isDragging_ =
         pointer.IsHeld(sim::PointerButton::Right) || pointer.IsHeld(sim::PointerButton::Middle);
 }
@@ -123,8 +155,12 @@ void WorkshopScreen::FrameCar() {
     camera_.Frame({.centre = kCarAt + carOffset_ + kGridMiddle, .radius = kCarRadius}, kFovDegrees);
 }
 
+Vector3 WorkshopScreen::CarCorner() const {
+    return kCarAt + carOffset_;
+}
+
 Vector3 WorkshopScreen::GroundCorner() const {
-    const Vector3 grid = kCarAt + carOffset_;
+    const Vector3 grid = CarCorner();
     return {.x = grid.x - static_cast<float>(sim::kCarOnGround.x),
             .y = grid.y - static_cast<float>(sim::kCarOnGround.y)};
 }
@@ -159,6 +195,9 @@ void WorkshopScreen::Render(std::vector<render::RenderView>& views,
     draws_.clear();
     services_.stand->AddCarDraws({.position = kCarAt}, {}, draws_);
     AddLooseBricks();
+    AddSelection();
+    AddBlockers();
+    AddHeld();
     quads_ = {BackdropQuad(camera, services_.mode.backdrop),
               GroundQuad(groundCell_, GroundCorner(), static_cast<float>(sim::kGroundSize.width),
                          static_cast<float>(sim::kGroundSize.height))};

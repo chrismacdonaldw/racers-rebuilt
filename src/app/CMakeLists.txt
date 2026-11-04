@@ -175,7 +175,10 @@ rr_add_module(app
         menu/stand_racer.cpp
         menu/stand_scene.cpp
         menu/track_preview.cpp
+        menu/workshop/bench_drag.cpp
+        menu/workshop/bench_pick.cpp
         menu/workshop/orbit_camera.cpp
+        menu/workshop/workshop_edits.cpp
         menu/workshop/workshop_scenery.cpp
         menu/workshop/workshop_screen.cpp
         music_folder_source.cpp
