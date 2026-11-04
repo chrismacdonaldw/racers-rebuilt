@@ -277,8 +277,11 @@ const UiFont* WorkshopScreen::PanelFont() {
     if (font == nullptr) {
         return nullptr;
     }
-    panelFont_ = *font;
-    panelFont_.missingGlyphs = MissingGlyphs::Shapes;
+    if (font != panelFontSource_ || font->texture != panelFont_.texture) {
+        panelFontSource_ = font;
+        panelFont_ = *font;
+        panelFont_.missingGlyphs = MissingGlyphs::Shapes;
+    }
     return &panelFont_;
 }
 

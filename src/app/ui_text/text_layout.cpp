@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <vector>
 
 #include "app/ui_text/drawn_glyphs.hpp"
 
@@ -41,13 +42,21 @@ bool IsLineBreak(char16_t character) {
 }
 
 struct Mark {
-    const assets::Glyph* glyph = nullptr;
+    std::optional<assets::Glyph> glyph;
     std::optional<DrawnGlyph> drawn;
     float widthPx = 0.0F;
 };
 
 Mark GlyphMark(const assets::Glyph& glyph) {
-    return {.glyph = &glyph, .widthPx = static_cast<float>(glyph.widthPx)};
+    return {.glyph = glyph, .widthPx = static_cast<float>(glyph.widthPx)};
+}
+
+Mark FirstGlyphMark(const UiFont& font) {
+    const std::vector<assets::Glyph>& glyphs = font.glyphs.glyphs;
+    if (!glyphs.empty() && glyphs.front().character < kSpace) {
+        return GlyphMark(glyphs.front());
+    }
+    return GlyphMark({.character = kSpace, .leftPx = 0, .widthPx = font.glyphs.spaceWidthPx});
 }
 
 std::optional<Mark> MarkFor(const UiFont& font, char16_t character) {
@@ -58,9 +67,7 @@ std::optional<Mark> MarkFor(const UiFont& font, char16_t character) {
         return std::nullopt;
     }
     if (font.missingGlyphs == MissingGlyphs::FirstGlyph) {
-        return font.glyphs.glyphs.empty()
-                   ? std::nullopt
-                   : std::optional<Mark>(GlyphMark(font.glyphs.glyphs.front()));
+        return FirstGlyphMark(font);
     }
     if (const std::optional<DrawnGlyph> drawn = DrawnGlyphFor(character)) {
         return Mark{.drawn = drawn,
@@ -180,7 +187,7 @@ void LayoutText(const UiFont& font, std::u16string_view text, const TextPlacemen
                                 .y = placement.y,
                                 .width = mark.widthPx * placement.scale,
                                 .height = static_cast<float>(font.heightPx) * placement.scale};
-        if (mark.glyph == nullptr) {
+        if (!mark.glyph) {
             DrawGlyphShape(mark.drawn.value_or(DrawnGlyph::Dash), cell, placement.tint, out);
             return;
         }

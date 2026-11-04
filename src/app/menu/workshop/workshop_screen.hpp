@@ -115,6 +115,7 @@ private:
     Vector3 carOffset_;
     OrbitCamera camera_;
     WorkshopPanels panels_;
+    const UiFont* panelFontSource_ = nullptr;
     UiFont panelFont_;
     bool showsHint_ = true;
     bool isDragging_ = false;

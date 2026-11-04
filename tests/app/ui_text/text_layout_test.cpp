@@ -53,7 +53,7 @@ TEST_CASE("text width leaves out trailing spacing and line breaks") {
     CHECK(TextWidth(font, u"A\nA") == 9.0F);
 }
 
-TEST_CASE("a missing character draws the font's lowest-coded glyph, as the original does") {
+TEST_CASE("a missing character draws the font's space cell, as the original does") {
     const UiFont font = TwoLetterFont();
     std::vector<render::SpriteDraw> sprites;
 
@@ -62,8 +62,22 @@ TEST_CASE("a missing character draws the font's lowest-coded glyph, as the origi
     REQUIRE(sprites.size() == 2);
     CHECK(sprites[1].texture == render::TextureId{3});
     CHECK(sprites[1].bounds.x == 7.0F);
-    CHECK(sprites[1].uv.x == doctest::Approx(0.1F));
-    CHECK(TextWidth(font, u"?") == 4.0F);
+    CHECK(sprites[1].bounds.width == 3.0F);
+    CHECK(sprites[1].uv.x == 0.0F);
+    CHECK(TextWidth(font, u"?") == 3.0F);
+}
+
+TEST_CASE("a glyph coded below the space comes first, so a missing character draws it") {
+    UiFont font = TwoLetterFont();
+    font.glyphs.glyphs.insert(font.glyphs.glyphs.begin(),
+                              {.character = 5, .leftPx = 30, .widthPx = 7});
+    std::vector<render::SpriteDraw> sprites;
+
+    LayoutText(font, u"/", {}, sprites);
+
+    REQUIRE(sprites.size() == 1);
+    CHECK(sprites[0].bounds.width == 7.0F);
+    CHECK(sprites[0].uv.x == doctest::Approx(0.3F));
 }
 
 TEST_CASE("with shapes, other missing characters are skipped") {
