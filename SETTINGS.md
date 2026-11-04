@@ -1,0 +1,228 @@
+# Settings
+
+Every setting lives in `<data>/settings.toml`, in the [data folder](README.md#data-folder), and shows in the <kbd>F1</kbd> overlay.
+
+- Every change saves when an edit finishes.
+- Video, audio and enhancement changes apply on the next frame. Game changes apply on the next start, and mod changes on **Apply now** or the next start. Rows below say when a setting differs.
+- Items marked * in the overlay change gameplay: replays record them and warn when played back with other values.
+- Out-of-range values are clamped. Unknown keys are kept when the file is saved.
+
+```toml
+[video]
+vsync = false
+fps_cap = 240
+
+[audio]
+music_volume = 0.6
+```
+
+- [Game](#game)
+- [Video](#video)
+- [Audio](#audio)
+- [Camera](#camera)
+- [Race](#race)
+- [Cheats](#cheats)
+- [Modifiers](#modifiers)
+- [Mods](#mods)
+- [Controls](#controls)
+- [Quick config files](#quick-config-files)
+- [Command line](#command-line)
+
+## Game
+
+| Key | Default | Values |
+|---|---|---|
+| `game.version` | `1999` | `1999`, `2001`. The release to play, the original 1999 one or the 2001 re-release. Needs that release's files. Marked * in the overlay. Applies on **Restart now** or the next start. |
+| `game.input_lag_2001` | `false` | `true`, `false`. The 2001 release reads the controls after each frame's step, so every frame drives on the controls from the frame before. This adds that lag back as one 12 ms tick. Only works with `game.version` 2001, and is greyed out in the overlay otherwise. Marked * in the overlay. |
+| `game.path` | Empty | The LEGO Racers folder of the 1999 release |
+| `game.path_2001` | Empty | The LEGO Racers folder of the 2001 release |
+| `game.language` | From the original installer, else `ENGLISH` | `ENGLISH`, `GERMAN`, `FRENCH`, `SPANISH`, `ITALIAN`, `DUTCH`, `DANISH`, `NORWEGI`, `SWEDISH` |
+| `startup.intro_videos` | `true` | `true`, `false`. Plays the original's three intro videos at launch. Any key skips the second and third. |
+
+`game.version` 2001 also drives as the 2001 game does:
+
+- Faster steering and recentring, with the stick on a squared curve
+- Wheels set from the car's shadow size, and a faster turning nose
+- Slopes that bounce like floors, a harder hover bank, and hovering on the wheels
+- No body roll from drifting
+- Computer racers 3% slower on the first circuit
+- Racers moving before hazards each frame
+- A lap counted each time a car backs over the finish line from the track just past it
+- A red border instead of yellow round the Rocket Racer race on the race pick screens
+
+## Video
+
+| Key | Default | Values |
+|---|---|---|
+| `video.vsync` | `true` | `true`, `false` |
+| `video.fps_cap` | `144` | `30` to `360`, or `0` for uncapped. Applies only with VSync off. |
+| `video.resolution_scale` | `1.0` | `0.25` to `2.0`. Renders the scene at this fraction of the window size. |
+| `video.fullscreen` | `false` | `true`, `false`. Fills the screen without a border, at the desktop's resolution. <kbd>F11</kbd> switches it. |
+| `video.stretch_ui` | `false` | `true`, `false`. Stretches the UI's centered 4:3 area to fill the window. |
+| `video.widescreen` | `false` | `true`, `false`. Races and cutscenes fill the window and see more to the sides, instead of the original's 4:3 frame. |
+| `video.smooth_textures` | `false` | `true`, `false`. Gives the game's textures their mipmaps and fills their see-through edges with nearby colours, so distant and filtered edges don't shimmer or show a dark fringe. `false` draws them as the original does, down to the materials the game asks to be drawn with blocky unfiltered pixels. PNG replacements always keep their mipmaps. |
+| `video.anisotropic_filtering` | `false` | `true`, `false`. Filters textures 16x where they're seen at a slant, so roads and walls stay sharp into the distance. Materials drawn with blocky unfiltered pixels keep them. Applies at once. |
+
+## Audio
+
+| Key | Default | Values |
+|---|---|---|
+| `audio.music_volume` | `1.0` | `0.0` to `1.0` |
+| `audio.effects_volume` | `1.0` | `0.0` to `1.0` |
+| `audio.voice_volume` | `1.0` | `0.0` to `1.0` |
+| `audio.prevent_clipping` | `false` | `true`, `false`. Mixes with headroom and a limiter so loud moments don't crackle. `false` mixes at full volume and clips, as the original does. |
+
+## Camera
+
+| Key | Default | Values |
+|---|---|---|
+| `enhancements.free_camera` | `false` | `true`, `false` |
+| `enhancements.free_camera_speed` | `40.0` | `1.0` to `400.0` |
+
+With the free camera on:
+
+| Key | Action |
+|---|---|
+| <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> | Move |
+| <kbd>Q</kbd> / <kbd>E</kbd> | Down / up |
+| Arrow keys | Look |
+| <kbd>Shift</kbd> | Move faster |
+
+## Race
+
+These apply from the next race.
+
+| Key | Default | Values |
+|---|---|---|
+| `race.respawn` | `false` | `true`, `false`. Puts a racer back on the track after it falls off or stays in the air too long. |
+| `race.respawn_seconds` | `3` | `1` to `30`. Seconds in the air before a respawn. |
+| `race.physics_ai` | `false` | `true`, `false`. Computer racers drive with the car physics instead of replaying their recorded routes. |
+| `race.ai_pace` | `100` | `50` to `150`. With `race.physics_ai`, computer racers ease off above this percentage of their route's recorded speed. |
+| `race.opponents` | `5` | `0` to `5`. Computer racers in a single race, from the options screen. |
+| `race.versus_laps` | `3` | `1` to `5`. Laps in a versus race, from the options screen. |
+
+## Cheats
+
+`cheats.<plate>` keeps one of the original's license plate cheats on, such as `cheats.mxpmx`. They're entered after the license's own cheats, from the next single race, versus race or test drive. Circuits and time trials ignore them, as the original does, and so does the attract demo.
+
+The other cheats apply to players from the next race of any kind, circuits and time trials too, but not test drives or the attract demo.
+
+| Key | Default | Values |
+|---|---|---|
+| `cheats.<plate>` | `false` | `true`, `false` |
+| `cheats.invincible` | `false` | `true`, `false`. Weapons, hazards and curses can't touch a player's racer, and a shield still works. |
+| `cheats.bottomless_brick` | `false` | `true`, `false`. Using a power-up keeps it. |
+| `cheats.full_white` | `false` | `true`, `false`. Players always hold 3 white bricks. |
+| `cheats.brick_magnet` | `false` | `true`, `false`. Players pick up bricks from 3 times as far. |
+| `cheats.long_turbo` | `false` | `true`, `false`. Players' turbo boosts last 3 times as long. |
+| `cheats.perfect_start` | `false` | `true`, `false`. Players get the strong start boost at every go, with no timing. |
+| `cheats.free_warp` | `false` | `true`, `false`. Every green power-up a player uses warps, whatever the white bricks. |
+| `cheats.head_start` | `0` | `0` to `10`. Seconds the computer racers wait after the go. |
+| `cheats.boost_button` | `false` | `true`, `false`. The `boost` button fires a level 1 turbo at any time during the race. |
+| `cheats.slow_motion` | `false` | `true`, `false`. Holding the `slow_motion` button runs the race at half speed. Takes effect at once. |
+| `cheats.skip_ahead` | `false` | `true`, `false`. The `skip_ahead` button moves a player to the next checkpoint, keeping their speed. |
+
+## Modifiers
+
+Modifiers apply to all racers from the next race of any kind, circuits and time trials too, but not test drives or the attract demo.
+
+| Key | Default | Values |
+|---|---|---|
+| `modifiers.gravity` | `100` | `25` to `100`. Gravity as a percentage, for floatier jumps. |
+| `modifiers.speed` | `100` | `100` to `200`. Every racer's top speed and acceleration as a percentage. |
+| `modifiers.mirror` | `false` | `true`, `false`. Mirrors every track. |
+| `modifiers.only_powerup` | `off` | `off`, `cannonball`, `grappling_hook`, `lightning`, `missile`, `oil_slick`, `dynamite`, `magnet`, `curse`, `shield`, `turbo`, `warp`. Every use fires this power-up. A shield keeps the held white count, and a turbo up to 2. |
+| `modifiers.chaos_bricks` | `false` | `true`, `false`. Every coloured brick picked up becomes a random colour with 0 to 3 white bricks. |
+| `modifiers.squeaky_voices` | `false` | `true`, `false`. Drivers' voices and taunts play an octave up. |
+| `modifiers.rocket_rush` | `false` | `true`, `false`. Every computer racer is Rocket Racer. |
+
+## Mods
+
+| Key | Default | Values |
+|---|---|---|
+| `mods.<id>.enabled` | The mod's `enabled` value | `true`, `false` |
+| `mods.hq_textures` | `true` | `true`, `false`. Uses PNG replacements for game images. |
+| `mods.gltf_models` | `true` | `true`, `false`. Uses glTF replacements for game models and animations. |
+| `mods.overrides` | `true` | `true`, `false`. Loads `<data>/overrides/`. |
+
+Once a setting in **Mods** changes, two items appear there:
+
+- **Apply now** remounts the mods and overrides, reloads the music, and returns to the main menu. It isn't offered while recording or playing a replay.
+- **Restart now** relaunches the game with the same command line, minus `--record`, `--replay`, `--import-save`, `--dump-images`, `--dump-textures` and `--export-gltf`.
+
+A newly added mod folder, or a change to the menu cursor, still needs a restart.
+
+## Controls
+
+| Key | Default | Values |
+|---|---|---|
+| `input.keys.<action>` | See below | The first keyboard set (arrows). Comma-separated SDL key names, such as `Up,W` or `Left Shift` |
+| `input.keys2.<action>` | See below | The second keyboard set (WASD), in the same form |
+| `input.keys3.<action>` | See below | The third keyboard set (keypad), in the same form |
+| `input.buttons.<action>` | See below | The first gamepad's set. Comma-separated SDL gamepad names: buttons such as `a` or `dpleft`, or `lefttrigger` and `righttrigger` |
+| `input.pad2.buttons.<action>` | The first gamepad's defaults | The second gamepad's set, in the same form |
+| `input.p1.device` | `pad1` | `pad1`, `pad2`, `keys1`, `keys2`, `keys3`. The set player 1 drives with |
+| `input.p2.device` | `pad2` | The set player 2 drives with, in the same form |
+| `input.p1.any_device` | `false` | `true` lets every keyboard set and gamepad drive player 1 when racing alone |
+
+Each `<action>` has a default in every set. The sets follow the original's. The left stick always steers, and the menus take every keyboard and gamepad.
+
+| Action | `keys` | `keys2` | `keys3` | `buttons` |
+|---|---|---|---|---|
+| `accelerate` | `Up` | `W` | `Keypad 8` | `a,righttrigger` |
+| `brake` | `Down` | `X` | `Keypad 2` | `b,lefttrigger` |
+| `steer_left` | `Left` | `A` | `Keypad 4` | `dpleft` |
+| `steer_right` | `Right` | `D` | `Keypad 6` | `dpright` |
+| `drift` | `Space` | `Left Shift` | `Keypad Enter` | `rightshoulder,leftshoulder` |
+| `use_powerup` | `Return` | `Left Alt` | `Right Shift` | `x` |
+| `pause` | `Escape` | | | `start` |
+| `toggle_display` | `M` | `E` | `Keypad 7` | `back` |
+| `change_camera` | `Right Ctrl` | `Q` | `Keypad 3` | `y` |
+| `look_back` | `Right Alt` | `Z` | `Keypad 9` | `rightstick` |
+| `boost` | `B` | `R` | `Keypad 1` | `leftstick` |
+| `slow_motion` | `N` | `F` | `Keypad 0` | |
+| `skip_ahead` | `J` | `C` | `Keypad 5` | |
+| `menu_up` | `Up` | | | `dpup` |
+| `menu_down` | `Down` | | | `dpdown` |
+| `menu_left` | `Left` | | | `dpleft` |
+| `menu_right` | `Right` | | | `dpright` |
+| `menu_confirm` | `Return,Space` | | | `a` |
+| `menu_back` | `Escape,Backspace` | | | `b` |
+
+- Each player drives with one set, as the original does, so with a gamepad attached player 1 drives with the gamepad alone.
+- A set naming a gamepad that isn't attached falls back to the first attached gamepad not in use, then to the arrows, or WASD when the other player has the arrows. Gamepads are numbered in the order they connected.
+- A key in both players' sets drives player 1, and the pause key of a set nobody drives still pauses.
+- PLAYER 1 CONTROLS and PLAYER 2 CONTROLS on the options screen pick each player's set from the attached gamepads and the three keyboard sets, and rebind it. A gamepad's steering rows stay closed, as it steers with its stick and d-pad. Picking the other player's set moves them to another, as the original does.
+- The overlay's **Bindings** menu picks each player's device and shows every keyboard and pad binding in one table.
+
+## Quick config files
+
+Each config saved from **Enhancements → Presets** is a file in `<data>/presets/`, so you can share it. Settings it doesn't list take their defaults, and settings it can't set are ignored:
+
+```toml
+name = "Race night"
+
+[settings]
+"video.smooth_textures" = true
+"race.respawn" = false
+"mods.hd-tracks.enabled" = true
+```
+
+## Command line
+
+| Option | Effect |
+|---|---|
+| `--game-path <folder>` | Use this LEGO Racers folder and skip detection |
+| `--novideo` | Skip the intro videos this run, as in the original |
+| `--set <key>=<value>` | Override a setting for this run only. Repeatable. |
+| `--track <folder>` | Open a race track instead of the main menu, by its `GAMEDATA` folder, e.g. `RACEC0R0` |
+| `--race <folder>` | Start a race on a track instead of the main menu, by its `GAMEDATA` folder. Can't be combined with `--track`. |
+| `--players 2` | With `--race`, race two players against each other in split screen, with no computer racers |
+| `--cheats <plates>` | With `--race`, turn on the original's license plate cheats, comma separated, e.g. `MXPMX,PGLLRD`. Plates are entered in order, so later ones can switch earlier ones off. |
+| `--cutscene <folder>/<file>` | Play a menu cutscene on a loop instead of the main menu, by its `MENUDATA` folder and file, e.g. `CIRCUIT1/CIR1-01` |
+| `--dump-textures <folder>` | Write every image in `LEGO.JAM` as a PNG texture pack and exit. See [Make a texture pack](MODDING.md#make-a-texture-pack). |
+| `--export-gltf <folder>` | Write every model in `LEGO.JAM` as a `.glb` and exit. See [Models](MODDING.md#models). |
+
+```powershell
+.\racers-rebuilt.exe --set video.vsync=false --set video.fps_cap=60
+```
