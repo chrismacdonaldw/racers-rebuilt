@@ -8,6 +8,7 @@
 #include "app/track_info.hpp"
 #include "assets/circuit_table.hpp"
 #include "assets/driver_table.hpp"
+#include "assets/piece_catalog.hpp"
 #include "assets/racer_catalog.hpp"
 
 namespace rr::app {
@@ -40,6 +41,11 @@ std::vector<std::string> ModContentProblems(const assets::Vfs& vfs) {
     std::vector<std::string> problems = TrackInfoProblems(vfs);
     std::ranges::move(assets::CircuitTableProblems(vfs), std::back_inserter(problems));
     AddDriverProblems(vfs, problems);
+    const Result<assets::PieceCatalog> pieces =
+        assets::PieceCatalog::Load(vfs, assets::PieceDetail::Menu, problems);
+    if (!pieces) {
+        problems.push_back(pieces.error().message);
+    }
     return problems;
 }
 

@@ -24,6 +24,7 @@ constexpr float kSlack = 0.02F;
 constexpr std::uint8_t kOccupied = 0x80;
 constexpr std::uint8_t kRests = 0x80;
 constexpr std::uint8_t kSitsLevel = 0x40;
+constexpr float kHighestTop = kHighestPlate * kPlate;
 
 using Triangle = std::array<Vector3, 3>;
 using Polygon = std::vector<Vector3>;
@@ -123,6 +124,20 @@ ShapeCell DeriveCell(std::span<const Triangle> triangles, float x, float y) {
             .bottom = static_cast<std::uint8_t>(flags | bottom)};
 }
 
+}
+
+bool IsOnBuildGrid(const GeometryAsset& model) {
+    const auto isInside = [](float value, float high) {
+        return std::isfinite(value) && value >= -kSlack && value <= high + kSlack;
+    };
+    const bool hasVertices = std::ranges::all_of(
+        model.indices, [&](std::uint32_t index) { return index < model.vertices.size(); });
+    return hasVertices && std::ranges::all_of(model.vertices, [&](const GeometryVertex& vertex) {
+               const Vector3& at = vertex.position;
+               return isInside(at.x, static_cast<float>(kBuildGridSize.width)) &&
+                      isInside(at.y, static_cast<float>(kBuildGridSize.height)) &&
+                      isInside(at.z, kHighestTop);
+           });
 }
 
 PieceShape DeriveShape(const GeometryAsset& model) {

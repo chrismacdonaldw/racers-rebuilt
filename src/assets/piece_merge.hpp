@@ -16,7 +16,9 @@ struct PieceLayer {
     std::vector<std::string> materials;
 };
 
-/// Mod pieces replace same-named ones of their type or add unused brick types; others are skipped.
-[[nodiscard]] PieceLayer MergePieceLayers(std::vector<PieceLayer> layers);
+/// Mod pieces replace same-named ones of their type or add unused brick types below the extra
+/// pieces'. Others are left out as problems.
+[[nodiscard]] PieceLayer MergePieceLayers(std::vector<PieceLayer> layers,
+                                          std::vector<std::string>& problems);
 
 }

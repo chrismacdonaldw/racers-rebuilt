@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 #include "assets/ldraw_extra_pieces.hpp"
 
@@ -51,6 +52,15 @@ TEST_CASE("without a parts catalogue no driver locks") {
     const RacerLocks locks(std::nullopt);
 
     CHECK(locks.Of({.look = {.hatName = "lava-helmet"}}) == RacerLock::None);
+}
+
+TEST_CASE("a car with a piece no mounted mod gives locks its racer") {
+    const std::vector<std::uint16_t> types{17, 0x900, assets::kFirstExtraPieceType};
+    const RacerLocks locks(std::nullopt, types);
+
+    CHECK(locks.Of({.car = CarOf(17, 0x900)}) == RacerLock::None);
+    CHECK(locks.Of({.car = CarOf(17, assets::kFirstModPieceType + 5)}) == RacerLock::MissingPieces);
+    CHECK(locks.Of({.car = CarOf(17, assets::kFirstExtraPieceType)}) == RacerLock::ExtraPieces);
 }
 
 }

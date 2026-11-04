@@ -11,6 +11,7 @@
 namespace rr::assets {
 
 inline constexpr std::uint16_t kFirstExtraPieceType = 0x3000;
+inline constexpr std::uint16_t kFirstModPieceType = 0x4000;
 
 /// One unturned LDraw part per extra piece, in `ExtraPieceRecords` order.
 [[nodiscard]] std::span<const LdrawPart> ExtraPieceParts();
@@ -21,7 +22,7 @@ inline constexpr std::uint16_t kFirstExtraPieceType = 0x3000;
 [[nodiscard]] bool IsExtraPiece(std::string_view pieceName);
 
 [[nodiscard]] constexpr bool IsExtraPieceType(std::uint16_t type) {
-    return type >= kFirstExtraPieceType;
+    return type >= kFirstExtraPieceType && type < kFirstModPieceType;
 }
 
 }
