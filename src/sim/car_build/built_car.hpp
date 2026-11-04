@@ -33,6 +33,12 @@ struct BrickVolume {
     Vector3 centroid;
 };
 
+/// In plates.
+[[nodiscard]] int TopOf(const assets::PieceRecord& piece);
+
+/// Whether `entry` fills the cell at `plate` plates up.
+[[nodiscard]] bool Fills(const CarPiece& entry, int cellX, int cellY, int plate);
+
 /// A car on the builder grid, its pieces pointing into their library. The first is the chassis.
 class BuiltCar {
 public:

@@ -37,30 +37,11 @@ CarPiece EntryAt(std::span<const std::byte> entry) {
             .partType = U16At(entry, 6)};
 }
 
-int TopOf(const assets::PieceRecord& piece) {
-    const auto tallest = std::ranges::max_element(
-        piece.shape.cells, {}, [](assets::ShapeCell cell) { return cell.TopHeight(); });
-    return tallest == piece.shape.cells.end() ? 0 : tallest->TopHeight();
-}
-
 bool RestsAsBefore(const CarGrid& grid, const CarPiece& entry) {
     const std::expected<int, PlacementFailure> height =
         grid.RestingHeight(*entry.piece, entry.placement, true);
     return height && *height == entry.height &&
            !grid.Collides(*entry.piece, entry.placement, entry.height);
-}
-
-bool Fills(const CarPiece& entry, int cellX, int cellY, int plate) {
-    const PiecePlacement at = entry.placement;
-    const int x = cellX - at.x;
-    const int y = cellY - at.y;
-    const assets::CellSize footprint = entry.piece->shape.Footprint(at.rotation);
-    if (x < 0 || y < 0 || x >= footprint.width || y >= footprint.height) {
-        return false;
-    }
-    const assets::ShapeCell cell = entry.piece->shape.GetCell(x, y, at.rotation);
-    return !cell.IsEmpty() && plate >= entry.height + cell.ClampedBottomHeight() &&
-           plate < entry.height + cell.TopHeight();
 }
 
 struct Moments {
@@ -89,6 +70,25 @@ void AddMoments(const CarPiece& entry, Moments& sum) {
     }
 }
 
+}
+
+int TopOf(const assets::PieceRecord& piece) {
+    const auto tallest = std::ranges::max_element(
+        piece.shape.cells, {}, [](assets::ShapeCell cell) { return cell.TopHeight(); });
+    return tallest == piece.shape.cells.end() ? 0 : tallest->TopHeight();
+}
+
+bool Fills(const CarPiece& entry, int cellX, int cellY, int plate) {
+    const PiecePlacement at = entry.placement;
+    const int x = cellX - at.x;
+    const int y = cellY - at.y;
+    const assets::CellSize footprint = entry.piece->shape.Footprint(at.rotation);
+    if (x < 0 || y < 0 || x >= footprint.width || y >= footprint.height) {
+        return false;
+    }
+    const assets::ShapeCell cell = entry.piece->shape.GetCell(x, y, at.rotation);
+    return !cell.IsEmpty() && plate >= entry.height + cell.ClampedBottomHeight() &&
+           plate < entry.height + cell.TopHeight();
 }
 
 BuiltCar::BuiltCar() {

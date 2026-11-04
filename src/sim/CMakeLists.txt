@@ -15,12 +15,14 @@ rr_add_module(sim
         ai/speed_plan.cpp
         animation/part_clock.cpp
         animation/skeleton_pose.cpp
+        car_build/bench.cpp
         car_build/build_history.cpp
         car_build/built_car.cpp
         car_build/car_grid.cpp
         car_build/car_mesh.cpp
         car_build/car_studs.cpp
         car_build/hidden_faces.cpp
+        car_build/loose_bricks.cpp
         car_build/mesh_primitives.cpp
         car_build/placed_model.cpp
         car_build/piece_cursor.cpp
