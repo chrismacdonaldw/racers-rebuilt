@@ -104,6 +104,7 @@ rr_add_module(sim
         race/race_clock.cpp
         race/race_progress.cpp
         race/race_session.cpp
+        race/race_session_powerups.cpp
         race/session_parts.cpp
         race/player_cheats.cpp
         race/race_sounds.cpp

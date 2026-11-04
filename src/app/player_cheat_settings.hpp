@@ -55,6 +55,23 @@ inline constexpr settings::SettingSpec<int> kHeadStartCheat{
     .category = kCheatsCategory,
     .changesGameplay = true};
 
+inline constexpr settings::SettingSpec<bool> kBoostButtonCheat{
+    .key = "cheats.boost_button",
+    .label = "The boost button fires a turbo",
+    .category = kCheatsCategory,
+    .changesGameplay = true};
+
+inline constexpr settings::SettingSpec<bool> kSlowMotionCheat{
+    .key = "cheats.slow_motion",
+    .label = "Holding the slow motion button halves the speed",
+    .category = kCheatsCategory};
+
+inline constexpr settings::SettingSpec<bool> kSkipAheadCheat{
+    .key = "cheats.skip_ahead",
+    .label = "The skip ahead button jumps to the next checkpoint",
+    .category = kCheatsCategory,
+    .changesGameplay = true};
+
 void DeclarePlayerCheatSettings(settings::Registry& registry);
 
 [[nodiscard]] sim::PlayerCheats PlayerCheatsFrom(const settings::Registry& registry);

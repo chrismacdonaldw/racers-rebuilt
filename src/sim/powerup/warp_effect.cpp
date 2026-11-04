@@ -94,7 +94,7 @@ void WarpEffect::Lerp(PowerupContext& context, Milliseconds elapsed, const Vecto
         Share(remaining_ > elapsed ? remaining_ - elapsed : Milliseconds{0}, kActiveTime);
     context.racers[racer_].MoveWarp({.x = to.x + ((from_.x - to.x) * left),
                                      .y = to.y + ((from_.y - to.y) * left),
-                                     .z = to.x + ((from_.z - to.x) * left)});
+                                     .z = to.x + ((from_.z - to.z) * left)});
 }
 
 void WarpEffect::Land(PowerupContext& context) {

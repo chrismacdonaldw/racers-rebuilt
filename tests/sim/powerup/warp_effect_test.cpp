@@ -77,7 +77,7 @@ TEST_CASE("a computer racer warps by playing its route as a ghost") {
 }
 
 }
-TEST_CASE("a warp pad's warp skips the start and moves toward its target, z from its x") {
+TEST_CASE("a warp pad's warp skips the start and moves its z off the target's x by the z gap") {
     Rig rig;
     const Vector3 from = rig.Car().Body().motion.position;
     rig.FireFromHazard(BrickColour::Green, 3,
@@ -92,7 +92,7 @@ TEST_CASE("a warp pad's warp skips the start and moves toward its target, z from
     CHECK(rig.Car().Body().motion.position.x ==
           doctest::Approx(100.0F + ((from.x - 100.0F) * left)));
     CHECK(rig.Car().Body().motion.position.z ==
-          doctest::Approx(100.0F + ((from.z - 100.0F) * left)));
+          doctest::Approx(100.0F + ((from.z - 10.0F) * left)));
 }
 
 TEST_CASE("a warp pad's warp lands at its target and launches along its direction") {

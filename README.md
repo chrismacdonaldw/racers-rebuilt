@@ -159,6 +159,9 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `cheats.perfect_start` | `false` | `true`, `false`. Players get the strong start boost at every go, with no timing. |
 | `cheats.free_warp` | `false` | `true`, `false`. Every green power-up a player uses warps, whatever the white bricks. |
 | `cheats.head_start` | `0` | `0` to `10`. Seconds the computer racers wait after the go. |
+| `cheats.boost_button` | `false` | `true`, `false`. The `boost` button fires a level 1 turbo at any time during the race. |
+| `cheats.slow_motion` | `false` | `true`, `false`. Holding the `slow_motion` button runs the race at half speed. Takes effect at once. |
+| `cheats.skip_ahead` | `false` | `true`, `false`. The `skip_ahead` button moves a player to the next checkpoint, keeping their speed. |
 | `modifiers.gravity` | `100` | `25` to `100`. Gravity as a percentage, for floatier jumps. Every `modifiers` key applies to all racers from the next race of any kind, circuits and time trials too, but not test drives or the attract demo. |
 | `modifiers.speed` | `100` | `100` to `200`. Every racer's top speed and acceleration as a percentage. |
 | `modifiers.mirror` | `false` | `true`, `false`. Mirrors every track. |
@@ -193,6 +196,9 @@ Each `<action>` has a default in every set. The left stick always steers. The me
 | `toggle_display` | `M` | `E` | `Keypad 7` | `back` |
 | `change_camera` | `Right Ctrl` | `Q` | `Keypad 3` | `y` |
 | `look_back` | `Right Alt` | `Z` | `Keypad 9` | `rightstick` |
+| `boost` | `B` | `R` | `Keypad 1` | `leftstick` |
+| `slow_motion` | `N` | `F` | `Keypad 0` | |
+| `skip_ahead` | `J` | `C` | `Keypad 5` | |
 | `menu_up` | `Up` | | | `dpup` |
 | `menu_down` | `Down` | | | `dpdown` |
 | `menu_left` | `Left` | | | `dpleft` |

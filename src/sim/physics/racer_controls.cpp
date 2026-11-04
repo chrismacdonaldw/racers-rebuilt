@@ -14,6 +14,8 @@ RacerControls ControlsFrom(const PlayerInput& input) {
             .isBrakeHeld = input.IsHeld(Action::Brake),
             .isDriftHeld = input.IsHeld(Action::Drift),
             .isUsePressed = input.WasPressed(Action::UsePowerup),
+            .isBoostPressed = input.WasPressed(Action::Boost),
+            .isSkipPressed = input.WasPressed(Action::SkipAhead),
             .steerLeftAxis = static_cast<float>(input.steerLeftAxis) / kAxisScale};
 }
 

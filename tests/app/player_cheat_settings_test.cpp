@@ -28,6 +28,9 @@ void TurnEverythingOn(settings::Registry& registry) {
     registry.Set(kPerfectStartCheat, true);
     registry.Set(kFreeWarpCheat, true);
     registry.Set(kHeadStartCheat, 4);
+    registry.Set(kBoostButtonCheat, true);
+    registry.Set(kSlowMotionCheat, true);
+    registry.Set(kSkipAheadCheat, true);
 }
 
 }
@@ -52,6 +55,8 @@ TEST_CASE("the player cheat settings carry into the race") {
     CHECK(cheats.hasPerfectStart);
     CHECK(cheats.hasFreeWarp);
     CHECK(cheats.headStart == Milliseconds{4000});
+    CHECK(cheats.hasBoostButton);
+    CHECK(cheats.hasSkipAhead);
 }
 
 TEST_CASE("the original preset turns every player cheat off and the enhanced one keeps them") {
@@ -62,8 +67,10 @@ TEST_CASE("the original preset turns every player cheat off and the enhanced one
 
     static_cast<void>(ApplyPreset(registry, presets[1]));
     CHECK(PlayerCheatsFrom(registry).isInvincible);
+    CHECK(registry.Get(kSlowMotionCheat));
     static_cast<void>(ApplyPreset(registry, presets[0]));
     CHECK(PlayerCheatsFrom(registry) == sim::PlayerCheats{});
+    CHECK_FALSE(registry.Get(kSlowMotionCheat));
 }
 
 }

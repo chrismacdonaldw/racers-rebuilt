@@ -117,6 +117,8 @@ private:
     [[nodiscard]] bool WantsPowerup(std::size_t racer, Milliseconds elapsed,
                                     const RacerControls& controls);
     void UsePowerup(std::size_t racer);
+    [[nodiscard]] bool UseButtonCheats(std::size_t racer, const RacerControls& controls);
+    [[nodiscard]] bool SkipAhead(std::size_t racer);
     void Taunt(std::size_t racer);
     void StartRacing();
     void ReleaseComputerRacers(Milliseconds elapsed);

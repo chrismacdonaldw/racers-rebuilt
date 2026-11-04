@@ -19,6 +19,9 @@ enum class Action : std::uint8_t {
     ToggleDisplay,
     ChangeCamera,
     LookBack,
+    Boost,
+    SlowMotion,
+    SkipAhead,
     Count,
 };
 
