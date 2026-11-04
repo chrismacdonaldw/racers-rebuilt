@@ -63,16 +63,19 @@ TEST_CASE("the original preset clears the cheats and the enhanced one keeps them
     CHECK_FALSE(IsPresetActive(registry, enhanced));
 }
 
-TEST_CASE("the original preset turns smoothing and clipping prevention off, enhanced on") {
+TEST_CASE("the original preset turns smoothing, filtering and clipping prevention off") {
     settings::Registry registry = DeclaredRegistry();
     const std::vector<settings::SettingPreset> presets = EnhancementPresets();
     REQUIRE(presets.size() == 2);
 
+    CHECK_FALSE(registry.Get(kAnisotropicFilteringSetting));
     static_cast<void>(ApplyPreset(registry, presets[0]));
     CHECK_FALSE(registry.Get(kSmoothTexturesSetting));
+    CHECK_FALSE(registry.Get(kAnisotropicFilteringSetting));
     CHECK_FALSE(registry.Get(kPreventClipping));
     static_cast<void>(ApplyPreset(registry, presets[1]));
     CHECK(registry.Get(kSmoothTexturesSetting));
+    CHECK(registry.Get(kAnisotropicFilteringSetting));
     CHECK(registry.Get(kPreventClipping));
 }
 

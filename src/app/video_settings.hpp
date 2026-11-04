@@ -38,6 +38,12 @@ inline constexpr settings::SettingSpec<bool> kSmoothTexturesSetting{.key = "vide
                                                                     .label = "Smooth textures",
                                                                     .category = "Video"};
 
+inline constexpr settings::SettingSpec<bool> kAnisotropicFilteringSetting{
+    .key = "video.anisotropic_filtering",
+    .defaultValue = false,
+    .label = "Anisotropic filtering",
+    .category = "Video"};
+
 /// Draws cars past the original's 500 units from the camera.
 inline constexpr settings::SettingSpec<bool> kFarCarsSetting{
     .key = "video.far_cars", .defaultValue = true, .label = "Draw far cars", .category = "Video"};

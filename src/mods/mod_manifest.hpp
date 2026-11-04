@@ -15,7 +15,9 @@ struct ModManifest {
     bool isEnabledByDefault = true;
 };
 
-/// Ids are lowercase letters, digits, `_` and `-`, since they become setting keys.
+/// Lowercase letters, digits, `_` and `-`, since ids become setting keys.
+[[nodiscard]] bool IsValidModId(std::string_view id);
+
 [[nodiscard]] Result<ModManifest> ParseModManifest(std::string_view text,
                                                    std::string_view sourceName);
 

@@ -226,6 +226,8 @@ rr_add_module(app
         startup_settings.cpp
         startup_timer.cpp
         test_scene.cpp
+        texture_keys.cpp
+        texture_pack.cpp
         texture_scroll.cpp
         time_trial/ghost_car.cpp
         time_trial/ghost_cars.cpp

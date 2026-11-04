@@ -22,6 +22,7 @@ struct TextFlag {
 constexpr std::array kTextFlags{
     TextFlag{.flag = "--game-path", .field = &CommandLine::gamePath},
     TextFlag{.flag = "--dump-images", .field = &CommandLine::imageDumpFolder},
+    TextFlag{.flag = "--dump-textures", .field = &CommandLine::texturePackFolder},
     TextFlag{.flag = "--track", .field = &CommandLine::track},
     TextFlag{.flag = "--race", .field = &CommandLine::race},
     TextFlag{.flag = "--cutscene", .field = &CommandLine::cutscene},

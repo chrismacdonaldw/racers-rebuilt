@@ -26,6 +26,7 @@ struct FrameSettings {
     UiFit uiFit = UiFit::Centered;
     SceneFit sceneFit = SceneFit::Canvas;
     bool isSmoothingTextures = true;
+    bool isAnisotropicFiltering = false;
     std::optional<SpriteDraw> pointer;
     OverlayPass* overlay = nullptr;
 };

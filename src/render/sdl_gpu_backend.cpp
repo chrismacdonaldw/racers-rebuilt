@@ -22,6 +22,7 @@ namespace rr::render {
 namespace {
 
 constexpr float kMaxLod = 16.0F;
+constexpr float kMaxAnisotropy = 16.0F;
 constexpr std::size_t kLineVertexBytes = kMaxDebugLines * 2 * sizeof(LineVertex);
 constexpr std::size_t kSpriteVertexBytes = kMaxSprites * kVerticesPerSprite * sizeof(SpriteVertex);
 constexpr std::size_t kQuadVertexBytes = kMaxQuads * kVerticesPerSprite * sizeof(QuadVertex);
@@ -38,11 +39,8 @@ assets::ImageAsset WhitePixel() {
     return {.widthPx = 1, .heightPx = 1, .rgba = std::vector(4, std::byte{0xFF})};
 }
 
-std::size_t SamplerSlot(TextureFilter filter, TextureAddress address) {
-    return (static_cast<std::size_t>(filter) * 2) + static_cast<std::size_t>(address);
-}
-
-GpuSampler CreateSampler(SDL_GPUDevice* device, TextureFilter filter, TextureAddress address) {
+GpuSampler CreateSampler(SDL_GPUDevice* device, TextureFilter filter, TextureAddress address,
+                         bool isAnisotropic) {
     const SDL_GPUFilter texels =
         filter == TextureFilter::Point ? SDL_GPU_FILTER_NEAREST : SDL_GPU_FILTER_LINEAR;
     const SDL_GPUSamplerAddressMode edges = address == TextureAddress::Clamp
@@ -54,7 +52,9 @@ GpuSampler CreateSampler(SDL_GPUDevice* device, TextureFilter filter, TextureAdd
                                         .address_mode_u = edges,
                                         .address_mode_v = edges,
                                         .address_mode_w = edges,
-                                        .max_lod = kMaxLod};
+                                        .max_anisotropy = isAnisotropic ? kMaxAnisotropy : 0.0F,
+                                        .max_lod = kMaxLod,
+                                        .enable_anisotropy = isAnisotropic};
     return {device, SDL_CreateGPUSampler(device, &info)};
 }
 
@@ -261,13 +261,19 @@ Result<void> SdlGpuBackend::CreateResources() {
     quadStream_ = std::move(*quadStream);
     spriteStream_ = std::move(*spriteStream);
     spriteIndices_ = std::move(*spriteIndices);
+    return CreateSamplers();
+}
+
+Result<void> SdlGpuBackend::CreateSamplers() {
     for (const TextureFilter filter : {TextureFilter::Linear, TextureFilter::Point}) {
         for (const TextureAddress address : {TextureAddress::Repeat, TextureAddress::Clamp}) {
-            GpuSampler sampler = CreateSampler(device_.get(), filter, address);
-            if (sampler.Get() == nullptr) {
-                return GpuFailure("can't create renderer samplers");
+            for (const bool isAnisotropic : {false, filter == TextureFilter::Linear}) {
+                GpuSampler sampler = CreateSampler(device_.get(), filter, address, isAnisotropic);
+                if (sampler.Get() == nullptr) {
+                    return GpuFailure("can't create renderer samplers");
+                }
+                samplers_.at(SamplerSlot(filter, address, isAnisotropic)) = std::move(sampler);
             }
-            samplers_.at(SamplerSlot(filter, address)) = std::move(sampler);
         }
     }
     return {};
@@ -306,7 +312,7 @@ SDL_GPUTexture* SdlGpuBackend::Shown(TextureId texture) const {
 }
 
 SDL_GPUSampler* SdlGpuBackend::Sampler(TextureFilter filter, TextureAddress address) const {
-    return samplers_.at(SamplerSlot(filter, address)).Get();
+    return samplers_.at(SamplerSlot(filter, address, settings_.isAnisotropicFiltering)).Get();
 }
 
 void SdlGpuBackend::DeviceDeleter::operator()(SDL_GPUDevice* device) const {
