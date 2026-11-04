@@ -2,11 +2,14 @@
 
 #include <algorithm>
 #include <format>
+#include <iterator>
 #include <string>
 #include <utility>
 
+#include "assets/driver_table.hpp"
 #include "assets/game_path.hpp"
 #include "assets/merged_table.hpp"
+#include "core/log.hpp"
 
 namespace rr::assets {
 namespace {
@@ -35,10 +38,25 @@ Result<Entry> FindNamed(const std::vector<Entry>& entries, std::string_view name
 }
 
 Result<RacerCatalog> RacerCatalog::Load(const Vfs& vfs) {
+    std::vector<std::string> problems;
+    Result<RacerCatalog> catalog = Load(vfs, problems);
+    for (const std::string& problem : problems) {
+        log::Warn("{}, leaving it out", problem);
+    }
+    return catalog;
+}
+
+Result<RacerCatalog> RacerCatalog::Load(const Vfs& vfs, std::vector<std::string>& problems) {
     RacerCatalog catalog;
     return ReadTable(vfs, "DRIVERS.DDB", ParseDrivers)
         .and_then([&](std::vector<DriverEntry> drivers) {
             catalog.drivers_ = std::move(drivers);
+            return ReadDriverTables(vfs);
+        })
+        .and_then([&](const ModTables<DriverPatch>& tables) {
+            std::ranges::copy(tables.problems, std::back_inserter(problems));
+            std::ranges::move(ApplyDriverPatches(tables.entries, catalog.drivers_),
+                              std::back_inserter(problems));
             return ReadTable(vfs, "CHAMPS.CCB", ParseChampions);
         })
         .and_then([&](std::vector<ChampionEntry> champions) {
@@ -51,9 +69,13 @@ Result<RacerCatalog> RacerCatalog::Load(const Vfs& vfs) {
         });
 }
 
+Result<DriverEntry> RacerCatalog::FindDriver(std::string_view code) const {
+    return FindNamed(drivers_, code, "DRIVERS.DDB");
+}
+
 Result<RacerFiles> RacerCatalog::Find(std::string_view code) const {
     RacerFiles files;
-    return FindNamed(drivers_, code, "DRIVERS.DDB")
+    return FindDriver(code)
         .and_then([&](DriverEntry driver) {
             files.driver = std::move(driver);
             return FindNamed(champions_, files.driver.champion, "CHAMPS.CCB");

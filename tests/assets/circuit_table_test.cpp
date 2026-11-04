@@ -99,7 +99,7 @@ TEST_CASE("a circuit table rejects bad names, grids and races") {
          "CIRCUITS.TOML: circuit 1: each race must be a track folder or a table with track and "
          "mirrored"},
         {"[[circuit]]\nname = \"a\"\ntitle = 3\n", "CIRCUITS.TOML: circuit 1: title must be text"},
-        {"circuit = 3\n", "CIRCUITS.TOML: circuits must be [[circuit]] tables"}};
+        {"circuit = 3\n", "CIRCUITS.TOML: circuit must be [[circuit]] tables"}};
 
     for (const auto& [text, error] : cases) {
         CAPTURE(text);

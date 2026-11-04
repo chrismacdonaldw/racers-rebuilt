@@ -82,6 +82,16 @@ settings::Racer RacerFromSave(const assets::SavedRacer& saved) {
             .trophies = {}};
 }
 
+Result<std::optional<settings::Racer>> FindDriverRacer(const assets::Vfs& vfs,
+                                                       const assets::DriverEntry& driver) {
+    if (driver.racer.empty()) {
+        return std::optional<settings::Racer>();
+    }
+    return FindGameRacer(vfs, {.name = driver.racer}).transform([](settings::Racer racer) {
+        return std::optional(std::move(racer));
+    });
+}
+
 Result<settings::Racer> FindGameRacer(const assets::Vfs& vfs, const RacerRef& ref) {
     Result<std::vector<settings::Racer>> defaults = ReadDefaultRacers(vfs);
     Result<std::vector<settings::Racer>> quickBuilds =

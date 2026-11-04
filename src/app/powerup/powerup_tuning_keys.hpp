@@ -7,6 +7,7 @@
 #include <optional>
 #include <string_view>
 
+#include "assets/brick_layout.hpp"
 #include "core/duration.hpp"
 #include "sim/powerup/powerup_tuning.hpp"
 
@@ -39,8 +40,8 @@ inline constexpr std::array<std::string_view, sim::kPowerupKindCount> kKindNames
     "cannonball", "grappling_hook", "lightning", "missile", "oil_slick", "dynamite",
     "magnet",     "curse",          "shield",    "turbo",   "warp"};
 
-inline constexpr std::array<std::string_view, sim::kPowerupColourCount> kColourNames{
-    "red", "blue", "green", "yellow"};
+inline constexpr std::array<std::string_view, sim::kPowerupColourCount> kColourNames =
+    assets::kBrickColourNames;
 
 inline constexpr std::array<std::string_view, 3> kTurboNames{"weak", "strong", "hover"};
 

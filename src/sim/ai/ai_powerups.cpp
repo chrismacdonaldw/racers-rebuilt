@@ -63,6 +63,9 @@ bool AiPowerupUser::Tick(Milliseconds elapsed, const AiPowerupView& view, Random
 }
 
 bool AiPowerupUser::RollsStartBoost(Random& random) const {
+    if (habits_.startBoost) {
+        return *habits_.startBoost;
+    }
     return Rolls(habits_.UseChance(BrickColour::Green), random);
 }
 

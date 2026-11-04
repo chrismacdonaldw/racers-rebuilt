@@ -1,6 +1,7 @@
 #pragma once
 
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -21,9 +22,16 @@ struct RacerFiles {
 /// Prebuilt drivers and their cars from `GAMEDATA/COMMON`, merged with the tables mods add.
 class RacerCatalog {
 public:
+    /// Applies every mod's driver table, and logs the changes it skips.
     [[nodiscard]] static Result<RacerCatalog> Load(const Vfs& vfs);
+    /// Collects the skipped driver table changes instead of logging them.
+    [[nodiscard]] static Result<RacerCatalog> Load(const Vfs& vfs,
+                                                   std::vector<std::string>& problems);
 
     [[nodiscard]] std::span<const DriverEntry> Drivers() const { return drivers_; }
+
+    /// Matches `code` in any case.
+    [[nodiscard]] Result<DriverEntry> FindDriver(std::string_view code) const;
 
     /// Matches `code` in any case. Fails when the driver, its champion or its chassis is missing.
     [[nodiscard]] Result<RacerFiles> Find(std::string_view code) const;

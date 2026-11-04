@@ -2,11 +2,13 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include "app/cutscene/cutscene_play.hpp"
 #include "assets/driver_database.hpp"
 #include "assets/driver_look.hpp"
 #include "assets/geometry_asset.hpp"
+#include "assets/racer_catalog.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -22,6 +24,11 @@ struct AwardDriver {
 };
 
 [[nodiscard]] Result<assets::DriverLook> DriverLookOf(const assets::DriverEntry& driver);
+
+/// The look of the driver `code` names: its racer's when it races as one, else its own parts.
+[[nodiscard]] Result<assets::DriverLook> DriverLookOfCode(const assets::Vfs& vfs,
+                                                          const assets::RacerCatalog& catalog,
+                                                          std::string_view code);
 
 /// The player's own racer when `play` has one, else the prebuilt driver `play.driver` names.
 [[nodiscard]] Result<assets::DriverLook> AwardLook(const assets::Vfs& vfs,

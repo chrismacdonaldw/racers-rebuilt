@@ -18,6 +18,7 @@ rr_add_module(assets
         cutscene_timeline.cpp
         derived_shape.cpp
         driver_database.cpp
+        driver_table.cpp
         driver_model.cpp
         driver_parts.cpp
         emitter_library.cpp
@@ -88,6 +89,7 @@ rr_add_module(assets
         surface_transfer.cpp
         target_points.cpp
         texture_database.cpp
+        toml_entries.cpp
         tga_image.cpp
         token_reader.cpp
         token_schema.cpp
@@ -103,9 +105,7 @@ rr_add_module(assets
 target_include_directories(rr_assets SYSTEM PRIVATE "${STB_INCLUDE_DIR}" "${CGLTF_INCLUDE_DIR}"
     $<TARGET_PROPERTY:tomlplusplus::tomlplusplus,INTERFACE_INCLUDE_DIRECTORIES>
 )
-set_source_files_properties(circuit_table.cpp PROPERTIES
-    COMPILE_DEFINITIONS "TOML_HEADER_ONLY=1;TOML_EXCEPTIONS=0"
-)
+target_compile_definitions(rr_assets PRIVATE TOML_HEADER_ONLY=1 TOML_EXCEPTIONS=0)
 set_source_files_properties(cgltf.cpp PROPERTIES COMPILE_DEFINITIONS CGLTF_IMPLEMENTATION)
 set_source_files_properties(stb_image.cpp PROPERTIES
     COMPILE_DEFINITIONS "STB_IMAGE_IMPLEMENTATION;STBI_ONLY_PNG;STBI_NO_STDIO"

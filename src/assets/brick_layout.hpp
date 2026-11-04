@@ -1,8 +1,10 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string_view>
 #include <vector>
 
 #include "core/duration.hpp"
@@ -17,6 +19,9 @@ enum class BrickColour : std::uint8_t {
     Green,
     Yellow,
 };
+
+inline constexpr std::array<std::string_view, 4> kBrickColourNames{"red", "blue", "green",
+                                                                   "yellow"};
 
 inline constexpr Milliseconds kDefaultBrickRespawn{3000};
 

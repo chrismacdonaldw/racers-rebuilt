@@ -224,5 +224,17 @@ TEST_CASE("a start boost needs a roll below the green chance") {
     CHECK(AiPowerupUser(Chance(BrickColour::Green, roll + 1)).RollsStartBoost(random));
 }
 
+TEST_CASE("a set start boost skips the roll") {
+    PowerupHabits always = Chance(BrickColour::Green, 0);
+    always.startBoost = true;
+    PowerupHabits never = Chance(BrickColour::Green, kSureUseChance);
+    never.startBoost = false;
+    Random random(kSeed);
+
+    CHECK(AiPowerupUser(always).RollsStartBoost(random));
+    CHECK_FALSE(AiPowerupUser(never).RollsStartBoost(random));
+    CHECK(random.Next() == Random(kSeed).Next());
+}
+
 }
 }

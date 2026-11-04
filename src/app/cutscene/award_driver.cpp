@@ -11,6 +11,7 @@
 #include <utility>
 
 #include "app/cutscene/cutscene_racer.hpp"
+#include "app/racer/racer_lookup.hpp"
 #include "app/racer/racer_models.hpp"
 #include "assets/driver_model.hpp"
 #include "assets/driver_parts.hpp"
@@ -55,13 +56,24 @@ Result<assets::DriverLook> DriverLookOf(const assets::DriverEntry& driver) {
                               .expression = static_cast<std::uint8_t>(driver.expressionIndex)};
 }
 
+Result<assets::DriverLook> DriverLookOfCode(const assets::Vfs& vfs,
+                                            const assets::RacerCatalog& catalog,
+                                            std::string_view code) {
+    const Result<assets::DriverEntry> driver = catalog.FindDriver(code);
+    return driver
+        .and_then([&](const assets::DriverEntry& entry) { return FindDriverRacer(vfs, entry); })
+        .and_then([&](const std::optional<settings::Racer>& racer) -> Result<assets::DriverLook> {
+            return racer ? Result<assets::DriverLook>(racer->look) : DriverLookOf(*driver);
+        });
+}
+
 Result<assets::DriverLook> AwardLook(const assets::Vfs& vfs, const CutscenePlay& play) {
     if (play.playerRacer) {
         return play.playerRacer->look;
     }
-    return assets::RacerCatalog::Load(vfs)
-        .and_then([&](const assets::RacerCatalog& catalog) { return catalog.Find(play.driver); })
-        .and_then([](const assets::RacerFiles& racer) { return DriverLookOf(racer.driver); });
+    return assets::RacerCatalog::Load(vfs).and_then([&](const assets::RacerCatalog& catalog) {
+        return DriverLookOfCode(vfs, catalog, play.driver);
+    });
 }
 
 Result<AwardDriver> LoadAwardDriver(const assets::Vfs& vfs, assets::TrackLoader& loader,

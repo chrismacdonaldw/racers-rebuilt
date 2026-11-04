@@ -18,6 +18,7 @@ struct PowerupHabits {
                                                            kSureUseChance, kSureUseChance};
     std::optional<assets::BrickColour> chargeColour;
     std::size_t chargeWhites = 0;
+    std::optional<bool> startBoost;
 
     [[nodiscard]] std::uint8_t UseChance(assets::BrickColour colour) const {
         return useChances[static_cast<std::size_t>(colour)];

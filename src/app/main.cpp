@@ -1,10 +1,7 @@
 #include <SDL3/SDL_main.h>
 
-#include <algorithm>
 #include <cstdlib>
-#include <iterator>
 #include <span>
-#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -13,13 +10,12 @@
 #include "app/circuit_awards.hpp"
 #include "app/game_boot.hpp"
 #include "app/image_dump.hpp"
+#include "app/mod_content.hpp"
 #include "app/model_export.hpp"
 #include "app/powerup/powerup_tuning_file.hpp"
 #include "app/restart.hpp"
 #include "app/save_import.hpp"
 #include "app/texture_pack.hpp"
-#include "app/track_info.hpp"
-#include "assets/circuit_table.hpp"
 #include "core/result.hpp"
 #include "core/utf8_path.hpp"
 #include "mods/mod_check.hpp"
@@ -34,10 +30,8 @@ rr::Result<void> Run(std::span<const std::string_view> argv) {
     }
     boot->relaunch = rr::app::RelaunchCommand(argv);
     if (boot->commandLine.checkMods) {
-        std::vector<std::string> problems = rr::app::TrackInfoProblems(boot->vfs);
-        std::ranges::move(rr::assets::CircuitTableProblems(boot->vfs),
-                          std::back_inserter(problems));
-        return rr::mods::CheckMods(boot->extensions.mods, boot->settings, std::move(problems));
+        return rr::mods::CheckMods(boot->extensions.mods, boot->settings,
+                                   rr::app::ModContentProblems(boot->vfs));
     }
     if (boot->commandLine.importSaveFile) {
         const rr::Result<bool> imported = rr::app::ImportOriginalSave(

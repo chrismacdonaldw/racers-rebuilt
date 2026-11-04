@@ -7,6 +7,7 @@
 
 #include "app/race_scene_name.hpp"
 #include "app/racer/racer_ref.hpp"
+#include "assets/driver_database.hpp"
 #include "assets/original_save.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -43,6 +44,10 @@ namespace rr::app {
 /// Logs a racers file that doesn't load, and gives none for it.
 [[nodiscard]] std::optional<settings::Racer> SelectedRacerOrNone(
     const std::filesystem::path& racersFile);
+
+/// The game racer a mod driver races as, or none for a prebuilt driver.
+[[nodiscard]] Result<std::optional<settings::Racer>> FindDriverRacer(
+    const assets::Vfs& vfs, const assets::DriverEntry& driver);
 
 /// The game's `CHAMP` quick build on `chassis`, the car a champion hands over.
 [[nodiscard]] Result<settings::Racer> FindChampionCar(const assets::Vfs& vfs,

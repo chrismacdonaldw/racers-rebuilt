@@ -63,13 +63,13 @@ Result<RaceCatalog> RaceCatalog::Load(const Vfs& vfs, std::vector<std::string>& 
     Result<std::vector<CircuitEntry>> circuits = ReadFile(vfs, kCircuitsPath, ParseCircuits);
     Result<std::vector<RaceEntry>> races = circuits.and_then(
         [&](const std::vector<CircuitEntry>&) { return ReadFile(vfs, kRacesPath, ParseRaces); });
-    Result<CircuitTables> tables =
+    Result<ModTables<CircuitPatch>> tables =
         races.and_then([&](const std::vector<RaceEntry>&) { return ReadCircuitTables(vfs); });
     if (!tables) {
         return std::unexpected(std::move(tables.error()));
     }
     std::ranges::move(tables->problems, std::back_inserter(problems));
-    std::ranges::move(ApplyCircuitPatches(tables->patches, *circuits, *races),
+    std::ranges::move(ApplyCircuitPatches(tables->entries, *circuits, *races),
                       std::back_inserter(problems));
     return Create(std::move(*circuits), std::move(*races));
 }

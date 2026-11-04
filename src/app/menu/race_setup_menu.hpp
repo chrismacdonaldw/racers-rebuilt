@@ -16,10 +16,11 @@
 
 namespace rr::app {
 
-/// `nameIndex` is a `DRIVERS.SRF` line, or -1.
+/// `nameIndex` is a `DRIVERS.SRF` line, or -1. A mod's `title` replaces it.
 struct RacerChoice {
     std::string code;
     std::int32_t nameIndex = -1;
+    std::string title;
 };
 
 /// A single race's track, or a whole circuit when `track` is empty; versus ignores `lapCount`.

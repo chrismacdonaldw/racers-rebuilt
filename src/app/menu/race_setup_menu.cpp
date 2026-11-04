@@ -52,8 +52,10 @@ std::size_t Wrap(std::size_t value, int step, std::size_t count) {
 }
 
 RacerChoice ChoiceOf(const assets::RacerCatalog& catalog, const std::string& code) {
-    const Result<assets::RacerFiles> files = catalog.Find(code);
-    return {.code = code, .nameIndex = files ? files->driver.nameIndex : -1};
+    const Result<assets::DriverEntry> driver = catalog.FindDriver(code);
+    return {.code = code,
+            .nameIndex = driver ? driver->nameIndex : -1,
+            .title = driver ? driver->title : std::string()};
 }
 
 Result<std::vector<std::u16string>> ReadStrings(const assets::Vfs& vfs, std::string_view path) {

@@ -213,6 +213,7 @@ add_executable(racers-rebuilt-tests
     assets/driver_database_test.cpp
     assets/driver_model_test.cpp
     assets/driver_parts_test.cpp
+    assets/driver_table_test.cpp
     assets/emitter_library_test.cpp
     assets/event_table_test.cpp
     assets/face_drawing_test.cpp

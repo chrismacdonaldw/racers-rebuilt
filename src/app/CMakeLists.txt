@@ -239,6 +239,7 @@ rr_add_module(app
         screenshots.cpp
         sound_banks.cpp
         menu_pointer.cpp
+        mod_content.cpp
         model_export.cpp
         save_import.cpp
         sprite_test_scene.cpp
