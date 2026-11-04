@@ -34,6 +34,9 @@ rr_add_module(assets
         image_list.cpp
         install.cpp
         jam.cpp
+        ldraw.cpp
+        ldraw_part.cpp
+        ldraw_pieces.cpp
         jam_archive.cpp
         loader_pool.cpp
         loading_screen.cpp

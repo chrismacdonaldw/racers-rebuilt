@@ -1,0 +1,171 @@
+#include "assets/ldraw_pieces.hpp"
+
+#include <doctest/doctest.h>
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <vector>
+
+#include "archive_survey.hpp"
+#include "assets/ldraw_part.hpp"
+#include "assets/piece_library.hpp"
+#include "sim/car_build/mesh_primitives.hpp"
+
+namespace rr::assets {
+namespace {
+
+using Triangle = std::array<Vector3, 3>;
+
+constexpr float kGameUnitsPerPlate = 0.4F;
+constexpr float kTolerance = 0.0001F;
+constexpr float kHeightTolerance = 0.05F;
+constexpr std::array kSampleOffsets{0.1F, 0.9F};
+
+std::optional<float> TopAt(const std::vector<Triangle>& triangles, float x, float y) {
+    std::optional<float> top;
+    for (const Triangle& t : triangles) {
+        const float d =
+            ((t[1].y - t[2].y) * (t[0].x - t[2].x)) + ((t[2].x - t[1].x) * (t[0].y - t[2].y));
+        if (std::abs(d) < 1e-6F) {
+            continue;
+        }
+        const float a =
+            (((t[1].y - t[2].y) * (x - t[2].x)) + ((t[2].x - t[1].x) * (y - t[2].y))) / d;
+        const float b =
+            (((t[2].y - t[0].y) * (x - t[2].x)) + ((t[0].x - t[2].x) * (y - t[2].y))) / d;
+        const float c = 1.0F - a - b;
+        if (a < -1e-4F || b < -1e-4F || c < -1e-4F) {
+            continue;
+        }
+        const float z = (a * t[0].z) + (b * t[1].z) + (c * t[2].z);
+        top = top ? std::max(*top, z) : z;
+    }
+    return top;
+}
+
+std::vector<Triangle> OriginalTriangles(const PieceLibrary& library, const PieceRecord& record) {
+    sim::MeshPrimitives primitives;
+    REQUIRE(primitives.AddPiece(library, {.piece = &record}, false).has_value());
+    const auto at = [&](std::uint32_t index) {
+        Vector3 position = primitives.Vertex(index).position;
+        position.z *= kGameUnitsPerPlate;
+        return position;
+    };
+    std::vector<Triangle> triangles;
+    for (std::size_t slot = 0; slot < primitives.Live(); ++slot) {
+        const sim::MeshPrimitive& primitive = primitives.At(slot);
+        triangles.push_back(
+            {at(primitive.corners[0]), at(primitive.corners[1]), at(primitive.corners[2])});
+        if (primitive.cornerCount == 4) {
+            triangles.push_back(
+                {at(primitive.corners[3]), at(primitive.corners[1]), at(primitive.corners[2])});
+        }
+    }
+    return triangles;
+}
+
+std::vector<Triangle> PlacedTriangles(const GeometryAsset& part, const LdrawMatrix& matrix) {
+    const auto at = [&](std::uint32_t index) {
+        return Apply(matrix, part.vertices[index].position);
+    };
+    std::vector<Triangle> triangles;
+    for (std::size_t i = 0; i + 2 < part.indices.size(); i += 3) {
+        triangles.push_back(
+            {at(part.indices[i]), at(part.indices[i + 1]), at(part.indices[i + 2])});
+    }
+    return triangles;
+}
+
+Vector3 Lowest(const GeometryAsset& part, const LdrawMatrix& matrix) {
+    Vector3 low = Apply(matrix, part.vertices.front().position);
+    for (const GeometryVertex& vertex : part.vertices) {
+        const Vector3 p = Apply(matrix, vertex.position);
+        low = {.x = std::min(low.x, p.x), .y = std::min(low.y, p.y), .z = std::min(low.z, p.z)};
+    }
+    return low;
+}
+
+bool SitsOnCells(LdrawLibrary& library, const LdrawPiece& mapped) {
+    const Result<GeometryAsset> part = library.LoadPart(mapped.file);
+    if (!part) {
+        return false;
+    }
+    const Vector3 low = Lowest(*part, mapped.matrix);
+    return low.x > -kTolerance && low.y > -kTolerance && std::abs(low.z) < kTolerance;
+}
+
+std::vector<std::array<float, 2>> SamplePoints(const PieceRecord& record) {
+    std::vector<std::array<float, 2>> points;
+    points.reserve(static_cast<std::size_t>(record.shape.size.width * record.shape.size.height) *
+                   kSampleOffsets.size() * kSampleOffsets.size());
+    for (int cx = 0; cx < record.shape.size.width; ++cx) {
+        for (int cy = 0; cy < record.shape.size.height; ++cy) {
+            for (const float fx : kSampleOffsets) {
+                for (const float fy : kSampleOffsets) {
+                    points.push_back({static_cast<float>(cx) + fx, static_cast<float>(cy) + fy});
+                }
+            }
+        }
+    }
+    return points;
+}
+
+std::optional<int> TopMismatches(const PieceLibrary& original, LdrawLibrary& library,
+                                 const LdrawPiece& mapped) {
+    const PieceRecord* record = original.Find(mapped.piece);
+    const Result<GeometryAsset> part = library.LoadPart(mapped.file);
+    if (record == nullptr || !part) {
+        return std::nullopt;
+    }
+    const std::vector<Triangle> expected = OriginalTriangles(original, *record);
+    const std::vector<Triangle> placed = PlacedTriangles(*part, mapped.matrix);
+    int mismatches = 0;
+    for (const auto& [x, y] : SamplePoints(*record)) {
+        const std::optional<float> want = TopAt(expected, x, y);
+        const std::optional<float> got = TopAt(placed, x, y);
+        if (want.has_value() != got.has_value() ||
+            (want && got && std::abs(*want - *got) >= kHeightTolerance)) {
+            ++mismatches;
+        }
+    }
+    return mismatches;
+}
+
+TEST_CASE("every mapped piece loads from the shipped parts and sits on its cells") {
+    LdrawLibrary library(RR_LDRAW_DIR);
+
+    for (const LdrawPiece& mapped : LdrawPieces()) {
+        CAPTURE(mapped.piece);
+        CHECK(SitsOnCells(library, mapped));
+    }
+}
+
+TEST_CASE("a piece is found by name in any case") {
+    CHECK(LdrawPieceFor("l300100").value_or(LdrawPiece{}).file == "3001.dat");
+    CHECK_FALSE(LdrawPieceFor("L999900").has_value());
+}
+
+TEST_CASE("mapped pieces have the original pieces' top heights away from the studs") {
+    const std::optional<Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const Result<PieceLibrary> original =
+        vfs->Read("MENUDATA/PIECEDB/LPIECEHI.LEB").and_then([](const FileData& data) {
+            return ParsePieceLibrary(data.Bytes());
+        });
+    REQUIRE(original.has_value());
+    LdrawLibrary library(RR_LDRAW_DIR);
+
+    for (const LdrawPiece& mapped : LdrawPieces()) {
+        CAPTURE(mapped.piece);
+        CHECK(TopMismatches(*original, library, mapped) == 0);
+    }
+}
+
+}
+}
