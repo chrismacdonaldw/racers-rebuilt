@@ -9,6 +9,8 @@
 
 namespace rr::sim {
 
+inline constexpr float kWarpRouteSpeed = 4.5F;
+
 /// Replays a route from its start pose instead of driving; only its playback speed changes.
 class AiRacer {
 public:
@@ -38,7 +40,7 @@ public:
     void EndBoost();
     void StartCurseSlow();
     void EndCurseSlow();
-    void StartGhost();
+    void StartGhost(float speed = kWarpRouteSpeed);
     void EndGhost();
     void HoldAt(float speed);
     void Release();

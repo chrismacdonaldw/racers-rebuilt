@@ -11,6 +11,7 @@
 #include "assets/game_version.hpp"
 #include "core/result.hpp"
 #include "settings/racers.hpp"
+#include "sim/powerup/warp_rules.hpp"
 #include "sim/race/cheats.hpp"
 #include "sim/race/circuit_run.hpp"
 #include "sim/race/player_cheats.hpp"
@@ -27,7 +28,7 @@ inline constexpr int kMaxAiPace = 150;
 
 /// Players drive grid slots `racer` then `secondRacer`, two alone. Empty `circuit` means home.
 /// `playerRacer` and `secondPlayerRacer` resolve `player` and `secondPlayer`. They, `carBody`,
-/// `version`, `lagsInput`, `modifiers` and `playerCheats` aren't named.
+/// `version`, `lagsInput`, `modifiers`, `playerCheats` and `warp` aren't named.
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct RaceSceneSetup {
     std::string track;
@@ -55,6 +56,7 @@ struct RaceSceneSetup {
     sim::Cheats cheats;
     RaceModifiers modifiers;
     sim::PlayerCheats playerCheats;
+    sim::WarpRules warp;
 
     friend bool operator==(const RaceSceneSetup&, const RaceSceneSetup&) = default;
 };

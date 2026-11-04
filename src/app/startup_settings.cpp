@@ -14,6 +14,7 @@
 #include "app/race_settings.hpp"
 #include "app/trigger_spheres.hpp"
 #include "app/video_settings.hpp"
+#include "app/warp_settings.hpp"
 #include "core/assert.hpp"
 #include "core/log.hpp"
 #include "settings/settings_file.hpp"
@@ -34,6 +35,7 @@ settings::Registry DeclaredRegistry(const Extensions& extensions) {
     DeclarePlayerCheatSettings(registry);
     DeclareModifierSettings(registry);
     DeclareFixSettings(registry);
+    DeclareWarpSettings(registry);
     DeclareDeveloperSettings(registry);
     DeclareExtensionSettings(extensions, registry);
     return registry;

@@ -95,6 +95,8 @@ rr_add_module(sim
         powerup/shot_world.cpp
         powerup/turbo_effect.cpp
         powerup/warp_effect.cpp
+        powerup/warp_landing.cpp
+        powerup/warp_rules.cpp
         powerup/weapon_hits.cpp
         powerup/yellow_effects.cpp
         race/cheats.cpp

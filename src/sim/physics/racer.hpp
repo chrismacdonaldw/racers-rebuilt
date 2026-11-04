@@ -31,6 +31,8 @@ struct RacerStart {
 
 enum class VoiceReaction : std::uint8_t { Negative, Positive };
 
+enum class WarpLaunch : std::uint8_t { Impulse, TopSpeed };
+
 /// What happened in the racer's last `Tick`, and in any `Go` or `StartTurbo` call since.
 struct RacerEvents {
     std::optional<TurboLevel> turboStarted;
@@ -138,7 +140,7 @@ public:
 
     void StartMagnetHold();
     void EndMagnetHold();
-    void EnterGhostMode();
+    void EnterGhostMode(float routeSpeed = kWarpRouteSpeed);
     void LeaveGhostMode();
     void ReactToHit();
 
@@ -154,13 +156,14 @@ public:
     /// Fails while the racer is a ghost or already warping. Ends any magnet hold.
     [[nodiscard]] bool BeginWarp();
     void CancelWarp();
-    void EnterWarp();
+    void EnterWarp(float routeSpeed = kWarpRouteSpeed);
 
     /// Does nothing to a racer on a route, which keeps playing it.
     void MoveWarp(const Vector3& position);
 
     /// Off a route, sets the car down at `position` and launches it along `direction`.
-    void LandWarp(const Vector3& position, const Vector3& direction);
+    void LandWarp(const Vector3& position, const Vector3& direction,
+                  WarpLaunch launch = WarpLaunch::Impulse);
 
     /// Replaces any shield already up, and lifts a curse.
     void RaiseShield(std::uint8_t level);

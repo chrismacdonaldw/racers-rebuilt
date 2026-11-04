@@ -1,14 +1,18 @@
 #include "sim/powerup/warp_effect.hpp"
 
+#include <cstddef>
+#include <optional>
+#include <span>
+
 #include "core/assert.hpp"
 #include "sim/physics/collision_query.hpp"
+#include "sim/powerup/warp_landing.hpp"
 
 namespace rr::sim {
 namespace {
 
 constexpr Milliseconds kStartingTime{500};
 constexpr Milliseconds kActiveTime{1500};
-constexpr float kWalkPerMs = 0.6F;
 constexpr Vector3 kDropFrom{.z = 5.0F};
 constexpr Vector3 kDropTo{.z = -50.0F};
 constexpr Vector3 kLandingHeight{.z = 5.0F};
@@ -29,6 +33,7 @@ void WarpEffect::Start(const PowerupUse& use, PowerupContext& context) {
     RR_ASSERT(use.hazard || (context.checkpoints != nullptr && context.progress != nullptr));
     racer_ = use.racer;
     aim_ = use.hazard ? std::optional(context.hazardAims[*use.hazard]) : std::nullopt;
+    pace_ = aim_ ? WarpPace{} : PaceFor(rules_, IsLeading(context));
     Racer& racer = context.racers[racer_];
     phase_ = racer.BeginWarp() ? WarpPhase::Starting : WarpPhase::Done;
     remaining_ = kStartingTime;
@@ -48,7 +53,7 @@ bool WarpEffect::Tick(Milliseconds elapsed, PowerupContext& context) {
     if (phase_ == WarpPhase::Active && aim_) {
         Lerp(context, elapsed, aim_->target);
     } else if (phase_ == WarpPhase::Active) {
-        const float distance = static_cast<float>(elapsed.count()) * kWalkPerMs;
+        const float distance = static_cast<float>(elapsed.count()) * pace_.walkPerMs;
         racer.MoveWarp(context.checkpoints->WalkAhead(racer.Body().motion.position, distance,
                                                       NextGate(context).value_or(0)));
     }
@@ -66,6 +71,10 @@ bool WarpEffect::Hit(const PowerupHit& /*hit*/, PowerupContext& /*context*/) {
 }
 
 void WarpEffect::End(PowerupContext& context) {
+    if (!rules_.endsWhenTakenBack) {
+        phase_ = WarpPhase::Done;
+        return;
+    }
     if (phase_ == WarpPhase::Starting) {
         context.racers[racer_].CancelWarp();
     } else if (phase_ == WarpPhase::Active) {
@@ -80,7 +89,7 @@ EffectProgress WarpEffect::Progress() const {
 
 void WarpEffect::Advance(PowerupContext& context) {
     if (phase_ == WarpPhase::Starting) {
-        context.racers[racer_].EnterWarp();
+        context.racers[racer_].EnterWarp(pace_.routeSpeed);
         phase_ = WarpPhase::Active;
         remaining_ = kActiveTime;
         return;
@@ -103,10 +112,22 @@ void WarpEffect::Land(PowerupContext& context) {
         racer.LandWarp(GroundBelow(*context.world, aim_->target), aim_->direction);
         return;
     }
+    const Vector3 at = GroundBelow(*context.world, racer.Body().motion.position);
+    racer.LandWarp(at, LandingHeading(context, at - kLandingHeight), pace_.launch);
+}
+
+Vector3 WarpEffect::LandingHeading(const PowerupContext& context, const Vector3& ground) const {
     const std::optional<std::size_t> gate = NextGate(context);
-    const Vector3 heading =
-        gate ? -context.checkpoints->Checkpoints()[*gate].normal : kHeadingWithoutGate;
-    racer.LandWarp(GroundBelow(*context.world, racer.Body().motion.position), heading);
+    if (rules_.aimsLanding && !context.racers[racer_].Route() &&
+        !context.checkpoints->Checkpoints().empty()) {
+        return ClearLandingHeading(*context.world, *context.checkpoints, ground, gate.value_or(0));
+    }
+    return gate ? -context.checkpoints->Checkpoints()[*gate].normal : kHeadingWithoutGate;
+}
+
+bool WarpEffect::IsLeading(const PowerupContext& context) const {
+    const std::span<const std::size_t> standings = context.progress->Standings();
+    return standings.size() > 1 && standings.front() == racer_;
 }
 
 std::optional<std::size_t> WarpEffect::NextGate(const PowerupContext& context) const {

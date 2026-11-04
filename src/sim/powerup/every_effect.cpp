@@ -7,9 +7,9 @@
 
 namespace rr::sim {
 
-EffectFactories EveryEffect() {
+EffectFactories EveryEffect(const WarpRules& warp) {
     EffectFactories factories;
-    AddGreenEffects(factories);
+    AddGreenEffects(factories, warp);
     AddBlueEffects(factories);
     AddRedEffects(factories);
     AddYellowEffects(factories);

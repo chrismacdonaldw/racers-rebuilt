@@ -5,6 +5,7 @@
 #include <optional>
 
 #include "sim/powerup/powerup_effect.hpp"
+#include "sim/powerup/warp_rules.hpp"
 
 namespace rr::sim {
 
@@ -13,6 +14,8 @@ enum class WarpPhase : std::uint8_t { Starting, Active, Done };
 /// Needs the context's checkpoints and progress, unless a hazard aims it.
 class WarpEffect final : public PowerupEffect {
 public:
+    explicit WarpEffect(const WarpRules& rules) : rules_(rules) {}
+
     void Start(const PowerupUse& use, PowerupContext& context) override;
     [[nodiscard]] bool Tick(Milliseconds elapsed, PowerupContext& context) override;
     [[nodiscard]] bool Hit(const PowerupHit& hit, PowerupContext& context) override;
@@ -24,9 +27,14 @@ private:
     void Advance(PowerupContext& context);
     void Land(PowerupContext& context);
     [[nodiscard]] std::optional<std::size_t> NextGate(const PowerupContext& context) const;
+    [[nodiscard]] bool IsLeading(const PowerupContext& context) const;
 
     void Lerp(PowerupContext& context, Milliseconds elapsed, const Vector3& to);
+    [[nodiscard]] Vector3 LandingHeading(const PowerupContext& context,
+                                         const Vector3& ground) const;
 
+    WarpRules rules_;
+    WarpPace pace_;
     std::uint8_t racer_ = 0;
     std::optional<HazardAim> aim_;
     Vector3 from_;
