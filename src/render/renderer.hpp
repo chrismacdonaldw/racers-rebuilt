@@ -60,6 +60,8 @@ public:
     void SetUiFit(UiFit fit) { settings_.uiFit = fit; }
     [[nodiscard]] UiFit Fit() const { return settings_.uiFit; }
     void SetSceneFit(SceneFit fit) { settings_.sceneFit = fit; }
+    /// Sprites anchored to a side stop at the side of a centred area this wide, else the window's.
+    void SetHudAspect(std::optional<float> aspect) { settings_.hudAspect = aspect; }
 
     /// Drawn over every view's sprites until replaced.
     void SetPointer(const std::optional<SpriteDraw>& pointer) { settings_.pointer = pointer; }

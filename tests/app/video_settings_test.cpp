@@ -43,6 +43,12 @@ TEST_CASE("turning VSync back on keeps the cap for later") {
     CHECK(registry.Get(kFpsCapSetting) == 90);
 }
 
+TEST_CASE("HUD widths name the area the HUD keeps to") {
+    CHECK_FALSE(HudAspect("Window").has_value());
+    CHECK(HudAspect("21:9") == doctest::Approx(43.0F / 18.0F));
+    CHECK(HudAspect("16:9") == doctest::Approx(16.0F / 9.0F));
+}
+
 TEST_CASE("command-line overrides reach the pacing") {
     const test::TempFolder folder;
     const std::array overrides{settings::SettingOverride{.key = "video.vsync", .value = "false"},

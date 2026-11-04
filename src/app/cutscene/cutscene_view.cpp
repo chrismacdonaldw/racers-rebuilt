@@ -25,13 +25,6 @@ std::string NameOf(const CutscenePlay& play) {
     return std::format("{}/{}", play.folder, play.file);
 }
 
-render::Viewport ViewportOf(const std::optional<render::Rect>& rect) {
-    const bool fillsCanvas =
-        !rect || (rect->x == 0.0F && rect->y == 0.0F && rect->width == render::kUiWidth &&
-                  rect->height == render::kUiHeight);
-    return fillsCanvas ? render::Viewport{} : render::UiViewport(*rect);
-}
-
 Result<std::unique_ptr<assets::CutsceneTimelineAsset>> ReadTimeline(const assets::Vfs& vfs,
                                                                     const CutscenePlay& path) {
     const std::string file = std::format("{}/{}.CDB", path.folder, path.file);
@@ -397,6 +390,17 @@ void CutsceneView::Advance(Milliseconds elapsed) {
     scrollMs_ += static_cast<float>(elapsed.count());
 }
 
+render::Viewport CutsceneViewport(const std::optional<render::Rect>& rect, bool keepsToCanvas) {
+    constexpr render::Rect kCanvas{.width = render::kUiWidth, .height = render::kUiHeight};
+    const bool fillsCanvas =
+        !rect || (rect->x == 0.0F && rect->y == 0.0F && rect->width == kCanvas.width &&
+                  rect->height == kCanvas.height);
+    if (!fillsCanvas) {
+        return render::UiViewport(*rect);
+    }
+    return keepsToCanvas ? render::UiViewport(kCanvas) : render::Viewport{};
+}
+
 render::RenderView CutsceneView::Render(std::span<const sim::EntityClock> clocks,
                                         std::vector<render::SpriteDraw>& sprites) {
     parts_.jointed.Update(clocks);
@@ -417,7 +421,7 @@ render::RenderView CutsceneView::Render(std::span<const sim::EntityClock> clocks
             .lighting = parts_.player.Lighting(lights_),
             .meshes = draws_,
             .quads = quads_,
-            .viewport = ViewportOf(parts_.play.rect)};
+            .viewport = CutsceneViewport(parts_.play.rect, keepsToCanvas_)};
 }
 
 }

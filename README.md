@@ -113,7 +113,7 @@ Every setting is saved in `<data>/settings.toml`. [SETTINGS.md](SETTINGS.md) lis
 A fresh install plays like the original game: every enhancement starts off. **Enhancements → Presets** switches between quick configs:
 
 - **Default** turns every enhancement off.
-- **Enhanced** turns on the port's recommended set: physics-driven computer racers, respawn, champion cars, smooth textures, anisotropic filtering, far cars and scenery, widescreen and clipping prevention.
+- **Enhanced** turns on the port's recommended set: physics-driven computer racers, respawn, champion cars, smooth textures, anisotropic filtering, far cars and scenery, widescreen with widescreen cutscenes and a 21:9 HUD, and clipping prevention.
 - **Save current as...** saves your enhancement and mod settings under a name, as a [file you can share](SETTINGS.md#quick-config-files). **Delete** removes one.
 
 Default and Enhanced leave your mods as they are. Your own configs also restore which mods are on. Resolution, frame rate, audio volume and controls are never part of a config.

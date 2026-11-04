@@ -30,6 +30,7 @@ constexpr std::array kEnhancedSettings{&kPhysicsAi,
                                        &kFarCarsSetting,
                                        &kFarScenerySetting,
                                        &kWidescreenSetting,
+                                       &kWidescreenCutscenesSetting,
                                        &kPreventClipping,
                                        &kBetterWarp,
                                        &kFairWarp,
@@ -51,6 +52,9 @@ std::vector<settings::SettingPreset> EnhancementPresets() {
             defaults.values.emplace_back(std::string(spec->key), spec->defaultValue);
         }
     }
+    const std::string hudWidth(kHudWidthSetting.key);
+    enhanced.values.emplace_back(hudWidth, std::string(kHudWidthChoices[1]));
+    defaults.values.emplace_back(hudWidth, std::string(kHudWidthSetting.defaultValue));
     return {std::move(defaults), std::move(enhanced)};
 }
 

@@ -9,6 +9,8 @@ void DeclareVideoSettings(settings::Registry& registry) {
     registry.Declare(kFullscreenSetting);
     registry.Declare(kStretchUiSetting);
     registry.Declare(kWidescreenSetting);
+    registry.Declare(kHudWidthSetting);
+    registry.Declare(kWidescreenCutscenesSetting);
     registry.Declare(kSmoothTexturesSetting);
     registry.Declare(kAnisotropicFilteringSetting);
     registry.Declare(kFarCarsSetting);
@@ -34,12 +36,23 @@ void StorePacing(settings::Registry& registry, const platform::PacingConfig& pac
     registry.Set(kVsyncSetting, pacing.mode == platform::PresentMode::Vsync);
 }
 
+std::optional<float> HudAspect(std::string_view hudWidth) {
+    if (hudWidth == kHudWidthChoices[1]) {
+        return 43.0F / 18.0F;
+    }
+    if (hudWidth == kHudWidthChoices[2]) {
+        return 16.0F / 9.0F;
+    }
+    return std::nullopt;
+}
+
 void ApplyRendererSettings(const settings::Registry& registry, render::Renderer& renderer) {
     renderer.SetResolutionScale(static_cast<float>(registry.Get(kResolutionScaleSetting)));
     renderer.SetUiFit(registry.Get(kStretchUiSetting) ? render::UiFit::Stretched
                                                       : render::UiFit::Centered);
     renderer.SetSceneFit(registry.Get(kWidescreenSetting) ? render::SceneFit::Window
                                                           : render::SceneFit::Canvas);
+    renderer.SetHudAspect(HudAspect(registry.Get(kHudWidthSetting)));
     renderer.SetSmoothTextures(registry.Get(kSmoothTexturesSetting));
     renderer.SetAnisotropicFiltering(registry.Get(kAnisotropicFilteringSetting));
 }

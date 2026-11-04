@@ -50,8 +50,8 @@ TEST_CASE("the flash fades in dark blue over the start's last 200 ms") {
     CHECK(half.tint.a == doctest::Approx(0.5F));
     CHECK(half.tint.b == doctest::Approx(100.0F / 255.0F));
     CHECK(half.tint.r == 0.0F);
-    CHECK(half.bounds.x < 0.0F);
-    CHECK(half.bounds.x + half.bounds.width > 640.0F);
+    CHECK(half.bounds.width == 640.0F);
+    CHECK(half.anchor == render::SpriteAnchor::Fill);
 }
 
 TEST_CASE("each player flashes for their own racer's warp") {

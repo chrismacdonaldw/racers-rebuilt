@@ -25,6 +25,7 @@ struct FrameSettings {
     float resolutionScale = 1.0F;
     UiFit uiFit = UiFit::Centered;
     SceneFit sceneFit = SceneFit::Canvas;
+    std::optional<float> hudAspect;
     bool isSmoothingTextures = true;
     bool isAnisotropicFiltering = false;
     std::optional<SpriteDraw> pointer;

@@ -104,6 +104,13 @@ TEST_CASE(
     CHECK(EdgeShift(0, 0, UiFit::Centered, SceneFit::Window) == 0.0F);
 }
 
+TEST_CASE("a HUD aspect caps the shift at that area's side, and never widens it") {
+    CHECK(HudShift(533.0F, std::nullopt) == 533.0F);
+    CHECK(HudShift(533.0F, 16.0F / 9.0F) == doctest::Approx(320.0F / 3.0F));
+    CHECK(HudShift(64.0F, 16.0F / 9.0F) == 64.0F);
+    CHECK(HudShift(64.0F, 1.0F) == 0.0F);
+}
+
 TEST_CASE("a canvas view stays on the canvas whatever the scene fit") {
     const Viewport onCanvas = UiViewport({.x = 320.0F, .width = 320.0F, .height = 480.0F});
 

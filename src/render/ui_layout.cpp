@@ -66,6 +66,14 @@ float EdgeShift(std::uint32_t widthPx, std::uint32_t heightPx, UiFit uiFit, Scen
                : static_cast<float>(area.xPx) * kUiWidth / static_cast<float>(area.widthPx);
 }
 
+float HudShift(float edgeShift, std::optional<float> hudAspect) {
+    if (!hudAspect) {
+        return edgeShift;
+    }
+    const float widest = std::max(0.0F, ((kUiHeight * *hudAspect) - kUiWidth) / 2.0F);
+    return std::min(edgeShift, widest);
+}
+
 UiToClip UiToClipTransform(const PixelRect& area, std::uint32_t widthPx, std::uint32_t heightPx) {
     const auto windowWidth = static_cast<float>(widthPx);
     const auto windowHeight = static_cast<float>(heightPx);

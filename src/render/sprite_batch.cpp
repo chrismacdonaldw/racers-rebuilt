@@ -6,17 +6,17 @@
 namespace rr::render {
 namespace {
 
-[[nodiscard]] float Anchored(float x, SpriteAnchor anchor, float shift, bool isRightEdge) {
+[[nodiscard]] float Anchored(float x, SpriteAnchor anchor, EdgeShifts shifts, bool isRightEdge) {
     switch (anchor) {
         case SpriteAnchor::Center:
         case SpriteAnchor::Beside:
             return x;
         case SpriteAnchor::Left:
-            return x - shift;
+            return x - shifts.hud;
         case SpriteAnchor::Right:
-            return x + shift;
+            return x + shifts.hud;
         case SpriteAnchor::Fill:
-            return isRightEdge ? x + shift : x - shift;
+            return isRightEdge ? x + shifts.bar : x - shifts.bar;
     }
     return x;
 }
@@ -39,12 +39,12 @@ void AddToBatches(std::vector<SpriteBatch>& batches, TextureId texture, BlendMod
                        .spriteCount = 1});
 }
 
-void BatchSprites(std::span<const SpriteDraw> sprites, float edgeShift,
+void BatchSprites(std::span<const SpriteDraw> sprites, EdgeShifts shifts,
                   std::vector<SpriteVertex>& vertices, std::vector<SpriteBatch>& batches) {
     vertices.clear();
     batches.clear();
     for (const SpriteDraw& sprite : sprites) {
-        if (sprite.anchor == SpriteAnchor::Beside && edgeShift <= 0.0F) {
+        if (sprite.anchor == SpriteAnchor::Beside && shifts.bar <= 0.0F) {
             continue;
         }
         AddToBatches(batches, sprite.texture, sprite.blend);
@@ -52,7 +52,7 @@ void BatchSprites(std::span<const SpriteDraw> sprites, float edgeShift,
             const std::array<SpriteCorner, kVerticesPerSprite>& corners = *sprite.corners;
             for (std::size_t i = 0; i < corners.size(); ++i) {
                 const SpriteCorner& corner = corners[i];
-                vertices.push_back({.x = Anchored(corner.x, sprite.anchor, edgeShift, i % 2 == 1),
+                vertices.push_back({.x = Anchored(corner.x, sprite.anchor, shifts, i % 2 == 1),
                                     .y = corner.y,
                                     .u = corner.u,
                                     .v = corner.v,
@@ -62,8 +62,8 @@ void BatchSprites(std::span<const SpriteDraw> sprites, float edgeShift,
         }
         const Rect& at = sprite.bounds;
         const Rect& uv = sprite.uv;
-        const float left = Anchored(at.x, sprite.anchor, edgeShift, false);
-        const float right = Anchored(at.x + at.width, sprite.anchor, edgeShift, true);
+        const float left = Anchored(at.x, sprite.anchor, shifts, false);
+        const float right = Anchored(at.x + at.width, sprite.anchor, shifts, true);
         const float bottom = at.y + at.height;
         const float uvRight = uv.x + uv.width;
         const float uvBottom = uv.y + uv.height;
