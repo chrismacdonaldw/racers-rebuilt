@@ -69,6 +69,8 @@ music_volume = 0.6
 | `video.anisotropic_filtering` | `false` | `true`, `false`. Filters textures 16x where they're seen at a slant, so roads and walls stay sharp into the distance. Materials drawn with blocky unfiltered pixels keep them. Applies at once. |
 | `video.better_particles` | `false` | `true`, `false`. Replaces the original's tire smoke, drift dust, exhaust, turbo, landing and cannon smoke with new effects: billowing smoke from textures the port makes itself, lit by the sun, growing, turning and fading as it drifts. Crashes, scraped walls and dynamite fuses throw hot sparks that streak, cool and bounce. Every blast and spike explosion bursts into a fireball with a shockwave, embers, lingering smoke and tumbling LEGO bricks. Turbos blast flame from the exhaust, picked-up bricks burst into twinkles and tiny bricks in their own colour, lightning crackles where it strikes, oil slicks bubble, warps swirl and flash, and magnets pull a stream of sparks. Every car, not just the player's, throws grass, sand, dirt, snow and splashing water from its wheels. `false` draws the original particles. Applies at once. |
 | `video.cockpit_car` | `false` | `true`, `false`. Draws your own car, driver and wheels in the cockpit camera view. `false` leaves them out while racing, as the original does. |
+| `fixes.missing_glyphs` | `false` | `true`, `false`. A dash or slash that a font has no letter for is drawn as a line, and other missing characters are left out. `false` draws what the original does: an odd symbol from the font, or a gap. The workshop always draws the lines. Applies at once. |
+| `fixes.menu_font_glyphs` | `false` | `true`, `false`. English menus draw `&` and `-` with their own letters. The original's English menu font is off by one after `)`, so `&` shows an accent and `-` shows a `7`. Applies at once. |
 
 ## Audio
 
@@ -153,6 +155,7 @@ These apply from the next race.
 | `race.fair_warp` | `false` | `true`, `false`. A warp saves about 3 s instead of 5 to 6, for every racer, and a player lands at top speed instead of being launched. |
 | `race.catch_up_warp` | `false` | `true`, `false`. The race leader's warp gains a third as much, for every racer. |
 | `fixes.stuck_warp` | `false` | `true`, `false`. A warp taken back because 3 are already flying ends properly. In the original, that racer stays a hidden ghost for the rest of the race, which lets a computer racer finish in seconds. |
+| `fixes.champion_cars` | `false` | `true`, `false`. A champion's quick build looks like the car that champion races in the boss race, in races, award cutscenes and on the racer stand. It handles like the quick build, and any change to it brings the bricks back. `false` shows the bricks, as the original does. |
 | `race.opponents` | `5` | `0` to `5`. Computer racers in a single race, from the options screen. |
 | `race.versus_laps` | `3` | `1` to `5`. Laps in a versus race, from the options screen. |
 
