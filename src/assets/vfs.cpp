@@ -1,6 +1,7 @@
 #include "assets/vfs.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <format>
 #include <optional>
 #include <ranges>
@@ -11,19 +12,27 @@
 
 namespace rr::assets {
 
+std::uint64_t Vfs::NextGeneration() {
+    static std::atomic<std::uint64_t> last{0};
+    return ++last;
+}
+
 void Vfs::Mount(std::unique_ptr<VfsLayer> layer) {
     RR_ASSERT(layer != nullptr);
     layers_.push_back(std::move(layer));
+    generation_ = NextGeneration();
 }
 
 void Vfs::KeepLayers(std::size_t count) {
     if (count < layers_.size()) {
         layers_.resize(count);
+        generation_ = NextGeneration();
     }
 }
 
 void Vfs::SetResolver(AssetResolver resolver) {
     resolver_ = std::move(resolver);
+    generation_ = NextGeneration();
 }
 
 Result<FileData> Vfs::Read(std::string_view path) const {

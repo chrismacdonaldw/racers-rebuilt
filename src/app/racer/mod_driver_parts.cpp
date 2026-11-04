@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <format>
+#include <mutex>
 #include <optional>
 #include <ranges>
 #include <span>
@@ -26,6 +27,24 @@ constexpr std::array<std::string_view, kFaceExpressions> kExpressionKeys{
     "default", "angry", "blink", "happy", "sad", "surprised"};
 constexpr std::size_t kChannels = 3;
 
+struct PartKind {
+    std::string_view name;
+    std::span<const std::string_view> keys;
+};
+
+constexpr std::array<std::string_view, 2> kHatKeys{kName, "model"};
+constexpr std::array<std::string_view, 7> kFaceKeys{kName,   "default", "angry",    "blink",
+                                                    "happy", "sad",     "surprised"};
+constexpr std::array<std::string_view, 3> kTorsoKeys{kName, "texture", "hook"};
+constexpr std::array<std::string_view, 3> kLegsKeys{kName, "texture", "peg"};
+constexpr std::array<std::string_view, 2> kColourKeys{kName, "rgb"};
+constexpr PartKind kHats{.name = "hat", .keys = kHatKeys};
+constexpr PartKind kFaces{.name = "face", .keys = kFaceKeys};
+constexpr PartKind kTorsos{.name = "torso", .keys = kTorsoKeys};
+constexpr PartKind kLegs{.name = "legs", .keys = kLegsKeys};
+constexpr PartKind kColours{.name = "colour", .keys = kColourKeys};
+constexpr std::array kKinds{kHats, kFaces, kTorsos, kLegs, kColours};
+
 class Entry {
 public:
     Entry(const toml::table& table, std::string_view source, std::string_view kind,
@@ -33,7 +52,7 @@ public:
         : table_(table), source_(source), kind_(kind), index_(index) {}
 
     [[nodiscard]] std::optional<std::string> Text(std::string_view key) const {
-        const toml::node* node = Take(key);
+        const toml::node* node = table_.get(key);
         if (node == nullptr) {
             return std::nullopt;
         }
@@ -54,7 +73,7 @@ public:
     }
 
     [[nodiscard]] std::optional<bool> Flag(std::string_view key) const {
-        const toml::node* node = Take(key);
+        const toml::node* node = table_.get(key);
         if (node == nullptr) {
             return false;
         }
@@ -66,7 +85,7 @@ public:
     }
 
     [[nodiscard]] std::optional<Rgba8> Colour(std::string_view key) const {
-        const toml::node* node = Take(key);
+        const toml::node* node = table_.get(key);
         const toml::array* channels = node == nullptr ? nullptr : node->as_array();
         Rgba8 rgba = kOpaqueWhite;
         const bool isValid =
@@ -88,9 +107,9 @@ public:
 
     [[nodiscard]] bool Has(std::string_view key) const { return table_.get(key) != nullptr; }
 
-    void WarnUnknownKeys() const {
+    void WarnUnknownKeys(std::span<const std::string_view> keys) const {
         for (const auto& [key, node] : table_) {
-            if (!std::ranges::contains(seen_, key.str())) {
+            if (!std::ranges::contains(keys, key.str())) {
                 log::Warn("{}: [[{}]] {} has no key {}, ignoring it", source_, kind_, index_ + 1,
                           key.str());
             }
@@ -102,16 +121,10 @@ private:
         log::Warn("{}: [[{}]] {} {}, skipping it", source_, kind_, index_ + 1, problem);
     }
 
-    const toml::node* Take(std::string_view key) const {
-        seen_.emplace_back(key);
-        return table_.get(key);
-    }
-
     const toml::table& table_;
     std::string_view source_;
     std::string_view kind_;
     std::size_t index_;
-    mutable std::vector<std::string_view> seen_;
 };
 
 std::optional<ModHat> ReadHat(const Entry& entry) {
@@ -162,31 +175,69 @@ std::optional<ModColour> ReadColour(const Entry& entry) {
 }
 
 template <typename Part, typename Read>
-std::vector<Part> ReadList(const toml::table& root, std::string_view kind, std::string_view source,
+std::vector<Part> ReadList(const toml::table& root, const PartKind& kind, std::string_view source,
                            Read read) {
     std::vector<Part> parts;
-    const toml::node* node = root.get(kind);
+    const toml::node* node = root.get(kind.name);
     if (node == nullptr) {
         return parts;
     }
     const toml::array* entries = node->as_array();
     if (entries == nullptr) {
-        log::Warn("{}: {} isn't a list of [[{}]] entries, ignoring it", source, kind, kind);
+        log::Warn("{}: {} isn't a list of [[{}]] entries, ignoring it", source, kind.name,
+                  kind.name);
         return parts;
     }
     for (std::size_t index = 0; index < entries->size(); ++index) {
         const toml::table* table = entries->get(index)->as_table();
         if (table == nullptr) {
-            log::Warn("{}: {} {} isn't a table, skipping it", source, kind, index + 1);
+            log::Warn("{}: {} {} isn't a table, skipping it", source, kind.name, index + 1);
             continue;
         }
-        const Entry entry(*table, source, kind, index);
+        const Entry entry(*table, source, kind.name, index);
         if (std::optional<Part> part = read(entry)) {
-            entry.WarnUnknownKeys();
+            entry.WarnUnknownKeys(kind.keys);
             parts.push_back(std::move(*part));
         }
     }
     return parts;
+}
+
+class ModPartCache {
+public:
+    std::shared_ptr<const ModDriverParts> Parts(const assets::Vfs& vfs) {
+        const std::scoped_lock lock(mutex_);
+        return PartsLocked(vfs);
+    }
+
+    std::shared_ptr<const assets::PartLibrary> Heads(const assets::Vfs& vfs) {
+        const std::scoped_lock lock(mutex_);
+        const std::shared_ptr<const ModDriverParts> parts = PartsLocked(vfs);
+        if (!heads_) {
+            heads_ = std::make_shared<const assets::PartLibrary>(ModHeadParts(vfs, *parts));
+        }
+        return heads_;
+    }
+
+private:
+    std::shared_ptr<const ModDriverParts> PartsLocked(const assets::Vfs& vfs) {
+        if (vfs.Generation() != generation_) {
+            generation_ = vfs.Generation();
+            parts_ = std::make_shared<const ModDriverParts>(LoadModDriverParts(vfs));
+            heads_.reset();
+        }
+        return parts_;
+    }
+
+    std::mutex mutex_;
+    std::uint64_t generation_ = 0;
+    std::shared_ptr<const ModDriverParts> parts_;
+    std::shared_ptr<const assets::PartLibrary> heads_;
+};
+
+ModPartCache& PartCache() {
+    static ModPartCache cache;
+    return cache;
 }
 
 template <auto List>
@@ -204,20 +255,19 @@ auto Merged(std::vector<ModDriverParts>& layers) {
 
 Result<ModDriverParts> ParseModDriverParts(std::string_view text, std::string_view source) {
     return settings::ParseToml(text, source).transform([&](const toml::table& root) {
-        constexpr std::array<std::string_view, 5> kKinds{"hat", "face", "torso", "legs", "colour"};
         for (const auto& [key, node] : root) {
-            if (!std::ranges::contains(kKinds, key.str())) {
+            if (!std::ranges::contains(kKinds, key.str(), &PartKind::name)) {
                 log::Warn("{}: there are no [[{}]] parts, ignoring them", source, key.str());
             }
         }
         return ModDriverParts{
-            .hats = ReadList<ModHat>(root, "hat", source, ReadHat),
-            .faces = ReadList<ModFace>(root, "face", source, ReadFace),
+            .hats = ReadList<ModHat>(root, kHats, source, ReadHat),
+            .faces = ReadList<ModFace>(root, kFaces, source, ReadFace),
             .torsos = ReadList<ModDress>(
-                root, "torso", source, [](const Entry& entry) { return ReadDress(entry, "hook"); }),
-            .legs = ReadList<ModDress>(root, "legs", source,
+                root, kTorsos, source, [](const Entry& entry) { return ReadDress(entry, "hook"); }),
+            .legs = ReadList<ModDress>(root, kLegs, source,
                                        [](const Entry& entry) { return ReadDress(entry, "peg"); }),
-            .colours = ReadList<ModColour>(root, "colour", source, ReadColour),
+            .colours = ReadList<ModColour>(root, kColours, source, ReadColour),
         };
     });
 }
@@ -278,6 +328,14 @@ assets::PartLibrary ModHeadParts(const assets::Vfs& vfs, const ModDriverParts& p
         }
     }
     return library;
+}
+
+std::shared_ptr<const ModDriverParts> CachedModDriverParts(const assets::Vfs& vfs) {
+    return PartCache().Parts(vfs);
+}
+
+std::shared_ptr<const assets::PartLibrary> CachedModHeadParts(const assets::Vfs& vfs) {
+    return PartCache().Heads(vfs);
 }
 
 }

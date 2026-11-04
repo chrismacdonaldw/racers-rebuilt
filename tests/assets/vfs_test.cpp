@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -81,6 +82,24 @@ TEST_CASE_FIXTURE(VfsFixture, "keeping the first layers unmounts every layer abo
     CHECK(vfs_.LayerCount() == 1);
     CHECK(ReadText("GAMEDATA/A.TXT") == "jam a");
     CHECK_FALSE(vfs_.Read("GAMEDATA/C.TXT").has_value());
+}
+
+TEST_CASE_FIXTURE(VfsFixture, "the generation changes with the layers and the resolver") {
+    const std::uint64_t mounted = vfs_.Generation();
+
+    MountLoose();
+    const std::uint64_t loose = vfs_.Generation();
+    vfs_.KeepLayers(2);
+    const std::uint64_t kept = vfs_.Generation();
+    vfs_.KeepLayers(1);
+    const std::uint64_t unmounted = vfs_.Generation();
+    vfs_.SetResolver({});
+
+    CHECK(loose != mounted);
+    CHECK(kept == loose);
+    CHECK(unmounted != loose);
+    CHECK(vfs_.Generation() != unmounted);
+    CHECK(Vfs{}.Generation() != Vfs{}.Generation());
 }
 
 TEST_CASE_FIXTURE(VfsFixture, "lookups ignore case and separator style") {
