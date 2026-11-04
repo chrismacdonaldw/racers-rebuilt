@@ -1,11 +1,12 @@
 <#
 .SYNOPSIS
-Builds the release preset from a clean tree and zips the exe with LICENSE, README.md and the
-content/ldraw folder into build/package/racers-rebuilt-windows-x64.zip.
+Builds the release preset from a clean tree and zips the exe with LICENSE, README.md, the
+content/ldraw folder and a licenses folder into build/package/racers-rebuilt-windows-x64.zip.
 
 .NOTES
 Needs VCPKG_ROOT, cmake and ninja, like scripts/check.ps1. Prints the version, size and SHA-256 of
 the zip. The build runs CMAKE_BUILD_PARALLEL_LEVEL jobs, or half the cores when it isn't set.
+The licenses folder holds vcpkg's copyright file for each vcpkg.json dependency the exe links.
 #>
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -18,6 +19,9 @@ $binFolder = 'build/release/bin'
 $packageFolder = 'build/package'
 $ldrawFolder = 'content/ldraw'
 $zipPath = Join-Path $packageFolder 'racers-rebuilt-windows-x64.zip'
+$licensesFolder = Join-Path $packageFolder 'licenses'
+$vcpkgShare = 'build/release/vcpkg_installed/x64-windows-static/share'
+$testOnlyPorts = @('doctest')
 
 function Invoke-Native([string]$Description, [scriptblock]$Command) {
     Write-Host "==> $Description" -ForegroundColor Cyan
@@ -33,6 +37,25 @@ function Get-ProjectVersion {
         throw 'No project(racers-rebuilt VERSION x.y.z) line in CMakeLists.txt.'
     }
     return $match.Matches[0].Groups[1].Value
+}
+
+function Get-LinkedPorts {
+    $manifest = Get-Content 'vcpkg.json' -Raw | ConvertFrom-Json
+    $names = foreach ($dependency in $manifest.dependencies) {
+        if ($dependency -is [string]) { $dependency } else { $dependency.name }
+    }
+    return @($names | Where-Object { $_ -notin $testOnlyPorts })
+}
+
+function Copy-Licenses {
+    New-Item -ItemType Directory -Force $licensesFolder | Out-Null
+    foreach ($port in Get-LinkedPorts) {
+        $copyright = Join-Path $vcpkgShare "$port/copyright"
+        if (-not (Test-Path $copyright)) {
+            throw "No license for $port at $copyright."
+        }
+        Copy-Item $copyright (Join-Path $licensesFolder "$port.txt")
+    }
 }
 
 if (@(git status --porcelain --untracked-files=all).Count -gt 0) {
@@ -62,7 +85,8 @@ if ($built.Count -ne 1 -or $built[0] -ne $exeName) {
 }
 
 New-Item -ItemType Directory -Force $packageFolder | Out-Null
-$contents = @((Join-Path $binFolder $exeName), 'LICENSE', 'README.md', $ldrawFolder)
+Copy-Licenses
+$contents = @((Join-Path $binFolder $exeName), 'LICENSE', 'README.md', $ldrawFolder, $licensesFolder)
 Compress-Archive -Path $contents -DestinationPath $zipPath -CompressionLevel Optimal
 
 $zip = Get-Item $zipPath
