@@ -13,6 +13,7 @@
 #include "app/menu/menu_parts.hpp"
 #include "app/track_entity_draws.hpp"
 #include "app/track_model.hpp"
+#include "assets/race_catalog.hpp"
 #include "assets/track_loader.hpp"
 #include "assets/vfs.hpp"
 #include "core/duration.hpp"
@@ -25,11 +26,13 @@
 
 namespace rr::app {
 
-/// The host of the last circuit unlocked in order from `c0`: the next champion to beat.
-[[nodiscard]] std::string_view MenuChampionCode(const std::set<std::string>& unlockedCircuits);
+/// The boss of the last circuit open in story order from the first: the next champion to beat.
+[[nodiscard]] std::string MenuChampionCode(const assets::RaceCatalog& races,
+                                           const std::set<std::string>& openCircuits);
 
-/// A progress file that won't load gives the first champion, with a warning.
-[[nodiscard]] std::string_view SavedMenuChampion(const std::filesystem::path& progressFile);
+/// A progress file or race list that won't load gives the first champion, with a warning.
+[[nodiscard]] std::string SavedMenuChampion(const assets::Vfs& vfs,
+                                            const std::filesystem::path& progressFile);
 
 class MenuChampion {
 public:

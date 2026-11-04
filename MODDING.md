@@ -135,6 +135,33 @@ A `TRACK.TOML` in an original track's folder only changes its `music` and its na
 
 `--check-mods` also reports a broken `TRACK.TOML`, a `grid` that names no circuit and a missing `preview`.
 
+## Circuits
+
+A mod adds or changes circuits with `files/MENUDATA/CIRCUITS.TOML`. Mods' tables apply in load order.
+
+```toml
+[[circuit]]
+name = "lava-cup"
+title = "LAVA CUP"
+boss = "MG"
+grid = ["VV", "MG", "LV", "SP", "BO", "JK"]
+races = ["LAVALANE", "RACEC2R1", { track = "LAVALANE", mirrored = true }]
+after = "c2"
+part_set = "lava-parts"
+intro = "circuit3"
+```
+
+- `name`: lowercase letters, digits, `-` and `_`. An existing name such as `c3` changes that circuit: only the keys given replace its own, and `races` replaces all of its races.
+- `after`: puts a new circuit into the story after the one named. Gold or silver there opens the new circuit, and gold or silver on the new circuit opens what used to come next. Circuits put after the same one keep load order. A new circuit is also open once any later circuit is, so players already past it can race it.
+- `title`: the name in the circuit list.
+- `grid`: driver codes for grid slots 0 to 5, as in the original circuits. Slot 1 is the boss unless `boss` in the same table names one.
+- `boss`: the champion shown in the circuit list, on the award screens and on the main menu.
+- `races`: 1 to 4 track folders in race order. A table with `mirrored = true` races the track mirrored. On an original circuit, its old tracks leave Single Race.
+- `part_set`: a mod part set won with gold. It's only recorded in `progress.toml` under `part_sets_named` for now, since mod part sets are always available in the builder.
+- `intro`: an original intro screen, `circuit1` to `circuit7`, or `""` for none. A new circuit has none unless it names one.
+
+A new circuit needs `after`, `title`, `grid` and `races`. A change that can't apply is left out with a warning in the log, and `--check-mods` lists it with any race or driver that doesn't exist.
+
 ## Racers, driver parts and bricks
 
 These tables merge with the game's instead of replacing it, so a mod only needs the entries it adds or changes:

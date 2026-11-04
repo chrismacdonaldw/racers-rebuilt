@@ -1,14 +1,16 @@
 #include "app/circuit_awards.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
-#include "assets/race_catalog.hpp"
 #include "core/log.hpp"
 
 namespace rr::app {
@@ -82,6 +84,9 @@ bool GrantAward(settings::Progress& progress, settings::Trophies& trophies,
         progress.partSets.insert(*partSet);
         changed = true;
     }
+    if (award == sim::CircuitAward::Gold && circuit.namedPartSet) {
+        changed = progress.namedPartSets.insert(*circuit.namedPartSet).second || changed;
+    }
     if (OpensNewCircuit(progress, circuit, award)) {
         progress.unlockedCircuits.insert(*circuit.next);
         changed = true;
@@ -112,11 +117,28 @@ Result<AwardUnlocks> SaveAward(const std::filesystem::path& file, const assets::
     });
 }
 
+std::set<std::string> OpenCircuits(const assets::RaceCatalog& races,
+                                   const std::set<std::string>& unlocked) {
+    std::set<std::string> open = unlocked;
+    const std::vector<std::size_t> story = races.Story();
+    for (auto circuit = story.begin(); circuit != story.end(); ++circuit) {
+        const assets::CircuitEntry& entry = races.Circuits()[*circuit];
+        const bool isPassed = std::any_of(std::next(circuit), story.end(), [&](std::size_t later) {
+            return unlocked.contains(races.Circuits()[later].name);
+        });
+        if (entry.isFromMod && isPassed) {
+            open.insert(entry.name);
+        }
+    }
+    return open;
+}
+
 AwardDrivers DriversOf(const assets::CircuitEntry& circuit, std::size_t racer) {
     const auto code = [&](std::size_t slot) {
         return slot < circuit.grid.size() ? circuit.grid[slot] : std::string();
     };
-    return {.player = code(racer), .champion = code(kChampionSlot)};
+    return {.player = code(racer),
+            .champion = circuit.boss.empty() ? code(kChampionSlot) : circuit.boss};
 }
 
 AwardClaim ClaimAward(const std::filesystem::path& file, const assets::Vfs& vfs,

@@ -7,6 +7,7 @@
 #include <span>
 #include <utility>
 
+#include "app/circuit_awards.hpp"
 #include "app/cutscene/cutscene_screen.hpp"
 #include "app/menu/menu_scenes.hpp"
 #include "app/race_scene_name.hpp"
@@ -31,15 +32,15 @@ constexpr std::size_t kTrialCircuits = 3;
 constexpr std::string_view kTrialDriver = "VV";
 constexpr std::string_view kMirroredSuffix = "MIRRORED";
 
-std::string CircuitStart(const RaceSceneSetup& race, std::span<const RacerChoice> racers) {
+std::string CircuitStart(const RaceSceneSetup& race, const CourseChoice& course) {
     std::string circuit = CircuitSceneName({.race = race});
-    const std::optional<std::string> intro = CircuitIntro(race.circuit);
-    if (race.players != 1 || !intro) {
+    if (race.players != 1 || course.intro.empty()) {
         return circuit;
     }
-    const bool showsRacer = FindCutsceneScreen(*intro).value_or(CutsceneScreen{}).showsRacer;
+    const std::span<const RacerChoice> racers = course.racers;
+    const bool showsRacer = FindCutsceneScreen(course.intro).value_or(CutsceneScreen{}).showsRacer;
     return CutsceneScreenName(
-        {.menu = *intro,
+        {.menu = course.intro,
          .driver = showsRacer && race.racer < racers.size() ? racers[race.racer].code : "",
          .next = circuit});
 }
@@ -96,6 +97,25 @@ CourseChoice CircuitChoice(const Catalogs& catalogs, std::size_t circuit) {
     return choice;
 }
 
+CourseChoice CircuitCourse(const Catalogs& catalogs, std::size_t circuit) {
+    const assets::CircuitEntry& entry = catalogs.races.Circuits()[circuit];
+    CourseChoice choice = CircuitChoice(catalogs, circuit);
+    choice.title = entry.title;
+    choice.boss = entry.boss.empty() ? RacerChoice{} : ChoiceOf(catalogs.racers, entry.boss);
+    choice.intro = CircuitIntro(entry).value_or(std::string());
+    return choice;
+}
+
+std::vector<std::size_t> CircuitOrder(const assets::RaceCatalog& races) {
+    std::vector<std::size_t> order = races.Story();
+    for (std::size_t circuit = 0; circuit < races.Circuits().size(); ++circuit) {
+        if (!std::ranges::contains(order, circuit)) {
+            order.push_back(circuit);
+        }
+    }
+    return order;
+}
+
 std::vector<CourseChoice> TrackChoicesOf(const Catalogs& catalogs, std::size_t circuit) {
     const CourseChoice base = CircuitChoice(catalogs, circuit);
     std::vector<CourseChoice> choices;
@@ -114,7 +134,10 @@ std::vector<CourseChoice> TrackChoicesOf(const Catalogs& catalogs, std::size_t c
 
 bool IsCircuitTrack(const assets::RaceCatalog& races, std::string_view track) {
     return std::ranges::any_of(races.Races(), [&](const assets::RaceEntry& race) {
-        return assets::ToUpperAscii(race.folder) == track;
+        const std::optional<std::size_t> circuit =
+            race.circuit ? races.FindCircuit(*race.circuit) : std::nullopt;
+        return assets::ToUpperAscii(race.folder) == track &&
+               !(circuit && races.Circuits()[*circuit].isFromMod);
     });
 }
 
@@ -185,7 +208,9 @@ Result<std::vector<CourseChoice>> LoadTrackChoices(const assets::Vfs& vfs) {
     }
     std::vector<CourseChoice> choices;
     for (std::size_t circuit = 0; circuit < catalogs->races.Circuits().size(); ++circuit) {
-        std::ranges::move(TrackChoicesOf(*catalogs, circuit), std::back_inserter(choices));
+        if (!catalogs->races.Circuits()[circuit].isFromMod) {
+            std::ranges::move(TrackChoicesOf(*catalogs, circuit), std::back_inserter(choices));
+        }
     }
     std::ranges::move(ModTrackChoices(vfs, *catalogs, false), std::back_inserter(choices));
     if (choices.empty()) {
@@ -201,10 +226,11 @@ Result<std::vector<CourseChoice>> LoadTrialChoices(const assets::Vfs& vfs,
         return std::unexpected(std::move(catalogs.error()));
     }
     std::vector<CourseChoice> choices;
+    const std::set<std::string> open = OpenCircuits(catalogs->races, unlocked);
     const std::size_t circuits = std::min(kTrialCircuits, catalogs->races.Circuits().size());
     for (std::size_t circuit = 0; circuit < circuits; ++circuit) {
         for (CourseChoice& choice : TrackChoicesOf(*catalogs, circuit)) {
-            choice.isLocked = IsLocked(choice, unlocked);
+            choice.isLocked = IsLocked(choice, open);
             for (std::optional<RacePreview>& preview : choice.previews) {
                 if (preview) {
                     preview->driver = kTrialDriver;
@@ -227,10 +253,11 @@ Result<std::vector<CourseChoice>> LoadCircuitChoices(const assets::Vfs& vfs,
         return std::unexpected(std::move(catalogs.error()));
     }
     std::vector<CourseChoice> choices;
-    for (std::size_t circuit = 0; circuit < catalogs->races.Circuits().size(); ++circuit) {
+    const std::set<std::string> open = OpenCircuits(catalogs->races, unlocked);
+    for (const std::size_t circuit : CircuitOrder(catalogs->races)) {
         if (HasRaces(catalogs->races, circuit)) {
-            CourseChoice& choice = choices.emplace_back(CircuitChoice(*catalogs, circuit));
-            choice.isLocked = IsLocked(choice, unlocked);
+            CourseChoice& choice = choices.emplace_back(CircuitCourse(*catalogs, circuit));
+            choice.isLocked = IsLocked(choice, open);
         }
     }
     if (choices.empty()) {
@@ -298,7 +325,7 @@ std::optional<std::string> RaceSetupMenu::Confirm(const RaceSceneSetup& rules) {
             if (Course().lapCount && players_ == 1 && !race.isTimeTrial) {
                 race.lapCount = *Course().lapCount;
             }
-            return PickingRacers(race.track.empty() ? CircuitStart(race, Course().racers)
+            return PickingRacers(race.track.empty() ? CircuitStart(race, Course())
                                                     : RaceSceneName(race));
         case RaceSetupRow::Back:
             return std::string(kMainMenuScene);

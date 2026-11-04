@@ -10,6 +10,7 @@ rr_add_module(assets
         cgltf.cpp
         champion_database.cpp
         circuit_database.cpp
+        circuit_table.cpp
         chassis_database.cpp
         checkpoints.cpp
         collision_mesh.cpp
@@ -99,7 +100,12 @@ rr_add_module(assets
         rr::core
         rr::platform
 )
-target_include_directories(rr_assets SYSTEM PRIVATE "${STB_INCLUDE_DIR}" "${CGLTF_INCLUDE_DIR}")
+target_include_directories(rr_assets SYSTEM PRIVATE "${STB_INCLUDE_DIR}" "${CGLTF_INCLUDE_DIR}"
+    $<TARGET_PROPERTY:tomlplusplus::tomlplusplus,INTERFACE_INCLUDE_DIRECTORIES>
+)
+set_source_files_properties(circuit_table.cpp PROPERTIES
+    COMPILE_DEFINITIONS "TOML_HEADER_ONLY=1;TOML_EXCEPTIONS=0"
+)
 set_source_files_properties(cgltf.cpp PROPERTIES COMPILE_DEFINITIONS CGLTF_IMPLEMENTATION)
 set_source_files_properties(stb_image.cpp PROPERTIES
     COMPILE_DEFINITIONS "STB_IMAGE_IMPLEMENTATION;STBI_ONLY_PNG;STBI_NO_STDIO"

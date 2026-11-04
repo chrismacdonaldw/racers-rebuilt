@@ -23,6 +23,7 @@ std::string ReadText(const std::filesystem::path& path) {
 Progress Played() {
     return {.unlockedCircuits = {"c1", "c2"},
             .partSets = {0, 1},
+            .namedPartSets = {"lava-parts"},
             .beatenRecords = {3},
             .trophies = {{"c0", Trophy::Gold}, {"c1", Trophy::Bronze}},
             .bestTimes = {{"RACEC0R1",

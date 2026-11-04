@@ -22,12 +22,14 @@ constexpr std::string_view kHeader =
     "#\n"
     "# unlocked_circuits  circuits opened by a gold or silver, by CRB name (c0 is always open)\n"
     "# part_sets          CRB part sets won with a gold\n"
+    "# part_sets_named    mod part sets won with a gold\n"
     "# beaten_records     time trial races, 0 to 11, whose record was beaten\n"
     "# [trophies]         best trophy per circuit: gold, silver or bronze\n"
     "# [best_times.TRACK] lap and race records per track folder, in milliseconds\n"
     "\n";
 constexpr std::string_view kUnlockedCircuits = "unlocked_circuits";
 constexpr std::string_view kPartSets = "part_sets";
+constexpr std::string_view kNamedPartSets = "part_sets_named";
 constexpr std::string_view kBeatenRecords = "beaten_records";
 constexpr std::string_view kTrophies = "trophies";
 constexpr std::string_view kBestTimes = "best_times";
@@ -35,8 +37,8 @@ constexpr std::string_view kLap = "lap";
 constexpr std::string_view kRace = "race";
 constexpr std::string_view kMs = "ms";
 constexpr std::string_view kHolder = "holder";
-constexpr std::array kProgressKeys{kUnlockedCircuits, kPartSets, kBeatenRecords, kTrophies,
-                                   kBestTimes};
+constexpr std::array kProgressKeys{kUnlockedCircuits, kPartSets, kNamedPartSets,
+                                   kBeatenRecords,    kTrophies, kBestTimes};
 
 class Reader {
 public:
@@ -133,6 +135,7 @@ toml::table ToToml(const Progress& progress) {
     }
     return toml::table{{kUnlockedCircuits, ToArray(progress.unlockedCircuits)},
                        {kPartSets, ToArray(progress.partSets)},
+                       {kNamedPartSets, ToArray(progress.namedPartSets)},
                        {kBeatenRecords, ToArray(progress.beatenRecords)},
                        {kTrophies, TrophyTable(progress.trophies)},
                        {kBestTimes, std::move(bestTimes)}};
@@ -161,6 +164,7 @@ Result<Progress> LoadProgress(const std::filesystem::path& path) {
         Progress progress;
         reader.ReadArray<std::string>(file.table, kUnlockedCircuits, progress.unlockedCircuits);
         reader.ReadArray<std::int32_t>(file.table, kPartSets, progress.partSets);
+        reader.ReadArray<std::string>(file.table, kNamedPartSets, progress.namedPartSets);
         reader.ReadArray<std::int32_t>(file.table, kBeatenRecords, progress.beatenRecords);
         reader.ReadTrophies(file.table, progress);
         reader.ReadBestTimes(file.table, progress);

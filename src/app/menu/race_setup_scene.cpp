@@ -49,7 +49,6 @@ constexpr float kBestTimeTop = 308.0F;
 constexpr float kTrialStatusLeft = 251.0F;
 constexpr float kTrialStatusTop = 414.0F;
 constexpr float kStackedValueDrop = 24.0F;
-constexpr std::size_t kFinalCircuit = 6;
 constexpr std::array kScrollSteps{std::pair{sim::MenuAction::Left, -1},
                                   std::pair{sim::MenuAction::Right, 1}};
 
@@ -193,6 +192,13 @@ void RaceSetupScene::ApplySettings(const settings::Registry& settings) {
             log::Warn("races show their folders: {}", races.error().message);
         }
         raceNames_ = races.value_or(std::vector<std::u16string>{});
+    } else {
+        const Result<std::vector<std::u16string>> drivers =
+            ReadDriverNames(*vfs_, text_.Language());
+        if (!drivers) {
+            log::Warn("mod circuit bosses show their codes: {}", drivers.error().message);
+        }
+        driverNames_ = drivers.value_or(std::vector<std::u16string>{});
     }
     courseNames_ = CourseNames();
 }
@@ -320,10 +326,10 @@ void RaceSetupScene::ShowPreview() {
     }
     const CourseChoice& course = menu_.Course();
     const bool isCircuit = mode_ == RaceSetupMode::Circuit;
-    preview_->Show(
-        course.previews,
-        {.fades = isCircuit, .cycles = isCircuit && course.circuitIndex != kFinalCircuit},
-        course.isLocked);
+    const auto races = std::ranges::count_if(
+        course.previews, [](const std::optional<RacePreview>& race) { return race.has_value(); });
+    preview_->Show(course.previews, {.fades = isCircuit, .cycles = isCircuit && races > 1},
+                   course.isLocked);
 }
 
 RaceSetupScene::RowText RaceSetupScene::TextOf(RaceSetupRow row) const {
@@ -399,7 +405,11 @@ void RaceSetupScene::DrawValue(const MenuButtonState& state, std::u16string_view
 void RaceSetupScene::DrawChampion() {
     const MenuButtonState& state = look_.states.at(kNormalState);
     DrawLabel(text_, state, OneLine(text_.Line(kHostingLine)), kLeft, kChampionTop, sprites_);
-    DrawValue(state, OneLine(text_.Line(kFirstChampionLine + menu_.Course().circuitIndex)),
+    const CourseChoice& course = menu_.Course();
+    DrawValue(state,
+              course.boss.code.empty()
+                  ? OneLine(text_.Line(kFirstChampionLine + course.circuitIndex))
+                  : OneLine(Lookup(driverNames_, course.boss.nameIndex, course.boss.code)),
               kChampionTop);
 }
 

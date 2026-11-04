@@ -5,6 +5,7 @@
 #include <utility>
 #include <variant>
 
+#include "app/circuit_awards.hpp"
 #include "app/cutscene/award_driver.hpp"
 #include "app/menu/menu_backdrop.hpp"
 #include "app/menu/menu_page.hpp"
@@ -96,22 +97,30 @@ Result<StandRacer> BuildChampion(render::Renderer& renderer, const assets::Vfs& 
 
 }
 
-std::string_view MenuChampionCode(const std::set<std::string>& unlockedCircuits) {
-    std::size_t beaten = 0;
-    while (beaten + 1 < kChampions.size() &&
-           unlockedCircuits.contains(std::format("c{}", beaten + 1))) {
-        ++beaten;
+std::string MenuChampionCode(const assets::RaceCatalog& races,
+                             const std::set<std::string>& openCircuits) {
+    std::size_t last = 0;
+    for (const std::size_t circuit : races.Story()) {
+        if (circuit != 0 && !openCircuits.contains(races.Circuits()[circuit].name)) {
+            break;
+        }
+        last = circuit;
     }
-    return kChampions.at(beaten);
+    if (last < races.Circuits().size() && !races.Circuits()[last].boss.empty()) {
+        return races.Circuits()[last].boss;
+    }
+    return std::string(last < kChampions.size() ? kChampions[last] : kChampions.front());
 }
 
-std::string_view SavedMenuChampion(const std::filesystem::path& progressFile) {
+std::string SavedMenuChampion(const assets::Vfs& vfs, const std::filesystem::path& progressFile) {
     const Result<settings::Progress> progress = settings::LoadProgress(progressFile);
-    if (!progress) {
-        log::Warn("{}, the main menu shows the first champion", progress.error().message);
-        return MenuChampionCode({});
+    const Result<assets::RaceCatalog> races = progress.and_then(
+        [&](const settings::Progress&) { return assets::RaceCatalog::Load(vfs); });
+    if (!races) {
+        log::Warn("{}, the main menu shows the first champion", races.error().message);
+        return std::string(kChampions.front());
     }
-    return MenuChampionCode(progress->unlockedCircuits);
+    return MenuChampionCode(*races, OpenCircuits(*races, progress->unlockedCircuits));
 }
 
 Result<std::unique_ptr<MenuChampion>> MenuChampion::Load(render::Renderer& renderer,

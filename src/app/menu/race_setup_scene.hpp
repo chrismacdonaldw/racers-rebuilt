@@ -89,6 +89,7 @@ private:
     RaceSetupMenu menu_;
     MenuText text_;
     std::vector<std::u16string> raceNames_;
+    std::vector<std::u16string> driverNames_;
     std::vector<std::u16string> courseNames_;
     std::u16string courseLabel_ = u"TRACK";
     settings::Progress progress_;
