@@ -201,6 +201,7 @@ add_executable(racers-rebuilt-tests
     assets/car_survey_test.cpp
     assets/champion_database_test.cpp
     assets/circuit_database_test.cpp
+    assets/circuit_table_test.cpp
     assets/chassis_database_test.cpp
     assets/checkpoints_test.cpp
     assets/collision_mesh_test.cpp

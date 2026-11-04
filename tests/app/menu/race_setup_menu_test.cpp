@@ -105,7 +105,7 @@ TEST_CASE("single race setup keeps the rules' opponent count") {
 }
 
 std::vector<CourseChoice> Circuits() {
-    return {{.circuit = "c0", .racers = {{.code = "a"}, {.code = "b"}}},
+    return {{.circuit = "c0", .racers = {{.code = "a"}, {.code = "b"}}, .intro = "circuit1"},
             {.circuit = "c1", .circuitIndex = 1, .racers = {{.code = "c"}}, .isLocked = true}};
 }
 
@@ -130,7 +130,8 @@ TEST_CASE("circuit setup picks the racer, then plays the circuit's intro and its
 }
 
 TEST_CASE("the Rocket Racer circuit's intro names the grid's driver for want of a racer") {
-    RaceSetupMenu menu({{.circuit = "c6", .racers = {{.code = "RR"}, {.code = "JT"}}}});
+    RaceSetupMenu menu(
+        {{.circuit = "c6", .racers = {{.code = "RR"}, {.code = "JT"}}, .intro = "circuit7"}});
 
     const std::optional<std::string> next = Press(menu, {MenuAction::Down, MenuAction::Confirm});
 
@@ -322,6 +323,65 @@ TEST_CASE("a mod track races its own laps and mirror, but versus keeps its own l
                 {.respawn = {.timeout = Milliseconds{3000}}, .lapCount = 2}) ==
           std::string("menu:pick_racer>menu:pick_racer2>race:MODTRACK:respawn=3000:racer=0:"
                       "mirrored:players=2:racer2=1:laps=2"));
+}
+
+std::optional<assets::Vfs> RetailWithLavaCup(const test::TempFolder& mod) {
+    std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return std::nullopt;
+    }
+    std::filesystem::create_directories(mod.Path() / "MENUDATA");
+    std::ofstream(mod.Path() / "MENUDATA" / "CIRCUITS.TOML", std::ios::binary)
+        << "[[circuit]]\nname = \"lava-cup\"\ntitle = \"LAVA CUP\"\nboss = \"KK\"\n"
+           "grid = [\"CR\", \"KK\", \"BB\"]\nraces = [\"modtrack\", \"racec2r1\"]\n"
+           "after = \"c2\"\n";
+    AddModTrack(*vfs, mod.Path());
+    return vfs;
+}
+
+TEST_CASE("a mod circuit joins the circuit list after the circuit it follows") {
+    const test::TempFolder mod;
+    const std::optional<assets::Vfs> vfs = RetailWithLavaCup(mod);
+    if (!vfs) {
+        return;
+    }
+
+    const Result<std::vector<CourseChoice>> circuits = LoadCircuitChoices(*vfs, {"c3"});
+
+    REQUIRE(circuits.has_value());
+    REQUIRE(circuits->size() == 8);
+    const CourseChoice& lava = circuits->at(3);
+    CHECK(lava.circuit + " " + lava.title + " " + lava.boss.code == "lava-cup LAVA CUP KK");
+    CHECK(circuits->at(4).circuit == "c3");
+}
+
+TEST_CASE("a mod circuit opens once a later circuit has, and has no intro of its own") {
+    const test::TempFolder mod;
+    const std::optional<assets::Vfs> vfs = RetailWithLavaCup(mod);
+    if (!vfs) {
+        return;
+    }
+
+    const Result<std::vector<CourseChoice>> circuits = LoadCircuitChoices(*vfs, {"c3"});
+
+    REQUIRE(circuits.has_value());
+    CHECK_FALSE(circuits->at(3).isLocked);
+    CHECK(circuits->at(3).intro.empty());
+    CHECK(circuits->at(2).intro == "circuit3");
+}
+
+TEST_CASE("a track only a mod circuit races still lists as a mod track") {
+    const test::TempFolder mod;
+    const std::optional<assets::Vfs> vfs = RetailWithLavaCup(mod);
+    if (!vfs) {
+        return;
+    }
+
+    const Result<std::vector<CourseChoice>> tracks = LoadTrackChoices(*vfs);
+
+    REQUIRE(tracks.has_value());
+    CHECK(tracks->size() == 14);
+    CHECK(tracks->back().track == "MODTRACK");
 }
 
 TEST_CASE("time trials offer the races of the first three circuits, locked with them") {

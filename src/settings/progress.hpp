@@ -38,6 +38,7 @@ struct TrackRecords {
 struct Progress {
     std::set<std::string> unlockedCircuits;
     std::set<std::int32_t> partSets;
+    std::set<std::string> namedPartSets;
     std::set<std::int32_t> beatenRecords;
     Trophies trophies;
     std::map<std::string, TrackRecords> bestTimes;

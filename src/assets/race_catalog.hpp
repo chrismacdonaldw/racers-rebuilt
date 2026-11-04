@@ -23,7 +23,11 @@ public:
     /// Fails when a race names a missing circuit or a position another race holds.
     [[nodiscard]] static Result<RaceCatalog> Create(std::vector<CircuitEntry> circuits,
                                                     std::vector<RaceEntry> races);
+    /// Applies every mod's circuit table, and logs the changes it skips.
     [[nodiscard]] static Result<RaceCatalog> Load(const Vfs& vfs);
+    /// Collects the skipped circuit table changes instead of logging them.
+    [[nodiscard]] static Result<RaceCatalog> Load(const Vfs& vfs,
+                                                  std::vector<std::string>& problems);
 
     [[nodiscard]] std::span<const CircuitEntry> Circuits() const { return circuits_; }
     [[nodiscard]] std::span<const RaceEntry> Races() const { return races_; }
@@ -32,7 +36,10 @@ public:
     }
     [[nodiscard]] std::optional<std::size_t> FindCircuit(std::string_view name) const;
 
-    /// The first circuit that races `track` unmirrored. `track` matches in any case.
+    /// Circuits in unlock order: the first, then each one's `next` until the chain ends.
+    [[nodiscard]] std::vector<std::size_t> Story() const;
+
+    /// The first retail circuit that races `track` unmirrored. `track` matches in any case.
     [[nodiscard]] std::optional<std::size_t> HomeCircuit(std::string_view track) const;
 
     /// An empty `circuit` means `track`'s home circuit.

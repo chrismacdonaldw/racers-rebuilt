@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -27,6 +28,30 @@ Progress Granted(CircuitAward award) {
     Progress progress;
     GrantAward(progress, progress.trophies, Circuit(), award);
     return progress;
+}
+
+TEST_CASE("gold wins a circuit's named part set once") {
+    const assets::CircuitEntry lava{.name = "lava-cup", .namedPartSet = "lava-parts"};
+    Progress progress;
+
+    CHECK(GrantAward(progress, progress.trophies, lava, CircuitAward::Silver));
+    CHECK(progress.namedPartSets.empty());
+    CHECK(GrantAward(progress, progress.trophies, lava, CircuitAward::Gold));
+    CHECK(progress.namedPartSets == std::set<std::string>{"lava-parts"});
+    CHECK_FALSE(GrantAward(progress, progress.trophies, lava, CircuitAward::Gold));
+}
+
+TEST_CASE("a mod circuit is open once a later circuit in the story is") {
+    const assets::CircuitEntry c0{.name = "c0", .next = "lava-cup"};
+    const assets::CircuitEntry lava{.name = "lava-cup", .next = "c1", .isFromMod = true};
+    const assets::CircuitEntry c1{.name = "c1", .next = "c2"};
+    const assets::CircuitEntry c2{.name = "c2"};
+    const Result<assets::RaceCatalog> races = assets::RaceCatalog::Create({c0, c1, c2, lava}, {});
+    REQUIRE(races.has_value());
+
+    CHECK(OpenCircuits(*races, {}).empty());
+    CHECK(OpenCircuits(*races, {"c2"}) == std::set<std::string>{"c2", "lava-cup"});
+    CHECK(OpenCircuits(*races, {"lava-cup"}) == std::set<std::string>{"lava-cup"});
 }
 
 TEST_CASE("gold opens the part set and next circuit, silver only the circuit") {
@@ -55,6 +80,7 @@ TEST_CASE("an award shows the player's grid driver and the boss in slot 1") {
     CHECK(DriversOf(circuit, 2).champion == "CR");
     CHECK(DriversOf(circuit, 7).player.empty());
     CHECK(DriversOf({.name = "c9"}, 0).champion.empty());
+    CHECK(DriversOf({.name = "lava-cup", .grid = {"VV", "LV"}, .boss = "MG"}, 0).champion == "MG");
 }
 
 TEST_CASE("an award that adds nothing leaves progress unchanged") {

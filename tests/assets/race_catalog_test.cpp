@@ -59,6 +59,31 @@ TEST_CASE("a grid comes from the named circuit, or the track's home circuit") {
     CHECK_FALSE(catalog.Grid("RACEC0R0", "c9").has_value());
 }
 
+TEST_CASE("the story follows each circuit's next from the first, and stops at a loop") {
+    CircuitEntry c0 = Circuit("c0", "CR");
+    CircuitEntry c1 = Circuit("c1", "KK");
+    CircuitEntry c2 = Circuit("c2", "BB");
+    c0.next = "c2";
+    c2.next = "c1";
+    c1.next = "c0";
+
+    const Result<RaceCatalog> catalog = RaceCatalog::Create({c0, c1, c2}, {});
+
+    REQUIRE(catalog.has_value());
+    CHECK(catalog->Story() == std::vector<std::size_t>{0, 2, 1});
+}
+
+TEST_CASE("a mod circuit is no track's home") {
+    CircuitEntry lava = Circuit("lava-cup", "MG");
+    lava.isFromMod = true;
+
+    const Result<RaceCatalog> catalog = RaceCatalog::Create(
+        {lava, Circuit("c0", "CR")}, {Race("racec0r1", "lava-cup", 0), Race("racec0r1", "c0", 0)});
+
+    REQUIRE(catalog.has_value());
+    CHECK(catalog->HomeCircuit("RACEC0R1") == 1);
+}
+
 TEST_CASE("a race on a missing circuit fails") {
     CHECK_FALSE(
         RaceCatalog::Create({Circuit("c0", "CR")}, {Race("racec0r1", "c5", 0)}).has_value());
@@ -128,6 +153,15 @@ TEST_CASE("a retail track's home circuit isn't always the one its folder names")
 
     CHECK(catalog->HomeCircuit("RACEC0R0") == catalog->FindCircuit("c1"));
     CHECK(catalog->Grid("RACEC0R0", "").value_or(std::vector<std::string>{}).at(1) == "KK");
+}
+
+TEST_CASE("the retail story runs through the circuits in order") {
+    const std::optional<RaceCatalog> catalog = RetailCatalog();
+    if (!catalog) {
+        return;
+    }
+
+    CHECK(catalog->Story() == std::vector<std::size_t>{0, 1, 2, 3, 4, 5, 6});
 }
 
 }

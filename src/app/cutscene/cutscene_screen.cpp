@@ -22,7 +22,6 @@ constexpr char kNextSeparator = '>';
 constexpr std::string_view kDriverField = ":driver=";
 constexpr std::string_view kCircuitPrefix = "c";
 constexpr std::string_view kIntroPrefix = "circuit";
-constexpr std::size_t kCircuitCount = 7;
 constexpr std::string_view kStandInChampion = "CR";
 
 constexpr std::array kScreens{
@@ -110,6 +109,19 @@ std::optional<settings::Racer> FirstGameRacer(const assets::Vfs& vfs) {
     return std::move(racers->front());
 }
 
+std::optional<std::string> RetailIntro(std::string_view circuit) {
+    if (!circuit.starts_with(kCircuitPrefix)) {
+        return std::nullopt;
+    }
+    const std::string_view digits = circuit.substr(kCircuitPrefix.size());
+    std::size_t index = 0;
+    const auto [end, error] = std::from_chars(digits.data(), digits.data() + digits.size(), index);
+    if (error != std::errc{} || end != digits.data() + digits.size()) {
+        return std::nullopt;
+    }
+    return std::format("{}{}", kIntroPrefix, index + 1);
+}
+
 }
 
 std::string CutsceneScreenName(const CutsceneScreenSetup& setup) {
@@ -158,17 +170,10 @@ std::optional<CutsceneScreen> FindCutsceneScreen(std::string_view menu) {
     return found == kScreens.end() ? std::nullopt : std::optional(*found);
 }
 
-std::optional<std::string> CircuitIntro(std::string_view circuit) {
-    if (!circuit.starts_with(kCircuitPrefix)) {
-        return std::nullopt;
-    }
-    const std::string_view digits = circuit.substr(kCircuitPrefix.size());
-    std::size_t index = 0;
-    const auto [end, error] = std::from_chars(digits.data(), digits.data() + digits.size(), index);
-    if (error != std::errc{} || end != digits.data() + digits.size() || index >= kCircuitCount) {
-        return std::nullopt;
-    }
-    return std::format("{}{}", kIntroPrefix, index + 1);
+std::optional<std::string> CircuitIntro(const assets::CircuitEntry& circuit) {
+    const std::optional<std::string> intro =
+        circuit.intro ? circuit.intro : RetailIntro(circuit.name);
+    return intro && FindCutsceneScreen(*intro) ? intro : std::nullopt;
 }
 
 Result<CutsceneScreenPlacement> ReadCutsceneScreen(const assets::Vfs& vfs,

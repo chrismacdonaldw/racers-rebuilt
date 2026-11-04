@@ -4,11 +4,13 @@
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 
 #include "app/menu/award_scene_name.hpp"
 #include "assets/circuit_database.hpp"
+#include "assets/race_catalog.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 #include "settings/progress.hpp"
@@ -42,7 +44,12 @@ struct AwardUnlocks {
 [[nodiscard]] Result<AwardUnlocks> SaveAward(const std::filesystem::path& file,
                                              const assets::Vfs& vfs, const AwardSceneSetup& award);
 
-/// An empty code where the grid has no such slot.
+/// `unlocked`, and each mod circuit that a later circuit in the story is in.
+[[nodiscard]] std::set<std::string> OpenCircuits(const assets::RaceCatalog& races,
+                                                 const std::set<std::string>& unlocked);
+
+/// The champion is the circuit's boss, else grid slot 1. An empty code where the grid has no such
+/// slot.
 [[nodiscard]] AwardDrivers DriversOf(const assets::CircuitEntry& circuit, std::size_t racer);
 
 struct AwardClaim {

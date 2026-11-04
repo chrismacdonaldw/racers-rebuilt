@@ -2,14 +2,17 @@
 
 #include <doctest/doctest.h>
 
+#include <format>
 #include <optional>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include "app/cutscene/award_driver.hpp"
 #include "app/racer/racer_models.hpp"
 #include "assets/animation_database.hpp"
 #include "assets/archive_survey.hpp"
+#include "assets/race_catalog.hpp"
 #include "assets/racer_catalog.hpp"
 #include "assets/world_database.hpp"
 #include "sim/animation/part_clock.hpp"
@@ -42,16 +45,44 @@ void CheckPosed(const assets::Vfs& vfs, const assets::RacerCatalog& catalog,
     CHECK(sim::CheckPartTracks(poses, rig->nodes.size()).has_value());
 }
 
+assets::RaceCatalog Story(std::optional<assets::CircuitEntry> added = std::nullopt) {
+    std::vector<assets::CircuitEntry> circuits;
+    circuits.reserve(8);
+    for (int circuit = 0; circuit < 7; ++circuit) {
+        circuits.push_back(
+            {.name = std::format("c{}", circuit),
+             .next = circuit < 6 ? std::optional(std::format("c{}", circuit + 1)) : std::nullopt});
+    }
+    if (added) {
+        circuits.at(2).next = added->name;
+        circuits.push_back(*added);
+    }
+    Result<assets::RaceCatalog> catalog = assets::RaceCatalog::Create(std::move(circuits), {});
+    REQUIRE(catalog.has_value());
+    return std::move(*catalog);
+}
+
 }
 
 TEST_CASE("the main menu shows the host of the last circuit unlocked in order") {
-    CHECK(MenuChampionCode({}) == "CR");
-    CHECK(MenuChampionCode({"c1"}) == "KK");
-    CHECK(MenuChampionCode({"c2"}) == "CR");
-    CHECK(MenuChampionCode({"c1", "c2", "c4"}) == "BB");
-    CHECK(MenuChampionCode({"c1", "c2", "c3", "c4"}) == "BVB");
-    CHECK(MenuChampionCode({"c1", "c2", "c3", "c4", "c5"}) == "GM");
-    CHECK(MenuChampionCode({"c1", "c2", "c3", "c4", "c5", "c6"}) == "RR");
+    const assets::RaceCatalog story = Story();
+
+    CHECK(MenuChampionCode(story, {}) == "CR");
+    CHECK(MenuChampionCode(story, {"c1"}) == "KK");
+    CHECK(MenuChampionCode(story, {"c2"}) == "CR");
+    CHECK(MenuChampionCode(story, {"c1", "c2", "c4"}) == "BB");
+    CHECK(MenuChampionCode(story, {"c1", "c2", "c3", "c4"}) == "BVB");
+    CHECK(MenuChampionCode(story, {"c1", "c2", "c3", "c4", "c5"}) == "GM");
+    CHECK(MenuChampionCode(story, {"c1", "c2", "c3", "c4", "c5", "c6"}) == "RR");
+}
+
+TEST_CASE("the main menu shows a mod circuit's boss when it's the last open") {
+    const assets::RaceCatalog story =
+        Story(assets::CircuitEntry{.name = "lava-cup", .next = "c3", .boss = "MG"});
+
+    CHECK(MenuChampionCode(story, {"c1", "c2"}) == "BB");
+    CHECK(MenuChampionCode(story, {"c1", "c2", "lava-cup"}) == "MG");
+    CHECK(MenuChampionCode(story, {"c1", "c2", "lava-cup", "c3"}) == "JT");
 }
 
 TEST_CASE("LEGOMAN poses every main menu champion through the glass tap") {

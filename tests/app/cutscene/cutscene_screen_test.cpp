@@ -6,6 +6,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "app/cutscene/cutscene_scene.hpp"
@@ -37,13 +38,24 @@ TEST_CASE("a cutscene screen name fails on an unknown menu or with nowhere to go
     CHECK_FALSE(ParseCutsceneScreen("screen:circuit1").has_value());
 }
 
-TEST_CASE("each circuit's intro is the screen after its number") {
-    CHECK(CircuitIntro("c0") == "circuit1");
-    CHECK(CircuitIntro("c6") == "circuit7");
-    CHECK_FALSE(CircuitIntro("c7").has_value());
-    CHECK_FALSE(CircuitIntro("c").has_value());
-    CHECK_FALSE(CircuitIntro("c1x").has_value());
-    CHECK_FALSE(CircuitIntro("x").has_value());
+std::optional<std::string> IntroOf(std::string name,
+                                   std::optional<std::string> intro = std::nullopt) {
+    return CircuitIntro({.name = std::move(name), .intro = std::move(intro)});
+}
+
+TEST_CASE("each retail circuit's intro is the screen after its number") {
+    CHECK(IntroOf("c0") == "circuit1");
+    CHECK(IntroOf("c6") == "circuit7");
+    CHECK_FALSE(IntroOf("c7").has_value());
+    CHECK_FALSE(IntroOf("c").has_value());
+    CHECK_FALSE(IntroOf("c1x").has_value());
+    CHECK_FALSE(IntroOf("x").has_value());
+}
+
+TEST_CASE("a circuit's own intro is a cutscene screen, or none") {
+    CHECK(IntroOf("lava-cup", "circuit3") == "circuit3");
+    CHECK_FALSE(IntroOf("c0", "").has_value());
+    CHECK_FALSE(IntroOf("lava-cup", "lava").has_value());
 }
 
 TEST_CASE("a screen skips on a fresh press or any release, not a key repeat") {

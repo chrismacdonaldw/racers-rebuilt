@@ -35,6 +35,8 @@ struct CourseChoice {
     std::string title;
     std::optional<int> lapCount;
     bool isMirrored = false;
+    RacerChoice boss;
+    std::string intro;
 };
 
 /// Unmirrored circuit races in circuit order with their circuit's grid, then tracks only mods add.
@@ -45,7 +47,8 @@ struct CourseChoice {
 [[nodiscard]] Result<std::vector<CourseChoice>> LoadTrialChoices(
     const assets::Vfs& vfs, const std::set<std::string>& unlocked);
 
-/// Every circuit with a race. The first is open even when `unlocked` doesn't name it.
+/// Every circuit with a race, in story order. The first is open even when `unlocked` doesn't name
+/// it.
 [[nodiscard]] Result<std::vector<CourseChoice>> LoadCircuitChoices(
     const assets::Vfs& vfs, const std::set<std::string>& unlocked);
 

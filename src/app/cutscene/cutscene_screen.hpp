@@ -7,6 +7,7 @@
 #include <string_view>
 
 #include "app/cutscene/cutscene_play.hpp"
+#include "assets/circuit_database.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
 #include "render/render_view.hpp"
@@ -52,8 +53,9 @@ struct CutsceneScreen {
 
 [[nodiscard]] std::optional<CutsceneScreen> FindCutsceneScreen(std::string_view menu);
 
-/// `circuit` is a circuit name such as `c3`, whose intro is `circuit4`. Unset when it has none.
-[[nodiscard]] std::optional<std::string> CircuitIntro(std::string_view circuit);
+/// A circuit's own intro, else the retail one for its name: `c3` has `circuit4`. Unset when it has
+/// none or names no cutscene screen.
+[[nodiscard]] std::optional<std::string> CircuitIntro(const assets::CircuitEntry& circuit);
 
 /// `folder` is under `MENUDATA` and `rect` is in UI units.
 struct CutsceneScreenPlacement {
