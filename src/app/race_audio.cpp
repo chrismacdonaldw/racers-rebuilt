@@ -45,6 +45,8 @@ constexpr std::size_t kMissileFire = 51;
 constexpr std::size_t kTurboStart = 36;
 constexpr std::size_t kWarpStart = 39;
 constexpr std::size_t kTurboEnd = 40;
+constexpr std::size_t kTurboHum0 = 42;
+constexpr std::size_t kWarpHum = 45;
 constexpr std::size_t kWarpLand = 41;
 constexpr std::size_t kShieldLoop1 = 53;
 constexpr std::size_t kCarScrapeAlternate = 55;
@@ -68,6 +70,7 @@ constexpr std::size_t kOpponentEngine = 79;
 constexpr std::size_t kEffectCount = kOpponentEngine + 1;
 constexpr std::array kEngineLoopSounds{kIdleLoop, kDriveLoop, kCoastLoop};
 constexpr std::array kShieldLoops{kShieldLoop0, kShieldLoop1, kShieldLoop2, kShieldLoop3};
+constexpr std::array kTurboHums{kTurboHum0, kTurboHum0 + 1, kTurboHum0 + 2};
 constexpr float kWeakTurboEndVolume = 0.6F;
 constexpr float kStrongTurboEndVolume = 0.8F;
 constexpr float kOpponentEngineVolume = 0.8F;
@@ -201,6 +204,8 @@ RaceAudio::RaceAudio(audio::Mixer& mixer, RaceSoundSet sounds, const RaceAudioSe
       surfaces_(setup.racerCount),
       surfaceLoops_(setup.racerCount),
       shieldLoops_(setup.racerCount),
+      turboLoops_(setup.racerCount),
+      warpLoops_(setup.racerCount),
       ambience_(sounds_.ambience, sounds_.ambient, sim::Random(setup.seed ^ kAmbienceSeed)),
       hazards_(sounds_.ambient, sim::Random(setup.seed ^ kHazardSeed)),
       powerups_(sounds_.effects, Taunts(Voices(setup)), sim::Random(setup.seed ^ kPowerupSeed),
@@ -221,8 +226,10 @@ void RaceAudio::StopLoops() {
     for (LoopVoice& loop : surfaceLoops_) {
         loop.Stop(*mixer_);
     }
-    for (LoopVoice& loop : shieldLoops_) {
-        loop.Stop(*mixer_);
+    for (std::size_t i = 0; i < shieldLoops_.size(); ++i) {
+        shieldLoops_[i].Stop(*mixer_);
+        turboLoops_[i].Stop(*mixer_);
+        warpLoops_[i].Stop(*mixer_);
     }
     brakeLoop_.Stop(*mixer_);
     opponentLoop_.Stop(*mixer_);
@@ -241,6 +248,7 @@ void RaceAudio::Hear(const sim::RaceSession& session, std::span<const Transform>
     HearEngine(session, elapsed);
     HearSurfaces(session, elapsed);
     HearShields(session);
+    HearBoosts(session);
     HearNearestOpponent(session);
     ambience_.Hear(session.Triggers().Events(), listener_, elapsed, *mixer_);
     hazards_.Hear(session, listener_, elapsed, *mixer_);
@@ -414,6 +422,28 @@ void RaceAudio::HearShields(const sim::RaceSession& session) {
                 PlaceSound(listener_, racer.Body().motion.position, {}, kShieldRange));
         } else {
             shieldLoops_[i].Stop(*mixer_);
+        }
+    }
+}
+
+void RaceAudio::HearBoosts(const sim::RaceSession& session) {
+    for (std::size_t i = 0; i < turboLoops_.size(); ++i) {
+        if (!session.HasCarSounds(i)) {
+            continue;
+        }
+        const sim::Racer& racer = session.Racers()[i];
+        const audio::VoiceMix mix = PlaceSound(listener_, racer.Body().motion.position, {});
+        if (const std::optional<sim::Turbo>& turbo = racer.ActiveTurbo()) {
+            turboLoops_[i].Play(
+                *mixer_, sounds_.effects[kTurboHums.at(static_cast<std::size_t>(turbo->level))],
+                mix);
+        } else {
+            turboLoops_[i].Stop(*mixer_);
+        }
+        if (racer.Status().isGhost) {
+            warpLoops_[i].Play(*mixer_, sounds_.effects[kWarpHum], mix);
+        } else {
+            warpLoops_[i].Stop(*mixer_);
         }
     }
 }

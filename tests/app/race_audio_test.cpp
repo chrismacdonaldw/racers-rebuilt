@@ -12,6 +12,7 @@
 #include "../sim/physics/plane_world.hpp"
 #include "../sim/race/checkpoint_ring.hpp"
 #include "app/track_space.hpp"
+#include "sim/powerup/green_effects.hpp"
 
 namespace rr::app {
 namespace {
@@ -24,11 +25,14 @@ constexpr Milliseconds kTick{12};
 constexpr int kTicksPastGo = 600;
 constexpr std::int32_t kSurfaceSound = 3000;
 constexpr std::array kEnginePitches{0.84F, 0.96F};
+constexpr std::size_t kStrongTurboHum = 43;
+constexpr int kMostTurboTicks = 1000;
 constexpr std::array<std::uint8_t, 256> kPayload = [] {
     std::array<std::uint8_t, 256> payload{};
     payload.fill(0x77);
     return payload;
 }();
+constexpr std::array<std::uint8_t, 256> kSilence{};
 
 audio::Mixer HeadlessMixer() {
     Result<audio::Mixer> mixer = audio::Mixer::CreateHeadless(kRateHz);
@@ -48,14 +52,18 @@ std::vector<sim::RacerStart> Grid() {
 
 class FullGrid {
 public:
-    explicit FullGrid(std::optional<std::int32_t> surfaceSound = kSurfaceSound)
+    explicit FullGrid(std::optional<std::int32_t> surfaceSound = kSurfaceSound,
+                      std::optional<std::size_t> onlyAudible = std::nullopt)
         : sound_(test::BuildAlp(1, kRateHz, kPayload)),
+          silence_(test::BuildAlp(1, kRateHz, kSilence)),
           mixer_(HeadlessMixer()),
           world_({test::TestPlane{.surface = {.soundId = surfaceSound}}}),
           grid_(Grid()),
           session_(Start()) {
         for (std::size_t i = 0; i <= kEffectCount; ++i) {
-            sounds_.push_back(mixer_.AddSound(assets::FileData(sound_)).value_or(audio::SoundId{}));
+            const bool isAudible = !onlyAudible || *onlyAudible == i;
+            sounds_.push_back(mixer_.AddSound(assets::FileData(isAudible ? sound_ : silence_))
+                                  .value_or(audio::SoundId{}));
         }
         audio_ = std::make_unique<RaceAudio>(
             mixer_,
@@ -79,6 +87,13 @@ public:
         return mixer_.AllocationCount() - before;
     }
 
+    void Use(assets::BrickColour colour, std::uint8_t level) {
+        session_.GivePowerup(0, colour, level);
+        controls_[0].isUsePressed = true;
+        static_cast<void>(TickAndRender());
+        controls_[0].isUsePressed = false;
+    }
+
     [[nodiscard]] bool LastRenderIsSilent() const {
         return std::ranges::all_of(output_, [](float sample) { return sample == 0.0F; });
     }
@@ -90,6 +105,7 @@ private:
     sim::RaceSession Start() {
         sim::RaceSetup setup{.racers = std::vector<sim::RacerEntry>(kGridSize)};
         setup.racers[0].isPlayer = true;
+        sim::AddGreenEffects(setup.effects);
         Result<sim::RaceSession> session = sim::RaceSession::Create(
             setup, {.checkpoints = &graph_, .grid = grid_, .world = &world_, .lowestTrackZ = -100});
         REQUIRE(session.has_value());
@@ -97,6 +113,7 @@ private:
     }
 
     std::vector<std::byte> sound_;
+    std::vector<std::byte> silence_;
     audio::Mixer mixer_;
     std::vector<audio::SoundId> sounds_;
     sim::CheckpointGraph graph_ = test::Ring();
@@ -149,6 +166,27 @@ TEST_CASE("stopping the loops silences a racing grid") {
 
     race.StopLoopsAndRender();
 
+    CHECK(race.LastRenderIsSilent());
+}
+
+TEST_CASE("a turbo hums at its level until it ends") {
+    FullGrid race(std::nullopt, kStrongTurboHum);
+    while (race.Session().Clock().Phase() != sim::RacePhase::Racing) {
+        static_cast<void>(race.TickAndRender());
+    }
+
+    race.Use(assets::BrickColour::Green, 1);
+    REQUIRE(race.Session().Racers()[0].ActiveTurbo().has_value());
+    bool isHumming = true;
+    int ticks = 0;
+    while (race.Session().Racers()[0].ActiveTurbo() && ticks++ < kMostTurboTicks) {
+        static_cast<void>(race.TickAndRender());
+        isHumming =
+            isHumming && (!race.Session().Racers()[0].ActiveTurbo() || !race.LastRenderIsSilent());
+    }
+    static_cast<void>(race.TickAndRender());
+
+    CHECK(isHumming);
     CHECK(race.LastRenderIsSilent());
 }
 

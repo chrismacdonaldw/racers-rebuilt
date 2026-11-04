@@ -1,6 +1,8 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <cstdint>
+#include <vector>
 
 #include "../physics/plane_world.hpp"
 #include "checkpoint_ring.hpp"
@@ -10,6 +12,7 @@ namespace rr::sim {
 namespace {
 
 constexpr ChassisSpec kChassis{.handling = 50, .topSpeed = 50, .acceleration = 50};
+constexpr Milliseconds kTick{12};
 
 struct Course {
     CheckpointGraph graph = test::Ring();
@@ -38,6 +41,31 @@ TEST_CASE("racers that run off the end of the grid from the first slot fail") {
     const RaceSetup setup{.racers = {{.chassis = kChassis}, {.chassis = kChassis}}, .firstSlot = 2};
 
     CHECK_FALSE(RaceSession::Create(setup, course.View()).has_value());
+}
+
+std::vector<std::uint8_t> EngineStartsBeforeCountdown(RaceSession& session) {
+    const std::vector<RacerControls> idle(session.Racers().size());
+    std::vector<std::uint8_t> started;
+    while (session.Clock().Phase() == RacePhase::Intro) {
+        session.Tick(kTick, idle);
+        for (const SoundEvent& sound : session.Sounds()) {
+            if (sound.sound == RaceSound::EngineStart) {
+                started.push_back(sound.racer);
+            }
+        }
+    }
+    return started;
+}
+
+TEST_CASE("a demo's first racer starts its engine like a player") {
+    const Course course;
+    const RaceSetup setup{.racers = {{.chassis = kChassis}, {.chassis = kChassis}}, .isDemo = true};
+    Result<RaceSession> session = RaceSession::Create(setup, course.View());
+    REQUIRE(session.has_value());
+
+    CHECK(EngineStartsBeforeCountdown(*session) == std::vector<std::uint8_t>{0});
+    CHECK(session->HasCarSounds(0));
+    CHECK_FALSE(session->HasCarSounds(1));
 }
 
 }

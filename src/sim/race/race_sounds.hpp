@@ -76,9 +76,9 @@ public:
 
     /// `before` is the clock as the tick started.
     void HearClock(const RaceClock& before, const RaceClock& after,
-                   const std::vector<bool>& isPlayer);
+                   const std::vector<bool>& hasCarSounds);
 
-    void HearRacer(std::size_t racer, const Racer& car, bool isPlayer, bool isRacing,
+    void HearRacer(std::size_t racer, const Racer& car, bool hasCarSounds, bool isRacing,
                    Milliseconds elapsed);
 
     void HearFinish(std::size_t racer);
