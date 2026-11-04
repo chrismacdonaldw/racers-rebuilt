@@ -20,7 +20,7 @@ racers-rebuilt is a reimplementation of LEGO Racers for 64-bit Windows. It reads
 > **No game files are included.** racers-rebuilt needs an installed copy of the original PC game.
 
 > [!NOTE]
-> The whole game is in: single races, circuits and their mirrored versions, time trials, two-player split-screen versus, the garage with the car builder and driver editor, and the cutscenes and intro videos.
+> v0.5.0 plays the whole game: single races, circuits and their mirrored versions, time trials, two-player split-screen versus, the garage with the car builder and driver editor, and the cutscenes and intro videos.
 
 ## Features
 
