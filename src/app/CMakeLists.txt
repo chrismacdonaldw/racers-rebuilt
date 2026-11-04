@@ -47,6 +47,7 @@ rr_add_module(app
         free_camera.cpp
         hq_textures.cpp
         ldraw_driver_prints.cpp
+        ldraw_minifig_models.cpp
         ldraw_piece_models.cpp
         game_boot.cpp
         game_extraction.cpp
