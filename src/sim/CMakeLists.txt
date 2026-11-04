@@ -7,10 +7,12 @@ rr_add_module(sim
         ai/ai_racer.cpp
         ai/ai_taunts.cpp
         ai/powerup_habits.cpp
+        ai/racing_line.cpp
         ai/route_choice.cpp
         ai/route_driver.cpp
         ai/route_effects.cpp
         ai/rubber_band.cpp
+        ai/speed_plan.cpp
         animation/part_clock.cpp
         animation/skeleton_pose.cpp
         car_build/build_history.cpp

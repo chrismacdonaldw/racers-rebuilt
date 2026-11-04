@@ -1,6 +1,8 @@
 #include "sim/race/session_parts.hpp"
 
 #include <algorithm>
+#include <execution>
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -13,6 +15,11 @@ namespace {
 constexpr std::size_t kMostWeaponEventsPerEffect = 2;
 constexpr std::size_t kMostShotCastsPerEffect = 2;
 constexpr std::size_t kEventsPerShotCast = 2;
+
+struct RouteRef {
+    std::size_t slot = 0;
+    std::size_t variant = 0;
+};
 
 std::size_t EffectSlots(const RaceSetup& setup) {
     std::size_t slots = 0;
@@ -93,6 +100,27 @@ std::span<const assets::RaceRoute> RoutesFor(const RaceCourse& course, std::size
         return {};
     }
     return (*course.routes)[slot];
+}
+
+std::vector<std::vector<std::shared_ptr<const RacingLine>>> RacingLinesFor(
+    const RaceSetup& setup, const RaceCourse& course) {
+    std::vector<std::vector<std::shared_ptr<const RacingLine>>> lines;
+    if (setup.aiDriving != AiDriving::Physics || !setup.aiCraft.racingLine ||
+        course.routes == nullptr || course.world == nullptr) {
+        return lines;
+    }
+    std::vector<RouteRef> routes;
+    for (std::size_t slot = 0; slot < course.routes->size(); ++slot) {
+        lines.emplace_back((*course.routes)[slot].size());
+        for (std::size_t variant = 0; variant < (*course.routes)[slot].size(); ++variant) {
+            routes.push_back({.slot = slot, .variant = variant});
+        }
+    }
+    std::for_each(std::execution::par, routes.begin(), routes.end(), [&](const RouteRef& ref) {
+        lines[ref.slot][ref.variant] = std::make_shared<const RacingLine>(
+            RacingLine::Fit((*course.routes)[ref.slot][ref.variant], *course.world));
+    });
+    return lines;
 }
 
 }

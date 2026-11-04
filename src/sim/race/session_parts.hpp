@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <span>
 #include <vector>
@@ -31,5 +32,9 @@ namespace rr::sim {
 
 [[nodiscard]] std::span<const assets::RaceRoute> RoutesFor(const RaceCourse& course,
                                                            std::size_t slot);
+
+/// Shaped like the course's routes, or empty when racers don't follow racing lines.
+[[nodiscard]] std::vector<std::vector<std::shared_ptr<const RacingLine>>> RacingLinesFor(
+    const RaceSetup& setup, const RaceCourse& course);
 
 }

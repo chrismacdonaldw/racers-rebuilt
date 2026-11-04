@@ -320,11 +320,14 @@ add_executable(racers-rebuilt-tests
     sim/ai/ai_racer_test.cpp
     sim/ai/ai_taunts_test.cpp
     sim/ai/powerup_habits_test.cpp
+    sim/ai/racing_line_retail_test.cpp
+    sim/ai/racing_line_test.cpp
     sim/ai/route_choice_test.cpp
     sim/ai/route_driver_test.cpp
     sim/ai/route_effects_test.cpp
     sim/ai/route_lap_test.cpp
     sim/ai/rubber_band_test.cpp
+    sim/ai/speed_plan_test.cpp
     sim/animation/part_clock_test.cpp
     sim/animation/skeleton_pose_test.cpp
     sim/car_build/build_history_test.cpp

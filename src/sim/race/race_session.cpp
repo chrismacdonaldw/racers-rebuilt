@@ -79,7 +79,8 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       weapons_(WeaponEventCount(setup, course)),
       reaches_(setup.racers.size()),
       pickupReaches_(setup.racers.size()),
-      contactBodies_(setup.racers.size()) {
+      contactBodies_(setup.racers.size()),
+      lines_(RacingLinesFor(setup, course)) {
     racers_.reserve(setup.racers.size());
     contactWorlds_.reserve(setup.racers.size());
     localBounds_.reserve(setup.racers.size());
@@ -99,15 +100,16 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
         const std::span<const assets::RaceRoute> routes = RoutesFor(course, setup.firstSlot + i);
         drivers_.emplace_back();
         if (!entry.isPlayer && !routes.empty()) {
-            const assets::RaceRoute& route =
-                routes[random_.Below(static_cast<std::uint32_t>(routes.size()))];
+            const std::size_t variant = random_.Below(static_cast<std::uint32_t>(routes.size()));
+            const assets::RaceRoute& route = routes[variant];
             if (setup.aiDriving == AiDriving::Physics) {
                 std::optional<SkillProfile> skill;
                 if (setup.aiSkill) {
                     skillLevels_[i] = LevelFor(*setup.aiSkill, setup.firstSlot + i, route.pace);
                     skill = ProfileFor(skillLevels_[i]);
                 }
-                drivers_.back().emplace(route, setup.aiPace, setup.aiCraft, skill);
+                drivers_.back().emplace(route, setup.aiPace, setup.aiCraft, skill,
+                                        LineFor(setup.firstSlot + i, variant));
             } else {
                 racer.FollowRoute(route);
             }
@@ -236,6 +238,14 @@ void RaceSession::ResolveContacts() {
     for (const RacerContact& contact : contacts_.Contacts()) {
         ApplyContactEffects(racers_, contact, random_);
     }
+}
+
+std::shared_ptr<const RacingLine> RaceSession::LineFor(std::size_t slot,
+                                                       std::size_t variant) const {
+    if (slot >= lines_.size() || variant >= lines_[slot].size()) {
+        return nullptr;
+    }
+    return lines_[slot][variant];
 }
 
 void RaceSession::PaceRoutes(Milliseconds elapsed) {

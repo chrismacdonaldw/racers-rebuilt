@@ -355,7 +355,7 @@ TEST_CASE("physics racers' craft settings are all off by default") {
 
     CHECK(AiCraftFrom(registry) == sim::AiCraft{});
 
-    for (const auto& spec : {kAiBraking, kAiPassing, kAiUnsticking, kAiAiming}) {
+    for (const auto& spec : {kAiBraking, kAiPassing, kAiUnsticking, kAiAiming, kAiRacingLine}) {
         registry.Set(spec, true);
     }
 

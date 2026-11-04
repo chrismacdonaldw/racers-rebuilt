@@ -127,6 +127,7 @@ These apply from the next race.
 | `race.ai_spread` | `Original` | `Original`, `Equal`, `Custom`. Original gives fast-route racers and the boss the level, medium-route racers one less and slow-route racers two less. Equal gives everyone the level. Custom uses each grid slot's level. |
 | `race.ai_level_slot1` to `race.ai_level_slot5` | `3` | `1` to `5`. Each grid slot's level when `race.ai_spread` is `Custom`. |
 | `race.ai_fair_catch_up` | `false` | `true`, `false`. After 15 s, a skilled racer behind the best player drives one level higher, and one a tenth of a lap ahead drives one level lower. |
+| `race.ai_racing_line` | `false` | `true`, `false`. With `race.physics_ai`, computer racers drive a smoothed line inside their route's width, at the fastest speed their car can corner and brake for. `race.ai_pace`, or the skill level, then scales that speed, and they brake for it only with `race.ai_braking`. |
 | `race.better_warp` | `false` | `true`, `false`. A warp lands a player facing a clear way along the track instead of the next checkpoint, which can point into a wall. |
 | `race.fair_warp` | `false` | `true`, `false`. A warp saves about 3 s instead of 5 to 6, for every racer, and a player lands at top speed instead of being launched. |
 | `race.catch_up_warp` | `false` | `true`, `false`. The race leader's warp gains a third as much, for every racer. |

@@ -6,6 +6,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <memory>
 #include <numbers>
 #include <optional>
 
@@ -276,6 +277,24 @@ TEST_CASE("a route driver follows a curve") {
         const Vector3& position = racer.Body().motion.position;
         CHECK(std::hypot(position.x, position.y) == doctest::Approx(kArcRadius).epsilon(0.03));
     }
+}
+
+TEST_CASE("a route driver on a racing line plans its car's speeds once it's on the ground") {
+    const test::PlaneWorld world = test::FlatGround();
+    const assets::RaceRoute route = test::StraightRoute({.z = 0.2F}, 3000);
+    const auto line = std::make_shared<const RacingLine>(RacingLine::Fit(route, world));
+    RouteDriver onLine(route, 1.0F, {.racingLine = true}, std::nullopt, line);
+    RouteDriver offLine(route, 1.0F, {}, std::nullopt, line);
+    Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+
+    DriveFor(racer, onLine, 4000, world);
+    static_cast<void>(offLine.Drive(racer));
+
+    const std::optional<float> firstSpeed =
+        onLine.Plan().transform([](const SpeedPlan& plan) { return plan.Speeds().front(); });
+    CHECK(firstSpeed.value_or(0.0F) == doctest::Approx(racer.Body().maxSpeed));
+    CHECK_FALSE(offLine.Plan().has_value());
+    CHECK(racer.Body().derived.speed > 0.1F);
 }
 
 }

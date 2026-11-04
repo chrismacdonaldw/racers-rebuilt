@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <utility>
 
 #include "core/quaternion.hpp"
 #include "sim/physics/drive_controller.hpp"
@@ -29,6 +30,8 @@ constexpr float kPassOffset = 6.0F;
 constexpr float kPassWidthShare = 0.8F;
 constexpr float kWobblePeriodMs = 4000.0F;
 constexpr float kTwoPi = 2.0F * std::numbers::pi_v<float>;
+constexpr float kMsPerSecond = 1000.0F;
+constexpr float kMostPlanShare = 1.0F;
 
 Vector3 Flat(const Vector3& v) {
     return {.x = v.x, .y = v.y};
@@ -74,19 +77,23 @@ float LockFor(float radius, float handling) {
 }
 
 RouteDriver::RouteDriver(const assets::RaceRoute& route, std::optional<float> pace, AiCraft craft,
-                         std::optional<SkillProfile> skill)
+                         std::optional<SkillProfile> skill, std::shared_ptr<const RacingLine> line)
     : nearest_(route),
       reference_(route),
       ahead_(route),
       pace_(pace),
       craft_(craft),
       skill_(skill),
-      wobblePhase_(std::fmod(std::abs(route.startPosition.x + route.startPosition.y), kTwoPi)) {}
+      wobblePhase_(std::fmod(std::abs(route.startPosition.x + route.startPosition.y), kTwoPi)),
+      line_(craft.racingLine ? std::move(line) : nullptr) {}
 
 RacerControls RouteDriver::Drive(const Racer& racer, std::span<const Vector3> racers,
                                  std::optional<std::size_t> self, std::optional<Vector3> aim) {
     const BodyMotion& motion = racer.Body().motion;
     Follow(motion.position);
+    if (line_ != nullptr && !plan_ && IsGrounded(motion)) {
+        plan_.emplace(*line_, CarLimits::Of(racer));
+    }
     if (craft_.unsticks && stalled_ >= kBackUpFrom && stalled_ < kBackUpUntil) {
         return {.isBrakeHeld = true};
     }
@@ -95,11 +102,14 @@ RacerControls RouteDriver::Drive(const Racer& racer, std::span<const Vector3> ra
     const bool isBrakeHeld = pedal == Pedal::Brake;
     const Transform reference = reference_.Pose();
     const Vector3 tangent = FlatForward(reference.rotation);
-    const float offset = SideOffset(aim ? AimOffset(*aim) : PassOffset(motion, racers, self));
+    const float lateral = LateralOf(reference_);
+    const float offset =
+        lateral + SideOffset(aim ? AimOffset(*aim) - lateral : PassOffset(motion, racers, self));
     const Vector3 target =
         Flat(reference.position) + (tangent * kCorrectionDistance) + (LeftOf(tangent) * offset);
     const Vector3 forward = Normalized(Flat(motion.basis.forward), {.x = 1.0F});
-    const float curvature = CurvatureToward(reference.position, tangent, ahead_.Pose().position) +
+    const Vector3 onLine = reference.position + (LeftOf(tangent) * lateral);
+    const float curvature = CurvatureToward(onLine, tangent, LinePosition(ahead_)) +
                             CurvatureToward(motion.position, forward, target);
     if (std::abs(curvature) < kMinCurvature) {
         return {.isThrottleHeld = isThrottleHeld, .isBrakeHeld = isBrakeHeld};
@@ -117,6 +127,18 @@ RacerControls RouteDriver::Drive(const Racer& racer, std::span<const Vector3> ra
 }
 
 RouteDriver::Pedal RouteDriver::PedalFor(const BodyMotion& motion) const {
+    const float speed = Dot(motion.velocity, motion.basis.forward);
+    const float margin = skill_ ? skill_->brakeMargin : kBrakeMargin;
+    if (plan_) {
+        const float share =
+            skill_ ? std::min(skill_->speedShare, kMostPlanShare) : pace_.value_or(1.0F);
+        const float target =
+            share * plan_->SpeedAt(reference_.Target(), reference_.Alpha()) / kMsPerSecond;
+        if (speed < target) {
+            return Pedal::Throttle;
+        }
+        return craft_.brakes && speed > target * margin ? Pedal::Brake : Pedal::Coast;
+    }
     const auto leadMs = static_cast<float>((aheadLead_ - referenceLead_).count());
     const std::optional<float> pace = skill_ ? std::optional(skill_->speedShare) : pace_;
     if (!pace || leadMs <= 0.0F) {
@@ -126,11 +148,9 @@ RouteDriver::Pedal RouteDriver::PedalFor(const BodyMotion& motion) const {
     const float routeSpeed = SpeedBetween(reference_.Pose().position, ahead, leadMs);
     const float target =
         *pace * (craft_.brakes ? std::min(routeSpeed, BrakeWindowSpeed()) : routeSpeed);
-    const float speed = Dot(motion.velocity, motion.basis.forward);
     if (speed < target) {
         return Pedal::Throttle;
     }
-    const float margin = skill_ ? skill_->brakeMargin : kBrakeMargin;
     return craft_.brakes && speed > target * margin ? Pedal::Brake : Pedal::Coast;
 }
 
@@ -152,6 +172,15 @@ float RouteDriver::BrakeWindowSpeed() const {
     return SpeedBetween(ahead_.PoseAhead(kBrakeWindowStartMs).position,
                         ahead_.PoseAhead(kBrakeWindowEndMs).position,
                         kBrakeWindowEndMs - kBrakeWindowStartMs);
+}
+
+float RouteDriver::LateralOf(const RoutePlayback& playback) const {
+    return line_ == nullptr ? 0.0F : line_->LateralAt(playback.Target(), playback.Alpha());
+}
+
+Vector3 RouteDriver::LinePosition(const RoutePlayback& playback) const {
+    const Transform pose = playback.Pose();
+    return pose.position + (LeftOf(FlatForward(pose.rotation)) * LateralOf(playback));
 }
 
 float RouteDriver::PassOffset(const BodyMotion& motion, std::span<const Vector3> racers,

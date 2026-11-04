@@ -12,8 +12,6 @@ namespace {
 
 constexpr float kTightCurvature = 1.0F / 40.0F;
 constexpr float kWideCurvature = 1.0F / 4000.0F;
-constexpr float kThrust = 54.0F;
-constexpr float kBrakeScale = 2.0F;
 constexpr float kCrawlSpeed = 0.04F;
 constexpr float kCrawlRadiusScale = 0.2F;
 constexpr float kAirborneGripLimit = 100.0F;
@@ -28,8 +26,8 @@ constexpr float kDriftAlignment = 0.85F;
 constexpr float kMinDriftSpeed = 0.05F;
 
 float ThrustFor(float drive, float forwardSpeed) {
-    const float thrust = kThrust * drive;
-    return drive * forwardSpeed < 0.0F ? thrust * kBrakeScale : thrust;
+    const float thrust = kPedalThrust * drive;
+    return drive * forwardSpeed < 0.0F ? thrust * kBrakeThrustScale : thrust;
 }
 
 float Alignment(const BodyState& body) {
