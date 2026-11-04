@@ -38,22 +38,29 @@ struct Mode {
     std::optional<AiSkill> skill;
 };
 
-std::array<Mode, 6> Modes() {
-    return {Mode{.name = "route"},
-            Mode{.name = "physics", .driving = AiDriving::Physics},
-            Mode{.name = "physics+craft", .driving = AiDriving::Physics, .craft = AiCraft::All()},
-            Mode{.name = "skill o3",
-                 .driving = AiDriving::Physics,
-                 .craft = AiCraft::All(),
-                 .skill = AiSkill{}},
-            Mode{.name = "skill e1",
-                 .driving = AiDriving::Physics,
-                 .craft = AiCraft::All(),
-                 .skill = AiSkill{.spread = SkillSpread::Equal, .difficulty = kEasiestLevel}},
-            Mode{.name = "skill e5",
-                 .driving = AiDriving::Physics,
-                 .craft = AiCraft::All(),
-                 .skill = AiSkill{.spread = SkillSpread::Equal, .difficulty = kMasterLevel}}};
+constexpr AiCraft kCraft{.brakes = true, .passes = true, .unsticks = true, .aims = true};
+
+std::array<Mode, 8> Modes() {
+    const AiSkill equalMaster{.spread = SkillSpread::Equal, .difficulty = kMasterLevel};
+    return {
+        Mode{.name = "route"},
+        Mode{.name = "physics", .driving = AiDriving::Physics},
+        Mode{.name = "physics+craft", .driving = AiDriving::Physics, .craft = kCraft},
+        Mode{
+            .name = "skill o3", .driving = AiDriving::Physics, .craft = kCraft, .skill = AiSkill{}},
+        Mode{.name = "skill e1",
+             .driving = AiDriving::Physics,
+             .craft = kCraft,
+             .skill = AiSkill{.spread = SkillSpread::Equal, .difficulty = kEasiestLevel}},
+        Mode{.name = "skill e5",
+             .driving = AiDriving::Physics,
+             .craft = kCraft,
+             .skill = equalMaster},
+        Mode{.name = "physics+line", .driving = AiDriving::Physics, .craft = AiCraft::All()},
+        Mode{.name = "skill e5+line",
+             .driving = AiDriving::Physics,
+             .craft = AiCraft::All(),
+             .skill = equalMaster}};
 }
 
 std::string HomeCircuit(const assets::Vfs& vfs, const std::string& track) {

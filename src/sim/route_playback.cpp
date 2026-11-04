@@ -81,10 +81,13 @@ void RoutePlayback::MoveBack(Cursor& cursor) const {
 }
 
 Transform RoutePlayback::PoseAt(const Cursor& cursor) const {
+    return Interpolate(cursor.from, cursor.to, AlphaAt(cursor));
+}
+
+float RoutePlayback::AlphaAt(const Cursor& cursor) const {
     const auto at = static_cast<std::int32_t>(cursor.timeMs);
-    const auto alpha = static_cast<float>(at - cursor.segmentStartMs) /
-                       static_cast<float>(route_.points[cursor.target].durationMs);
-    return Interpolate(cursor.from, cursor.to, alpha);
+    return static_cast<float>(at - cursor.segmentStartMs) /
+           static_cast<float>(route_.points[cursor.target].durationMs);
 }
 
 void RoutePlayback::StartSegment(Cursor& cursor, std::size_t target, Transform from,

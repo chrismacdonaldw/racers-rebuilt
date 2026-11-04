@@ -27,6 +27,7 @@ namespace {
 
 constexpr float kChannelMax = 255.0F;
 constexpr std::size_t kMatrixFloats = 16;
+constexpr float kKeyGap = 1.0e-4F;
 
 glm::vec3 ToGltf(const Vector3& game) {
     return {game.x, game.z, -game.y};
@@ -268,10 +269,11 @@ private:
             const SkeletonNode& node = source_.skeleton->nodes[i];
             const glm::vec3 translation = ToGltf(node.position * geometry_.scale);
             const glm::quat rotation = ToGltf(node.rotation);
-            nodes +=
-                std::format(R"({{"name":{},"translation":[{},{},{}],"rotation":[{},{},{},{}]{}}},)",
-                            JsonString(node.name), translation.x, translation.y, translation.z,
-                            rotation.x, rotation.y, rotation.z, rotation.w, Children(i));
+            nodes += std::format(
+                R"({{"name":{},"translation":[{},{},{}],"rotation":[{},{},{},{}]{}}},)",
+                JsonString(node.name), JsonNumber(translation.x), JsonNumber(translation.y),
+                JsonNumber(translation.z), JsonNumber(rotation.x), JsonNumber(rotation.y),
+                JsonNumber(rotation.z), JsonNumber(rotation.w), Children(i));
         }
         return nodes + (nodeCount_ > 0 ? R"({"mesh":0,"skin":0})" : R"({"mesh":0})");
     }
@@ -354,7 +356,8 @@ private:
         for (std::uint32_t i = 0; i < run.count; ++i) {
             const std::uint16_t frame =
                 run.count > 1 ? source_.animations->keyFrames[run.firstFrame + i] : 0;
-            times.push_back(static_cast<float>(frame) / rate);
+            const float seconds = static_cast<float>(frame) / rate;
+            times.push_back(times.empty() ? seconds : std::max(seconds, times.back() + kKeyGap));
         }
         return times;
     }

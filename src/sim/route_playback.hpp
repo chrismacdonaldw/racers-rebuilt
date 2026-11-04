@@ -30,6 +30,12 @@ public:
     [[nodiscard]] float WidthLeft() const { return route_.points[cursor_.target].widthLeft; }
     [[nodiscard]] float WidthRight() const { return route_.points[cursor_.target].widthRight; }
 
+    /// The index of the route point being approached.
+    [[nodiscard]] std::size_t Target() const { return cursor_.target; }
+
+    /// How far along the segment to `Target()`, from 0 to 1.
+    [[nodiscard]] float Alpha() const { return AlphaAt(cursor_); }
+
     /// Wheels on the ground at the point being approached: 0, 1, 2 or 4.
     [[nodiscard]] int ContactCount() const { return cursor_.contactCount; }
 
@@ -52,6 +58,7 @@ private:
                       std::int32_t startMs) const;
     [[nodiscard]] std::int32_t SegmentEndMs(const Cursor& cursor) const;
     [[nodiscard]] Transform PoseAt(const Cursor& cursor) const;
+    [[nodiscard]] float AlphaAt(const Cursor& cursor) const;
 
     assets::RaceRoute route_;
     Cursor cursor_;

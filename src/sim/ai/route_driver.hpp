@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 
@@ -9,6 +10,8 @@
 #include "core/duration.hpp"
 #include "sim/ai/ai_craft.hpp"
 #include "sim/ai/ai_skill.hpp"
+#include "sim/ai/racing_line.hpp"
+#include "sim/ai/speed_plan.hpp"
 #include "sim/physics/racer.hpp"
 #include "sim/physics/racer_controls.hpp"
 #include "sim/route_playback.hpp"
@@ -19,7 +22,8 @@ namespace rr::sim {
 class RouteDriver {
 public:
     explicit RouteDriver(const assets::RaceRoute& route, std::optional<float> pace = std::nullopt,
-                         AiCraft craft = {}, std::optional<SkillProfile> skill = std::nullopt);
+                         AiCraft craft = {}, std::optional<SkillProfile> skill = std::nullopt,
+                         std::shared_ptr<const RacingLine> line = nullptr);
 
     /// Paced, keeps to its share of route speed. Lines up `aim`, else passes `racers` but `self`.
     [[nodiscard]] RacerControls Drive(const Racer& racer, std::span<const Vector3> racers = {},
@@ -43,6 +47,7 @@ public:
     [[nodiscard]] Milliseconds AheadLead() const { return aheadLead_; }
     [[nodiscard]] Milliseconds StalledFor() const { return stalled_; }
     [[nodiscard]] bool HasHeadway() const { return hasHeadway_; }
+    [[nodiscard]] const std::optional<SpeedPlan>& Plan() const { return plan_; }
 
 private:
     void Follow(const Vector3& position);
@@ -50,6 +55,8 @@ private:
 
     [[nodiscard]] Pedal PedalFor(const BodyMotion& motion) const;
     [[nodiscard]] float BrakeWindowSpeed() const;
+    [[nodiscard]] float LateralOf(const RoutePlayback& playback) const;
+    [[nodiscard]] Vector3 LinePosition(const RoutePlayback& playback) const;
     [[nodiscard]] float PassOffset(const BodyMotion& motion, std::span<const Vector3> racers,
                                    std::optional<std::size_t> self) const;
     [[nodiscard]] float AimOffset(const Vector3& aim) const;
@@ -65,6 +72,8 @@ private:
     float sideOffset_ = 0.0F;
     Milliseconds travelled_{0};
     Milliseconds offsetAt_{0};
+    std::shared_ptr<const RacingLine> line_;
+    std::optional<SpeedPlan> plan_;
     Milliseconds referenceLead_{0};
     Milliseconds aheadLead_{0};
     Milliseconds stalled_{0};

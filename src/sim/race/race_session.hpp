@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 #include <vector>
@@ -128,6 +129,8 @@ private:
     void ResolveContacts();
     void PaceRoutes(Milliseconds elapsed);
     void TuneSkills();
+    [[nodiscard]] std::shared_ptr<const RacingLine> LineFor(std::size_t slot,
+                                                            std::size_t variant) const;
     void MeasureReaches();
     void TickBricks(Milliseconds elapsed);
     void RollChaosBrick(PowerupInventory& inventory);
@@ -192,6 +195,7 @@ private:
     std::vector<BoundingSphere> reaches_;
     std::vector<BoundingSphere> pickupReaches_;
     std::vector<ContactBody> contactBodies_;
+    std::vector<std::vector<std::shared_ptr<const RacingLine>>> lines_;
     std::vector<RacerWorldView> contactWorlds_;
     RacerContacts contacts_;
 };

@@ -9,7 +9,11 @@
 
 namespace rr::assets {
 
+/// Bytes past ASCII are read as Latin-1, as the game's names are.
 [[nodiscard]] std::string JsonString(std::string_view text);
+
+/// Non-finite values, which JSON can't hold, come out as 0.
+[[nodiscard]] std::string JsonNumber(float value);
 
 class GlbWriter {
 public:

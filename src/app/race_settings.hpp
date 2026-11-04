@@ -64,6 +64,12 @@ inline constexpr settings::SettingSpec<bool> kAiAiming{
     .label = "Physics racers line up shots and drops",
     .category = "Enhancements/Gameplay"};
 
+inline constexpr settings::SettingSpec<bool> kAiRacingLine{
+    .key = "race.ai_racing_line",
+    .defaultValue = false,
+    .label = "Physics racers drive a racing line at their car's speed",
+    .category = "Enhancements/Gameplay"};
+
 inline constexpr settings::SettingSpec<int> kOpponents{
     .key = "race.opponents",
     .defaultValue = 5,
@@ -88,6 +94,7 @@ inline void DeclareRaceSettings(settings::Registry& registry) {
     registry.Declare(kAiUnsticking);
     registry.Declare(kAiAiming);
     DeclareAiSkillSettings(registry);
+    registry.Declare(kAiRacingLine);
     registry.Declare(kOpponents);
     registry.Declare(kVersusLaps);
 }
@@ -105,7 +112,8 @@ inline void DeclareRaceSettings(settings::Registry& registry) {
     return {.brakes = registry.Get(kAiBraking),
             .passes = registry.Get(kAiPassing),
             .unsticks = registry.Get(kAiUnsticking),
-            .aims = registry.Get(kAiAiming)};
+            .aims = registry.Get(kAiAiming),
+            .racingLine = registry.Get(kAiRacingLine)};
 }
 
 /// Only the respawn and computer racer fields are set.

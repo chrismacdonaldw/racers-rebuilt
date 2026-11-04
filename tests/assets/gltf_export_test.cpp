@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <cstdint>
+#include <limits>
 #include <numbers>
 #include <string>
 #include <string_view>
@@ -192,6 +193,39 @@ TEST_CASE("JSON strings escape quotes, backslashes and control characters") {
     constexpr std::string_view kEscaped = R"("a\"b\\c\u000a")";
 
     CHECK(JsonString("a\"b\\c\n") == kEscaped);
+}
+
+TEST_CASE("JSON strings read bytes past ASCII as Latin-1") {
+    constexpr std::string_view kEscaped = R"("S\u00f8ren")";
+
+    CHECK(JsonString("S\xF8ren") == kEscaped);
+}
+
+TEST_CASE("JSON numbers write non-finite values as 0") {
+    CHECK(JsonNumber(1.5F) == "1.5");
+    CHECK(JsonNumber(std::numeric_limits<float>::quiet_NaN()) == "0");
+    CHECK(JsonNumber(-std::numeric_limits<float>::infinity()) == "0");
+}
+
+TEST_CASE("repeated key frames export as rising times that read back as the same frames") {
+    const GeometryAsset elbow = Elbow();
+    const SkeletonAsset arm = Arm();
+    AnimationAsset wave = Wave();
+    wave.rotationKeys.insert(wave.rotationKeys.begin() + 1, Quaternion{});
+    wave.keyFrames = {0, 0, 15};
+    wave.tracks[1].rotations.count = 3;
+    const std::vector<std::byte> glb =
+        Export({.geometry = &elbow, .skeleton = &arm, .animations = &wave});
+
+    const Result<AnimationAsset> back =
+        ImportGltfAnimations(glb, {.joints = {"ROOT", "ARM"}, .scale = kScale, .original = wave});
+
+    REQUIRE(back.has_value());
+    const KeyRun& turn = back->tracks.at(1).rotations;
+    REQUIRE(turn.count == 3);
+    CHECK(back->keyFrames.at(turn.firstFrame) == 0);
+    CHECK(back->keyFrames.at(turn.firstFrame + 1) == 0);
+    CHECK(back->keyFrames.at(turn.firstFrame + 2) == 15);
 }
 
 }

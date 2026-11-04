@@ -8,6 +8,10 @@
 
 namespace rr::sim {
 
+/// In units per s² before the acceleration multiplier, doubled while braking against motion.
+inline constexpr float kPedalThrust = 54.0F;
+inline constexpr float kBrakeThrustScale = 2.0F;
+
 /// Positive radii turn left. Zero means straight.
 [[nodiscard]] float TurnRadiusFor(float steering);
 

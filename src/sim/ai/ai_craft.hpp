@@ -12,9 +12,10 @@ struct AiCraft {
     bool passes = false;
     bool unsticks = false;
     bool aims = false;
+    bool racingLine = false;
 
     [[nodiscard]] static constexpr AiCraft All() {
-        return {.brakes = true, .passes = true, .unsticks = true, .aims = true};
+        return {.brakes = true, .passes = true, .unsticks = true, .aims = true, .racingLine = true};
     }
 
     friend bool operator==(const AiCraft&, const AiCraft&) = default;

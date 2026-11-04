@@ -23,6 +23,7 @@ namespace {
 
 constexpr std::string_view kModelExtension = ".GDB";
 constexpr std::string_view kAnimationExtension = ".ADB";
+constexpr std::string_view kSkeletonExtension = ".SDB";
 
 struct ExportCounts {
     std::size_t exported = 0;
@@ -68,7 +69,7 @@ std::vector<std::string> AnimationPaths(const std::vector<std::string>& skeleton
     std::vector<std::string> paths;
     paths.reserve(skeletons.size());
     for (const std::string& skeleton : skeletons) {
-        paths.push_back(skeleton.substr(0, skeleton.size() - kAnimationExtension.size())
+        paths.push_back(skeleton.substr(0, skeleton.size() - kSkeletonExtension.size())
                             .append(kAnimationExtension));
     }
     return paths;

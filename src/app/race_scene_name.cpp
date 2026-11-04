@@ -414,6 +414,8 @@ std::string NamingInChain(std::string_view scenes, PlayerSlot slot, const RacerR
 }
 
 std::string UpgradedScene(std::string_view scenes, std::uint16_t formatVersion) {
+    constexpr sim::AiCraft kCraftBeforeRacingLine{
+        .brakes = true, .passes = true, .unsticks = true, .aims = true};
     if (formatVersion >= kFirstCraftReplay) {
         return std::string(scenes);
     }
@@ -427,7 +429,7 @@ std::string UpgradedScene(std::string_view scenes, std::uint16_t formatVersion) 
         isFirst = false;
         out += scene;
         if (scene.contains(physics) && !scene.contains(craft)) {
-            out += craft + sim::CraftLetters(sim::AiCraft::All());
+            out += craft + sim::CraftLetters(kCraftBeforeRacingLine);
         }
     }
     return out;

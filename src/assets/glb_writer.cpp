@@ -1,6 +1,7 @@
 #include "assets/glb_writer.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <format>
 #include <limits>
 
@@ -19,7 +20,8 @@ constexpr int kUnsignedShortComponent = 5123;
 constexpr int kUnsignedIntComponent = 5125;
 constexpr int kArrayBufferTarget = 34962;
 constexpr int kElementBufferTarget = 34963;
-constexpr char kFirstPrintable = 0x20;
+constexpr unsigned char kFirstPrintable = 0x20;
+constexpr unsigned char kLastAscii = 0x7E;
 
 void Append(std::vector<std::byte>& out, std::uint32_t value) {
     for (std::uint32_t shift = 0; shift < 32; shift += 8) {
@@ -53,7 +55,7 @@ std::string Bounds(std::span<const float> values, std::size_t components) {
     const auto list = [](const std::vector<float>& numbers) {
         std::string text;
         for (const float number : numbers) {
-            text += std::format("{}{}", text.empty() ? "" : ",", number);
+            text += std::format("{}{}", text.empty() ? "" : ",", JsonNumber(number));
         }
         return text;
     };
@@ -62,14 +64,19 @@ std::string Bounds(std::span<const float> values, std::size_t components) {
 
 }
 
+std::string JsonNumber(float value) {
+    return std::isfinite(value) ? std::format("{}", value) : std::string("0");
+}
+
 std::string JsonString(std::string_view text) {
     std::string quoted = "\"";
     for (const char c : text) {
+        const auto byte = static_cast<unsigned char>(c);
         if (c == '"' || c == '\\') {
             quoted += '\\';
             quoted += c;
-        } else if (c >= 0 && c < kFirstPrintable) {
-            quoted += std::format("\\u{:04x}", static_cast<int>(c));
+        } else if (byte < kFirstPrintable || byte > kLastAscii) {
+            quoted += std::format("\\u{:04x}", byte);
         } else {
             quoted += c;
         }
