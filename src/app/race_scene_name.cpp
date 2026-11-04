@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
+#include <cstdint>
 #include <format>
 #include <optional>
 #include <ranges>
@@ -13,6 +14,7 @@
 #include "assets/game_path.hpp"
 #include "core/duration.hpp"
 #include "sim/ai/ai_craft.hpp"
+#include "sim/ai/ai_skill.hpp"
 #include "sim/input_frame.hpp"
 
 namespace rr::app {
@@ -27,6 +29,9 @@ constexpr std::string_view kCircuitKey = "circuit";
 constexpr std::string_view kAiKey = "ai";
 constexpr std::string_view kPaceKey = "pace";
 constexpr std::string_view kCraftKey = "craft";
+constexpr std::string_view kSkillKey = "skill";
+constexpr std::string_view kCatchUpKey = "catchup";
+constexpr std::uint16_t kFirstCraftReplay = 7;
 constexpr std::string_view kMirroredKey = "mirrored";
 constexpr std::string_view kTestDriveKey = "testdrive";
 constexpr std::string_view kDemoKey = "demo";
@@ -227,6 +232,17 @@ bool ReadField(Field field, RaceSceneSetup& setup, std::optional<sim::RespawnRul
         setup.aiPace = ParseNumber<int>(field.value).value_or(0);
         return setup.aiPace >= kMinAiPace && setup.aiPace <= kMaxAiPace;
     }
+    if (field.key == kSkillKey) {
+        setup.aiSkill = sim::ParseSkillText(field.value);
+        return setup.aiSkill.has_value();
+    }
+    if (field.key == kCatchUpKey) {
+        if (!setup.aiSkill.has_value() || !field.value.empty()) {
+            return false;
+        }
+        setup.aiSkill->catchesUp = true;
+        return true;
+    }
     if (field.key == kCraftKey) {
         setup.aiCraft = sim::ParseCraftLetters(field.value).value_or(sim::AiCraft{});
         return setup.aiCraft != sim::AiCraft{};
@@ -293,6 +309,10 @@ std::string AiField(const RaceSceneSetup& setup) {
     }
     if (setup.aiCraft != sim::AiCraft{}) {
         field += std::format(":{}={}", kCraftKey, sim::CraftLetters(setup.aiCraft));
+    }
+    if (setup.aiSkill) {
+        field += std::format(":{}={}", kSkillKey, sim::SkillText(*setup.aiSkill));
+        field += setup.aiSkill->catchesUp ? std::format(":{}", kCatchUpKey) : std::string{};
     }
     return field;
 }
@@ -391,6 +411,26 @@ std::string NamingInChain(std::string_view scenes, PlayerSlot slot, const RacerR
     return out;
 }
 
+}
+
+std::string UpgradedScene(std::string_view scenes, std::uint16_t formatVersion) {
+    if (formatVersion >= kFirstCraftReplay) {
+        return std::string(scenes);
+    }
+    const std::string physics = std::format(":{}={}", kAiKey, kPhysicsAi);
+    const std::string craft = std::format(":{}=", kCraftKey);
+    std::string out;
+    bool isFirst = true;
+    for (const auto part : std::views::split(scenes, kChainMark)) {
+        const std::string_view scene(part);
+        out += isFirst ? std::string_view{} : std::string_view(&kChainMark, 1);
+        isFirst = false;
+        out += scene;
+        if (scene.contains(physics) && !scene.contains(craft)) {
+            out += craft + sim::CraftLetters(sim::AiCraft::All());
+        }
+    }
+    return out;
 }
 
 RacerRef ScenePlayer(std::string_view scene) {

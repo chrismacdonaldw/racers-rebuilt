@@ -160,6 +160,7 @@ Result<Replay> ReadBody(assets::ByteReader& reader, std::uint16_t version) {
     replay.seed = *seed;
     replay.gameplay = std::move(*gameplay);
     replay.frames = std::move(*frames);
+    replay.formatVersion = version;
     return replay;
 }
 

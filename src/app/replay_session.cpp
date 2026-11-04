@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "app/race_scene_name.hpp"
 #include "core/log.hpp"
 #include "core/utf8_path.hpp"
 #include "platform/mapped_file.hpp"
@@ -98,8 +99,9 @@ Result<ReplayPlayback> ReplayPlayback::Load(const std::filesystem::path& file,
 }
 
 std::optional<std::string> ReplayPlayback::Scene() const {
-    const std::string& scene = player_.Playing().scene;
-    return scene.empty() ? std::nullopt : std::optional<std::string>(scene);
+    const sim::Replay& replay = player_.Playing();
+    return replay.scene.empty() ? std::nullopt
+                                : std::optional(UpgradedScene(replay.scene, replay.formatVersion));
 }
 
 void ReplayPlayback::BeforeTick(sim::InputFrame& input) {

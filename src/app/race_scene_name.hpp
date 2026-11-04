@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -12,6 +13,7 @@
 #include "core/result.hpp"
 #include "settings/racers.hpp"
 #include "sim/ai/ai_craft.hpp"
+#include "sim/ai/ai_skill.hpp"
 #include "sim/powerup/warp_rules.hpp"
 #include "sim/race/cheats.hpp"
 #include "sim/race/circuit_run.hpp"
@@ -39,6 +41,7 @@ struct RaceSceneSetup {
     sim::AiDriving aiDriving = sim::AiDriving::Route;
     int aiPace = kDefaultAiPace;
     sim::AiCraft aiCraft;
+    std::optional<sim::AiSkill> aiSkill;
     bool isMirrored = false;
     bool isTestDrive = false;
     bool isDemo = false;
@@ -79,6 +82,9 @@ struct RaceSceneSetup {
 
 /// Names `player` in each race, circuit or time trial scene of a `>` chain.
 [[nodiscard]] std::string WithPlayer(std::string_view scenes, const RacerRef& player);
+
+/// Replays before format 7 drove physics racers with every craft skill, so their scenes gain it.
+[[nodiscard]] std::string UpgradedScene(std::string_view scenes, std::uint16_t formatVersion);
 
 /// Names player 2's racer in each versus race of a `>` chain.
 [[nodiscard]] std::string WithSecondPlayer(std::string_view scenes, const RacerRef& player);

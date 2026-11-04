@@ -310,6 +310,7 @@ add_executable(racers-rebuilt-tests
     settings/settings_file_test.cpp
     sim/ai/ai_aim_test.cpp
     sim/ai/ai_craft_test.cpp
+    sim/ai/ai_skill_test.cpp
     sim/ai/ai_grid_test.cpp
     sim/ai/ai_powerups_test.cpp
     sim/ai/ai_racer_test.cpp
@@ -409,6 +410,7 @@ add_executable(racers-rebuilt-tests
     sim/race/race_modifiers_test.cpp
     sim/race/race_progress_test.cpp
     sim/race/race_session_test.cpp
+    sim/race/race_skill_test.cpp
     sim/race/race_start_test.cpp
     sim/race/race_sounds_test.cpp
     sim/race/race_track_test.cpp

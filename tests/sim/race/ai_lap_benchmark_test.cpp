@@ -15,6 +15,7 @@
 #include "assets/race_catalog.hpp"
 #include "assets/racer_catalog.hpp"
 #include "assets/track_loader.hpp"
+#include "sim/ai/ai_skill.hpp"
 #include "sim/ai/powerup_habits.hpp"
 #include "sim/collision/world_list.hpp"
 #include "sim/physics/racer_chassis.hpp"
@@ -34,11 +35,26 @@ struct Mode {
     std::string_view name;
     AiDriving driving = AiDriving::Route;
     AiCraft craft;
+    std::optional<AiSkill> skill;
 };
 
-constexpr std::array kModes{
-    Mode{.name = "route"}, Mode{.name = "physics", .driving = AiDriving::Physics},
-    Mode{.name = "physics+craft", .driving = AiDriving::Physics, .craft = AiCraft::All()}};
+std::array<Mode, 6> Modes() {
+    return {Mode{.name = "route"},
+            Mode{.name = "physics", .driving = AiDriving::Physics},
+            Mode{.name = "physics+craft", .driving = AiDriving::Physics, .craft = AiCraft::All()},
+            Mode{.name = "skill o3",
+                 .driving = AiDriving::Physics,
+                 .craft = AiCraft::All(),
+                 .skill = AiSkill{}},
+            Mode{.name = "skill e1",
+                 .driving = AiDriving::Physics,
+                 .craft = AiCraft::All(),
+                 .skill = AiSkill{.spread = SkillSpread::Equal, .difficulty = kEasiestLevel}},
+            Mode{.name = "skill e5",
+                 .driving = AiDriving::Physics,
+                 .craft = AiCraft::All(),
+                 .skill = AiSkill{.spread = SkillSpread::Equal, .difficulty = kMasterLevel}}};
+}
 
 std::string HomeCircuit(const assets::Vfs& vfs, const std::string& track) {
     const Result<assets::RaceCatalog> races = assets::RaceCatalog::Load(vfs);
@@ -60,6 +76,7 @@ Result<RaceSetup> ComputerGrid(const assets::Vfs& vfs, const std::string& track,
                     .seed = kSeed,
                     .aiDriving = mode.driving,
                     .aiCraft = mode.craft,
+                    .aiSkill = mode.skill,
                     .effects = EveryEffect()};
     for (std::size_t i = 0; i < slotCount && i < codes->size(); ++i) {
         Result<assets::RacerFiles> files = catalog->Find(codes->at(i));
@@ -170,7 +187,7 @@ TEST_CASE("benchmark: mean lap seconds per grid slot on every retail track" * do
     if (!vfs) {
         return;
     }
-    for (const Mode& mode : kModes) {
+    for (const Mode& mode : Modes()) {
         SlotMeans means;
         for (const std::string& track : assets::ListRaceTracks(*vfs)) {
             const std::vector<std::optional<float>> laps = RaceLaps(*vfs, track, mode);

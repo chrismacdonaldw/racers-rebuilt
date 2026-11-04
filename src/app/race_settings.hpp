@@ -2,6 +2,7 @@
 
 #include <chrono>
 
+#include "app/ai_skill_settings.hpp"
 #include "app/race_scene_name.hpp"
 #include "settings/registry.hpp"
 #include "settings/setting_spec.hpp"
@@ -36,7 +37,8 @@ inline constexpr settings::SettingSpec<int> kAiPace{
     .defaultValue = kDefaultAiPace,
     .range = settings::SettingRange<int>{.min = kMinAiPace, .max = kMaxAiPace},
     .label = "Physics racers' pace (% of the original)",
-    .category = "Enhancements/Gameplay"};
+    .category = "Enhancements/Gameplay",
+    .requirement = settings::SettingRequirement{.key = kAiSkill.key, .choice = "false"}};
 
 inline constexpr settings::SettingSpec<bool> kAiBraking{
     .key = "race.ai_braking",
@@ -85,6 +87,7 @@ inline void DeclareRaceSettings(settings::Registry& registry) {
     registry.Declare(kAiPassing);
     registry.Declare(kAiUnsticking);
     registry.Declare(kAiAiming);
+    DeclareAiSkillSettings(registry);
     registry.Declare(kOpponents);
     registry.Declare(kVersusLaps);
 }
@@ -110,7 +113,8 @@ inline void DeclareRaceSettings(settings::Registry& registry) {
     return {.respawn = RespawnRuleFrom(registry),
             .aiDriving = AiDrivingFrom(registry),
             .aiPace = registry.Get(kAiPace),
-            .aiCraft = AiCraftFrom(registry)};
+            .aiCraft = AiCraftFrom(registry),
+            .aiSkill = AiSkillFrom(registry)};
 }
 
 }
