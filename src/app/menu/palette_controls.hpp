@@ -22,6 +22,7 @@ struct PaletteTick {
     std::optional<PaletteEntry> picked;
     bool isDragged = false;
     DragTick drag;
+    std::optional<std::uint8_t> swatch;
 };
 
 /// `catalog` must outlive it.
@@ -35,6 +36,8 @@ public:
     PaletteTick Tick(const sim::InputFrame& input, bool usesKeys, bool cancels);
 
     [[nodiscard]] bool IsDragging() const { return drag_.Entry().has_value(); }
+
+    void ChooseColour(std::uint8_t colour) { swatches_.Choose(colour); }
 
     /// The chosen swatch, else the colour `entry` comes in.
     [[nodiscard]] std::uint8_t ColourOf(const PaletteEntry& entry) const;

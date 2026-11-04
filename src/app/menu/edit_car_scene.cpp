@@ -133,7 +133,7 @@ void EditCarScene::OpenBuilder() {
 
 void EditCarScene::HandleEvent(const SDL_Event& event) {
     if (build_ && !dialog_ && event.type == SDL_EVENT_KEY_DOWN) {
-        build_->HandleKey(event.key.key);
+        build_->HandleKey(event.key.key, event.key.mod);
     }
 }
 

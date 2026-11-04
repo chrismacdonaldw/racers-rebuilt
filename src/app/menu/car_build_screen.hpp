@@ -27,6 +27,8 @@
 #include "app/menu/menu_text.hpp"
 #include "app/menu/palette_controls.hpp"
 #include "app/menu/part_carousel.hpp"
+#include "app/menu/piece_edits.hpp"
+#include "app/menu/piece_grab.hpp"
 #include "app/menu/piece_models.hpp"
 #include "app/menu/pointer_buttons.hpp"
 #include "assets/piece_catalog.hpp"
@@ -61,7 +63,7 @@ public:
         render::Renderer& renderer, const assets::Vfs& vfs, BuildServices services,
         sim::BuiltCar car, std::vector<std::size_t> sets);
 
-    void HandleKey(SDL_Keycode key);
+    void HandleKey(SDL_Keycode key, SDL_Keymod mod);
     void UseControls(BuildControls controls);
     [[nodiscard]] BuildOutcome Tick(const sim::InputFrame& input);
     [[nodiscard]] bool HoldsPointer() const { return menu_.Held().has_value(); }
@@ -106,7 +108,16 @@ private:
     void ShowPaletteSet();
     [[nodiscard]] std::vector<PointerTarget> PaletteTargets() const;
     [[nodiscard]] BuildOutcome TickPalette(const sim::InputFrame& input);
-    void DragPiece(const sim::MenuPointer& pointer, const DragTick& drag);
+    [[nodiscard]] GrabTick GrabFor(const sim::MenuPointer& pointer, const PaletteTick& tick,
+                                   bool cancels);
+    [[nodiscard]] BuildOutcome Paint(std::uint8_t colour);
+    [[nodiscard]] BuildOutcome DragPiece(const sim::MenuPointer& pointer, const DragTick& drag);
+    [[nodiscard]] BuildOutcome TickEdits(const GrabTick& grab);
+    void TickEditTimers();
+    [[nodiscard]] BuildOutcome Settle(const EditOutcome& outcome);
+    [[nodiscard]] std::optional<std::size_t> PieceUnder(const sim::MenuPointer& pointer) const;
+    void AddShell(const sim::CarPiece& piece, const render::Color& colour);
+    void AddEditShells();
     [[nodiscard]] BuildOutcome HoldByKeys(const sim::InputFrame& input, bool skipsMenu);
     [[nodiscard]] BuildOutcome PointPalette(const sim::InputFrame& input);
     [[nodiscard]] GridView GridOnScreen() const;
@@ -139,6 +150,12 @@ private:
     PaletteHold hold_ = PaletteHold::None;
     bool isAimed_ = false;
     PointerButtons paletteButtons_;
+    std::vector<PieceEditKey> edits_;
+    PieceGrab grab_;
+    std::optional<std::size_t> selected_;
+    std::vector<std::size_t> blockers_;
+    Milliseconds flash_{0};
+    Milliseconds pulse_{0};
 };
 
 }

@@ -30,6 +30,9 @@ public:
 
     [[nodiscard]] std::optional<std::size_t> Entry() const { return entry_; }
 
+    void Hold(std::size_t entry);
+    void Forget() { entry_.reset(); }
+
 private:
     std::optional<std::size_t> entry_;
     float wheel_ = 0.0F;

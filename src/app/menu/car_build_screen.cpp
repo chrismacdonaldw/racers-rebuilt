@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "app/frame_loop.hpp"
+#include "app/menu/build_sounds.hpp"
 #include "app/menu/edit_car_look.hpp"
 #include "app/menu/menu_files.hpp"
 #include "app/menu/menu_frame.hpp"
@@ -34,15 +35,6 @@ constexpr Vector3 kUp{.z = 1.0F};
 constexpr Vector3 kLookAbove{.z = 4.0F};
 constexpr render::Color kWhite{};
 constexpr auto kFirstButtonRow = static_cast<std::size_t>(BuildRow::Move);
-constexpr std::int32_t kMoveSound = 16;
-constexpr std::int32_t kBlockedSound = 8;
-constexpr std::int32_t kRotateSound = 22;
-constexpr std::int32_t kRefusedSound = 18;
-constexpr std::int32_t kPlacedSound = 10;
-constexpr std::int32_t kUndoSound = 13;
-constexpr std::int32_t kViewSound = 6;
-constexpr std::int32_t kCarViewSound = 5;
-constexpr std::int32_t kPieceViewSound = 17;
 constexpr float kViewVolume = 0.6F;
 constexpr float kBlockedViewVolume = 0.7F;
 constexpr float kFullTurn = 2.0F * std::numbers::pi_v<float>;
@@ -125,8 +117,11 @@ CarBuildScreen::CarBuildScreen(BuildServices services, CarBuildLook look, PieceM
     UseControls(services_.controls);
 }
 
-void CarBuildScreen::HandleKey(SDL_Keycode key) {
-    if (const std::optional<BuildRequest> request = BuildKeyRequest(key)) {
+void CarBuildScreen::HandleKey(SDL_Keycode key, SDL_Keymod mod) {
+    if (const std::optional<PieceEditKey> edit =
+            palette_ ? PieceEditKeyOf(key, mod) : std::nullopt) {
+        edits_.push_back(*edit);
+    } else if (const std::optional<BuildRequest> request = BuildKeyRequest(key)) {
         keys_.push_back(*request);
     } else if (palette_ && key == SDLK_R) {
         keys_.push_back({.command = BuildCommand::Rotate});
@@ -150,6 +145,7 @@ BuildOutcome CarBuildScreen::Tick(const sim::InputFrame& input) {
         outcome = palette_ ? TickPalette(input) : ApplyInput(input);
     }
     keys_.clear();
+    edits_.clear();
     outcome = std::max(outcome, Animate());
     if (!palette_) {
         const auto row = static_cast<std::size_t>(menu_.Focus());
@@ -198,7 +194,7 @@ void CarBuildScreen::ApplyPad(const BuildRequest& request) {
             return;
     }
     if (moved) {
-        services_.sounds.Play(kViewSound, kViewVolume);
+        services_.sounds.Play(kBuildViewSound, kViewVolume);
     }
 }
 
@@ -228,7 +224,7 @@ BuildOutcome CarBuildScreen::Apply(const BuildRequest& request) {
             break;
         case BuildCommand::Rotate:
             builder_.Rotate();
-            services_.sounds.Play(kRotateSound);
+            services_.sounds.Play(kBuildRotateSound);
             break;
         case BuildCommand::Place:
             return Place();
@@ -269,14 +265,15 @@ void CarBuildScreen::ShowSet() {
 }
 
 void CarBuildScreen::Move(std::size_t direction) {
-    services_.sounds.Play(builder_.Move(direction, camera_.Slot()) ? kMoveSound : kBlockedSound);
+    services_.sounds.Play(builder_.Move(direction, camera_.Slot()) ? kBuildMoveSound
+                                                                   : kBuildBlockedSound);
 }
 
 void CarBuildScreen::View(bool moved) const {
     if (moved) {
-        services_.sounds.Play(kViewSound, kViewVolume);
+        services_.sounds.Play(kBuildViewSound, kViewVolume);
     } else {
-        services_.sounds.Play(kBlockedSound, kBlockedViewVolume);
+        services_.sounds.Play(kBuildBlockedSound, kBlockedViewVolume);
     }
 }
 
@@ -287,7 +284,7 @@ BuildOutcome CarBuildScreen::Place() {
             motion_.Drop(RestHeight());
             break;
         case PlaceResult::Refused:
-            services_.sounds.Play(kRefusedSound);
+            services_.sounds.Play(kBuildRefusedSound);
             break;
     }
     return BuildOutcome::None;
@@ -300,11 +297,11 @@ BuildOutcome CarBuildScreen::Land() {
                                                     : BuildOutcome::None;
     }
     if (!Refit()) {
-        static_cast<void>(builder_.Undo());
+        static_cast<void>(palette_ ? builder_.UndoEdit() : builder_.Undo());
         static_cast<void>(Refit());
         return BuildOutcome::TooManyPieces;
     }
-    services_.sounds.Play(kPlacedSound);
+    services_.sounds.Play(kBuildPlacedSound);
     if (palette_ && hold_ == PaletteHold::None) {
         builder_.Release();
     }
@@ -315,10 +312,10 @@ bool CarBuildScreen::Undo() {
     const std::size_t set = builder_.Set();
     const std::size_t choice = builder_.Choice();
     if (!builder_.Undo()) {
-        services_.sounds.Play(kRefusedSound);
+        services_.sounds.Play(kBuildRefusedSound);
         return false;
     }
-    services_.sounds.Play(kUndoSound);
+    services_.sounds.Play(kBuildUndoSound);
     static_cast<void>(Refit());
     motion_.Lift(RestHeight());
     if (builder_.Set() == set && builder_.Choice() == choice) {
@@ -367,7 +364,7 @@ void CarBuildScreen::ChangePad(std::optional<BuildPad> before) {
         camera_.Settle(fit_.bounds.radius);
     }
     const BuildPad pad = after.value_or(before.value_or(BuildPad::Move));
-    services_.sounds.Play(pad == BuildPad::Move ? kPieceViewSound : kCarViewSound);
+    services_.sounds.Play(pad == BuildPad::Move ? kBuildPieceViewSound : kBuildCarViewSound);
 }
 
 BuildRegions CarBuildScreen::Regions() {
@@ -460,6 +457,9 @@ void CarBuildScreen::Render(std::vector<render::RenderView>& views,
 
 void CarBuildScreen::RenderScene(bool showsHeld, std::vector<render::RenderView>& views) {
     extras_.clear();
+    if (palette_) {
+        AddEditShells();
+    }
     if (showsHeld && builder_.Cursor().Piece() != nullptr) {
         const HeldPieceLayers layers = motion_.Layers(camera_.IsOverhead());
         if (layers.trail) {

@@ -58,6 +58,16 @@ std::optional<GridCellPick> PickGridCell(const GridView& at, const sim::CarGrid&
     return nearest;
 }
 
+std::optional<std::size_t> PickPiece(const GridView& at, const sim::BuiltCar& car, float x,
+                                     float y) {
+    const std::optional<GridCellPick> cell = PickGridCell(at, car.Grid(), x, y);
+    if (!cell) {
+        return std::nullopt;
+    }
+    const int height = car.Grid().At(cell->x, cell->y).height;
+    return height > 0 ? car.PieceAt(cell->x, cell->y, height - 1) : std::nullopt;
+}
+
 sim::PiecePlacement CentredOn(GridCellPick cell, assets::CellSize size, unsigned rotation) {
     return {.x = std::clamp(cell.x - ((size.width - 1) / 2), 0,
                             std::max(sim::kCarGridWidth - size.width, 0)),

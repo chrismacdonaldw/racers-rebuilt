@@ -88,9 +88,7 @@ PaletteTick PaletteControls::Tick(const sim::InputFrame& input, bool usesKeys, b
         return tick;
     }
     if (pointer.pressed && !pointer.rightPressed) {
-        if (const std::optional<std::uint8_t> colour = swatches_.ColourAt(pointer.x, pointer.y)) {
-            swatches_.Choose(*colour);
-        }
+        tick.swatch = swatches_.ColourAt(pointer.x, pointer.y);
     }
     if (!hovered_ && pointer.wheel != 0.0F) {
         palette_.Scroll(pointer.wheel > 0.0F ? -1 : 1);

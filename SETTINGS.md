@@ -105,8 +105,15 @@ With the enhanced builder on:
 | Drag a piece onto the car | Place it where you let go |
 | Mouse wheel or <kbd>R</kbd> while dragging | Turn the piece |
 | Right-click, <kbd>Esc</kbd> or letting go off the car | Cancel |
-| Click a swatch | Build in that colour |
+| Click a swatch | Build in that colour, or recolour the selected piece |
+| Click a placed piece | Select it, or clear the selection with a second click or <kbd>Esc</kbd> |
+| Drag a placed piece | Move it, or remove it by letting go off the car |
+| <kbd>Delete</kbd>, <kbd>Backspace</kbd> | Remove the selected piece. <kbd>Delete</kbd> no longer steps back through the pieces as it does in the original builder. |
+| <kbd>Ctrl</kbd>+<kbd>Z</kbd>, <kbd>-</kbd> | Undo a place, move, removal or recolour |
+| <kbd>Ctrl</kbd>+<kbd>Y</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> | Redo |
 | Arrow keys and confirm | Pick a piece for the original move, turn and place controls |
+
+A piece with others resting on it can't move or come off. The pieces on top flash instead. The chassis never comes off. Delete, undo and redo do nothing while a piece is in your hand.
 
 ## Race
 

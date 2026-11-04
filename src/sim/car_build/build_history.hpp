@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <deque>
 #include <expected>
 #include <variant>
 #include <vector>
@@ -51,7 +50,7 @@ private:
         CarPiece before;
     };
 
-    std::deque<Step> done_;
+    std::vector<Step> done_;
     std::vector<Step> undone_;
 };
 

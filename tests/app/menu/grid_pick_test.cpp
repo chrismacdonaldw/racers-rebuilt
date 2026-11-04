@@ -38,6 +38,19 @@ TEST_CASE("a tall column in front of a cell takes the pick") {
     CHECK(PickGridCell(view, grid, 75.0F, 50.0F) == GridCellPick{.x = 5, .y = 2});
 }
 
+TEST_CASE("a pick finds the placed piece on top of the cell") {
+    const assets::PieceRecord chassis = sim::test::Chassis();
+    const assets::PieceRecord block = sim::test::Block(1, 1, 1, 3);
+    sim::BuiltCar car;
+    REQUIRE(car.Place(chassis, {}, 0, 0).has_value());
+    REQUIRE(car.Place(block, {.x = 2, .y = 3}, 0, 0).has_value());
+    const GridView view = LookingDownFrom({.x = 2.5F, .y = 3.5F, .z = 10.0F});
+
+    CHECK(PickPiece(view, car, 50.0F, 50.0F) == 1);
+    CHECK(PickPiece(view, car, 75.0F, 50.0F) == 0);
+    CHECK_FALSE(PickPiece(view, sim::BuiltCar{}, 50.0F, 50.0F).has_value());
+}
+
 TEST_CASE("a camera that looks level picks nothing") {
     const sim::CarGrid grid;
     GridView view = LookingDownFrom({.x = 2.5F, .y = -5.0F, .z = 1.0F});
