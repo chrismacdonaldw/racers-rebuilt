@@ -23,6 +23,14 @@ constexpr std::uint32_t kSparkWidthPx = 16;
 constexpr std::uint32_t kSparkHeightPx = 64;
 constexpr float kSparkSharpness = 6.0F;
 constexpr std::uint32_t kGlowPx = 64;
+constexpr std::uint32_t kRingPx = 128;
+constexpr float kRingRadius = 0.78F;
+constexpr float kRingSharpness = 60.0F;
+constexpr Vector3 kBrickHalf{.x = 0.5F, .y = 0.3F, .z = 0.25F};
+constexpr float kStudRadius = 0.15F;
+constexpr float kStudHeight = 0.1F;
+constexpr float kStudSpacing = 0.25F;
+constexpr std::uint32_t kStudSegments = 12;
 
 float Hash(int x, int y, std::uint32_t seed) {
     std::uint32_t h = (static_cast<std::uint32_t>(x) * 0x8DA6B343U) ^
@@ -110,6 +118,49 @@ float HeightAt(const std::array<Blob, kBlobs>& blobs, float x, float y) {
     return height;
 }
 
+void AddVertex(assets::GeometryAsset& geometry, const Vector3& position, const Vector3& normal) {
+    geometry.vertices.push_back({.position = position, .normal = normal});
+}
+
+void AddFace(assets::GeometryAsset& geometry, const Vector3& centre, const Vector3& right,
+             const Vector3& up) {
+    const auto first = static_cast<std::uint32_t>(geometry.vertices.size());
+    const Vector3 normal = Normalized(Cross(right, up), up);
+    AddVertex(geometry, centre - right - up, normal);
+    AddVertex(geometry, centre + right - up, normal);
+    AddVertex(geometry, centre + right + up, normal);
+    AddVertex(geometry, centre - right + up, normal);
+    geometry.indices.insert(geometry.indices.end(),
+                            {first, first + 1, first + 2, first, first + 2, first + 3});
+}
+
+Vector3 Around(std::uint32_t segment) {
+    const float angle = static_cast<float>(segment) * 2.0F * std::numbers::pi_v<float> /
+                        static_cast<float>(kStudSegments);
+    return {.x = std::cos(angle), .z = std::sin(angle)};
+}
+
+void AddStud(assets::GeometryAsset& geometry, const Vector3& base) {
+    constexpr Vector3 kUp{.y = 1.0F};
+    const Vector3 top = base + (kUp * kStudHeight);
+    const auto centre = static_cast<std::uint32_t>(geometry.vertices.size());
+    AddVertex(geometry, top, kUp);
+    for (std::uint32_t segment = 0; segment < kStudSegments; ++segment) {
+        const Vector3 from = Around(segment);
+        const Vector3 to = Around(segment + 1);
+        const auto first = static_cast<std::uint32_t>(geometry.vertices.size());
+        AddVertex(geometry, base + (from * kStudRadius), from);
+        AddVertex(geometry, base + (to * kStudRadius), to);
+        AddVertex(geometry, top + (to * kStudRadius), to);
+        AddVertex(geometry, top + (from * kStudRadius), from);
+        AddVertex(geometry, top + (from * kStudRadius), kUp);
+        AddVertex(geometry, top + (to * kStudRadius), kUp);
+        geometry.indices.insert(geometry.indices.end(),
+                                {first, first + 2, first + 1, first, first + 3, first + 2, centre,
+                                 first + 5, first + 4});
+    }
+}
+
 void DrawPuff(assets::ImageAsset& atlas, std::size_t variant) {
     const auto cell = static_cast<std::uint32_t>(variant);
     const std::uint32_t left = (cell % kAtlasCells) * kSmokeCellPx;
@@ -184,6 +235,43 @@ assets::ImageAsset MakeGlowTexture() {
         }
     }
     return glow;
+}
+
+assets::ImageAsset MakeRingTexture() {
+    assets::ImageAsset ring{
+        .widthPx = kRingPx,
+        .heightPx = kRingPx,
+        .rgba = std::vector<std::byte>(std::size_t{kRingPx} * kRingPx * kChannels)};
+    for (std::uint32_t y = 0; y < kRingPx; ++y) {
+        for (std::uint32_t x = 0; x < kRingPx; ++x) {
+            const float dx =
+                ((static_cast<float>(x) + 0.5F) / static_cast<float>(kRingPx) * 2.0F) - 1.0F;
+            const float dy =
+                ((static_cast<float>(y) + 0.5F) / static_cast<float>(kRingPx) * 2.0F) - 1.0F;
+            const float distance = std::sqrt((dx * dx) + (dy * dy));
+            const float band = distance - kRingRadius;
+            const float inner = SmoothStep(0.0F, kRingRadius, distance) * 0.25F;
+            const float edge = 1.0F - SmoothStep(kCellFadeStart, kCellFadeEnd, distance);
+            const float alpha = std::max(std::exp(-(band * band) * kRingSharpness), inner) * edge;
+            Fill(ring, (std::size_t{y} * kRingPx) + x, 1.0F, alpha);
+        }
+    }
+    return ring;
+}
+
+assets::GeometryAsset MakeBrickGeometry() {
+    assets::GeometryAsset brick;
+    const Vector3& h = kBrickHalf;
+    AddFace(brick, {.y = h.y}, {.x = h.x}, {.z = -h.z});
+    AddFace(brick, {.y = -h.y}, {.x = h.x}, {.z = h.z});
+    AddFace(brick, {.x = h.x}, {.z = -h.z}, {.y = h.y});
+    AddFace(brick, {.x = -h.x}, {.z = h.z}, {.y = h.y});
+    AddFace(brick, {.z = h.z}, {.x = h.x}, {.y = h.y});
+    AddFace(brick, {.z = -h.z}, {.x = -h.x}, {.y = h.y});
+    for (const float x : {-kStudSpacing, kStudSpacing}) {
+        AddStud(brick, {.x = x, .y = h.y});
+    }
+    return brick;
 }
 
 Rect SmokeCell(std::size_t variant) {

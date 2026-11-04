@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string_view>
 
 #include "core/vector3.hpp"
@@ -13,10 +14,10 @@ namespace rr::render {
 
 enum class FxEffectId : std::uint16_t {};
 
-inline constexpr std::size_t kMaxFxLayers = 4;
+inline constexpr std::size_t kMaxFxLayers = 8;
 
-/// Puffs turn as smoke clouds, streaks stretch along their motion, glows are soft lights.
-enum class FxShape : std::uint8_t { Puff, Streak, Glow };
+/// Rings lie flat on the ground; bricks tumble as solid models, not quads.
+enum class FxShape : std::uint8_t { Puff, Streak, Glow, Ring, Brick };
 
 struct FxRange {
     float min = 0.0F;
@@ -43,6 +44,8 @@ struct FxEffect {
     float floorDrop = 0.0F;
     Color color;
     std::optional<Color> endColor;
+    std::span<const Color> palette;
+    Vector3 offset;
     float shade = 1.0F;
     float fadeInShare = 0.1F;
     float fadeOutShare = 0.5F;
@@ -55,10 +58,12 @@ struct FxEmission {
     std::optional<Vector3> lastPosition;
 };
 
-struct FxTextures {
+struct FxAssets {
     TextureId smoke = kWhiteTexture;
     TextureId spark = kWhiteTexture;
     TextureId glow = kWhiteTexture;
+    TextureId ring = kWhiteTexture;
+    MeshId brick{};
 };
 
 }

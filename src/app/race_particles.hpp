@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "app/hazard/hazard_particles.hpp"
+#include "app/powerup/blast_fx.hpp"
 #include "app/powerup/powerup_particles.hpp"
 #include "app/racer/car_particles.hpp"
 #include "app/racer/skid_marks.hpp"
@@ -56,6 +57,7 @@ public:
                 std::span<const std::optional<SkidWheels>> skidding,
                 render::FloatMilliseconds elapsed);
     void AppendQuads(const Transform& camera, std::vector<render::QuadDraw>& out) const;
+    void AppendMeshes(std::vector<render::MeshDraw>& out) const;
     /// Draws the race's better particle effects in place of the emitters they replace.
     void SetBetter(bool isBetter);
 
@@ -85,6 +87,7 @@ private:
     FxFactory makeFx_;
     std::unique_ptr<render::FxSystem> fx_;
     WallSparks walls_;
+    BlastFx blasts_;
     bool isBetter_ = false;
     std::span<const assets::SurfaceEntry> surfaces_;
     std::size_t player_;

@@ -192,6 +192,7 @@ rr_add_module(app
         particle_assets.cpp
         positional_sound.cpp
         powerup/beam_span.cpp
+        powerup/blast_fx.cpp
         powerup/cursed_cars.cpp
         powerup/effect_trail.cpp
         powerup/powerup_models.cpp

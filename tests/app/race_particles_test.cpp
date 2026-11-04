@@ -64,7 +64,7 @@ public:
               Bank({"snowkick"}, kTrackParticleSlots),
               [this] {
                   ++fxMade_;
-                  return std::make_unique<render::FxSystem>(RaceFxEffects(), render::FxTextures{});
+                  return std::make_unique<render::FxSystem>(RaceFxEffects(), render::FxAssets{});
               },
               surfaces_, 0) {
         while (session_.Clock().Phase() != sim::RacePhase::Racing) {

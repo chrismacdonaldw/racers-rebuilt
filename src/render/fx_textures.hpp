@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "assets/geometry_asset.hpp"
 #include "assets/image_asset.hpp"
 #include "render/render_view.hpp"
 
@@ -21,5 +22,11 @@ inline constexpr std::uint32_t kSmokeCellPx = 128;
 
 /// A soft white round light.
 [[nodiscard]] assets::ImageAsset MakeGlowTexture();
+
+/// A soft white ring near the image's edge.
+[[nodiscard]] assets::ImageAsset MakeRingTexture();
+
+/// A 1 by 2 brick with two studs, one unit long, centred on its middle and facing up +y.
+[[nodiscard]] assets::GeometryAsset MakeBrickGeometry();
 
 }
