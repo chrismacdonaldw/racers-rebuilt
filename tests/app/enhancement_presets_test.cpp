@@ -10,6 +10,7 @@
 #include "app/audio_settings.hpp"
 #include "app/cheat_settings.hpp"
 #include "app/fix_settings.hpp"
+#include "app/ldraw_driver_prints.hpp"
 #include "app/ldraw_piece_models.hpp"
 #include "app/menu/builder_settings.hpp"
 #include "app/race_settings.hpp"
@@ -29,6 +30,7 @@ settings::Registry DeclaredRegistry() {
     DeclareFixSettings(registry);
     DeclareWarpSettings(registry);
     registry.Declare(kLdrawPiecesSetting);
+    registry.Declare(kLdrawPrintsSetting);
     registry.Declare(kEnhancedBuilder);
     return registry;
 }

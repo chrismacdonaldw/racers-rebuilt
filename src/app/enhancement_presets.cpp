@@ -7,6 +7,7 @@
 
 #include "app/audio_settings.hpp"
 #include "app/fix_settings.hpp"
+#include "app/ldraw_driver_prints.hpp"
 #include "app/ldraw_piece_models.hpp"
 #include "app/menu/builder_settings.hpp"
 #include "app/race_settings.hpp"
@@ -41,6 +42,7 @@ constexpr std::array kEnhancedSettings{&kPhysicsAi,
                                        &kCatchUpWarp,
                                        &kStuckWarpFix,
                                        &kLdrawPiecesSetting,
+                                       &kLdrawPrintsSetting,
                                        &kEnhancedBuilder};
 
 }
