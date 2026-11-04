@@ -63,6 +63,23 @@ TEST_CASE("a race scene name records the physics racers' pace away from 100") {
     }
 }
 
+TEST_CASE("a race scene name records the physics racers' craft when any is on") {
+    const RaceSceneSetup crafty{.track = "RACEC0R0",
+                                .respawn = {},
+                                .aiDriving = sim::AiDriving::Physics,
+                                .aiCraft = {.brakes = true, .aims = true}};
+
+    CHECK(RaceSceneName(crafty) == "race:RACEC0R0:respawn=3000:racer=0:ai=physics:craft=ba");
+    CHECK(ParseRaceScene(RaceSceneName(crafty)) == crafty);
+    CHECK(ParseRaceScene("race:RACEC0R0:respawn=3000:ai=physics:craft=ab") == crafty);
+    for (const std::string_view scene : {"race:RACEC0R0:respawn=3000:ai=physics:craft=",
+                                         "race:RACEC0R0:respawn=3000:ai=physics:craft=bb",
+                                         "race:RACEC0R0:respawn=3000:ai=physics:craft=x"}) {
+        CAPTURE(scene);
+        CHECK_FALSE(ParseRaceScene(scene).has_value());
+    }
+}
+
 TEST_CASE("a race scene name records a circuit other than the track's home circuit") {
     const RaceSceneSetup circuit{.track = "RACEC1R0", .circuit = "c0", .respawn = {}};
 
@@ -267,12 +284,28 @@ TEST_CASE("race rules take the respawn and computer racer settings") {
     DeclareRaceSettings(registry);
     registry.Set(kPhysicsAi, true);
     registry.Set(kAiPace, 80);
+    registry.Set(kAiPassing, true);
+    registry.Set(kAiUnsticking, true);
 
     const RaceSceneSetup rules = RaceRulesFrom(registry);
 
     CHECK(rules.respawn == RespawnRuleFrom(registry));
     CHECK(rules.aiDriving == sim::AiDriving::Physics);
     CHECK(rules.aiPace == 80);
+    CHECK(rules.aiCraft == sim::AiCraft{.passes = true, .unsticks = true});
+}
+
+TEST_CASE("physics racers' craft settings are all off by default") {
+    settings::Registry registry;
+    DeclareRaceSettings(registry);
+
+    CHECK(AiCraftFrom(registry) == sim::AiCraft{});
+
+    for (const auto& spec : {kAiBraking, kAiPassing, kAiUnsticking, kAiAiming}) {
+        registry.Set(spec, true);
+    }
+
+    CHECK(AiCraftFrom(registry) == sim::AiCraft::All());
 }
 
 }

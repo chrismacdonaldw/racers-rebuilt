@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <format>
+#include <optional>
 
 #include "core/assert.hpp"
 #include "core/transform.hpp"
@@ -94,7 +95,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
             const assets::RaceRoute& route =
                 routes[random_.Below(static_cast<std::uint32_t>(routes.size()))];
             if (setup.aiDriving == AiDriving::Physics) {
-                drivers_.back().emplace(route, setup.aiPace);
+                drivers_.back().emplace(route, setup.aiPace, setup.aiCraft);
             } else {
                 racer.FollowRoute(route);
             }
@@ -180,8 +181,11 @@ RacerControls RaceSession::ControlsOf(std::size_t racer, std::span<const RacerCo
         return controls[racer];
     }
     const Racer& self = racers_[racer];
-    return driver->Drive(self, rivals_, racer,
-                         AimFor(inventories_[racer].Colour(), rivals_, racer, self.Body().motion));
+    const std::optional<Vector3> aim =
+        driver->Craft().aims
+            ? AimFor(inventories_[racer].Colour(), rivals_, racer, self.Body().motion)
+            : std::nullopt;
+    return driver->Drive(self, rivals_, racer, aim);
 }
 
 void RaceSession::StartRacing() {

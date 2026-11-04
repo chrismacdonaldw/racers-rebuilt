@@ -70,14 +70,14 @@ float LockFor(float radius, float handling) {
 
 }
 
-RouteDriver::RouteDriver(const assets::RaceRoute& route, std::optional<float> pace)
-    : nearest_(route), reference_(route), ahead_(route), pace_(pace) {}
+RouteDriver::RouteDriver(const assets::RaceRoute& route, std::optional<float> pace, AiCraft craft)
+    : nearest_(route), reference_(route), ahead_(route), pace_(pace), craft_(craft) {}
 
 RacerControls RouteDriver::Drive(const Racer& racer, std::span<const Vector3> racers,
                                  std::optional<std::size_t> self, std::optional<Vector3> aim) {
     const BodyMotion& motion = racer.Body().motion;
     Follow(motion.position);
-    if (stalled_ >= kBackUpFrom && stalled_ < kBackUpUntil) {
+    if (craft_.unsticks && stalled_ >= kBackUpFrom && stalled_ < kBackUpUntil) {
         return {.isBrakeHeld = true};
     }
     const Pedal pedal = PedalFor(motion);
@@ -113,19 +113,26 @@ RouteDriver::Pedal RouteDriver::PedalFor(const BodyMotion& motion) const {
     }
     const Vector3 ahead = ahead_.Pose().position;
     const float routeSpeed = SpeedBetween(reference_.Pose().position, ahead, leadMs);
-    const float brakeSpeed = SpeedBetween(ahead_.PoseAhead(kBrakeWindowStartMs).position,
-                                          ahead_.PoseAhead(kBrakeWindowEndMs).position,
-                                          kBrakeWindowEndMs - kBrakeWindowStartMs);
-    const float target = *pace_ * std::min(routeSpeed, brakeSpeed);
+    const float target =
+        *pace_ * (craft_.brakes ? std::min(routeSpeed, BrakeWindowSpeed()) : routeSpeed);
     const float speed = Dot(motion.velocity, motion.basis.forward);
     if (speed < target) {
         return Pedal::Throttle;
     }
-    return speed > target * kBrakeMargin ? Pedal::Brake : Pedal::Coast;
+    return craft_.brakes && speed > target * kBrakeMargin ? Pedal::Brake : Pedal::Coast;
+}
+
+float RouteDriver::BrakeWindowSpeed() const {
+    return SpeedBetween(ahead_.PoseAhead(kBrakeWindowStartMs).position,
+                        ahead_.PoseAhead(kBrakeWindowEndMs).position,
+                        kBrakeWindowEndMs - kBrakeWindowStartMs);
 }
 
 float RouteDriver::PassOffset(const BodyMotion& motion, std::span<const Vector3> racers,
                               std::optional<std::size_t> self) const {
+    if (!craft_.passes) {
+        return 0.0F;
+    }
     const Vector3 forward = Normalized(Flat(motion.basis.forward), {.x = 1.0F});
     const Vector3 left = LeftOf(forward);
     for (std::size_t i = 0; i < racers.size(); ++i) {

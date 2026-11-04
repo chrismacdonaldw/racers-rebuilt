@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstddef>
 #include <numbers>
+#include <optional>
 
 #include "../physics/plane_world.hpp"
 #include "straight_route.hpp"
@@ -81,7 +82,7 @@ assets::RaceRoute FastThenSlow() {
 
 TEST_CASE("a paced route driver brakes ahead of the route slowing down") {
     const test::PlaneWorld world = test::FlatGround();
-    RouteDriver driver(FastThenSlow(), 1.0F);
+    RouteDriver driver(FastThenSlow(), 1.0F, {.brakes = true});
     Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
     float fastest = 0.0F;
     float brakedAtX = 0.0F;
@@ -98,6 +99,23 @@ TEST_CASE("a paced route driver brakes ahead of the route slowing down") {
     CHECK(brakedAtX > 300.0F);
     CHECK(brakedAtX < 400.0F);
     CHECK(racer.Body().derived.speed == doctest::Approx(0.01F).epsilon(0.15));
+}
+
+TEST_CASE("a paced route driver without braking only coasts ahead of the route slowing down") {
+    const test::PlaneWorld world = test::FlatGround();
+    RouteDriver driver(FastThenSlow(), 1.0F);
+    Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+    bool hasBraked = false;
+    bool hasCoasted = false;
+    for (int elapsed = 0; elapsed < 16000; elapsed += static_cast<int>(kTick.count())) {
+        const RacerControls controls = driver.Drive(racer);
+        hasBraked = hasBraked || controls.isBrakeHeld;
+        hasCoasted = hasCoasted || !controls.isThrottleHeld;
+        racer.Tick(kTick, controls, world);
+    }
+
+    CHECK_FALSE(hasBraked);
+    CHECK(hasCoasted);
 }
 
 TEST_CASE("a route driver calls a car stalled after 3 s without headway and rejoins it ahead") {
@@ -119,27 +137,40 @@ TEST_CASE("a route driver calls a car stalled after 3 s without headway and rejo
     CHECK(rejoin.headingRadians == doctest::Approx(0.0F));
 }
 
+void StallFor(RouteDriver& driver, Racer& racer, int durationMs, const CollisionQuery& world) {
+    for (int elapsed = 0; elapsed < durationMs; elapsed += static_cast<int>(kTick.count())) {
+        static_cast<void>(driver.Drive(racer));
+        racer.Tick(kTick, {}, world);
+        static_cast<void>(driver.IsStalled(kTick));
+    }
+}
+
 TEST_CASE("a stuck route driver backs up between 1 s and 1.8 s without headway") {
     const test::PlaneWorld world = test::FlatGround();
-    RouteDriver driver(test::StraightRoute({.z = 0.2F}, 3000));
+    RouteDriver driver(test::StraightRoute({.z = 0.2F}, 3000), std::nullopt, {.unsticks = true});
     Racer racer(kNeutralChassis, {}, {.position = {.y = 8.0F, .z = 0.2F}});
-    const auto stallFor = [&](int durationMs) {
-        for (int elapsed = 0; elapsed < durationMs; elapsed += static_cast<int>(kTick.count())) {
-            static_cast<void>(driver.Drive(racer));
-            racer.Tick(kTick, {}, world);
-            static_cast<void>(driver.IsStalled(kTick));
-        }
-    };
 
-    stallFor(900);
+    StallFor(driver, racer, 900, world);
     CHECK_FALSE(driver.Drive(racer).isBrakeHeld);
-    stallFor(300);
+    StallFor(driver, racer, 300, world);
     const RacerControls backing = driver.Drive(racer);
-    stallFor(800);
+    StallFor(driver, racer, 800, world);
 
     CHECK(backing.isBrakeHeld);
     CHECK_FALSE(backing.isThrottleHeld);
     CHECK_FALSE(driver.Drive(racer).isBrakeHeld);
+}
+
+TEST_CASE("a stuck route driver without unsticking keeps driving forward") {
+    const test::PlaneWorld world = test::FlatGround();
+    RouteDriver driver(test::StraightRoute({.z = 0.2F}, 3000));
+    Racer racer(kNeutralChassis, {}, {.position = {.y = 8.0F, .z = 0.2F}});
+
+    StallFor(driver, racer, 1200, world);
+    const RacerControls controls = driver.Drive(racer);
+
+    CHECK(controls.isThrottleHeld);
+    CHECK_FALSE(controls.isBrakeHeld);
 }
 
 assets::RaceRoute WideStraightRoute() {
@@ -152,7 +183,7 @@ assets::RaceRoute WideStraightRoute() {
 }
 
 TEST_CASE("a route driver steers around a rival just ahead, toward the open side") {
-    RouteDriver driver(WideStraightRoute());
+    RouteDriver driver(WideStraightRoute(), std::nullopt, {.passes = true});
     const Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
     const std::array leftRival{Vector3{.x = 15.0F, .y = 1.0F, .z = 0.2F}};
     const std::array rightRival{Vector3{.x = 15.0F, .y = -1.0F, .z = 0.2F}};
@@ -164,13 +195,21 @@ TEST_CASE("a route driver steers around a rival just ahead, toward the open side
 }
 
 TEST_CASE("a route driver doesn't pass its own position in the field") {
-    RouteDriver driver(WideStraightRoute());
+    RouteDriver driver(WideStraightRoute(), std::nullopt, {.passes = true});
     const Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
     const std::array field{Vector3{.x = 60.0F, .z = 0.2F},
                            Vector3{.x = 2.0F, .y = 1.0F, .z = 0.2F}};
 
     CHECK(driver.Drive(racer, field, 1).steerLeftAxis == 0.0F);
     CHECK(driver.Drive(racer, field, 0).steerLeftAxis < 0.0F);
+}
+
+TEST_CASE("a route driver without passing keeps its line behind a rival just ahead") {
+    RouteDriver driver(WideStraightRoute());
+    const Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+    const std::array leftRival{Vector3{.x = 15.0F, .y = 1.0F, .z = 0.2F}};
+
+    CHECK(driver.Drive(racer, leftRival).steerLeftAxis == 0.0F);
 }
 
 TEST_CASE("an aiming route driver moves to its aim's side of the route instead of passing") {

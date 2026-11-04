@@ -175,8 +175,11 @@ void CheckRetailTrack(const assets::Vfs& vfs, const std::string& name, const sim
     CAPTURE(static_cast<int>(driving));
     const Result<sim::RaceTrack> track = sim::LoadRaceTrack(vfs, name);
     REQUIRE(track.has_value());
-    sim::RaceSetup setup{
-        .track = name, .seed = kRetailSeed, .aiDriving = driving, .effects = sim::EveryEffect()};
+    sim::RaceSetup setup{.track = name,
+                         .seed = kRetailSeed,
+                         .aiDriving = driving,
+                         .aiCraft = sim::AiCraft::All(),
+                         .effects = sim::EveryEffect()};
     setup.racers.resize(track->grid.size());
     setup.racers.front().isPlayer = true;
     const sim::WorldList world(track->collision.Track());
