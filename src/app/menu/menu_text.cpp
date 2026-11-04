@@ -17,7 +17,7 @@ bool MenuText::Apply(render::Renderer& renderer, const assets::Vfs& vfs,
     if (isNewLanguage) {
         Load(renderer, vfs, std::move(language));
     }
-    UseMissingGlyphs(fonts_, MissingGlyphsFrom(settings));
+    UseTextFixes(fonts_, TextFixesFrom(settings));
     return isNewLanguage;
 }
 

@@ -57,7 +57,7 @@ void CutsceneScene::ApplySettings(const settings::Registry& settings) {
     view_->DrawFarScenery(settings.Get(kFarScenerySetting));
     view_->KeepToCanvas(settings.Get(kWidescreenSetting) &&
                         !settings.Get(kWidescreenCutscenesSetting));
-    view_->UseMissingGlyphs(MissingGlyphsFrom(settings));
+    view_->UseTextFixes(TextFixesFrom(settings));
 }
 
 std::optional<std::string> CutsceneScene::TakeNextScene() {

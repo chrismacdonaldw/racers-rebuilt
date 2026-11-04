@@ -196,6 +196,7 @@ target_sources(racers-rebuilt-tests PRIVATE
     app/track_material_anims_test.cpp
     app/track_space_test.cpp
     app/track_sprites_test.cpp
+    app/ui_text/font_list_fixes_test.cpp
     app/ui_text/text_layout_test.cpp
     app/trigger_spheres_test.cpp
     app/video_settings_test.cpp

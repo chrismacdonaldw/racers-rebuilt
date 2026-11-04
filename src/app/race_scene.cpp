@@ -155,7 +155,7 @@ void RaceScene::ApplySettings(const settings::Registry& settings) {
     if (parts_.particles) {
         parts_.particles->SetBetter(settings.Get(kBetterParticlesSetting));
     }
-    hud_.UseMissingGlyphs(MissingGlyphsFrom(settings));
+    hud_.UseTextFixes(TextFixesFrom(settings));
     hud_.SetLanguage(SelectedLanguage(settings));
 }
 

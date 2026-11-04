@@ -52,21 +52,21 @@ Mark GlyphMark(const assets::Glyph& glyph) {
 }
 
 Mark FirstGlyphMark(const UiFont& font) {
-    const std::vector<assets::Glyph>& glyphs = font.glyphs.glyphs;
+    const std::vector<assets::Glyph>& glyphs = font.Glyphs().glyphs;
     if (!glyphs.empty() && glyphs.front().character < kSpace) {
         return GlyphMark(glyphs.front());
     }
-    return GlyphMark({.character = kSpace, .leftPx = 0, .widthPx = font.glyphs.spaceWidthPx});
+    return GlyphMark({.character = kSpace, .leftPx = 0, .widthPx = font.Glyphs().spaceWidthPx});
 }
 
 std::optional<Mark> MarkFor(const UiFont& font, char16_t character) {
-    if (const assets::Glyph* glyph = GlyphFor(font.glyphs, character)) {
+    if (const assets::Glyph* glyph = GlyphFor(font.Glyphs(), character)) {
         return GlyphMark(*glyph);
     }
     if (IsLineBreak(character)) {
         return std::nullopt;
     }
-    if (font.missingGlyphs == MissingGlyphs::FirstGlyph) {
+    if (font.fixes.missingGlyphs == MissingGlyphs::FirstGlyph) {
         return FirstGlyphMark(font);
     }
     if (const std::optional<DrawnGlyph> drawn = DrawnGlyphFor(character)) {
@@ -92,7 +92,7 @@ float ForEachGlyph(const UiFont& font, std::u16string_view text, Visit&& visit) 
         }
         hasAdvanced = true;
         if (!mark) {
-            pen += static_cast<float>(font.glyphs.spaceWidthPx);
+            pen += static_cast<float>(font.Glyphs().spaceWidthPx);
             continue;
         }
         visit(*mark, pen);
@@ -103,7 +103,7 @@ float ForEachGlyph(const UiFont& font, std::u16string_view text, Visit&& visit) 
 
 float Advance(const UiFont& font, char16_t character) {
     if (character == kSpace) {
-        return static_cast<float>(font.glyphs.spaceWidthPx) + static_cast<float>(font.spacingPx);
+        return static_cast<float>(font.Glyphs().spaceWidthPx) + static_cast<float>(font.spacingPx);
     }
     const std::optional<Mark> mark = MarkFor(font, character);
     return mark ? mark->widthPx + static_cast<float>(font.spacingPx) : 0.0F;

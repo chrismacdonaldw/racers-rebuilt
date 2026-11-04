@@ -3,10 +3,11 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 
-#include "app/ui_text/drawn_glyphs.hpp"
+#include "app/ui_text/text_fixes.hpp"
 #include "assets/font_list.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -21,7 +22,12 @@ struct UiFont {
     std::uint32_t heightPx = 0;
     std::int32_t spacingPx = 0;
     assets::FontGlyphs glyphs;
-    MissingGlyphs missingGlyphs = MissingGlyphs::FirstGlyph;
+    std::optional<assets::FontGlyphs> fixedGlyphs;
+    TextFixes fixes;
+
+    [[nodiscard]] const assets::FontGlyphs& Glyphs() const {
+        return fixes.fixesGlyphLists && fixedGlyphs ? *fixedGlyphs : glyphs;
+    }
 };
 
 /// Keyed by font name in upper case.
@@ -37,6 +43,6 @@ using UiFonts = std::map<std::string, UiFont, std::less<>>;
 
 [[nodiscard]] const UiFont* FindUiFont(const UiFonts& fonts, std::string_view name);
 
-void UseMissingGlyphs(UiFonts& fonts, MissingGlyphs missing);
+void UseTextFixes(UiFonts& fonts, TextFixes fixes);
 
 }
