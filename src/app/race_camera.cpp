@@ -184,6 +184,10 @@ CameraSubject SubjectOf(const sim::Racer& racer) {
                 racer.ActiveTurbo().transform([](const sim::Turbo& turbo) { return turbo.level; })};
 }
 
+bool HidesSubject(CameraView view, bool hasEngineStarted, bool hasFinished) {
+    return view == CameraView::Cockpit && hasEngineStarted && !hasFinished;
+}
+
 RaceCamera::RaceCamera(const CameraSubject& subject)
     : target_(subject.pose.position),
       viewDirection_(Rotate(subject.pose.rotation, kForward)),

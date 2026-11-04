@@ -24,6 +24,7 @@
 #include "app/race_step.hpp"
 #include "app/racer/far_cars.hpp"
 #include "app/racer/racer_fx.hpp"
+#include "app/racer/slot_draws.hpp"
 #include "app/texture_scroll.hpp"
 #include "app/track_map.hpp"
 #include "app/track_model.hpp"
@@ -149,6 +150,7 @@ void RaceScene::ApplySettings(const settings::Registry& settings) {
     showsTriggers_ = settings.Get(kShowTriggerSpheres);
     hasSlowMotion_ = settings.Get(kSlowMotionCheat);
     parts_.farModels.SetHidden(!settings.Get(kFarCarsSetting), !settings.Get(kFarScenerySetting));
+    showsCockpitCar_ = settings.Get(kCockpitCarSetting);
     hud_.SetLanguage(SelectedLanguage(settings));
 }
 
@@ -301,11 +303,13 @@ render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated
     render::Camera lens = PlayerLens(parts_.camera, cameras_.Count());
     lens.verticalFovDegrees = cameras_.FovDegrees(player);
     const render::Viewport viewport = PlayerViewport(player, cameras_.Count());
+    const bool hidesOwnCar = !showsCockpitCar_ && cameras_.HidesOwnCar(player, parts_.session);
     const sim::EffectSnapshot* flight =
         FindWarp(interpolated.effects, slot, sim::WarpPhase::Active);
     if (flight != nullptr && parts_.warpTube) {
-        parts_.warpTube->Fly(flight->phaseLeftMs, interpolated.entities[slot].transform,
-                             parts_.racers.SlotDraws(slot));
+        parts_.warpTube->Fly(
+            flight->phaseLeftMs, interpolated.entities[slot].transform,
+            hidesOwnCar ? std::span<const render::MeshDraw>{} : parts_.racers.SlotDraws(slot));
         std::vector<render::MeshDraw>& tube = tubeDraws_.at(player);
         tube.assign(parts_.warpTube->Draws().begin(), parts_.warpTube->Draws().end());
         return {.camera = WarpFlightCamera(lens, flight->phaseLeftMs),
@@ -330,9 +334,15 @@ render::RenderView RaceScene::PlayerView(const sim::RenderSnapshot& interpolated
     quads.insert(quads.end(), powerupQuads.Quads().begin(), powerupQuads.Quads().end());
     std::vector<render::MeshDraw>& sky = skyDraws_.at(player);
     parts_.sky.Place(parts_.session.Resources().Sky(), camera.transform.position, shownMs_, sky);
+    std::span<const render::MeshDraw> meshes =
+        parts_.farModels.Cull(player, camera.transform.position, draws_);
+    if (hidesOwnCar) {
+        meshes = WithoutDraws(meshes, SlotDrawSpan(parts_.racers, slot, parts_.trackDraws.size()),
+                              ownCarHidden_.at(player));
+    }
     return {.camera = camera,
             .backdrop = sky,
-            .meshes = parts_.farModels.Cull(player, camera.transform.position, draws_),
+            .meshes = meshes,
             .quads = quads,
             .lines = debugLines_,
             .viewport = viewport};

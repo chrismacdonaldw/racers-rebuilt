@@ -166,6 +166,7 @@ private:
     std::array<std::vector<render::QuadDraw>, sim::kMaxPlayers> playerQuads_;
     std::array<std::vector<render::MeshDraw>, sim::kMaxPlayers> tubeDraws_;
     std::array<std::vector<render::MeshDraw>, sim::kMaxPlayers> skyDraws_;
+    std::array<std::vector<render::MeshDraw>, sim::kMaxPlayers> ownCarHidden_;
     float shownMs_ = 0.0F;
     std::vector<render::RenderView> views_;
     std::array<std::vector<MapMarker>, sim::kMaxPlayers> mapMarkers_;
@@ -174,6 +175,7 @@ private:
     bool showsCollision_ = false;
     bool showsTriggers_ = false;
     bool hasSlowMotion_ = false;
+    bool showsCockpitCar_ = false;
     bool isSlowMotion_ = false;
     std::optional<Nanoseconds> lastRender_;
     bool hasDrawn_ = false;

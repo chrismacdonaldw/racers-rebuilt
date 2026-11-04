@@ -15,6 +15,7 @@ void DeclareVideoSettings(settings::Registry& registry) {
     registry.Declare(kAnisotropicFilteringSetting);
     registry.Declare(kFarCarsSetting);
     registry.Declare(kFarScenerySetting);
+    registry.Declare(kCockpitCarSetting);
 }
 
 platform::PacingConfig PacingFromSettings(const settings::Registry& registry) {

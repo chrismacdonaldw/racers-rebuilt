@@ -146,6 +146,7 @@ add_executable(racers-rebuilt-tests
     app/racer/car_shadows_test.cpp
     app/racer/car_silhouette_test.cpp
     app/racer/shadow_silhouette_test.cpp
+    app/racer/slot_draws_test.cpp
     app/racer/body_lean_test.cpp
     app/racer/car_look_test.cpp
     app/racer/champion_car_test.cpp

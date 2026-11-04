@@ -79,6 +79,12 @@ inline constexpr settings::SettingSpec<bool> kFarScenerySetting{.key = "video.fa
                                                                 .label = "Draw far scenery",
                                                                 .category = "Video"};
 
+/// Draws the player's own car in the cockpit view, which the original leaves out while racing.
+inline constexpr settings::SettingSpec<bool> kCockpitCarSetting{.key = "video.cockpit_car",
+                                                                .defaultValue = false,
+                                                                .label = "Car in cockpit view",
+                                                                .category = "Video"};
+
 void DeclareVideoSettings(settings::Registry& registry);
 
 [[nodiscard]] platform::PacingConfig PacingFromSettings(const settings::Registry& registry);
