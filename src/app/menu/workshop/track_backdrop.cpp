@@ -9,6 +9,7 @@
 #include "app/track_model.hpp"
 #include "app/track_space.hpp"
 #include "assets/game_path.hpp"
+#include "assets/loader_pool.hpp"
 #include "assets/race_catalog.hpp"
 #include "assets/start_grid.hpp"
 #include "core/log.hpp"
@@ -18,6 +19,7 @@ namespace {
 
 constexpr std::string_view kStartGrid = "STARTPOS.SPB";
 constexpr std::string_view kSky = "BACKGRND.SKB";
+constexpr std::size_t kLoaderWorkers = 2;
 
 template <typename Parse>
 auto ReadTrackFile(const assets::Vfs& vfs, std::string_view track, std::string_view file,
@@ -74,32 +76,41 @@ std::vector<BackdropTrack> ListBackdropTracks(const assets::Vfs& vfs, std::strin
     return tracks;
 }
 
-Result<std::unique_ptr<TrackBackdrop>> TrackBackdrop::Load(render::Renderer& renderer,
-                                                           const assets::Vfs& vfs,
-                                                           assets::TrackLoader& loader,
-                                                           std::string_view track,
-                                                           const Vector3& spot) {
+Result<BackdropFiles> ReadBackdropFiles(const assets::Vfs& vfs, std::string_view track) {
+    assets::LoaderPool pool(kLoaderWorkers);
+    assets::TrackLoader loader(vfs, pool);
     Result<Vector3> first = FirstSpot(vfs, track);
-    Result<TrackModel> model = first.and_then([&](const Vector3&) {
-        return loader.Load(std::format("GAMEDATA/{}", track))
-            .and_then(
-                [&](const assets::TrackAssets& assets) { return UploadTrack(renderer, assets); });
-    });
-    Result<assets::SkyFile> skyFile =
-        model.and_then([&](const TrackModel&) { return ReadSky(vfs, track); });
-    Result<SkyBackdrop> sky = skyFile.and_then([&](const assets::SkyFile&) {
-        return SkyBackdrop::Upload(renderer, std::move(model->skyModels));
+    Result<assets::TrackAssets> assets = first.and_then(
+        [&](const Vector3&) { return loader.Load(std::format("GAMEDATA/{}", track)); });
+    Result<assets::SkyFile> sky =
+        assets.and_then([&](const assets::TrackAssets&) { return ReadSky(vfs, track); });
+    if (!sky) {
+        return std::unexpected(std::move(sky.error()));
+    }
+    return BackdropFiles{.assets = std::move(*assets), .sky = std::move(*sky), .firstSpot = *first};
+}
+
+Vector3 BackdropShift(const Vector3& firstSpot, const Vector3& spot) {
+    return ToEngine(spot) - ToEngine(firstSpot);
+}
+
+Result<std::unique_ptr<TrackBackdrop>> TrackBackdrop::Upload(render::Renderer& renderer,
+                                                             BackdropFiles files,
+                                                             const Vector3& spot) {
+    Result<TrackModel> model = UploadTrack(renderer, files.assets);
+    Result<SkyBackdrop> sky = model.and_then([&](TrackModel& uploaded) {
+        return SkyBackdrop::Upload(renderer, std::move(uploaded.skyModels));
     });
     if (!sky) {
         return std::unexpected(std::move(sky.error()));
     }
-    const Vector3 shift = ToEngine(spot) - ToEngine(*first);
+    const Vector3 shift = BackdropShift(files.firstSpot, spot);
     for (render::MeshDraw& draw : model->draws) {
         draw.transform.position = draw.transform.position + shift;
     }
     const float farPlane = std::max(TrackCamera(model->bounds).farPlane, 1.0F);
     return std::unique_ptr<TrackBackdrop>(new TrackBackdrop(
-        std::move(model->draws), std::make_unique<assets::SkyFile>(std::move(*skyFile)),
+        std::move(model->draws), std::make_unique<assets::SkyFile>(std::move(files.sky)),
         std::move(*sky), farPlane));
 }
 

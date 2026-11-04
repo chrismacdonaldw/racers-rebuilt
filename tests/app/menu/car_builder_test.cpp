@@ -148,13 +148,15 @@ TEST_CASE_FIXTURE(Pieces, "a placed piece keeps the selected set's chassis type"
 
 TEST_CASE_FIXTURE(Pieces, "an extra piece places with no part type and loads back unchanged") {
     catalog.library.pieces.push_back(Block(assets::kFirstExtraPieceType, 2, 2, 1));
-    catalog.extras = {{.piece = catalog.library.pieces.size() - 1}};
+    catalog.extras = {{.piece = catalog.library.pieces.size() - 1, .colour = 7}};
     CarBuilder builder = Builder();
     builder.SelectSet(catalog.ExtraSet());
 
     REQUIRE(builder.Place() == PlaceResult::Placed);
 
-    CHECK(builder.Car().Pieces().back().partType == 0);
+    const sim::CarPiece& placed = builder.Car().Pieces().back();
+    CHECK(placed.partType == 0);
+    CHECK(placed.colour == 7);
     const assets::CarData saved = builder.Car().Save();
     const Result<sim::BuiltCar> loaded = sim::BuiltCar::Load(saved, catalog.library);
     REQUIRE(loaded.has_value());

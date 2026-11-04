@@ -176,6 +176,7 @@ rr_add_module(app
         menu/workshop/bench_pick.cpp
         menu/workshop/orbit_camera.cpp
         menu/workshop/track_backdrop.cpp
+        menu/workshop/track_backdrops.cpp
         menu/workshop/workshop_edits.cpp
         menu/workshop/workshop_layout.cpp
         menu/workshop/workshop_panels.cpp
