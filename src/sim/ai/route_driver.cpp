@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 
 #include "core/quaternion.hpp"
 #include "sim/physics/drive_controller.hpp"
@@ -26,6 +27,8 @@ constexpr float kBlockAhead = 25.0F;
 constexpr float kBlockWidth = 5.0F;
 constexpr float kPassOffset = 6.0F;
 constexpr float kPassWidthShare = 0.8F;
+constexpr float kWobblePeriodMs = 4000.0F;
+constexpr float kTwoPi = 2.0F * std::numbers::pi_v<float>;
 
 Vector3 Flat(const Vector3& v) {
     return {.x = v.x, .y = v.y};
@@ -70,8 +73,15 @@ float LockFor(float radius, float handling) {
 
 }
 
-RouteDriver::RouteDriver(const assets::RaceRoute& route, std::optional<float> pace, AiCraft craft)
-    : nearest_(route), reference_(route), ahead_(route), pace_(pace), craft_(craft) {}
+RouteDriver::RouteDriver(const assets::RaceRoute& route, std::optional<float> pace, AiCraft craft,
+                         std::optional<SkillProfile> skill)
+    : nearest_(route),
+      reference_(route),
+      ahead_(route),
+      pace_(pace),
+      craft_(craft),
+      skill_(skill),
+      wobblePhase_(std::fmod(std::abs(route.startPosition.x + route.startPosition.y), kTwoPi)) {}
 
 RacerControls RouteDriver::Drive(const Racer& racer, std::span<const Vector3> racers,
                                  std::optional<std::size_t> self, std::optional<Vector3> aim) {
@@ -85,7 +95,7 @@ RacerControls RouteDriver::Drive(const Racer& racer, std::span<const Vector3> ra
     const bool isBrakeHeld = pedal == Pedal::Brake;
     const Transform reference = reference_.Pose();
     const Vector3 tangent = FlatForward(reference.rotation);
-    const float offset = aim ? AimOffset(*aim) : PassOffset(motion, racers, self);
+    const float offset = SideOffset(aim ? AimOffset(*aim) : PassOffset(motion, racers, self));
     const Vector3 target =
         Flat(reference.position) + (tangent * kCorrectionDistance) + (LeftOf(tangent) * offset);
     const Vector3 forward = Normalized(Flat(motion.basis.forward), {.x = 1.0F});
@@ -108,18 +118,34 @@ RacerControls RouteDriver::Drive(const Racer& racer, std::span<const Vector3> ra
 
 RouteDriver::Pedal RouteDriver::PedalFor(const BodyMotion& motion) const {
     const auto leadMs = static_cast<float>((aheadLead_ - referenceLead_).count());
-    if (!pace_ || leadMs <= 0.0F) {
+    const std::optional<float> pace = skill_ ? std::optional(skill_->speedShare) : pace_;
+    if (!pace || leadMs <= 0.0F) {
         return Pedal::Throttle;
     }
     const Vector3 ahead = ahead_.Pose().position;
     const float routeSpeed = SpeedBetween(reference_.Pose().position, ahead, leadMs);
     const float target =
-        *pace_ * (craft_.brakes ? std::min(routeSpeed, BrakeWindowSpeed()) : routeSpeed);
+        *pace * (craft_.brakes ? std::min(routeSpeed, BrakeWindowSpeed()) : routeSpeed);
     const float speed = Dot(motion.velocity, motion.basis.forward);
     if (speed < target) {
         return Pedal::Throttle;
     }
-    return craft_.brakes && speed > target * kBrakeMargin ? Pedal::Brake : Pedal::Coast;
+    const float margin = skill_ ? skill_->brakeMargin : kBrakeMargin;
+    return craft_.brakes && speed > target * margin ? Pedal::Brake : Pedal::Coast;
+}
+
+float RouteDriver::SideOffset(float wanted) {
+    if (!skill_) {
+        return wanted;
+    }
+    const auto sinceMs = static_cast<float>((travelled_ - offsetAt_).count());
+    offsetAt_ = travelled_;
+    const auto reactionMs = static_cast<float>(skill_->reaction.count());
+    const float step = reactionMs > 0.0F ? kPassOffset * sinceMs / reactionMs : kPassOffset;
+    sideOffset_ += std::clamp(wanted - sideOffset_, -step, step);
+    const float wobbleAngle =
+        (kTwoPi * static_cast<float>(travelled_.count()) / kWobblePeriodMs) + wobblePhase_;
+    return sideOffset_ + (skill_->wobble * std::sin(wobbleAngle));
 }
 
 float RouteDriver::BrakeWindowSpeed() const {
@@ -176,6 +202,7 @@ void RouteDriver::Follow(const Vector3& position) {
     hasHeadway_ = IsPast(nearest_.Pose(), position);
     for (int step = 0; step < kMaxCursorSteps && IsPast(nearest_.Pose(), position); ++step) {
         nearest_.Advance(kCursorStep);
+        travelled_ += kCursorStep;
         referenceLead_ -= kCursorStep;
         aheadLead_ -= kCursorStep;
     }

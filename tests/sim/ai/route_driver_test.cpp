@@ -72,6 +72,17 @@ TEST_CASE("a paced route driver cruises near its share of the route's recorded s
     }
 }
 
+TEST_CASE("a skilled route driver's speed share replaces its pace") {
+    const test::PlaneWorld world = test::FlatGround();
+    const SkillProfile skill{.speedShare = 2.0F};
+    RouteDriver driver(test::StraightRoute({.z = 0.2F}, 3000), 3.0F, {}, skill);
+    Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+
+    DriveFor(racer, driver, 8000, world);
+
+    CHECK(racer.Body().derived.speed == doctest::Approx(0.02F).epsilon(0.15));
+}
+
 assets::RaceRoute FastThenSlow() {
     assets::RaceRoute route = test::StraightRoute({.z = 0.2F}, 700);
     for (std::size_t i = 0; i < 400; ++i) {
@@ -202,6 +213,17 @@ TEST_CASE("a route driver doesn't pass its own position in the field") {
 
     CHECK(driver.Drive(racer, field, 1).steerLeftAxis == 0.0F);
     CHECK(driver.Drive(racer, field, 0).steerLeftAxis < 0.0F);
+}
+
+TEST_CASE("a skilled route driver eases into a pass over its reaction time") {
+    RouteDriver eager(WideStraightRoute(), 1.0F, {.passes = true});
+    RouteDriver easing(WideStraightRoute(), 1.0F, {.passes = true},
+                       SkillProfile{.reaction = Milliseconds{400}});
+    const Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+    const std::array leftRival{Vector3{.x = 15.0F, .y = 1.0F, .z = 0.2F}};
+
+    CHECK(eager.Drive(racer, leftRival).steerLeftAxis < 0.0F);
+    CHECK(easing.Drive(racer, leftRival).steerLeftAxis == 0.0F);
 }
 
 TEST_CASE("a route driver without passing keeps its line behind a rival just ahead") {

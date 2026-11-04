@@ -9,6 +9,15 @@ namespace {
 constexpr std::string_view kPaces = "FMS";
 constexpr int kMaxRoutesPerPace = 10;
 
+assets::RoutePace PaceOf(std::string_view name) {
+    const std::size_t mark = name.find('_') + 1;
+    const char pace = mark < name.size() ? name[mark] : kPaces.front();
+    if (pace == kPaces[2]) {
+        return assets::RoutePace::Slow;
+    }
+    return pace == kPaces[1] ? assets::RoutePace::Medium : assets::RoutePace::Fast;
+}
+
 }
 
 std::vector<std::string> SlotRoutes(std::span<const assets::VfsEntry> folder, int slot) {
@@ -47,6 +56,7 @@ Result<GridRoutes> LoadGridRoutes(const assets::Vfs& vfs, std::string_view track
             if (!route) {
                 return std::unexpected(std::move(route.error()));
             }
+            route->pace = PaceOf(name);
             routes[slot].push_back(std::move(*route));
         }
     }

@@ -11,17 +11,18 @@
 
 namespace rr::sim {
 
-inline constexpr std::uint16_t kReplayFormatVersion = 6;
+inline constexpr std::uint16_t kReplayFormatVersion = 7;
 inline constexpr std::uint16_t kOldestReplayFormatVersion = 5;
 inline constexpr std::size_t kMaxGameplayEntries = 255;
 
-/// `scene` is the name of the scene that ran, or empty for the test scene.
+/// `scene` is the scene that ran, or empty for the test scene. Encoding writes the latest format.
 struct Replay {
     std::string buildVersion;
     std::string scene;
     std::uint64_t seed = 0;
     std::vector<std::string> gameplay;
     std::vector<InputFrame> frames;
+    std::uint16_t formatVersion = kReplayFormatVersion;
 
     friend bool operator==(const Replay&, const Replay&) = default;
 };

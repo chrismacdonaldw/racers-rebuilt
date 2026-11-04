@@ -69,6 +69,20 @@ TEST_CASE("retail slots keep their pace, and a numbering gap hides later routes"
     CHECK(std::ranges::find(third, "R3_M_3.RRB") == third.end());
 }
 
+TEST_CASE("retail grid routes carry the pace in their file names") {
+    const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+
+    const Result<GridRoutes> routes = LoadGridRoutes(*vfs, "RACEC0R0", 6, false);
+
+    REQUIRE(routes.has_value());
+    REQUIRE((!routes->at(1).empty() && !routes->at(2).empty()));
+    CHECK(routes->at(1).front().pace == assets::RoutePace::Fast);
+    CHECK(routes->at(2).front().pace == assets::RoutePace::Medium);
+}
+
 TEST_CASE("a retail route loads mirrored for a mirrored race") {
     const std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
     if (!vfs) {

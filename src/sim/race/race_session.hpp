@@ -14,6 +14,7 @@
 #include "core/result.hpp"
 #include "core/vector3.hpp"
 #include "sim/ai/ai_powerups.hpp"
+#include "sim/ai/ai_skill.hpp"
 #include "sim/ai/ai_taunts.hpp"
 #include "sim/ai/route_choice.hpp"
 #include "sim/ai/route_driver.hpp"
@@ -126,6 +127,7 @@ private:
     void StartBoosts();
     void ResolveContacts();
     void PaceRoutes(Milliseconds elapsed);
+    void TuneSkills();
     void MeasureReaches();
     void TickBricks(Milliseconds elapsed);
     void RollChaosBrick(PowerupInventory& inventory);
@@ -174,6 +176,8 @@ private:
     std::vector<TriggerWorlds> switchedWorlds_;
     SurfaceEvents surfaceEvents_;
     RubberBand rubberBand_;
+    std::vector<int> skillLevels_;
+    bool catchesUp_ = false;
     std::vector<PacedRacer> paced_;
     std::vector<float> routeSpeeds_;
     BrickField bricks_;

@@ -14,6 +14,11 @@
 #include "sim/race/session_parts.hpp"
 
 namespace rr::sim {
+namespace {
+
+constexpr Milliseconds kCatchUpDelay{15000};
+
+}
 
 Result<RaceSession> RaceSession::Create(const RaceSetup& setup, const RaceCourse& course) {
     RR_ASSERT(course.checkpoints != nullptr && course.world != nullptr);
@@ -63,6 +68,8 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       switchedWorlds_(setup.racers.size()),
       surfaceEvents_(setup.racers.size()),
       rubberBand_(PaceBonus(course.isMirrored, setup.circuit, *rules_)),
+      skillLevels_(setup.racers.size()),
+      catchesUp_(setup.aiSkill && setup.aiSkill->catchesUp),
       paced_(setup.racers.size()),
       routeSpeeds_(setup.racers.size(), 1.0F),
       bricks_(BricksFor(course, setup.cheats)),
@@ -95,7 +102,12 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
             const assets::RaceRoute& route =
                 routes[random_.Below(static_cast<std::uint32_t>(routes.size()))];
             if (setup.aiDriving == AiDriving::Physics) {
-                drivers_.back().emplace(route, setup.aiPace, setup.aiCraft);
+                std::optional<SkillProfile> skill;
+                if (setup.aiSkill) {
+                    skillLevels_[i] = LevelFor(*setup.aiSkill, setup.firstSlot + i, route.pace);
+                    skill = ProfileFor(skillLevels_[i]);
+                }
+                drivers_.back().emplace(route, setup.aiPace, setup.aiCraft, skill);
             } else {
                 racer.FollowRoute(route);
             }
@@ -232,8 +244,21 @@ void RaceSession::PaceRoutes(Milliseconds elapsed) {
                      .isAiControlled = !isPlayer_[i]};
     }
     rubberBand_.Update(elapsed, paced_, routeSpeeds_);
+    TuneSkills();
     for (std::size_t i = 0; i < racers_.size(); ++i) {
         racers_[i].SetRouteSpeed(routeSpeeds_[i] * modifiers_.speedScale);
+    }
+}
+
+void RaceSession::TuneSkills() {
+    if (!catchesUp_ || clock_.RaceTime() < kCatchUpDelay) {
+        return;
+    }
+    for (std::size_t i = 0; i < racers_.size(); ++i) {
+        std::optional<RouteDriver>& driver = drivers_[i];
+        if (driver.has_value() && skillLevels_[i] != 0) {
+            driver->SetSkill(ProfileFor(skillLevels_[i] + CatchUpShift(paced_, i)));
+        }
     }
 }
 

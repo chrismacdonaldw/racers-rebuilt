@@ -22,6 +22,9 @@ struct RoutePoint {
     std::int32_t durationMs = 0;
 };
 
+/// The `F`, `M` or `S` in a route's file name.
+enum class RoutePace : std::uint8_t { Fast, Medium, Slow };
+
 /// A recorded driving line in game space. After the last point it continues from `loopPoint`,
 /// reached `loopTimeMs` after the start at `loopPosition`.
 struct RaceRoute {
@@ -32,6 +35,7 @@ struct RaceRoute {
     std::int32_t loopTimeMs = 0;
     std::size_t loopPoint = 0;
     std::vector<RoutePoint> points;
+    RoutePace pace = RoutePace::Fast;
 };
 
 [[nodiscard]] Result<RaceRoute> ParseRaceRoute(std::span<const std::byte> bytes);

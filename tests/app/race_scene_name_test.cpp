@@ -80,6 +80,37 @@ TEST_CASE("a race scene name records the physics racers' craft when any is on") 
     }
 }
 
+TEST_CASE("a race scene name records the physics racers' skill and catch-up") {
+    const RaceSceneSetup skilled{
+        .track = "RACEC0R0",
+        .respawn = {},
+        .aiDriving = sim::AiDriving::Physics,
+        .aiSkill =
+            sim::AiSkill{.spread = sim::SkillSpread::Equal, .difficulty = 5, .catchesUp = true}};
+
+    CHECK(RaceSceneName(skilled) ==
+          "race:RACEC0R0:respawn=3000:racer=0:ai=physics:skill=e5:catchup");
+    CHECK(ParseRaceScene(RaceSceneName(skilled)) == skilled);
+    for (const std::string_view scene :
+         {"race:RACEC0R0:respawn=3000:ai=physics:skill=e6",
+          "race:RACEC0R0:respawn=3000:ai=physics:catchup",
+          "race:RACEC0R0:respawn=3000:ai=physics:skill=o3:catchup=1"}) {
+        CAPTURE(scene);
+        CHECK_FALSE(ParseRaceScene(scene).has_value());
+    }
+}
+
+TEST_CASE("replays before format 7 give physics racers in a scene chain every craft skill") {
+    const std::string_view chain =
+        "race:RACEC0R0:respawn=3000:ai=physics>race:RACEC0R1:respawn=3000>"
+        "race:RACEC0R2:respawn=3000:ai=physics:craft=b";
+
+    CHECK(UpgradedScene(chain, 6) ==
+          "race:RACEC0R0:respawn=3000:ai=physics:craft=bpua>race:RACEC0R1:respawn=3000>"
+          "race:RACEC0R2:respawn=3000:ai=physics:craft=b");
+    CHECK(UpgradedScene(chain, 7) == chain);
+}
+
 TEST_CASE("a race scene name records a circuit other than the track's home circuit") {
     const RaceSceneSetup circuit{.track = "RACEC1R0", .circuit = "c0", .respawn = {}};
 
@@ -293,6 +324,29 @@ TEST_CASE("race rules take the respawn and computer racer settings") {
     CHECK(rules.aiDriving == sim::AiDriving::Physics);
     CHECK(rules.aiPace == 80);
     CHECK(rules.aiCraft == sim::AiCraft{.passes = true, .unsticks = true});
+}
+
+TEST_CASE("race rules take the skill settings only while skill is on") {
+    settings::Registry registry;
+    DeclareRaceSettings(registry);
+    registry.Set(kAiDifficulty, 4);
+    registry.Set(kAiSpread, "Custom");
+    registry.Set(kAiSlotLevels.at(2), 5);
+
+    CHECK_FALSE(RaceRulesFrom(registry).aiSkill.has_value());
+    CHECK(registry.IsAvailable(kAiPace.key));
+    CHECK_FALSE(registry.IsAvailable(kAiDifficulty.key));
+
+    registry.Set(kAiSkill, true);
+    registry.Set(kAiFairCatchUp, true);
+
+    CHECK(RaceRulesFrom(registry).aiSkill == sim::AiSkill{.spread = sim::SkillSpread::Custom,
+                                                          .difficulty = 4,
+                                                          .slotLevels = {3, 3, 5, 3, 3},
+                                                          .catchesUp = true});
+    CHECK_FALSE(registry.IsAvailable(kAiPace.key));
+    CHECK(registry.IsAvailable(kAiDifficulty.key));
+    CHECK(registry.IsAvailable(kAiSlotLevels.at(0).key));
 }
 
 TEST_CASE("physics racers' craft settings are all off by default") {
