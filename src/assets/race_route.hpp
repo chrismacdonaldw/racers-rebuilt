@@ -38,6 +38,11 @@ struct RaceRoute {
     RoutePace pace = RoutePace::Fast;
 };
 
+inline constexpr std::int32_t kMaxRouteStepMs = 0x3F << 5;
+
+/// Steps last 1 to `kMaxRouteStepMs`, a point follows the loop point and the loop time fits.
+[[nodiscard]] Result<void> ValidateRoute(const RaceRoute& route);
+
 [[nodiscard]] Result<RaceRoute> ParseRaceRoute(std::span<const std::byte> bytes);
 
 /// The route for a mirrored track, reflected across the game's XZ plane.

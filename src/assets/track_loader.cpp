@@ -13,6 +13,7 @@
 #include "assets/geometry_database.hpp"
 #include "assets/merged_table.hpp"
 #include "assets/mirror.hpp"
+#include "assets/track_markers.hpp"
 
 namespace rr::assets {
 namespace {
@@ -447,7 +448,8 @@ std::vector<std::string> ListRaceTracks(const Vfs& vfs) {
         }
         const std::vector<VfsEntry> files = vfs.List(std::format("{}/{}", kRaceFolder, entry.name))
                                                 .value_or(std::vector<VfsEntry>{});
-        if (HasFile(files, kStartGrid) && HasFile(files, kCheckpoints)) {
+        if ((HasFile(files, kStartGrid) && HasFile(files, kCheckpoints)) ||
+            HasFile(files, kTrackModelFile)) {
             tracks.push_back(ToUpperAscii(entry.name));
         }
     }

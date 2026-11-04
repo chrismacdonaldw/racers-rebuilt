@@ -9,6 +9,7 @@
 #include "app/frame_loop.hpp"
 #include "app/track_space.hpp"
 #include "assets/game_path.hpp"
+#include "assets/track_markers.hpp"
 
 namespace rr::app {
 namespace {
@@ -16,6 +17,18 @@ namespace {
 bool IsRoute(const assets::VfsEntry& entry) {
     return entry.kind == assets::EntryKind::File &&
            assets::ToUpperAscii(entry.name).ends_with(".RRB");
+}
+
+Result<assets::RaceRoute> MarkedRoute(const assets::Vfs& vfs, std::string_view folder) {
+    const std::string_view track = folder.substr(folder.rfind('/') + 1);
+    return assets::ReadTrackMarkers(vfs, track)
+        .and_then(
+            [&](const std::optional<assets::TrackMarkers>& markers) -> Result<assets::RaceRoute> {
+                if (!markers || markers->routes.empty()) {
+                    return Fail(ErrorCode::NotFound, std::format("{} has no race route", folder));
+                }
+                return markers->routes.front().route;
+            });
 }
 
 }
@@ -27,7 +40,7 @@ Result<assets::RaceRoute> LoadPaceRoute(const assets::Vfs& vfs, std::string_view
     }
     const auto route = std::ranges::find_if(*entries, IsRoute);
     if (route == entries->end()) {
-        return Fail(ErrorCode::NotFound, std::format("{} has no race route", folder));
+        return MarkedRoute(vfs, folder);
     }
     return vfs.Read(std::format("{}/{}", folder, route->name))
         .and_then(

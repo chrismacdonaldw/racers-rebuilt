@@ -46,6 +46,7 @@ target_sources(racers-rebuilt-tests PRIVATE
     assets/install_test.cpp
     assets/jam_archive_test.cpp
     assets/jam_test.cpp
+    assets/json_value_test.cpp
     assets/ldraw_extra_pieces_test.cpp
     assets/ldraw_head_test.cpp
     assets/ldraw_minifig_test.cpp
@@ -96,6 +97,7 @@ target_sources(racers-rebuilt-tests PRIVATE
     assets/token_survey_test.cpp
     assets/token_writer_test.cpp
     assets/track_loader_test.cpp
+    assets/track_markers_test.cpp
     assets/track_survey_test.cpp
     assets/track_triggers_test.cpp
     assets/vfs_test.cpp

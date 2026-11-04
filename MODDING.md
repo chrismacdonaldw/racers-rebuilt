@@ -96,7 +96,7 @@ A mod with a broken `mod.toml` is skipped with a warning in the log.
 
 ## Tracks
 
-A mod adds a race track with a new folder in `files/GAMEDATA/`. Any folder there with a `STARTPOS.SPB` and a `RACE.CPB` is a track. It shows at the end of the single race and versus track lists under its folder name, in the overlay's **Scenes** menu, and `--race <folder>` starts a race on it.
+A mod adds a race track with a new folder in `files/GAMEDATA/`. Any folder there with a `STARTPOS.SPB` and a `RACE.CPB`, or a `TRACK.GLB`, is a track. It shows at the end of the single race and versus track lists under its folder name, in the overlay's **Scenes** menu, and `--race <folder>` starts a race on it.
 
 Starting from a copy of a retail folder such as `RACEC0R0`, rename the files named after it:
 
@@ -134,6 +134,27 @@ music = ["lavalane", "circuit3"]
 A `TRACK.TOML` in an original track's folder only changes its `music` and its name in the **Scenes** menu.
 
 `--check-mods` also reports a broken `TRACK.TOML`, a `grid` that names no circuit and a missing `preview`.
+
+### Track markers
+
+A `TRACK.GLB` in the track's folder can hold its start grid, gates, power-up bricks, hazards and computer racers' routes, named as [`--export-track`](#models) writes them. Each kind it has replaces the track's own file, and each kind it lacks comes from that file:
+
+| Markers | Replace |
+|---|---|
+| `start.1` to `start.6` | `STARTPOS.SPB` |
+| `gate.01` and on | `RACE.CPB` |
+| `brick.<colour>.<n>`, `brick.white.<n>` | `POWERUP.PWB` |
+| `trial_brick.*` | `POWERUP2.PWB` |
+| `hazard.<kind>.<n>` | `HAZARDS.HZB` |
+| `route.<slot>.<F, M or S>.<n>` | `R<slot>_<pace>_<n>.RRB` |
+
+- Only a marker's name and place count, not its parent, so group them as you like. Blender's `.001` endings are fine.
+- Starts and gates face along their local X axis, the way to drive. A gate with no `links` leads to the next, and the last back to the first.
+- Moving a cannon, ship cannon or lightning cannon hazard moves where it fires from. Its other settings come from its extras.
+- A route is a line whose extras need `durations_ms`, one per point after the first, each 1 to 2016. The rest of its extras are optional. Without `loop_point`, it carries on from its second point after the last.
+- A track still needs its worlds, collision and other files.
+
+`--check-mods` reports markers it can't read, a grid short of six, starts or gates numbered twice or out of order, gates linking to no gate, unknown brick colours and hazard kinds, numbers out of range, and routes with bad timing.
 
 ## Circuits
 

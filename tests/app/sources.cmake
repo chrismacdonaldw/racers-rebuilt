@@ -192,6 +192,7 @@ target_sources(racers-rebuilt-tests PRIVATE
     app/track_entity_draws_test.cpp
     app/track_export_test.cpp
     app/track_info_test.cpp
+    app/track_marker_nodes_test.cpp
     app/track_material_anims_test.cpp
     app/track_space_test.cpp
     app/track_sprites_test.cpp

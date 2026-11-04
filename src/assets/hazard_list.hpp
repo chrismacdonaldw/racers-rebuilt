@@ -5,6 +5,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -130,7 +131,14 @@ using HazardPayload =
 struct Hazard {
     HazardKind kind = HazardKind::FallingPillar;
     HazardPayload payload;
+
+    friend bool operator==(const Hazard&, const Hazard&) = default;
 };
+
+/// Such as `cannon` or `falling_pillar`.
+[[nodiscard]] std::string_view HazardKindName(HazardKind kind);
+
+[[nodiscard]] std::optional<HazardKind> HazardKindNamed(std::string_view name);
 
 /// Reads `HAZARDS.HZB`. An unknown hazard class fails.
 [[nodiscard]] Result<std::vector<Hazard>> ParseHazards(std::span<const std::byte> bytes);
