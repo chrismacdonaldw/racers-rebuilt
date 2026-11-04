@@ -40,7 +40,11 @@ struct Mode {
 
 constexpr AiCraft kCraft{.brakes = true, .passes = true, .unsticks = true, .aims = true};
 
-std::array<Mode, 8> Modes() {
+Mode LineMode(std::string_view name, AiSkill skill) {
+    return {.name = name, .driving = AiDriving::Physics, .craft = AiCraft::All(), .skill = skill};
+}
+
+std::array<Mode, 11> Modes() {
     const AiSkill equalMaster{.spread = SkillSpread::Equal, .difficulty = kMasterLevel};
     return {
         Mode{.name = "route"},
@@ -57,10 +61,11 @@ std::array<Mode, 8> Modes() {
              .craft = kCraft,
              .skill = equalMaster},
         Mode{.name = "physics+line", .driving = AiDriving::Physics, .craft = AiCraft::All()},
-        Mode{.name = "skill e5+line",
-             .driving = AiDriving::Physics,
-             .craft = AiCraft::All(),
-             .skill = equalMaster}};
+        LineMode("skill o3+line", AiSkill{}),
+        LineMode("skill e1+line",
+                 AiSkill{.spread = SkillSpread::Equal, .difficulty = kEasiestLevel}),
+        LineMode("skill e3+line", AiSkill{.spread = SkillSpread::Equal}),
+        LineMode("skill e5+line", equalMaster)};
 }
 
 std::string HomeCircuit(const assets::Vfs& vfs, const std::string& track) {

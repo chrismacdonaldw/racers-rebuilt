@@ -304,7 +304,7 @@ std::string AiField(const RaceSceneSetup& setup) {
         return {};
     }
     std::string field = std::format(":{}={}", kAiKey, kPhysicsAi);
-    if (setup.aiPace != kDefaultAiPace) {
+    if (setup.aiPace != kDefaultAiPace && !setup.aiSkill) {
         field += std::format(":{}={}", kPaceKey, setup.aiPace);
     }
     if (setup.aiCraft != sim::AiCraft{}) {

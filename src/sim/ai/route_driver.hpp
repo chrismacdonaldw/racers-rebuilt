@@ -5,6 +5,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <vector>
 
 #include "assets/race_route.hpp"
 #include "core/duration.hpp"
@@ -17,6 +18,11 @@
 #include "sim/route_playback.hpp"
 
 namespace rr::sim {
+
+struct RouteOption {
+    const assets::RaceRoute* route = nullptr;
+    std::shared_ptr<const RacingLine> line;
+};
 
 /// Unlike `AiRacer`, steers the car physics along the route, drifting where grip can't turn.
 class RouteDriver {
@@ -38,6 +44,9 @@ public:
 
     void SetSkill(const SkillProfile& skill) { skill_ = skill; }
 
+    /// On its first grounded drive, switches to the closed line in `options` its car laps fastest.
+    void OfferRoutes(std::vector<RouteOption> options) { options_ = std::move(options); }
+
     [[nodiscard]] const AiCraft& Craft() const { return craft_; }
     [[nodiscard]] const std::optional<SkillProfile>& Skill() const { return skill_; }
     [[nodiscard]] const RoutePlayback& Nearest() const { return nearest_; }
@@ -51,6 +60,7 @@ public:
 
 private:
     void Follow(const Vector3& position);
+    void PlanFor(const CarLimits& car);
     enum class Pedal : std::uint8_t { Throttle, Coast, Brake };
 
     [[nodiscard]] Pedal PedalFor(const BodyMotion& motion) const;
@@ -60,7 +70,8 @@ private:
     [[nodiscard]] float PassOffset(const BodyMotion& motion, std::span<const Vector3> racers,
                                    std::optional<std::size_t> self) const;
     [[nodiscard]] float AimOffset(const Vector3& aim) const;
-    [[nodiscard]] float SideOffset(float wanted);
+    [[nodiscard]] float SideOffset(float wanted, float lateral);
+    [[nodiscard]] float ClampedToWidth(float offset) const;
 
     RoutePlayback nearest_;
     RoutePlayback reference_;
@@ -73,6 +84,7 @@ private:
     Milliseconds travelled_{0};
     Milliseconds offsetAt_{0};
     std::shared_ptr<const RacingLine> line_;
+    std::vector<RouteOption> options_;
     std::optional<SpeedPlan> plan_;
     Milliseconds referenceLead_{0};
     Milliseconds aheadLead_{0};

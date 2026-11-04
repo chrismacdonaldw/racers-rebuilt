@@ -123,4 +123,17 @@ std::vector<std::vector<std::shared_ptr<const RacingLine>>> RacingLinesFor(
     return lines;
 }
 
+std::vector<RouteOption> RouteOptionsFor(std::span<const assets::RaceRoute> routes,
+                                         std::span<const std::shared_ptr<const RacingLine>> lines) {
+    std::vector<RouteOption> options;
+    if (lines.size() != routes.size()) {
+        return options;
+    }
+    options.reserve(routes.size());
+    for (std::size_t i = 0; i < routes.size(); ++i) {
+        options.push_back({.route = &routes[i], .line = lines[i]});
+    }
+    return options;
+}
+
 }

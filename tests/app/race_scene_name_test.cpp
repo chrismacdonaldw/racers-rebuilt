@@ -87,10 +87,13 @@ TEST_CASE("a race scene name records the physics racers' skill and catch-up") {
         .aiDriving = sim::AiDriving::Physics,
         .aiSkill =
             sim::AiSkill{.spread = sim::SkillSpread::Equal, .difficulty = 5, .catchesUp = true}};
+    RaceSceneSetup paced = skilled;
+    paced.aiPace = 120;
 
     CHECK(RaceSceneName(skilled) ==
           "race:RACEC0R0:respawn=3000:racer=0:ai=physics:skill=e5:catchup");
     CHECK(ParseRaceScene(RaceSceneName(skilled)) == skilled);
+    CHECK(RaceSceneName(paced) == RaceSceneName(skilled));
     for (const std::string_view scene :
          {"race:RACEC0R0:respawn=3000:ai=physics:skill=e6",
           "race:RACEC0R0:respawn=3000:ai=physics:catchup",

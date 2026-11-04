@@ -131,6 +131,8 @@ private:
     void TuneSkills();
     [[nodiscard]] std::shared_ptr<const RacingLine> LineFor(std::size_t slot,
                                                             std::size_t variant) const;
+    [[nodiscard]] std::span<const std::shared_ptr<const RacingLine>> LinesFor(
+        std::size_t slot) const;
     void MeasureReaches();
     void TickBricks(Milliseconds elapsed);
     void RollChaosBrick(PowerupInventory& inventory);

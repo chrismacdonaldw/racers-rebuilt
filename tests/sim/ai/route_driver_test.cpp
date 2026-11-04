@@ -11,6 +11,7 @@
 #include <optional>
 
 #include "../physics/plane_world.hpp"
+#include "bend_route.hpp"
 #include "straight_route.hpp"
 
 namespace rr::sim {
@@ -20,15 +21,14 @@ constexpr Milliseconds kTick{12};
 constexpr ChassisSpec kNeutralChassis{.handling = 50, .topSpeed = 50, .acceleration = 50};
 constexpr float kArcRadius = 200.0F;
 
-assets::RaceRoute LeftArc() {
+assets::RaceRoute LeftArc(float radius = kArcRadius) {
     const float step = std::numbers::pi_v<float> / 180.0F;
-    assets::RaceRoute route{.startPosition = {.x = kArcRadius, .z = 0.2F},
+    assets::RaceRoute route{.startPosition = {.x = radius, .z = 0.2F},
                             .startRotation = FromAxisAngle({.z = 1.0F}, step * 90.0F)};
     Vector3 previous = route.startPosition;
     for (std::size_t i = 1; i <= 720; ++i) {
         const float angle = step * static_cast<float>(i);
-        const Vector3 next{
-            .x = kArcRadius * std::cos(angle), .y = kArcRadius * std::sin(angle), .z = 0.2F};
+        const Vector3 next{.x = radius * std::cos(angle), .y = radius * std::sin(angle), .z = 0.2F};
         route.points.push_back({.offset = next - previous,
                                 .rotation = FromAxisAngle({.z = 1.0F}, angle + (step * 90.0F)),
                                 .kind = 3,
@@ -38,6 +38,7 @@ assets::RaceRoute LeftArc() {
     route.loopPosition = route.startPosition + route.points.front().offset;
     route.loopRotation = route.points.front().rotation;
     route.loopTimeMs = route.points.front().durationMs;
+    route.loopPoint = 359;
     return route;
 }
 
@@ -227,6 +228,40 @@ TEST_CASE("a skilled route driver eases into a pass over its reaction time") {
     CHECK(easing.Drive(racer, leftRival).steerLeftAxis == 0.0F);
 }
 
+TEST_CASE("a wobbling route driver keeps to its share of the route's width") {
+    const test::PlaneWorld world = test::FlatGround();
+    RouteDriver driver(WideStraightRoute(), 1.0F, {}, SkillProfile{.wobble = 100.0F});
+    Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
+    float widest = 0.0F;
+
+    for (int elapsed = 0; elapsed < 6000; elapsed += static_cast<int>(kTick.count())) {
+        racer.Tick(kTick, driver.Drive(racer), world);
+        widest = std::max(widest, std::abs(racer.Body().motion.position.y));
+    }
+
+    CHECK(widest > 1.0F);
+    CHECK(widest < 10.0F);
+}
+
+TEST_CASE("a skilled route driver aims as far across an off-centre line as an unskilled one") {
+    const test::PlaneWorld world = test::FlatGround();
+    const assets::RaceRoute route = test::RouteThrough(test::LeftBend(40.0F), 5.0F);
+    const auto line = std::make_shared<const RacingLine>(RacingLine::Fit(route, world));
+    RouteDriver plain(route, 1.0F, {.racingLine = true}, std::nullopt, line);
+    RouteDriver skilled(route, 1.0F, {.racingLine = true}, SkillProfile{}, line);
+    const Racer racer(kNeutralChassis, {}, {.position = {.x = -10.0F, .z = 0.2F}});
+    const Vector3 aim{.x = 20.0F, .y = -50.0F};
+
+    for (int call = 0; call < 3; ++call) {
+        static_cast<void>(skilled.Drive(racer, {}, {}, aim));
+    }
+    const float plainSteer = plain.Drive(racer, {}, {}, aim).steerLeftAxis;
+
+    CHECK(line->LateralAt(skilled.Reference().Target(), skilled.Reference().Alpha()) > 1.0F);
+    CHECK(std::abs(plainSteer) < 1.0F);
+    CHECK(skilled.Drive(racer, {}, {}, aim).steerLeftAxis == doctest::Approx(plainSteer));
+}
+
 TEST_CASE("a route driver without passing keeps its line behind a rival just ahead") {
     RouteDriver driver(WideStraightRoute());
     const Racer racer(kNeutralChassis, {}, {.position = {.z = 0.2F}});
@@ -295,6 +330,30 @@ TEST_CASE("a route driver on a racing line plans its car's speeds once it's on t
     CHECK(firstSpeed.value_or(0.0F) == doctest::Approx(racer.Body().maxSpeed));
     CHECK_FALSE(offLine.Plan().has_value());
     CHECK(racer.Body().derived.speed > 0.1F);
+}
+
+TEST_CASE("a route driver offered other routes takes the line its car laps fastest") {
+    const test::PlaneWorld world = test::FlatGround();
+    const assets::RaceRoute wide = LeftArc();
+    const assets::RaceRoute tight = LeftArc(kArcRadius / 2.0F);
+    const auto wideLine = std::make_shared<const RacingLine>(RacingLine::Fit(wide, world));
+    const auto tightLine = std::make_shared<const RacingLine>(RacingLine::Fit(tight, world));
+    RouteDriver driver(wide, std::nullopt, {.racingLine = true}, SkillProfile{}, wideLine);
+    driver.OfferRoutes({{.route = &wide, .line = wideLine}, {.route = &tight, .line = tightLine}});
+    Racer racer(kNeutralChassis, {},
+                {.position = {.x = kArcRadius, .z = 0.2F},
+                 .headingRadians = std::numbers::pi_v<float> / 2.0F});
+
+    DriveFor(racer, driver, 1000, world);
+
+    const CarLimits car = CarLimits::Of(racer);
+    const float lap = driver.Plan()
+                          .transform([](const SpeedPlan& plan) { return plan.LapSeconds(); })
+                          .value_or(0.0F);
+    REQUIRE(wideLine->IsClosed());
+    REQUIRE(tightLine->IsClosed());
+    CHECK(SpeedPlan(*tightLine, car).LapSeconds() < SpeedPlan(*wideLine, car).LapSeconds());
+    CHECK(lap == doctest::Approx(SpeedPlan(*tightLine, car).LapSeconds()));
 }
 
 }

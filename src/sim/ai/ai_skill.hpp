@@ -16,6 +16,7 @@ namespace rr::sim {
 
 inline constexpr int kEasiestLevel = 1;
 inline constexpr int kChampionLevel = 3;
+inline constexpr int kExpertLevel = 4;
 inline constexpr int kMasterLevel = 5;
 inline constexpr std::size_t kComputerSlots = 5;
 
@@ -25,6 +26,7 @@ struct SkillProfile {
     float brakeMargin = 1.1F;
     float wobble = 0.0F;
     Milliseconds reaction{0};
+    bool takesShortcuts = false;
 };
 
 /// `level` is clamped to 1..5.

@@ -28,6 +28,8 @@ TEST_CASE("each skill level drives faster, brakes later and wanders less than th
     CHECK(RunsUpTheLevels(&SkillProfile::wobble, std::less{}));
     CHECK(RunsUpTheLevels(&SkillProfile::reaction, std::less{}));
     CHECK(ProfileFor(kChampionLevel).speedShare == 1.0F);
+    CHECK_FALSE(ProfileFor(kChampionLevel).takesShortcuts);
+    CHECK(ProfileFor(kExpertLevel).takesShortcuts);
     CHECK(&ProfileFor(0) == &ProfileFor(kEasiestLevel));
     CHECK(&ProfileFor(9) == &ProfileFor(kMasterLevel));
 }
