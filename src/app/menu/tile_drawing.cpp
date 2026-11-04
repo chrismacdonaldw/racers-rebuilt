@@ -5,6 +5,7 @@
 #include <numbers>
 
 #include "app/menu/stand_scene.hpp"
+#include "app/ui_text/text_layout.hpp"
 #include "assets/world_database.hpp"
 
 namespace rr::app {
@@ -14,6 +15,7 @@ constexpr float kTileFov = 30.0F;
 constexpr float kTileFill = 1.15F;
 constexpr Vector3 kTileLook{.x = 0.6F, .y = -0.8F, .z = 0.55F};
 constexpr float kOutline = 2.0F;
+constexpr float kTextPadding = 6.0F;
 
 }
 
@@ -49,6 +51,24 @@ void DrawOutline(const render::Rect& area, const render::Color& colour,
           render::Rect{.x = right, .y = area.y, .width = kOutline, .height = area.height}}) {
         out.push_back({.bounds = edge, .tint = colour});
     }
+}
+
+void DrawFittedText(const UiFont* font, std::u16string_view text, const render::Rect& area,
+                    const render::Color& tint, std::vector<render::SpriteDraw>& out) {
+    const float width = font != nullptr ? TextWidth(*font, text) : 0.0F;
+    if (width <= 0.0F) {
+        return;
+    }
+    const auto fullHeight = static_cast<float>(font->heightPx);
+    const float scale = std::min({1.0F, (area.width - (2.0F * kTextPadding)) / width,
+                                  area.height / std::max(fullHeight, 1.0F)});
+    const float height = fullHeight * scale;
+    LayoutText(*font, text,
+               {.x = area.x + ((area.width - (width * scale)) / 2.0F),
+                .y = area.y + ((area.height - height) / 2.0F),
+                .scale = scale,
+                .tint = tint},
+               out);
 }
 
 }

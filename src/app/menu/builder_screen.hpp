@@ -5,11 +5,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "app/menu/car_stand.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
+#include "app/scene.hpp"
 #include "assets/piece_catalog.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -29,6 +31,8 @@ struct BuildMode {
     BuildControls controls = BuildControls::Original;
     bool offersExtraPieces = false;
     render::Color backdrop;
+    /// A race track's folder, or `kColourBackground`.
+    std::string background;
 };
 
 struct BuildServices {
@@ -57,6 +61,7 @@ public:
     [[nodiscard]] virtual BuildOutcome Tick(const sim::InputFrame& input) = 0;
     [[nodiscard]] virtual bool HoldsPointer() const = 0;
     [[nodiscard]] virtual const sim::BuiltCar& Car() const = 0;
+    [[nodiscard]] virtual std::vector<SettingChange> TakeSettingChanges() { return {}; }
 
     /// Adds at least one view.
     virtual void Render(std::vector<render::RenderView>& views,

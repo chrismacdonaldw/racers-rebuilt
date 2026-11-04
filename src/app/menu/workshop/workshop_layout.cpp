@@ -75,8 +75,9 @@ WorkshopLayout LayOutWorkshop(const render::Rect& window, std::size_t tabs) {
                    .width = kDoneWidth,
                    .height = kButtonHeight};
     const float tools = (static_cast<float>(kWorkshopTools) * (kToolWidth + kToolGap)) - kToolGap;
-    const float firstTool =
-        std::max(layout.scene.x + ((layout.scene.width - tools) / 2.0F), layout.scene.x + kMargin);
+    const float start = layout.scene.x + kMargin;
+    const float room = layout.done.x - kMargin - start;
+    const float firstTool = start + std::max((room - tools) / 2.0F, 0.0F);
     for (std::size_t tool = 0; tool < kWorkshopTools; ++tool) {
         layout.tools.at(tool) = {
             .x = firstTool + (static_cast<float>(tool) * (kToolWidth + kToolGap)),

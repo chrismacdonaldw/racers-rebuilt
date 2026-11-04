@@ -101,7 +101,7 @@ Result<std::unique_ptr<CarBuildScreen>> CarBuildScreen::Load(render::Renderer& r
 
 CarBuildScreen::CarBuildScreen(BuildServices services, CarBuildLook look, PieceModels models,
                                CarBuilder builder, std::vector<std::size_t> sets)
-    : services_(services),
+    : services_(std::move(services)),
       look_(std::move(look)),
       models_(std::move(models)),
       builder_(std::move(builder)),

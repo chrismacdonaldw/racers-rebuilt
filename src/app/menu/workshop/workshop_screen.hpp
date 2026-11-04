@@ -6,8 +6,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <functional>
+#include <map>
 #include <memory>
 #include <optional>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "app/menu/builder_screen.hpp"
@@ -15,6 +19,7 @@
 #include "app/menu/workshop/bench_drag.hpp"
 #include "app/menu/workshop/bench_pick.hpp"
 #include "app/menu/workshop/orbit_camera.hpp"
+#include "app/menu/workshop/track_backdrop.hpp"
 #include "app/menu/workshop/workshop_panels.hpp"
 #include "assets/car_data.hpp"
 #include "core/duration.hpp"
@@ -44,8 +49,7 @@ struct BenchAim {
     std::expected<int, sim::PlacementFailure> rest;
 };
 
-/// The full-window builder, with a free camera over a plain background. What `services` points
-/// to must outlive it.
+/// The full-window builder. What `services` points to must outlive it.
 class WorkshopScreen final : public BuilderScreen {
 public:
     [[nodiscard]] static Result<std::unique_ptr<WorkshopScreen>> Load(
@@ -57,15 +61,18 @@ public:
     [[nodiscard]] BuildOutcome Tick(const sim::InputFrame& input) override;
     [[nodiscard]] bool HoldsPointer() const override { return isDragging_; }
     [[nodiscard]] const sim::BuiltCar& Car() const override { return bench_.car; }
+    [[nodiscard]] std::vector<SettingChange> TakeSettingChanges() override;
 
     void Render(std::vector<render::RenderView>& views,
                 std::vector<render::SpriteDraw>& sprites) override;
 
 private:
-    WorkshopScreen(render::Renderer& renderer, const BuildServices& services, PieceModels models,
+    WorkshopScreen(render::Renderer& renderer, BuildServices services, PieceModels models,
                    render::TextureId groundCell, sim::BuiltCar car, WorkshopPanels panels);
 
-    void UseMode(BuildMode mode);
+    void UseMode(const BuildMode& mode);
+    void ChooseBackground(const BackgroundChoice& choice);
+    void ShowBackground(std::string_view background);
     void Steer(const sim::MenuPointer& pointer);
     void FrameCar();
     [[nodiscard]] Vector3 CarCorner() const;
@@ -122,6 +129,9 @@ private:
     Milliseconds pulse_{0};
     std::vector<std::size_t> blockers_;
     Milliseconds flash_{0};
+    std::vector<SettingChange> changes_;
+    std::map<std::string, std::unique_ptr<TrackBackdrop>, std::less<>> backdrops_;
+    TrackBackdrop* backdrop_ = nullptr;
     std::vector<render::MeshDraw> draws_;
     std::array<render::QuadDraw, 2> quads_{};
     std::array<render::DirectionalLight, 2> lights_{};

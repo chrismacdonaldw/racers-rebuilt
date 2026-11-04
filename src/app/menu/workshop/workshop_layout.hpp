@@ -8,7 +8,7 @@
 
 namespace rr::app {
 
-inline constexpr std::size_t kWorkshopTools = 5;
+inline constexpr std::size_t kWorkshopTools = 6;
 inline constexpr std::size_t kTabColumns = 4;
 inline constexpr std::size_t kTabRows = 4;
 

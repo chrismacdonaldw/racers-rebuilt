@@ -40,6 +40,7 @@ settings::Registry DeclaredRegistry(const Extensions& extensions) {
     registry.Declare(kEnhancedBuilder);
     registry.Declare(kExtraPiecesSetting);
     registry.Declare(kBuilderColour);
+    registry.Declare(kBuilderBackground);
     DeclareDeveloperSettings(registry);
     DeclareExtensionSettings(extensions, registry);
     return registry;

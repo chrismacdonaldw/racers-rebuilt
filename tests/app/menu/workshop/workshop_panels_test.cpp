@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 #include "sim/input_frame.hpp"
@@ -26,9 +27,19 @@ assets::PieceCatalog Catalog() {
 }
 
 WorkshopPanels Fitted(const assets::PieceCatalog& catalog) {
-    WorkshopPanels panels(catalog, {0, 1}, {});
+    WorkshopPanels panels(catalog, {0, 1}, {},
+                          {{.folder = "RACEC0R0", .name = u"Knightmare"},
+                           {.folder = "RACEC1R0", .name = u"Star Base"}});
     panels.Fit(kWindow);
     return panels;
+}
+
+bool ChoseTrack(const PanelTick& tick, std::string_view folder) {
+    return tick.isOver && tick.background.has_value() && tick.background->background == folder;
+}
+
+bool ChoseColour(const PanelTick& tick) {
+    return tick.background.has_value() && tick.background->colour.has_value();
 }
 
 sim::MenuPointer PressOn(const render::Rect& area) {
@@ -49,6 +60,36 @@ TEST_CASE("the toolbar and DONE give their actions") {
     const PanelTick missed = panels.Tick(PressOn(layout.scene));
     CHECK_FALSE(missed.isOver);
     CHECK_FALSE(missed.action.has_value());
+}
+
+TEST_CASE("the background tool opens a menu that gives a track or a colour") {
+    const assets::PieceCatalog catalog = Catalog();
+    WorkshopPanels panels = Fitted(catalog);
+    const render::Rect tool = panels.Layout().tools[5];
+    const BackgroundLayout& menu = panels.Backgrounds().Layout();
+
+    CHECK_FALSE(panels.Tick(PressOn(tool)).action.has_value());
+    REQUIRE(panels.Backgrounds().IsOpen());
+    CHECK(ChoseTrack(panels.Tick(PressOn(menu.tracks[1])), "RACEC1R0"));
+    CHECK_FALSE(panels.Backgrounds().IsOpen());
+
+    static_cast<void>(panels.Tick(PressOn(tool)));
+    CHECK(ChoseColour(panels.Tick(PressOn(menu.colours[0]))));
+}
+
+TEST_CASE("a press outside the open background menu only closes it") {
+    const assets::PieceCatalog catalog = Catalog();
+    WorkshopPanels panels = Fitted(catalog);
+
+    static_cast<void>(panels.Tick(PressOn(panels.Layout().tools[5])));
+    const PanelTick outside = panels.Tick(PressOn(panels.Layout().done));
+    CHECK(outside.isOver);
+    CHECK_FALSE(outside.action.has_value());
+    CHECK_FALSE(panels.Backgrounds().IsOpen());
+
+    static_cast<void>(panels.Tick(PressOn(panels.Layout().tools[5])));
+    static_cast<void>(panels.Tick(PressOn(panels.Layout().tools[5])));
+    CHECK_FALSE(panels.Backgrounds().IsOpen());
 }
 
 TEST_CASE("a tab shows its set and a tile press grabs its piece") {

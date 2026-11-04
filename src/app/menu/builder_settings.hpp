@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <string>
 #include <string_view>
 
 #include "render/render_view.hpp"
@@ -20,6 +21,12 @@ inline constexpr settings::SettingSpec<bool> kEnhancedBuilder{
 inline constexpr settings::SettingSpec<std::string_view> kBuilderColour{
     .key = "enhancements.builder_colour", .defaultValue = "#3A6EA5"};
 
+inline constexpr std::string_view kColourBackground = "colour";
+
+/// A race track's folder, or `kColourBackground`.
+inline constexpr settings::SettingSpec<std::string_view> kBuilderBackground{
+    .key = "enhancements.builder_background", .defaultValue = kColourBackground};
+
 inline constexpr settings::SettingSpec<bool> kExtraPiecesSetting{
     .key = "enhancements.extra_pieces",
     .defaultValue = false,
@@ -32,5 +39,7 @@ inline constexpr settings::SettingSpec<bool> kExtraPiecesSetting{
 
 /// `#RRGGBB`, else nothing.
 [[nodiscard]] std::optional<render::Color> ParseHexColour(std::string_view text);
+
+[[nodiscard]] std::string FormatHexColour(const render::Color& colour);
 
 }

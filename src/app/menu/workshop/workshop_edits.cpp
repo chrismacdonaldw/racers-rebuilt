@@ -95,6 +95,9 @@ void WorkshopScreen::Act(const PanelTick& panel) {
     if (panel.swatch) {
         ChooseSwatch(*panel.swatch);
     }
+    if (panel.background) {
+        ChooseBackground(*panel.background);
+    }
     if (!panel.action) {
         return;
     }
@@ -116,6 +119,8 @@ void WorkshopScreen::Act(const PanelTick& panel) {
             break;
         case PanelAction::Frame:
             FrameCar();
+            break;
+        case PanelAction::Background:
             break;
     }
 }
