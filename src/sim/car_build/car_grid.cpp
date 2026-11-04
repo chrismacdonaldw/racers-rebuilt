@@ -24,6 +24,11 @@ const GridCell& CarGrid::At(int x, int y) const {
     return cells_.at(CellIndex(x, y));
 }
 
+int CarGrid::Tallest() const {
+    const auto tallest = std::ranges::max_element(cells_, {}, &GridCell::height);
+    return tallest == cells_.end() ? 0 : tallest->height;
+}
+
 GridCell& CarGrid::Cell(int x, int y) {
     return cells_.at(CellIndex(x, y));
 }

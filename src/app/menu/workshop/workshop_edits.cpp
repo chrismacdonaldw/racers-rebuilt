@@ -7,6 +7,7 @@
 
 #include "app/frame_loop.hpp"
 #include "app/menu/build_sounds.hpp"
+#include "app/menu/car_edit.hpp"
 #include "app/menu/grid_pick.hpp"
 #include "app/menu/workshop/workshop_screen.hpp"
 #include "app/track_space.hpp"
@@ -45,29 +46,36 @@ sim::CarPiece Placed(const HeldPiece& held, sim::PiecePlacement placement) {
 BenchView WorkshopScreen::ViewNow() const {
     const Vector3 ground = GroundCorner();
     return {.camera = ViewCamera(),
-            .view = renderer_->UiWindow(),
+            .view = panels_.Layout().scene,
             .carCorner = CarCorner(),
             .groundCorner = ground};
 }
 
-void WorkshopScreen::TickEdits(const sim::MenuPointer& pointer) {
+void WorkshopScreen::TickEdits(const sim::MenuPointer& pointer, bool isOverPanel) {
     pulse_ += kSimTick;
     flash_ = std::max(flash_ - kSimTick, Milliseconds{0});
     const std::optional<BenchPiece> under =
-        drag_.IsHolding() ? std::nullopt : PickBenchPiece(ViewNow(), bench_, pointer.x, pointer.y);
+        drag_.IsHolding() || isOverPanel ? std::nullopt
+                                         : PickBenchPiece(ViewNow(), bench_, pointer.x, pointer.y);
     if (pointer.LeftPressed() && !under && !drag_.IsHolding()) {
         selected_.reset();
     }
     const BenchDragTick tick = drag_.Tick(pointer, under, false);
     switch (tick.step) {
         case BenchStep::Clicked:
-            selected_ = tick.piece;
+            selected_ = selected_ == tick.piece ? std::nullopt : tick.piece;
             break;
         case BenchStep::Lifted:
             Lift(*tick.piece);
             break;
         case BenchStep::Dropped:
-            Drop();
+            if (Contains(panels_.Layout().drawer, pointer.x, pointer.y)) {
+                Discard();
+            } else if (isOverPanel) {
+                PutBack();
+            } else {
+                Drop();
+            }
             break;
         case BenchStep::Cancelled:
             PutBack();
@@ -76,8 +84,65 @@ void WorkshopScreen::TickEdits(const sim::MenuPointer& pointer) {
             break;
     }
     if (held_) {
-        Aim(pointer);
+        Aim(pointer, isOverPanel);
     }
+}
+
+void WorkshopScreen::Act(const PanelTick& panel) {
+    if (panel.grabbed) {
+        Grab(*panel.grabbed);
+    }
+    if (panel.swatch) {
+        ChooseSwatch(*panel.swatch);
+    }
+    if (!panel.action) {
+        return;
+    }
+    switch (*panel.action) {
+        case PanelAction::Done:
+            isDone_ = true;
+            break;
+        case PanelAction::Undo:
+            StepHistory(true);
+            break;
+        case PanelAction::Redo:
+            StepHistory(false);
+            break;
+        case PanelAction::Turn:
+            Turn(1);
+            break;
+        case PanelAction::Delete:
+            DeleteSelected();
+            break;
+        case PanelAction::Frame:
+            FrameCar();
+            break;
+    }
+}
+
+void WorkshopScreen::Grab(const PaletteEntry& entry) {
+    const assets::PieceCatalog& catalog = *services_.catalog;
+    held_ = HeldPiece{
+        .piece = &catalog.library.pieces.at(catalog.Choices(entry.set)[entry.choice].piece),
+        .colour = panels_.ColourOf(entry),
+        .partType = PartTypeOf(catalog, entry.set)};
+    drag_.Hold();
+    selected_.reset();
+    services_.sounds.Play(kBuildPieceViewSound);
+}
+
+void WorkshopScreen::ChooseSwatch(std::uint8_t colour) {
+    if (selected_) {
+        Paint(colour);
+    } else {
+        panels_.ChooseColour(colour);
+    }
+}
+
+BenchPiece WorkshopScreen::Newest(sim::BenchArea area) const {
+    const std::size_t count =
+        area == sim::BenchArea::Car ? bench_.car.Pieces().size() : bench_.ground.Pieces().size();
+    return {.area = area, .index = count - 1};
 }
 
 void WorkshopScreen::Lift(const BenchPiece& piece) {
@@ -108,8 +173,9 @@ void WorkshopScreen::Lift(const BenchPiece& piece) {
     services_.sounds.Play(kBuildPieceViewSound);
 }
 
-void WorkshopScreen::Aim(const sim::MenuPointer& pointer) {
-    const std::optional<BenchCell> picked = PickBenchCell(ViewNow(), bench_, pointer.x, pointer.y);
+void WorkshopScreen::Aim(const sim::MenuPointer& pointer, bool isOverPanel) {
+    const std::optional<BenchCell> picked =
+        isOverPanel ? std::nullopt : PickBenchCell(ViewNow(), bench_, pointer.x, pointer.y);
     if (!held_ || !picked) {
         aim_.reset();
         return;
@@ -147,10 +213,7 @@ void WorkshopScreen::Drop() {
                                     .placement = aim.placement})
             : Apply(sim::PutPiece{.area = aim.cell.area, .piece = Placed(held, aim.placement)});
     if (isDone) {
-        const std::size_t newest = aim.cell.area == sim::BenchArea::Car
-                                       ? bench_.car.Pieces().size() - 1
-                                       : bench_.ground.Pieces().size() - 1;
-        selected_ = BenchPiece{.area = aim.cell.area, .index = newest};
+        selected_ = Newest(aim.cell.area);
         services_.sounds.Play(kBuildPlacedSound);
     }
 }
@@ -164,11 +227,40 @@ void WorkshopScreen::PutBack() {
     drag_.Forget();
 }
 
+void WorkshopScreen::Discard() {
+    const std::optional<BenchPiece> from = held_ ? held_->from : std::nullopt;
+    PutBack();
+    if (from && Apply(sim::LiftPiece{.area = from->area, .index = from->index})) {
+        services_.sounds.Play(kBuildUndoSound);
+    }
+}
+
 void WorkshopScreen::Turn(int quarters) {
+    const auto turned = [&](unsigned rotation) {
+        return static_cast<unsigned>((static_cast<int>(rotation) + (quarters % kTurns) + kTurns) %
+                                     kTurns);
+    };
     if (held_) {
-        held_->rotation = static_cast<unsigned>(
-            (static_cast<int>(held_->rotation) + (quarters % kTurns) + kTurns) % kTurns);
+        held_->rotation = turned(held_->rotation);
         services_.sounds.Play(kBuildRotateSound);
+        return;
+    }
+    if (!selected_) {
+        return;
+    }
+    const BenchPiece at = *selected_;
+    const sim::CarPiece* piece = PieceOf(bench_, at);
+    if (piece == nullptr) {
+        return;
+    }
+    sim::PiecePlacement placement = piece->placement;
+    placement.rotation = turned(placement.rotation);
+    if (Apply(sim::ShiftPiece{
+            .from = at.area, .index = at.index, .to = at.area, .placement = placement})) {
+        selected_ = Newest(at.area);
+        services_.sounds.Play(kBuildRotateSound);
+    } else {
+        FlashBlockers(at);
     }
 }
 

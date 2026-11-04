@@ -122,6 +122,8 @@ target_sources(racers-rebuilt-tests PRIVATE
     app/menu/workshop/bench_drag_test.cpp
     app/menu/workshop/bench_pick_test.cpp
     app/menu/workshop/orbit_camera_test.cpp
+    app/menu/workshop/workshop_layout_test.cpp
+    app/menu/workshop/workshop_panels_test.cpp
     app/menu/workshop/workshop_scenery_test.cpp
     app/menu_pointer_test.cpp
     app/model_export_test.cpp

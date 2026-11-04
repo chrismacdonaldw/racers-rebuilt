@@ -174,11 +174,15 @@ rr_add_module(app
         menu/side_tiles.cpp
         menu/stand_racer.cpp
         menu/stand_scene.cpp
+        menu/tile_drawing.cpp
         menu/track_preview.cpp
         menu/workshop/bench_drag.cpp
         menu/workshop/bench_pick.cpp
         menu/workshop/orbit_camera.cpp
         menu/workshop/workshop_edits.cpp
+        menu/workshop/workshop_layout.cpp
+        menu/workshop/workshop_panels.cpp
+        menu/workshop/workshop_panels_draw.cpp
         menu/workshop/workshop_scenery.cpp
         menu/workshop/workshop_screen.cpp
         music_folder_source.cpp

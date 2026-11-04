@@ -99,25 +99,32 @@ With the free camera on:
 
 | Key | Default | Values |
 |---|---|---|
-| `enhancements.enhanced_builder` | `false` | `true`, `false`. Swaps the builder's move and turn buttons for a palette of the chosen set's pieces, and the piece carousel for ten colour swatches. The **Enhanced** preset turns it on. Applies straight away. |
-| `enhancements.extra_pieces` | `false` | `true`, `false`. Adds an **LDraw** tab to the enhanced builder's palette, with 67 bricks, plates, tiles, slopes and wedges the original never had. They're saved with the car like any piece, and their shapes change how it handles. With it off, a racer whose car has extra pieces can't be picked to race, test driven or have its car saved until they're taken off. The **Enhanced** preset turns it on. Applies straight away. |
+| `enhancements.enhanced_builder` | `false` | `true`, `false`. Opens the workshop in place of the original builder: a full-window builder with a free camera, drag and drop, and room to lay bricks on the ground beside the car. The **Enhanced** preset turns it on. Applies straight away, reopening the builder on the same car. |
+| `enhancements.extra_pieces` | `false` | `true`, `false`. Adds an **LDraw** tab to the workshop's drawer, with 67 bricks, plates, tiles, slopes and wedges the original never had. They're saved with the car like any piece, and their shapes change how it handles. With it off, a racer whose car has extra pieces can't be picked to race, test driven or have its car saved until they're taken off. The **Enhanced** preset turns it on. Applies straight away. |
+| `enhancements.builder_colour` | `#3A6EA5` | A colour as `#RRGGBB`. The workshop's background. |
 
-With the enhanced builder on:
+In the workshop:
 
 | Input | Action |
 |---|---|
-| Drag a piece onto the car | Place it where you let go |
+| Drag a piece from the drawer | Place it on the car or the ground where you let go |
+| Drag a placed piece | Move it on or off the car, or remove it by letting go over the drawer |
 | Mouse wheel or <kbd>R</kbd> while dragging | Turn the piece |
-| Right-click, <kbd>Esc</kbd> or letting go off the car | Cancel |
-| Click a swatch | Build in that colour, or recolour the selected piece |
+| Right-click or <kbd>Esc</kbd> while dragging | Put the piece back |
 | Click a placed piece | Select it, or clear the selection with a second click or <kbd>Esc</kbd> |
-| Drag a placed piece | Move it, or remove it by letting go off the car |
-| <kbd>Delete</kbd>, <kbd>Backspace</kbd> | Remove the selected piece. <kbd>Delete</kbd> no longer steps back through the pieces as it does in the original builder. |
-| <kbd>Ctrl</kbd>+<kbd>Z</kbd>, <kbd>-</kbd> | Undo a place, move, removal or recolour |
-| <kbd>Ctrl</kbd>+<kbd>Y</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> | Redo |
-| Arrow keys and confirm | Pick a piece for the original move, turn and place controls |
+| Click a swatch, <kbd>1</kbd> to <kbd>0</kbd> | Recolour the selected piece, or build in that colour |
+| **TURN**, <kbd>R</kbd> | Turn the selected piece where it is |
+| **DELETE**, <kbd>Delete</kbd>, <kbd>Backspace</kbd> | Remove the selected piece |
+| **UNDO**, <kbd>Ctrl</kbd>+<kbd>Z</kbd> | Undo a change to the car or the ground |
+| **REDO**, <kbd>Ctrl</kbd>+<kbd>Y</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> | Redo |
+| Right-drag | Turn the camera |
+| Middle-drag, <kbd>Shift</kbd>+right-drag | Pan the camera |
+| Mouse wheel | Zoom |
+| **FRAME**, <kbd>F</kbd> | Frame the car |
+| <kbd>Home</kbd> | Reset the camera |
+| **DONE**, <kbd>Enter</kbd>, <kbd>Esc</kbd> | Leave the builder |
 
-A piece with others resting on it can't move or come off. The pieces on top flash instead. The chassis never comes off. Delete, undo and redo do nothing while a piece is in your hand.
+A piece with others resting on it can't move or come off. The pieces on top flash instead. The chassis never comes off. Bricks on the ground aren't part of the car: they don't count toward its 64 pieces and are gone when you leave.
 
 ## Race
 

@@ -15,6 +15,7 @@
 #include "app/menu/workshop/bench_drag.hpp"
 #include "app/menu/workshop/bench_pick.hpp"
 #include "app/menu/workshop/orbit_camera.hpp"
+#include "app/menu/workshop/workshop_panels.hpp"
 #include "assets/car_data.hpp"
 #include "core/duration.hpp"
 #include "core/result.hpp"
@@ -47,9 +48,9 @@ struct BenchAim {
 /// to must outlive it.
 class WorkshopScreen final : public BuilderScreen {
 public:
-    [[nodiscard]] static Result<std::unique_ptr<WorkshopScreen>> Load(render::Renderer& renderer,
-                                                                      const BuildServices& services,
-                                                                      sim::BuiltCar car);
+    [[nodiscard]] static Result<std::unique_ptr<WorkshopScreen>> Load(
+        render::Renderer& renderer, const BuildServices& services, sim::BuiltCar car,
+        std::vector<std::size_t> sets);
 
     void HandleKey(SDL_Keycode key, SDL_Keymod mod) override;
     [[nodiscard]] bool UseControls(BuildMode mode) override;
@@ -62,8 +63,9 @@ public:
 
 private:
     WorkshopScreen(render::Renderer& renderer, const BuildServices& services, PieceModels models,
-                   render::TextureId groundCell, sim::BuiltCar car);
+                   render::TextureId groundCell, sim::BuiltCar car, WorkshopPanels panels);
 
+    void UseMode(BuildMode mode);
     void Steer(const sim::MenuPointer& pointer);
     void FrameCar();
     [[nodiscard]] Vector3 CarCorner() const;
@@ -72,11 +74,16 @@ private:
     void AddLooseBricks();
 
     [[nodiscard]] BenchView ViewNow() const;
-    void TickEdits(const sim::MenuPointer& pointer);
+    void TickEdits(const sim::MenuPointer& pointer, bool isOverPanel);
+    void Act(const PanelTick& panel);
+    void Grab(const PaletteEntry& entry);
+    void ChooseSwatch(std::uint8_t colour);
+    [[nodiscard]] BenchPiece Newest(sim::BenchArea area) const;
     void Lift(const BenchPiece& piece);
-    void Aim(const sim::MenuPointer& pointer);
+    void Aim(const sim::MenuPointer& pointer, bool isOverPanel);
     void Drop();
     void PutBack();
+    void Discard();
     void Turn(int quarters);
     void FlashBlockers(const BenchPiece& piece);
     bool Apply(const sim::BenchEdit& edit);
@@ -100,6 +107,8 @@ private:
     sim::Bench bench_;
     Vector3 carOffset_;
     OrbitCamera camera_;
+    WorkshopPanels panels_;
+    bool showsHint_ = true;
     bool isDragging_ = false;
     bool isDone_ = false;
     sim::BenchHistory history_;

@@ -1,6 +1,7 @@
 #include "app/menu/workshop/workshop_screen.hpp"
 
 #include <format>
+#include <string_view>
 #include <utility>
 
 #include "app/frame_loop.hpp"
@@ -29,9 +30,18 @@ constexpr float kHomeDistance = 18.0F;
 constexpr float kTurnPerPx = 0.006F;
 constexpr float kPanPerPx = 0.0015F;
 constexpr int kColourKeys = 10;
+constexpr std::string_view kPanelFont = "fontmenu";
 constexpr render::DirectionalLight kKeyLight{.direction = {.x = -0.36F, .y = -0.86F, .z = -0.36F}};
 constexpr render::DirectionalLight kFillLight{.direction = {.x = 0.6F, .y = -0.3F, .z = 0.7F},
                                               .color = {.r = 0.35F, .g = 0.35F, .b = 0.4F}};
+
+sim::MenuPointer Stilled(sim::MenuPointer pointer) {
+    if (pointer.LeftPressed()) {
+        pointer.pressed = false;
+    }
+    pointer.wheel = 0.0F;
+    return pointer;
+}
 
 Vector3 CarOffset(const sim::BuiltCar& car, const assets::PieceCatalog& catalog) {
     Result<Vector3> offset = sim::CarMeshOffset(car, catalog);
@@ -46,21 +56,28 @@ Vector3 CarOffset(const sim::BuiltCar& car, const assets::PieceCatalog& catalog)
 
 Result<std::unique_ptr<WorkshopScreen>> WorkshopScreen::Load(render::Renderer& renderer,
                                                              const BuildServices& services,
-                                                             sim::BuiltCar car) {
+                                                             sim::BuiltCar car,
+                                                             std::vector<std::size_t> sets) {
     Result<PieceModels> models =
         PieceModels::Load(renderer, services.stand->Loader(), *services.catalog);
     Result<render::TextureId> groundCell = models.and_then(
         [&](const PieceModels&) { return renderer.UploadTexture(GroundCellImage()); });
-    if (!groundCell) {
-        return Fail(groundCell.error().code,
-                    std::format("workshop: {}", groundCell.error().message));
+    Result<std::vector<UiImage>> icons = groundCell.and_then(
+        [&](render::TextureId) { return LoadSetIcons(renderer, *services.vfs); });
+    if (!icons) {
+        return Fail(icons.error().code, std::format("workshop: {}", icons.error().message));
+    }
+    if (sets.empty()) {
+        return Fail(ErrorCode::InvalidData, "workshop: there are no part sets to build from");
     }
     return std::unique_ptr<WorkshopScreen>(
-        new WorkshopScreen(renderer, services, std::move(*models), *groundCell, std::move(car)));
+        new WorkshopScreen(renderer, services, std::move(*models), *groundCell, std::move(car),
+                           WorkshopPanels(*services.catalog, std::move(sets), std::move(*icons))));
 }
 
 WorkshopScreen::WorkshopScreen(render::Renderer& renderer, const BuildServices& services,
-                               PieceModels models, render::TextureId groundCell, sim::BuiltCar car)
+                               PieceModels models, render::TextureId groundCell, sim::BuiltCar car,
+                               WorkshopPanels panels)
     : renderer_(&renderer),
       services_(services),
       models_(std::move(models)),
@@ -71,13 +88,17 @@ WorkshopScreen::WorkshopScreen(render::Renderer& renderer, const BuildServices& 
                .yaw = kHomeYaw,
                .pitch = kHomePitch,
                .distance = kHomeDistance}),
+      panels_(std::move(panels)),
       shownCar_(bench_.car.Save()),
-      lights_{kKeyLight, kFillLight} {}
+      lights_{kKeyLight, kFillLight} {
+    panels_.Fit(renderer_->UiWindow());
+    UseMode(services_.mode);
+}
 
 void WorkshopScreen::HandleKey(SDL_Keycode key, SDL_Keymod mod) {
     const bool isCtrl = (mod & SDL_KMOD_CTRL) != 0;
     if (key >= SDLK_0 && key <= SDLK_9) {
-        Paint(static_cast<std::uint8_t>((key - SDLK_0 + kColourKeys - 1) % kColourKeys));
+        ChooseSwatch(static_cast<std::uint8_t>((key - SDLK_0 + kColourKeys - 1) % kColourKeys));
         return;
     }
     switch (key) {
@@ -107,6 +128,8 @@ void WorkshopScreen::HandleKey(SDL_Keycode key, SDL_Keymod mod) {
         case SDLK_ESCAPE:
             if (held_) {
                 PutBack();
+            } else if (selected_) {
+                selected_.reset();
             } else {
                 isDone_ = true;
             }
@@ -123,14 +146,30 @@ bool WorkshopScreen::UseControls(BuildMode mode) {
     if (mode.controls != BuildControls::Workshop) {
         return false;
     }
-    services_.mode = mode;
+    UseMode(mode);
     return true;
 }
 
+void WorkshopScreen::UseMode(BuildMode mode) {
+    services_.mode = mode;
+    if (mode.offersExtraPieces) {
+        services_.catalog->ReadExtraModels(*services_.vfs);
+    }
+    panels_.OfferExtras(mode.offersExtraPieces);
+}
+
 BuildOutcome WorkshopScreen::Tick(const sim::InputFrame& input) {
+    panels_.Fit(renderer_->UiWindow());
     camera_.Tick(kSimTick);
-    Steer(input.pointer);
-    TickEdits(input.pointer);
+    const bool isFree = !drag_.IsBusy() && !isDragging_;
+    const PanelTick panel = panels_.Tick(isFree ? input.pointer : Stilled(input.pointer));
+    sim::MenuPointer pointer = input.pointer;
+    if (panel.isOver && isFree) {
+        Act(panel);
+        pointer = Stilled(pointer);
+    }
+    Steer(pointer);
+    TickEdits(pointer, panel.isOver);
     return Outcome();
 }
 
@@ -149,6 +188,7 @@ void WorkshopScreen::Steer(const sim::MenuPointer& pointer) {
     }
     isDragging_ =
         pointer.IsHeld(sim::PointerButton::Right) || pointer.IsHeld(sim::PointerButton::Middle);
+    showsHint_ = showsHint_ && !isDragging_ && pointer.wheel == 0.0F;
 }
 
 void WorkshopScreen::FrameCar() {
@@ -190,7 +230,7 @@ void WorkshopScreen::AddLooseBricks() {
 }
 
 void WorkshopScreen::Render(std::vector<render::RenderView>& views,
-                            [[maybe_unused]] std::vector<render::SpriteDraw>& sprites) {
+                            std::vector<render::SpriteDraw>& sprites) {
     const render::Camera camera = ViewCamera();
     draws_.clear();
     services_.stand->AddCarDraws({.position = kCarAt}, {}, draws_);
@@ -205,7 +245,13 @@ void WorkshopScreen::Render(std::vector<render::RenderView>& views,
                      .lighting = {.lights = lights_},
                      .meshes = draws_,
                      .quads = quads_,
-                     .viewport = render::UiViewport(renderer_->UiWindow())});
+                     .viewport = render::UiViewport(panels_.Layout().scene)});
+    panels_.Render(models_,
+                   {.font = services_.text != nullptr ? services_.text->Font(kPanelFont) : nullptr,
+                    .pieces = bench_.car.Pieces().size(),
+                    .plates = bench_.car.Grid().Tallest(),
+                    .showsHint = showsHint_},
+                   views, sprites);
 }
 
 }

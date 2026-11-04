@@ -1,13 +1,9 @@
 #include "app/menu/palette_controls.hpp"
 
-#include <algorithm>
-#include <cmath>
-#include <numbers>
-
 #include "app/menu/menu_backdrop.hpp"
 #include "app/menu/stand_scene.hpp"
+#include "app/menu/tile_drawing.hpp"
 #include "app/track_space.hpp"
-#include "assets/world_database.hpp"
 #include "render/ui_layout.hpp"
 
 namespace rr::app {
@@ -18,46 +14,8 @@ constexpr PaletteGrid kGrid{.area = {.x = 24.0F, .y = 44.0F, .width = 172.0F, .h
                             .rows = 6,
                             .gap = 8.0F};
 constexpr render::Rect kSwatchArea{.x = 211.0F, .y = 68.0F, .width = 412.0F, .height = 44.0F};
-constexpr float kTileFov = 30.0F;
-constexpr float kTileFill = 1.15F;
-constexpr Vector3 kTileLook{.x = 0.6F, .y = -0.8F, .z = 0.55F};
-constexpr float kOutline = 2.0F;
 constexpr render::Color kCursorOutline{.r = 1.0F, .g = 0.87F, .b = 0.0F};
 constexpr render::Color kHoverOutline{.r = 1.0F, .g = 1.0F, .b = 1.0F, .a = 0.6F};
-
-void Outline(const render::Rect& area, const render::Color& colour,
-             std::vector<render::SpriteDraw>& out) {
-    const float right = area.x + area.width;
-    const float bottom = area.y + area.height;
-    for (const render::Rect& edge :
-         {render::Rect{.x = area.x - kOutline,
-                       .y = area.y - kOutline,
-                       .width = area.width + (2.0F * kOutline),
-                       .height = kOutline},
-          render::Rect{.x = area.x - kOutline,
-                       .y = bottom,
-                       .width = area.width + (2.0F * kOutline),
-                       .height = kOutline},
-          render::Rect{
-              .x = area.x - kOutline, .y = area.y, .width = kOutline, .height = area.height},
-          render::Rect{.x = right, .y = area.y, .width = kOutline, .height = area.height}}) {
-        out.push_back({.bounds = edge, .tint = colour});
-    }
-}
-
-render::Camera TileCamera(const BoundingSphere& bounds) {
-    const float reach = std::max(bounds.radius, 0.1F) * kTileFill /
-                        std::sin(kTileFov * std::numbers::pi_v<float> / 360.0F);
-    const float length = std::sqrt((kTileLook.x * kTileLook.x) + (kTileLook.y * kTileLook.y) +
-                                   (kTileLook.z * kTileLook.z));
-    assets::WorldCamera camera;
-    camera.position = bounds.centre + (kTileLook * (reach / length));
-    camera.target = bounds.centre;
-    camera.fovDegrees = kTileFov;
-    camera.nearClip = reach / 10.0F;
-    camera.farClip = reach * 10.0F;
-    return MenuSceneCamera(camera);
-}
 
 }
 
@@ -118,7 +76,7 @@ std::uint8_t PaletteControls::ColourOf(const PaletteEntry& entry) const {
 void PaletteControls::Render(PieceModels& models, std::span<const MenuPicture> under,
                              std::vector<render::RenderView>& views,
                              std::vector<render::SpriteDraw>& sprites) {
-    const render::Camera camera = TileCamera({.radius = 1.0F});
+    const render::Camera camera = PieceTileCamera({.radius = 1.0F});
     backdrop_.quads.clear();
     AppendBackdropQuads(under, palette_.Area(), camera, backdrop_.quads);
     views.push_back({.camera = camera,
@@ -133,9 +91,9 @@ void PaletteControls::Render(PieceModels& models, std::span<const MenuPicture> u
         views.push_back(
             DrawTile(models, under, palette_.Entries()[entry], *area, tiles_.at(shown++)));
         if (showsCursor_ && entry == palette_.Cursor()) {
-            Outline(*area, kCursorOutline, sprites);
+            DrawOutline(*area, kCursorOutline, sprites);
         } else if (entry == hovered_ || entry == drag_.Entry()) {
-            Outline(*area, kHoverOutline, sprites);
+            DrawOutline(*area, kHoverOutline, sprites);
         }
     }
     DrawSwatches(models, sprites);
@@ -148,7 +106,7 @@ render::RenderView PaletteControls::DrawTile(PieceModels& models,
     const assets::PartChoice& choice = catalog_->Choices(entry.set)[entry.choice];
     const PartPreview& model =
         models.Model(catalog_->library.pieces.at(choice.piece), ColourOf(entry), 0);
-    const render::Camera camera = TileCamera(model.bounds);
+    const render::Camera camera = PieceTileCamera(model.bounds);
     tile.meshes.clear();
     for (render::MeshDraw draw : model.draws) {
         draw.transform = TransformToEngine({});
@@ -173,7 +131,7 @@ void PaletteControls::DrawSwatches(const PieceModels& models,
                            .bounds = swatch,
                            .tint = material ? material->tint : render::Color{}});
         if (swatches_.Chosen() == colour) {
-            Outline(swatch, kCursorOutline, sprites);
+            DrawOutline(swatch, kCursorOutline, sprites);
         }
     }
 }
