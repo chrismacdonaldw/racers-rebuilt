@@ -8,14 +8,9 @@
 namespace rr::settings {
 namespace {
 
-bool IsUnder(std::string_view category, std::string_view prefix) {
-    return category.starts_with(prefix) &&
-           (category.size() == prefix.size() || category[prefix.size()] == '/');
-}
-
 bool IsReset(const SettingPreset& preset, std::string_view category) {
     return std::ranges::any_of(
-        preset.resets, [&](const std::string& prefix) { return IsUnder(category, prefix); });
+        preset.resets, [&](const std::string& prefix) { return IsInCategory(category, prefix); });
 }
 
 bool HasValue(const SettingPreset& preset, std::string_view key) {
@@ -33,6 +28,11 @@ bool Store(Registry& registry, std::string_view key, const SettingValue& value) 
     return registry.AllValues().find(key)->second != before;
 }
 
+}
+
+bool IsInCategory(std::string_view category, std::string_view prefix) {
+    return category.starts_with(prefix) &&
+           (category.size() == prefix.size() || category[prefix.size()] == '/');
 }
 
 std::vector<std::string> ApplyPreset(Registry& registry, const SettingPreset& preset) {

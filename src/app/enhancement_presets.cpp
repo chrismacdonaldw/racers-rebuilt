@@ -1,12 +1,12 @@
 #include "app/enhancement_presets.hpp"
 
+#include <array>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include "app/audio_settings.hpp"
-#include "app/cheat_settings.hpp"
 #include "app/fix_settings.hpp"
-#include "app/modifier_settings.hpp"
 #include "app/race_settings.hpp"
 #include "app/video_settings.hpp"
 
@@ -14,35 +14,40 @@ namespace rr::app {
 namespace {
 
 constexpr std::string_view kMenu = "Enhancements";
+constexpr std::string_view kPresetsFolderName = "presets";
+
+constexpr std::array kEnhancedSettings{&kPhysicsAi,
+                                       &kRespawn,
+                                       &kChampionCars,
+                                       &kSmoothTexturesSetting,
+                                       &kAnisotropicFilteringSetting,
+                                       &kFarCarsSetting,
+                                       &kFarScenerySetting,
+                                       &kWidescreenSetting,
+                                       &kPreventClipping};
 
 }
 
 std::vector<settings::SettingPreset> EnhancementPresets() {
-    const std::string gameplay(kRespawn.category);
-    return {
-        {.label = "Original",
-         .menu = std::string(kMenu),
-         .resets = {gameplay, std::string(kCheatsCategory), std::string(kModifiersCategory),
-                    std::string(kFixesCategory)},
-         .values = {{std::string(kRespawn.key), false},
-                    {std::string(kSmoothTexturesSetting.key), false},
-                    {std::string(kAnisotropicFilteringSetting.key), false},
-                    {std::string(kFarCarsSetting.key), false},
-                    {std::string(kFarScenerySetting.key), false},
-                    {std::string(kWidescreenSetting.key), false},
-                    {std::string(kPreventClipping.key), false}}},
-        {.label = "Enhanced",
-         .menu = std::string(kMenu),
-         .resets = {gameplay},
-         .values = {{std::string(kPhysicsAi.key), true},
-                    {std::string(kSmoothTexturesSetting.key), true},
-                    {std::string(kAnisotropicFilteringSetting.key), true},
-                    {std::string(kChampionCars.key), true},
-                    {std::string(kFarCarsSetting.key), true},
-                    {std::string(kFarScenerySetting.key), true},
-                    {std::string(kWidescreenSetting.key), true},
-                    {std::string(kPreventClipping.key), true}}},
-    };
+    settings::SettingPreset defaults{
+        .label = "Default", .menu = std::string(kMenu), .resets = {std::string(kMenu)}};
+    settings::SettingPreset enhanced{.label = "Enhanced",
+                                     .menu = std::string(kMenu),
+                                     .resets = {std::string(kRespawn.category)}};
+    for (const settings::SettingSpec<bool>* spec : kEnhancedSettings) {
+        enhanced.values.emplace_back(std::string(spec->key), true);
+        if (!spec->category.starts_with(kMenu)) {
+            defaults.values.emplace_back(std::string(spec->key), spec->defaultValue);
+        }
+    }
+    return {std::move(defaults), std::move(enhanced)};
+}
+
+settings::QuickConfigs LoadQuickConfigs(const settings::Registry& registry,
+                                        const std::filesystem::path& dataFolder) {
+    settings::QuickConfigs configs(EnhancementPresets(), dataFolder / kPresetsFolderName);
+    configs.Reload(registry);
+    return configs;
 }
 
 }

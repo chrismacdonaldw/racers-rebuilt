@@ -2,6 +2,7 @@ rr_add_module(overlay
     SOURCES
         input_gate.cpp
         overlay.cpp
+        quick_config_menu.cpp
         racer_tools.cpp
         setting_menus.cpp
     DEPENDS

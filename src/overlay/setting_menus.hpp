@@ -1,12 +1,10 @@
 #pragma once
 
-#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include "settings/registry.hpp"
-#include "settings/setting_preset.hpp"
 
 namespace rr::overlay {
 
@@ -38,11 +36,6 @@ struct SettingGrid {
 /// Columns are `menu`'s submenus and rows are labels sorted by name. A missing cell has no key.
 [[nodiscard]] SettingGrid GroupSettingGrid(const settings::Registry::Declarations& declarations,
                                            const SettingMenu& menu);
-
-/// Draws the presets listed under `menu` as its Presets submenu. Returns the keys they changed.
-[[nodiscard]] std::vector<std::string> DrawPresets(settings::Registry& registry,
-                                                   std::span<const settings::SettingPreset> presets,
-                                                   std::string_view menu);
 
 /// Submenus come first. Edits apply at once. Returns the keys whose edit finished this frame.
 [[nodiscard]] std::vector<std::string> DrawSettingItems(settings::Registry& registry,

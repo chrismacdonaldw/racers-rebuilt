@@ -33,7 +33,7 @@ inline constexpr settings::SettingSpec<bool> kStereo{
 
 /// Mixes with headroom and a limiter instead of clipping as the original does.
 inline constexpr settings::SettingSpec<bool> kPreventClipping{.key = "audio.prevent_clipping",
-                                                              .defaultValue = true,
+                                                              .defaultValue = false,
                                                               .label = "Prevent clipping",
                                                               .category = "Audio"};
 

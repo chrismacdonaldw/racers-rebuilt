@@ -14,12 +14,13 @@
 #include "core/duration.hpp"
 #include "core/result.hpp"
 #include "overlay/input_gate.hpp"
+#include "overlay/quick_config_menu.hpp"
 #include "overlay/racer_tools.hpp"
 #include "platform/window.hpp"
 #include "render/overlay_pass.hpp"
 #include "render/renderer.hpp"
+#include "settings/quick_configs.hpp"
 #include "settings/registry.hpp"
-#include "settings/setting_preset.hpp"
 
 namespace rr::overlay {
 
@@ -44,7 +45,7 @@ class Overlay final : public render::OverlayPass {
 public:
     [[nodiscard]] static Result<std::unique_ptr<Overlay>> Create(
         const platform::Window& window, render::Renderer& renderer,
-        std::vector<settings::SettingPreset> presets);
+        settings::QuickConfigs quickConfigs);
 
     Overlay(const Overlay&) = delete;
     Overlay& operator=(const Overlay&) = delete;
@@ -67,11 +68,11 @@ public:
     [[nodiscard]] ImDrawData* TakeDrawData() override;
 
 private:
-    Overlay(render::Renderer& renderer, std::vector<settings::SettingPreset> presets)
-        : renderer_(&renderer), presets_(std::move(presets)) {}
+    Overlay(render::Renderer& renderer, settings::QuickConfigs quickConfigs)
+        : renderer_(&renderer), quickConfigs_(std::move(quickConfigs)) {}
 
     render::Renderer* renderer_;
-    std::vector<settings::SettingPreset> presets_;
+    QuickConfigMenu quickConfigs_;
     InputGate input_;
     bool hasFrame_ = false;
     Nanoseconds frameCost_{0};

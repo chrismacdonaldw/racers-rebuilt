@@ -68,7 +68,7 @@ TEST_CASE("each power-up choice names its kind in order") {
     CHECK_FALSE(ModifiersFrom(registry).rules.onlyPowerup.has_value());
 }
 
-TEST_CASE("the original preset turns every modifier off and the enhanced one keeps them") {
+TEST_CASE("the default preset turns every modifier off and the enhanced one keeps them") {
     settings::Registry registry = DeclaredRegistry();
     TurnEverythingOn(registry);
     const std::vector<settings::SettingPreset> presets = EnhancementPresets();

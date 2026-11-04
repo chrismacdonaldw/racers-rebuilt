@@ -1,11 +1,14 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "core/result.hpp"
+#include "settings/registry.hpp"
 
 #include <toml++/toml.hpp>
 
@@ -15,6 +18,17 @@ struct TomlFile {
     toml::table table;
     std::string leadingComments;
 };
+
+struct TomlSetting {
+    std::string key;
+    std::optional<SettingValue> value;
+};
+
+/// Nested tables join into dotted keys. A value of an unsupported type has no `value`.
+[[nodiscard]] std::vector<TomlSetting> FlattenSettings(const toml::table& root);
+
+/// Dotted keys become nested tables. A key that clashes with a table is logged and left out.
+[[nodiscard]] toml::table NestSettings(const Registry::Values& values);
 
 [[nodiscard]] Result<toml::table> ParseToml(std::string_view text, std::string_view sourceName);
 
