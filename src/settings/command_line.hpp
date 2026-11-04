@@ -34,6 +34,7 @@ struct CommandLine {
     std::optional<std::string> importSaveFile;
     std::vector<SettingOverride> overrides;
     bool noVideo = false;
+    bool checkMods = false;
 };
 
 /// Parses the flags the README lists, valued ones also as --flag=value; args excludes argv[0].

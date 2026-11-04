@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <optional>
 #include <string>
@@ -18,7 +19,7 @@
 namespace rr::app {
 namespace {
 
-TEST_CASE("the gameplay fingerprint names each enabled mod and its version") {
+TEST_CASE("the gameplay fingerprint names each enabled mod, its version and its files' hash") {
     const test::TempFolder folder;
     for (const char* id : {"faster", "quiet"}) {
         std::filesystem::create_directories(folder.Path() / id);
@@ -30,8 +31,10 @@ TEST_CASE("the gameplay fingerprint names each enabled mod and its version") {
     mods.DeclareSettings(registry);
     registry.Set(mods.All().back().EnabledSetting(), false);
 
+    const std::string expected =
+        std::format("mod:faster@1.2#{:016x}", mods.All().front().ContentHash());
     CHECK(GameplayFingerprint(registry, mods, std::nullopt, {}) ==
-          std::vector<std::string>{"mod:faster@1.2"});
+          std::vector<std::string>{expected});
 }
 
 TEST_CASE("the gameplay fingerprint records the overrides folder's hash") {

@@ -53,6 +53,31 @@ TEST_CASE("an id that can't be a setting key is an error") {
           std::string::npos);
 }
 
+TEST_CASE("requires, after and conflicts name other mods with version ranges") {
+    const Result<ModManifest> manifest = ParseModManifest(
+        "id = \"a\"\nname = \"A\"\nversion = \"1.0.0\"\n[requires]\n\"brick-pack\" = \">=1.2.0\"\n"
+        "[after]\nhd-bricks = \"*\"\n[conflicts]\nold-tracks = \"^2.0.0\"\n",
+        "mod.toml");
+
+    REQUIRE(manifest.has_value());
+    REQUIRE(manifest->requirements.size() == 1);
+    CHECK(manifest->requirements.front().id == "brick-pack");
+    CHECK(manifest->requirements.front().range.kind == RangeKind::AtLeast);
+    REQUIRE(manifest->loadsAfter.size() == 1);
+    CHECK(manifest->loadsAfter.front().id == "hd-bricks");
+    REQUIRE(manifest->conflicts.size() == 1);
+    CHECK(manifest->conflicts.front().range.kind == RangeKind::SameMajor);
+}
+
+TEST_CASE("a broken mod reference is an error") {
+    const std::string head = "id = \"a\"\nname = \"A\"\nversion = \"1\"\n";
+    CHECK(ErrorFor(head + "requires = \"b\"\n") == "mod.toml: requires must be a table");
+    CHECK(ErrorFor(head + "[after]\na = \"*\"\n") == "mod.toml: after.a isn't another mod's id");
+    CHECK(ErrorFor(head + "[conflicts]\nb = 1\n") == "mod.toml: conflicts.b must be text");
+    CHECK(ErrorFor(head + "[requires]\nb = \">1.0.0\"\n")
+              .starts_with("mod.toml: requires.b: \">1.0.0\" isn't a version range"));
+}
+
 TEST_CASE("a manifest that isn't TOML names the line") {
     CHECK(ErrorFor("id = \n").starts_with("mod.toml line 1:"));
 }

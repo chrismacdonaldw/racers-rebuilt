@@ -58,6 +58,42 @@ enabled = true
 
 A mod with a broken `mod.toml` is skipped with a warning in the log.
 
+### Dependencies
+
+`mod.toml` can name other mods by id, each with a version range, in three optional tables:
+
+```toml
+[requires]
+"brick-pack" = ">=1.2.0"
+
+[after]
+"hd-bricks" = "*"
+
+[conflicts]
+"old-tracks" = "*"
+```
+
+| Table | Meaning |
+|---|---|
+| `requires` | The mod only loads when each named mod is installed, on and in range. Turning the mod on in the **Mods** menu also turns those on. |
+| `after` | If the named mod is on and in range, it loads first. Nothing happens otherwise. |
+| `conflicts` | The two can't both load. With both on, the higher priority one loads. Turning one on in the **Mods** menu asks which to keep. |
+
+| Range | Matches |
+|---|---|
+| `*` | Any version |
+| `=1.2.0` | Only `1.2.0` |
+| `>=1.2.0` | `1.2.0` or newer |
+| `^1.2.0` | `1.2.0` or newer with the same first number, so not `2.0.0` |
+
+- Versions compare as `x.y.z` whole numbers. A `version` in another form only matches `*`.
+- A mod named in `requires` or `after` always loads below the mod naming it, whatever their priorities. Otherwise priority decides, then the id.
+- A mod that can't load stays on but is held back. The **Mods** menu shows why under its name, e.g. "Needs brick-pack 1.2.0 or newer", and the log says it too.
+- Mods whose `requires` and `after` form a loop are all held back, with the mods they loop through.
+- Applying a quick config turns on what its mods require.
+- Replays record each loaded mod's id, version and a hash of its file names and sizes, and warn when played with different ones.
+- `racers-rebuilt.exe --check-mods` checks every mod against the current settings, lists each broken `mod.toml` and held-back mod with its reason, and exits.
+
 ## Tracks
 
 A mod adds a race track with a new folder in `files/GAMEDATA/`. Any folder there with a `STARTPOS.SPB` and a `RACE.CPB` is a track. It shows at the end of the single race and versus track lists under its folder name, in the overlay's **Scenes** menu, and `--race <folder>` starts a race on it.

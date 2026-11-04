@@ -1,32 +1,17 @@
 #pragma once
 
 #include <filesystem>
+#include <span>
 #include <string>
 #include <vector>
 
 #include "assets/vfs.hpp"
-#include "mods/mod_manifest.hpp"
+#include "mods/mod.hpp"
+#include "mods/mod_resolution.hpp"
+#include "mods/mod_toggles.hpp"
 #include "settings/registry.hpp"
-#include "settings/setting_spec.hpp"
 
 namespace rr::mods {
-
-class Mod {
-public:
-    Mod(ModManifest manifest, std::filesystem::path folder);
-
-    [[nodiscard]] const ModManifest& Manifest() const { return manifest_; }
-    [[nodiscard]] std::filesystem::path FilesFolder() const { return folder_ / "files"; }
-    [[nodiscard]] std::filesystem::path MusicFolder() const { return folder_ / "music"; }
-
-    /// `mods.<id>.enabled`, viewing this mod's strings.
-    [[nodiscard]] settings::SettingSpec<bool> EnabledSetting() const;
-
-private:
-    ModManifest manifest_;
-    std::filesystem::path folder_;
-    std::string enabledKey_;
-};
 
 /// Highest priority first, ties broken by id.
 class ModList {
@@ -37,17 +22,32 @@ public:
     ModList() = default;
 
     [[nodiscard]] const std::vector<Mod>& All() const { return mods_; }
+    [[nodiscard]] const std::vector<std::string>& SkippedMods() const { return skipped_; }
+
+    [[nodiscard]] std::vector<bool> Toggles(const settings::Registry& registry) const;
+    [[nodiscard]] ModResolution Resolve(const settings::Registry& registry) const;
+
+    /// The mods that load, top first: on, with what they need, and not held back.
     [[nodiscard]] std::vector<const Mod*> Enabled(const settings::Registry& registry) const;
+
+    /// Returns the keys that changed.
+    std::vector<std::string> Apply(settings::Registry& registry,
+                                   std::span<const ModSwitch> switches) const;
+
+    /// Returns the keys that changed.
+    std::vector<std::string> TurnOnRequired(settings::Registry& registry) const;
 
     void DeclareSettings(settings::Registry& registry) const;
 
-    /// Mounts each enabled mod's `files/` above every layer mounted so far.
+    /// Mounts the enabled mods' `files/` above every layer mounted so far, in load order.
     void MountEnabled(assets::Vfs& vfs, const settings::Registry& registry) const;
 
 private:
-    explicit ModList(std::vector<Mod> mods) : mods_(std::move(mods)) {}
+    ModList(std::vector<Mod> mods, std::vector<std::string> skipped)
+        : mods_(std::move(mods)), skipped_(std::move(skipped)) {}
 
     std::vector<Mod> mods_;
+    std::vector<std::string> skipped_;
 };
 
 }

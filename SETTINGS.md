@@ -195,6 +195,8 @@ Once a setting in **Mods** changes, two items appear there:
 
 A newly added mod folder, or a change to the menu cursor, still needs a restart.
 
+The mods are listed in priority order, each with its version. A mod that's on but can't load shows why below its name. Turning a mod on also turns on what it requires, and turning off a mod that others require, or turning on one that conflicts with another, asks first. See [Dependencies](MODDING.md#dependencies).
+
 ## Controls
 
 | Key | Default | Values |
@@ -265,6 +267,7 @@ name = "Race night"
 | `--cutscene <folder>/<file>` | Play a menu cutscene on a loop instead of the main menu, by its `MENUDATA` folder and file, e.g. `CIRCUIT1/CIR1-01` |
 | `--dump-textures <folder>` | Write every image in `LEGO.JAM` as a PNG texture pack and exit. See [Make a texture pack](MODDING.md#make-a-texture-pack). |
 | `--export-gltf <folder>` | Write every model in `LEGO.JAM` as a `.glb` and exit. See [Models](MODDING.md#models). |
+| `--check-mods` | Check every mod and exit. Each problem is logged with its `mod.toml`, and a message lists them all. See [Dependencies](MODDING.md#dependencies). |
 
 ```powershell
 .\racers-rebuilt.exe --set video.vsync=false --set video.fps_cap=60

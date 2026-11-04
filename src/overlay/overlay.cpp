@@ -46,6 +46,14 @@ void DrawActions(const char* hint, std::span<const MenuChoice> actions) {
     }
 }
 
+SettingMenu WithoutModToggles(SettingMenu menu, const mods::ModList& mods) {
+    std::erase_if(menu.keys, [&](std::string_view key) {
+        return std::ranges::any_of(
+            mods.All(), [&](const mods::Mod& mod) { return mod.EnabledSetting().key == key; });
+    });
+    return menu;
+}
+
 void DrawChoices(const char* menu, std::span<const MenuChoice> choices, const char* empty) {
     if (!ImGui::BeginMenu(menu)) {
         return;
@@ -112,15 +120,7 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
         for (const SettingMenu& menu : menus) {
             if (menu.category != kDeveloperCategory &&
                 ImGui::BeginMenu(std::string(menu.category).c_str())) {
-                if (menu.category == kModsCategory) {
-                    DrawActions("Apply now returns to the main menu", actions.mods);
-                } else if (menu.category == kGameCategory && !actions.game.empty()) {
-                    DrawActions("Changes here apply after a restart", actions.game);
-                }
-                Append(finished, quickConfigs_.DrawMenu(registry, menu.category));
-                Append(finished, menu.category == kBindingsCategory
-                                     ? DrawSettingGrid(registry, menu)
-                                     : DrawSettingItems(registry, menu));
+                Append(finished, DrawSettingMenu(registry, menu, actions));
                 ImGui::EndMenu();
             }
         }
@@ -143,9 +143,35 @@ std::vector<std::string> Overlay::Build(settings::Registry& registry, const Deve
         ImGui::EndMainMenuBar();
     }
     quickConfigs_.DrawDialogs(registry);
+    if (actions.modList != nullptr) {
+        Append(finished, modMenu_.DrawQuestion(registry, *actions.modList));
+    }
     ImGui::Render();
     hasFrame_ = true;
     frameCost_ = platform::Now() - start;
+    return finished;
+}
+
+std::vector<std::string> Overlay::DrawSettingMenu(settings::Registry& registry,
+                                                  const SettingMenu& menu,
+                                                  const SettingActions& actions) {
+    if (menu.category == kModsCategory) {
+        DrawActions("Apply now returns to the main menu", actions.mods);
+    } else if (menu.category == kGameCategory && !actions.game.empty()) {
+        DrawActions("Changes here apply after a restart", actions.game);
+    }
+    std::vector<std::string> finished = quickConfigs_.DrawMenu(registry, menu.category);
+    if (!finished.empty() && actions.modList != nullptr) {
+        Append(finished, actions.modList->TurnOnRequired(registry));
+    }
+    if (menu.category == kModsCategory && actions.modList != nullptr) {
+        Append(finished, DrawSettingItems(registry, WithoutModToggles(menu, *actions.modList)));
+        ImGui::Separator();
+        Append(finished, modMenu_.DrawRows(registry, *actions.modList));
+    } else {
+        Append(finished, menu.category == kBindingsCategory ? DrawSettingGrid(registry, menu)
+                                                            : DrawSettingItems(registry, menu));
+    }
     return finished;
 }
 

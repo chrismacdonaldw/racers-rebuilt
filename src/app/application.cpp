@@ -218,7 +218,8 @@ void Application::RunFrames(overlay::Overlay& menu, audio::MusicPlayer& music,
                             .startupSummary = startupSummary_},
                            scenes, saveImports, racerTools,
                            {.mods = ModActions(remount_, restart_, settings_, isQuitting_),
-                            .game = GameActions(restart_, settings_, isQuitting_)}));
+                            .game = GameActions(restart_, settings_, isQuitting_),
+                            .modList = &extensions_.mods}));
         lastFrame = now;
         if (remount_.TakeRequest()) {
             RemountMods(music);
