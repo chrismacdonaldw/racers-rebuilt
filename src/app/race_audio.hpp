@@ -90,6 +90,7 @@ private:
     void HearEngine(const sim::RaceSession& session, Milliseconds elapsed);
     void HearSurfaces(const sim::RaceSession& session, Milliseconds elapsed);
     void HearShields(const sim::RaceSession& session);
+    void HearBoosts(const sim::RaceSession& session);
     void HearNearestOpponent(const sim::RaceSession& session);
 
     audio::Mixer* mixer_;
@@ -106,6 +107,8 @@ private:
     std::vector<SurfaceSound> surfaces_;
     std::vector<LoopVoice> surfaceLoops_;
     std::vector<LoopVoice> shieldLoops_;
+    std::vector<LoopVoice> turboLoops_;
+    std::vector<LoopVoice> warpLoops_;
     LoopVoice opponentLoop_;
     AmbientSounds ambience_;
     HazardSounds hazards_;
