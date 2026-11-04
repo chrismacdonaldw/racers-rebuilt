@@ -6,6 +6,7 @@
 #include <iterator>
 #include <optional>
 
+#include "app/hazard/hazard_fx_effects.hpp"
 #include "app/powerup/powerup_fx_effects.hpp"
 #include "app/racer/surface_fx_effects.hpp"
 #include "core/log.hpp"
@@ -188,6 +189,7 @@ std::vector<render::FxEffect> RaceFxEffects() {
                                           kBlastCore,
                                           kBlastPuffs};
     std::ranges::copy(PowerupFxEffects(), std::back_inserter(effects));
+    std::ranges::copy(HazardFxEffects(), std::back_inserter(effects));
     std::ranges::copy(SurfaceFxEffects(), std::back_inserter(effects));
     return effects;
 }
