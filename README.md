@@ -20,16 +20,17 @@ racers-rebuilt is a reimplementation of LEGO Racers for 64-bit Windows. It reads
 > **No game files are included.** racers-rebuilt needs an installed copy of the original PC game.
 
 > [!NOTE]
-> v0.4.0 plays single races, circuits and their mirrored versions, time trials against the record ghost, and two-player split-screen versus, all from the main menu, with options, controls and language screens. The car builder, garage and cutscenes aren't in yet.
+> The whole game is in: single races, circuits and their mirrored versions, time trials, two-player split-screen versus, the garage with the car builder and driver editor, and the cutscenes and intro videos.
 
 ## Features
 
 - One `.exe` with no installer and no extra DLLs
 - Game files copied from your install once, so later launches don't need it
 - Any framerate from 30 to 360 FPS, uncapped, or VSync, on a fixed simulation tick
+- Plays like the original by default, with optional enhancements such as widescreen, physics-driven computer racers, a full-window car builder and LDraw parts
 - Automatic detection of your LEGO Racers install, with a one-time folder picker as the fallback
 - Replacement music in OGG, FLAC, MP3 or WAV, with optional loop points
-- Data mods that replace any file in `LEGO.JAM`
+- Mods that replace any file in `LEGO.JAM` or add tracks, circuits, drivers and bricks, with PNG textures and glTF models
 - An in-game settings overlay on <kbd>F1</kbd>
 
 ## Requirements
@@ -88,6 +89,8 @@ To keep everything next to the exe instead, create an empty file named `portable
 ```text
 <data>/
   settings.toml
+  progress.toml
+  racers.toml
   logs/racers-rebuilt.log
   game/
   music/
@@ -96,7 +99,7 @@ To keep everything next to the exe instead, create an empty file named `portable
   presets/
 ```
 
-Create `music/`, `mods/` and `overrides/` when you first need them. `presets/` appears when you save a [quick config](#quick-configs).
+`progress.toml` holds your trophies, best times and unlocks, and `racers.toml` the racers you build. `--import-save <file>` brings both in from an original save file, such as `Save\1\LEGORac1`. Create `music/`, `mods/` and `overrides/` when you first need them. `presets/` appears when you save a [quick config](#quick-configs).
 
 ## Configuration
 
@@ -113,7 +116,7 @@ Every setting is saved in `<data>/settings.toml`. [SETTINGS.md](SETTINGS.md) lis
 A fresh install plays like the original game: every enhancement starts off. **Enhancements → Presets** switches between quick configs:
 
 - **Default** turns every enhancement off.
-- **Enhanced** turns on the port's recommended set: physics-driven computer racers, respawn, champion cars, smooth textures, anisotropic filtering, far cars and scenery, better particles, widescreen with widescreen cutscenes and a 21:9 HUD, and clipping prevention.
+- **Enhanced** turns on the port's recommended set: physics-driven computer racers with every driving aid, respawn, the warp enhancements and stuck warp fix, champion cars, readable font fixes, smooth textures, anisotropic filtering, far cars and scenery, better particles, widescreen with widescreen cutscenes and a 21:9 HUD, clipping prevention, LDraw car pieces and prints, and the workshop builder with its extra pieces.
 - **Save current as...** saves your enhancement and mod settings under a name, as a [file you can share](SETTINGS.md#quick-config-files). **Delete** removes one.
 
 Default and Enhanced leave your mods as they are. Your own configs also restore which mods are on. Resolution, frame rate, audio volume and controls are never part of a config.
