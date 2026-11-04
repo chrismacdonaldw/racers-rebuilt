@@ -6,17 +6,18 @@
 #include "core/assert.hpp"
 
 namespace rr::sim {
-namespace {
 
-std::size_t CellIndex(int x, int y) {
-    RR_ASSERT(x >= 0 && x < kCarGridWidth && y >= 0 && y < kCarGridDepth);
-    return (static_cast<std::size_t>(x) * kCarGridDepth) + static_cast<std::size_t>(y);
-}
-
-}
+CarGrid::CarGrid(assets::CellSize size)
+    : size_(size), cells_(static_cast<std::size_t>(size.width * size.height)) {}
 
 void CarGrid::Clear() {
-    cells_.fill(GridCell{});
+    std::ranges::fill(cells_, GridCell{});
+}
+
+std::size_t CarGrid::CellIndex(int x, int y) const {
+    RR_ASSERT(x >= 0 && x < size_.width && y >= 0 && y < size_.height);
+    return (static_cast<std::size_t>(x) * static_cast<std::size_t>(size_.height)) +
+           static_cast<std::size_t>(y);
 }
 
 const GridCell& CarGrid::At(int x, int y) const {
@@ -34,10 +35,10 @@ std::expected<int, PlacementFailure> CarGrid::RestingHeight(const assets::PieceR
         return std::unexpected(PlacementFailure::OffLeftOrTop);
     }
     const assets::CellSize footprint = piece.shape.Footprint(placement.rotation);
-    if (placement.x + footprint.width > kCarGridWidth) {
+    if (placement.x + footprint.width > size_.width) {
         return std::unexpected(PlacementFailure::PastRight);
     }
-    if (placement.y + footprint.height > kCarGridDepth) {
+    if (placement.y + footprint.height > size_.height) {
         return std::unexpected(PlacementFailure::PastBottom);
     }
     int height = -1;

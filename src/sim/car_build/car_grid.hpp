@@ -1,8 +1,9 @@
 #pragma once
 
-#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <vector>
 
 #include "assets/piece_library.hpp"
 
@@ -39,10 +40,15 @@ enum class PlacementFailure : std::uint8_t {
     HoldsPieces,
 };
 
-/// The car builder's 10×6 grid, keeping each cell's top height and the piece on top.
+/// Keeps each cell's top height and the piece on top. The car builder's 10×6 by default.
 class CarGrid {
 public:
+    CarGrid() : CarGrid(assets::kBuildGridSize) {}
+    explicit CarGrid(assets::CellSize size);
+
     void Clear();
+
+    [[nodiscard]] assets::CellSize Size() const { return size_; }
 
     [[nodiscard]] const GridCell& At(int x, int y) const;
 
@@ -56,9 +62,11 @@ public:
     void Stamp(const assets::PieceRecord& piece, PiecePlacement placement, int height, int index);
 
 private:
+    [[nodiscard]] std::size_t CellIndex(int x, int y) const;
     [[nodiscard]] GridCell& Cell(int x, int y);
 
-    std::array<GridCell, static_cast<std::size_t>(kCarGridWidth* kCarGridDepth)> cells_{};
+    assets::CellSize size_;
+    std::vector<GridCell> cells_;
 };
 
 }
