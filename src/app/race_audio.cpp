@@ -5,6 +5,7 @@
 #include <optional>
 #include <utility>
 
+#include "app/track_info.hpp"
 #include "assets/event_table.hpp"
 #include "core/assert.hpp"
 #include "core/log.hpp"
@@ -174,7 +175,9 @@ Result<std::unique_ptr<RaceAudio>> RaceAudio::Load(audio::Mixer& mixer, SoundBan
         return std::unexpected(std::move(effects.error()));
     }
     Result<std::vector<std::string>> music = LoadMusicList(vfs, track);
-    if (!music) {
+    const std::optional<TrackInfo> info = FindTrackInfo(vfs, track);
+    const std::vector<std::string> trackMusic = info ? info->music : std::vector<std::string>{};
+    if (!music && trackMusic.empty()) {
         log::Warn("{} music list: {}, racing without music", track, music.error().message);
     }
     return std::make_unique<RaceAudio>(
@@ -182,7 +185,8 @@ Result<std::unique_ptr<RaceAudio>> RaceAudio::Load(audio::Mixer& mixer, SoundBan
         RaceSoundSet{.effects = *effects,
                      .ambient = LoadOptionalBank(mixer, banks, vfs, AmbientBankPath(track)),
                      .voices = LoadRaceVoices(mixer, banks, vfs, track, setup.voiceChoice),
-                     .music = std::move(music).value_or(std::vector<std::string>{}),
+                     .music = WithTrackMusic(std::move(music).value_or(std::vector<std::string>{}),
+                                             trackMusic),
                      .ambience = {setup.ambience.begin(), setup.ambience.end()}},
         setup);
 }

@@ -10,12 +10,13 @@
 
 namespace rr::app {
 
-/// A race's frame of the track preview cutscene, and the `DRIVERS.DDB` driver it shows.
+/// A race's preview cutscene frame and `DRIVERS.DDB` driver, or a mod track's `image`.
 struct RacePreview {
     std::string frame;
     std::string driver;
     std::size_t circuit = 0;
     std::int32_t position = 0;
+    std::string image;
 
     friend bool operator==(const RacePreview&, const RacePreview&) = default;
 };

@@ -22,7 +22,7 @@ struct RacerChoice {
     std::int32_t nameIndex = -1;
 };
 
-/// A single race's track, or a whole circuit when `track` is empty. `race` indexes the race list.
+/// A single race's track, or a whole circuit when `track` is empty; versus ignores `lapCount`.
 struct CourseChoice {
     std::string track;
     std::string circuit;
@@ -32,12 +32,16 @@ struct CourseChoice {
     std::vector<RacerChoice> racers;
     std::vector<std::optional<RacePreview>> previews;
     bool isLocked = false;
+    std::string title;
+    std::optional<int> lapCount;
+    bool isMirrored = false;
 };
 
 /// Unmirrored circuit races in circuit order with their circuit's grid, then tracks only mods add.
 [[nodiscard]] Result<std::vector<CourseChoice>> LoadTrackChoices(const assets::Vfs& vfs);
 
-/// The unmirrored races of the first three circuits, locked with their circuit.
+/// The unmirrored races of the first three circuits, locked with their circuit, then mod tracks
+/// that offer time trials.
 [[nodiscard]] Result<std::vector<CourseChoice>> LoadTrialChoices(
     const assets::Vfs& vfs, const std::set<std::string>& unlocked);
 

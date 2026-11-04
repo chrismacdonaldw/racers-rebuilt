@@ -49,6 +49,7 @@
 #include "app/startup_settings.hpp"
 #include "app/test_scene.hpp"
 #include "app/time_trial/trial_records.hpp"
+#include "app/track_info.hpp"
 #include "app/video_settings.hpp"
 #include "app/viewer_scene.hpp"
 #include "assets/loader_pool.hpp"
@@ -466,9 +467,12 @@ std::vector<overlay::MenuChoice> Application::SceneChoices() {
                }),
         choice("Main menu", [this] { return CreateScene(std::string(kMainMenuScene)); })};
     for (const std::string& track : assets::ListRaceTracks(vfs_)) {
+        const std::optional<TrackInfo> info = FindTrackInfo(vfs_, track);
+        const std::string name =
+            info && !info->name.empty() ? std::format("{} ({})", info->name, track) : track;
         choices.push_back(
-            choice(track, std::bind_front(&Application::CreateScene, this, std::optional(track))));
-        choices.push_back(choice(std::format("{} race", track),
+            choice(name, std::bind_front(&Application::CreateScene, this, std::optional(track))));
+        choices.push_back(choice(std::format("{} race", name),
                                  std::bind_front(&Application::CreateRace, this, track)));
     }
     return choices;

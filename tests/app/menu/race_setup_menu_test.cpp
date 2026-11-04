@@ -214,11 +214,14 @@ TEST_CASE("single race takes a track's grid from the circuit it's listed under")
     CHECK(tracks->front().racers.at(1).code == "CR");
 }
 
-void AddModTrack(assets::Vfs& vfs, const std::filesystem::path& root) {
+void AddModTrack(assets::Vfs& vfs, const std::filesystem::path& root, std::string_view info = {}) {
     const std::filesystem::path folder = root / "GAMEDATA" / "MODTRACK";
     std::filesystem::create_directories(folder);
     for (const std::string_view file : {"STARTPOS.SPB", "RACE.CPB"}) {
         std::ofstream(folder / file).put('\0');
+    }
+    if (!info.empty()) {
+        std::ofstream(folder / "TRACK.TOML", std::ios::binary) << info;
     }
     Result<assets::FolderLayer> layer = assets::FolderLayer::Scan(root);
     REQUIRE(layer.has_value());
@@ -239,6 +242,86 @@ TEST_CASE("single race lists tracks only mods add last, with the first circuit's
     CHECK(tracks->size() == 14);
     CHECK(tracks->back().track + tracks->back().circuit == "MODTRACK");
     CHECK(tracks->back().racers.at(1).code == "CR");
+}
+
+constexpr std::string_view kLavaLane =
+    "name = \"Lava Lane\"\npreview = \"PREVIEW.png\"\nlaps = 5\ngrid = \"c2\"\n"
+    "time_trial = true\nmirrored = true\n";
+
+std::vector<CourseChoice> LavaLaneTracks() {
+    std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return {};
+    }
+    const test::TempFolder mod;
+    AddModTrack(*vfs, mod.Path(), kLavaLane);
+    Result<std::vector<CourseChoice>> tracks = LoadTrackChoices(*vfs);
+    REQUIRE(tracks.has_value());
+    REQUIRE(tracks->size() == 15);
+    return std::move(*tracks);
+}
+
+bool RacesWithGrid(const std::vector<CourseChoice>& tracks, const CourseChoice& track,
+                   std::string_view circuit) {
+    const auto home = std::ranges::find(tracks, circuit, &CourseChoice::circuit);
+    return home != tracks.end() && track.racers.at(1).code == home->racers.at(1).code;
+}
+
+TEST_CASE("a mod track's info names it and sets its laps and grid") {
+    const std::vector<CourseChoice> tracks = LavaLaneTracks();
+    if (tracks.empty()) {
+        return;
+    }
+
+    const CourseChoice& track = tracks.at(13);
+    CHECK(track.title == "Lava Lane");
+    CHECK(track.lapCount == 5);
+    CHECK(RacesWithGrid(tracks, track, "c2"));
+}
+
+TEST_CASE("a mod track's info shows its preview image and adds a mirrored copy") {
+    const std::vector<CourseChoice> tracks = LavaLaneTracks();
+    if (tracks.empty()) {
+        return;
+    }
+
+    const std::optional<RacePreview> preview = tracks.at(13).previews.at(0);
+    CHECK(preview.value_or(RacePreview{}).image == "GAMEDATA/MODTRACK/PREVIEW.png");
+    CHECK_FALSE(tracks.at(13).isMirrored);
+    CHECK(tracks.back().isMirrored);
+    CHECK(tracks.back().title == "Lava Lane MIRRORED");
+}
+
+TEST_CASE("time trials list a mod track whose info offers them") {
+    std::optional<assets::Vfs> vfs = test::OpenRetailVfs();
+    if (!vfs) {
+        return;
+    }
+    const test::TempFolder mod;
+    AddModTrack(*vfs, mod.Path(), kLavaLane);
+
+    const Result<std::vector<CourseChoice>> trials = LoadTrialChoices(*vfs, {});
+
+    REQUIRE(trials.has_value());
+    CHECK(trials->size() == 13);
+    CHECK(trials->back().track == "MODTRACK");
+}
+
+TEST_CASE("a mod track races its own laps and mirror, but versus keeps its own laps") {
+    const CourseChoice track{.track = "MODTRACK",
+                             .racers = {{.code = "a"}, {.code = "b"}},
+                             .previews = {std::nullopt},
+                             .lapCount = 5,
+                             .isMirrored = true};
+    RaceSetupMenu single({track});
+    RaceSetupMenu versus({track}, 2);
+
+    CHECK(Press(single, {MenuAction::Down, MenuAction::Confirm}) ==
+          std::string("menu:pick_racer>race:MODTRACK:respawn=3000:racer=0:mirrored:laps=5"));
+    CHECK(Press(versus, {MenuAction::Down, MenuAction::Confirm},
+                {.respawn = {.timeout = Milliseconds{3000}}, .lapCount = 2}) ==
+          std::string("menu:pick_racer>menu:pick_racer2>race:MODTRACK:respawn=3000:racer=0:"
+                      "mirrored:players=2:racer2=1:laps=2"));
 }
 
 TEST_CASE("time trials offer the races of the first three circuits, locked with them") {
