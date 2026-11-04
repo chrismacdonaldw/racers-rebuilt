@@ -3,7 +3,9 @@
 #include <utility>
 
 #include "app/particle_assets.hpp"
+#include "app/race_fx.hpp"
 #include "app/track_space.hpp"
+#include "render/fx_textures.hpp"
 
 namespace rr::app {
 namespace {
@@ -16,8 +18,10 @@ constexpr std::size_t kRearLeft = 3;
 }
 
 RaceParticles::RaceParticles(render::ParticleBankSetup common, render::ParticleBankSetup track,
+                             std::unique_ptr<render::FxSystem> fx,
                              std::span<const assets::SurfaceEntry> surfaces, std::size_t player)
     : banks_{render::ParticleBank(std::move(common)), render::ParticleBank(std::move(track))},
+      fx_(std::move(fx)),
       surfaces_(surfaces),
       player_(player),
       hazards_(player) {}
@@ -37,7 +41,13 @@ Result<RaceParticles> RaceParticles::Load(render::Renderer& renderer, const asse
     if (!trackBank) {
         return std::unexpected(std::move(trackBank.error()));
     }
-    return RaceParticles(std::move(*common), std::move(*trackBank), surfaces, player);
+    Result<render::TextureId> smoke = renderer.UploadTexture(render::MakeSmokeAtlas());
+    if (!smoke) {
+        return std::unexpected(std::move(smoke.error()));
+    }
+    return RaceParticles(std::move(*common), std::move(*trackBank),
+                         std::make_unique<render::FxSystem>(RaceFxEffects(), *smoke), surfaces,
+                         player);
 }
 
 void RaceParticles::Tick(const sim::RaceSession& session, const Transform& camera,
@@ -62,6 +72,9 @@ void RaceParticles::Update(const sim::RaceSession& session,
                 {.velocity = ToEngine(racers[slot].Body().motion.velocity) * kVelocityScale},
                 Bank(ParticleFile::Common));
         }
+    }
+    if (isBetter_) {
+        fx_->Update(elapsed);
     }
     for (render::ParticleBank& bank : banks_) {
         bank.Update(elapsed);
@@ -92,6 +105,20 @@ void RaceParticles::UpdatePlayer(const sim::Racer& racer, const std::optional<Sk
 void RaceParticles::AppendQuads(const Transform& camera, std::vector<render::QuadDraw>& out) const {
     for (const render::ParticleBank& bank : banks_) {
         bank.AppendQuads(camera, out);
+    }
+    if (isBetter_) {
+        fx_->AppendQuads(camera, out);
+    }
+}
+
+void RaceParticles::SetBetter(bool isBetter) {
+    if (isBetter == isBetter_) {
+        return;
+    }
+    isBetter_ = isBetter;
+    fx_->Clear();
+    for (render::ParticleBank& bank : banks_) {
+        bank.SetEffects(isBetter ? fx_.get() : nullptr);
     }
 }
 

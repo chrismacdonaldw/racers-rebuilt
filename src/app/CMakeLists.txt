@@ -195,6 +195,7 @@ rr_add_module(app
         race_audio.cpp
         race_bindings.cpp
         race_camera.cpp
+        race_fx.cpp
         voice_reactions.cpp
         race_loading_screen.cpp
         race_music.cpp

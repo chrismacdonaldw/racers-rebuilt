@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -13,6 +14,7 @@
 
 #include "../sim/physics/plane_world.hpp"
 #include "../sim/race/checkpoint_ring.hpp"
+#include "app/race_fx.hpp"
 #include "app/track_space.hpp"
 #include "sim/physics/racer_controls.hpp"
 
@@ -58,7 +60,9 @@ public:
                   test::TestPlane{.minX = kGrassEndX}}),
           session_(Start()),
           particles_(Bank({"grassemt", "tiresmk"}, kCommonParticleSlots),
-                     Bank({"snowkick"}, kTrackParticleSlots), surfaces_, 0) {
+                     Bank({"snowkick"}, kTrackParticleSlots),
+                     std::make_unique<render::FxSystem>(RaceFxEffects(), render::kWhiteTexture),
+                     surfaces_, 0) {
         while (session_.Clock().Phase() != sim::RacePhase::Racing) {
             Tick();
         }
@@ -226,6 +230,27 @@ TEST_CASE("a skidding player's tyres smoke from either marked wheel until the sk
         race.Tick();
     }
     CHECK(race.QuadCount() == 0);
+}
+
+TEST_CASE("with better particles a skid draws the new smoke in place of the original's") {
+    GrassRace race("grassemt");
+    race.Particles().SetBetter(true);
+    race.Skid(SkidWheels{false, false, true, true});
+
+    for (int tick = 0; tick < 30; ++tick) {
+        race.Tick();
+    }
+
+    const std::vector<render::QuadDraw> quads = race.Quads();
+    REQUIRE(quads.size() > 10);
+    CHECK(std::ranges::all_of(quads, [](const render::QuadDraw& quad) {
+        return quad.uv.width == doctest::Approx(0.5F);
+    }));
+
+    race.Particles().SetBetter(false);
+    const std::vector<render::QuadDraw> original = race.Quads();
+    REQUIRE_FALSE(original.empty());
+    CHECK(original.front().uv.width > 0.9F);
 }
 }
 }

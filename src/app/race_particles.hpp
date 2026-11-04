@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -18,6 +19,7 @@
 #include "core/duration.hpp"
 #include "core/result.hpp"
 #include "core/transform.hpp"
+#include "render/fx_system.hpp"
 #include "render/particle_bank.hpp"
 #include "render/renderer.hpp"
 #include "sim/physics/body_state.hpp"
@@ -35,6 +37,7 @@ enum class ParticleFile : std::uint8_t { Common, Track };
 class RaceParticles {
 public:
     RaceParticles(render::ParticleBankSetup common, render::ParticleBankSetup track,
+                  std::unique_ptr<render::FxSystem> fx,
                   std::span<const assets::SurfaceEntry> surfaces, std::size_t player);
 
     /// `track` is a race track folder under `GAMEDATA`, such as `RACEC0R0`.
@@ -49,6 +52,8 @@ public:
                 std::span<const std::optional<SkidWheels>> skidding,
                 render::FloatMilliseconds elapsed);
     void AppendQuads(const Transform& camera, std::vector<render::QuadDraw>& out) const;
+    /// Draws the race's better particle effects in place of the emitters they replace.
+    void SetBetter(bool isBetter);
 
     [[nodiscard]] render::ParticleBank& Bank(ParticleFile file);
 
@@ -73,6 +78,8 @@ private:
     void Start(WheelEmitter& wheel, const render::EmitterPlacement& placement);
 
     std::array<render::ParticleBank, 2> banks_;
+    std::unique_ptr<render::FxSystem> fx_;
+    bool isBetter_ = false;
     std::span<const assets::SurfaceEntry> surfaces_;
     std::size_t player_;
     std::vector<PlayerEmitters> players_;
