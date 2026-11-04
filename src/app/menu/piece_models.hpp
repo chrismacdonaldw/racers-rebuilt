@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <span>
 #include <tuple>
 #include <vector>
@@ -30,6 +31,8 @@ public:
 
     /// The set's choices in order, unturned.
     [[nodiscard]] std::span<const PartPreview> SetPreviews(std::size_t set);
+
+    [[nodiscard]] std::optional<render::Material> ColourMaterial(std::uint8_t colour) const;
 
 private:
     using Key = std::tuple<const assets::PieceRecord*, std::uint8_t, unsigned>;

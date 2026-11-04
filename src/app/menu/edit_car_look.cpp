@@ -9,6 +9,7 @@
 #include "app/menu/menu_sounds.hpp"
 #include "assets/game_path.hpp"
 #include "assets/image_list.hpp"
+#include "core/log.hpp"
 
 namespace rr::app {
 namespace {
@@ -158,6 +159,26 @@ Result<void> AddBuilderImages(const assets::Vfs& vfs, MenuFiles& files) {
 Result<EditCarLook> LoadEditCarLook(render::Renderer& renderer, const assets::Vfs& vfs,
                                     const MenuFiles& files, const EditorButtons& buttons) {
     return LookLoader(renderer, vfs, files, buttons).Load();
+}
+
+std::unique_ptr<CarStand> LoadEditCarStand(render::Renderer& renderer, const assets::Vfs& vfs,
+                                           const MenuFiles& files, const settings::Racer& racer) {
+    Result<std::unique_ptr<CarStand>> stand =
+        CarStand::Load(renderer, vfs, files, kEditCarScreen, racer);
+    if (!stand) {
+        log::Warn("{}, the car editor shows no car", stand.error().message);
+        return nullptr;
+    }
+    return std::move(*stand);
+}
+
+std::optional<DialogLook> LoadEditCarDialog(render::Renderer& renderer, const assets::Vfs& vfs) {
+    Result<DialogLook> look = LoadDialogLook(renderer, vfs);
+    if (!look) {
+        log::Warn("{}, the car editor discards changes without asking", look.error().message);
+        return std::nullopt;
+    }
+    return std::move(*look);
 }
 
 }

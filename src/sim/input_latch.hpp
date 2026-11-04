@@ -17,6 +17,7 @@ public:
     void AddPointerMotion(float dx, float dy);
     void PressPointer(PointerButton button);
     void ReleasePointer();
+    void ScrollPointer(float steps);
     void ReleaseAll();
 
     [[nodiscard]] InputFrame TakeFrame();

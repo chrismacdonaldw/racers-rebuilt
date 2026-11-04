@@ -22,6 +22,11 @@ public:
     void SelectSet(std::size_t set);
     void Choose(std::size_t choice);
 
+    /// Holds the set's choice in `colour` instead of its own.
+    void Pick(std::size_t set, std::size_t choice, std::uint8_t colour);
+    void PutAt(sim::PiecePlacement placement);
+    void Release() { cursor_ = {}; }
+
     /// `direction` counts eighth turns clockwise from up on screen, `view` the camera's slot.
     bool Move(std::size_t direction, std::size_t view);
     void Rotate();
@@ -29,6 +34,8 @@ public:
 
     /// What `Place` would do, without placing.
     [[nodiscard]] PlaceResult Check() const;
+
+    [[nodiscard]] int RestPlates() const;
 
     /// Puts the newest piece back in the cursor, reselecting the set and choice it came from.
     bool Undo();

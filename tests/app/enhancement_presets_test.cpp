@@ -11,6 +11,7 @@
 #include "app/cheat_settings.hpp"
 #include "app/fix_settings.hpp"
 #include "app/ldraw_piece_models.hpp"
+#include "app/menu/builder_settings.hpp"
 #include "app/race_settings.hpp"
 #include "app/video_settings.hpp"
 #include "app/warp_settings.hpp"
@@ -28,6 +29,7 @@ settings::Registry DeclaredRegistry() {
     DeclareFixSettings(registry);
     DeclareWarpSettings(registry);
     registry.Declare(kLdrawPiecesSetting);
+    registry.Declare(kEnhancedBuilder);
     return registry;
 }
 
@@ -98,7 +100,7 @@ TEST_CASE("every enhancement defaults off and the default preset matches a fresh
     }));
 }
 
-TEST_CASE("only the enhanced preset turns on widescreen, its HUD width and the far models") {
+TEST_CASE("only the enhanced preset turns on widescreen, HUD width, far models and the palette") {
     settings::Registry registry = DeclaredRegistry();
     const std::vector<settings::SettingPreset> presets = EnhancementPresets();
     REQUIRE(presets.size() == 2);
@@ -110,10 +112,12 @@ TEST_CASE("only the enhanced preset turns on widescreen, its HUD width and the f
     CHECK(registry.IsAvailable(kHudWidthSetting.key));
     CHECK(registry.Get(kFarCarsSetting));
     CHECK(registry.Get(kFarScenerySetting));
+    CHECK(registry.Get(kEnhancedBuilder));
     static_cast<void>(ApplyPreset(registry, presets[0]));
     CHECK_FALSE(registry.Get(kWidescreenSetting));
     CHECK(registry.Get(kHudWidthSetting) == "Window");
     CHECK_FALSE(registry.Get(kWidescreenCutscenesSetting));
+    CHECK_FALSE(registry.Get(kEnhancedBuilder));
 }
 
 TEST_CASE("quick configs load the user's presets folder beside the shipped presets") {

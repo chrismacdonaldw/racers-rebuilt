@@ -49,6 +49,7 @@ struct MenuPointer {
     float y = 0.0F;
     float dx = 0.0F;
     float dy = 0.0F;
+    float wheel = 0.0F;
     bool isOver = false;
     bool moved = false;
     bool pressed = false;

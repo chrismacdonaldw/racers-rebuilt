@@ -52,6 +52,10 @@ void InputLatch::ReleasePointer() {
     pending_.pointer.released = true;
 }
 
+void InputLatch::ScrollPointer(float steps) {
+    pending_.pointer.wheel += steps;
+}
+
 void InputLatch::ReleaseAll() {
     for (PlayerInput& input : pending_.players) {
         input.released |= input.held;
@@ -69,6 +73,7 @@ InputFrame InputLatch::TakeFrame() {
     pending_.menuPressed.reset();
     pending_.pointer.dx = 0.0F;
     pending_.pointer.dy = 0.0F;
+    pending_.pointer.wheel = 0.0F;
     pending_.pointer.moved = false;
     pending_.pointer.pressed = false;
     pending_.pointer.rightPressed = false;

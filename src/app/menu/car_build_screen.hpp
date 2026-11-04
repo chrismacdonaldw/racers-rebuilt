@@ -19,13 +19,16 @@
 #include "app/menu/car_builder.hpp"
 #include "app/menu/car_stand.hpp"
 #include "app/menu/carousel_view.hpp"
+#include "app/menu/grid_pick.hpp"
 #include "app/menu/held_piece_motion.hpp"
 #include "app/menu/icon_strip.hpp"
 #include "app/menu/menu_parts.hpp"
 #include "app/menu/menu_sounds.hpp"
 #include "app/menu/menu_text.hpp"
+#include "app/menu/palette_controls.hpp"
 #include "app/menu/part_carousel.hpp"
 #include "app/menu/piece_models.hpp"
+#include "app/menu/pointer_buttons.hpp"
 #include "assets/piece_catalog.hpp"
 #include "assets/vfs.hpp"
 #include "core/result.hpp"
@@ -40,12 +43,15 @@ namespace rr::app {
 
 enum class BuildOutcome : std::uint8_t { None, CarChanged, TooManyPieces, Done };
 
+enum class BuildControls : std::uint8_t { Original, Palette };
+
 struct BuildServices {
     const assets::Vfs* vfs = nullptr;
     CarStand* stand = nullptr;
     const assets::PieceCatalog* catalog = nullptr;
     const MenuText* text = nullptr;
     MenuSounds sounds;
+    BuildControls controls = BuildControls::Original;
 };
 
 /// Draws over the edit car stand. What `services` points to must outlive it.
@@ -56,6 +62,7 @@ public:
         sim::BuiltCar car, std::vector<std::size_t> sets);
 
     void HandleKey(SDL_Keycode key);
+    void UseControls(BuildControls controls);
     [[nodiscard]] BuildOutcome Tick(const sim::InputFrame& input);
     [[nodiscard]] bool HoldsPointer() const { return menu_.Held().has_value(); }
 
@@ -94,6 +101,17 @@ private:
     void AddPiece(float height, std::optional<float> alpha);
     [[nodiscard]] render::Camera ViewCamera() const;
     void DrawControls(std::vector<render::SpriteDraw>& sprites) const;
+    void RenderScene(bool showsHeld, std::vector<render::RenderView>& views);
+
+    void ShowPaletteSet();
+    [[nodiscard]] std::vector<PointerTarget> PaletteTargets() const;
+    [[nodiscard]] BuildOutcome TickPalette(const sim::InputFrame& input);
+    void DragPiece(const sim::MenuPointer& pointer, const DragTick& drag);
+    [[nodiscard]] BuildOutcome HoldByKeys(const sim::InputFrame& input, bool skipsMenu);
+    [[nodiscard]] BuildOutcome PointPalette(const sim::InputFrame& input);
+    [[nodiscard]] GridView GridOnScreen() const;
+    void RenderPalette(std::vector<render::RenderView>& views,
+                       std::vector<render::SpriteDraw>& sprites);
 
     BuildServices services_;
     CarBuildLook look_;
@@ -117,6 +135,10 @@ private:
     std::vector<MenuPicture> under_;
     std::array<render::Rect, 2> holes_{};
     std::vector<render::MeshDraw> extras_;
+    std::unique_ptr<PaletteControls> palette_;
+    PaletteHold hold_ = PaletteHold::None;
+    bool isAimed_ = false;
+    PointerButtons paletteButtons_;
 };
 
 }
