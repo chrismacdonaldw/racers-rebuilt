@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
-#include <cmath>
 #include <cstdint>
 #include <format>
 #include <map>
@@ -17,9 +16,9 @@
 #include "assets/hazard_settings.hpp"
 #include "assets/json_value.hpp"
 #include "assets/mirror.hpp"
+#include "assets/route_markers.hpp"
 #include "assets/track_loader.hpp"
 
-#include <glm/geometric.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
 
@@ -80,8 +79,8 @@ glm::mat4 WorldOf(const cgltf_node& node) {
 Pose PoseOf(const cgltf_node& node) {
     const glm::mat4 world = WorldOf(node);
     return {.position = ToGame(glm::vec3(world[3])),
-            .forward = ToGame(glm::normalize(glm::vec3(world[0]))),
-            .up = ToGame(glm::normalize(glm::vec3(world[1])))};
+            .forward = Normalized(ToGame(glm::vec3(world[0])), {.x = 1.0F}),
+            .up = Normalized(ToGame(glm::vec3(world[1])), {.z = 1.0F})};
 }
 
 JsonValue ExtrasOf(const cgltf_node& node) {
@@ -89,41 +88,6 @@ JsonValue ExtrasOf(const cgltf_node& node) {
         return {};
     }
     return ParseJson(node.extras.data).value_or(JsonValue{});
-}
-
-float FloatAt(std::span<const JsonValue> items, std::size_t index, float fallback) {
-    return index < items.size() ? static_cast<float>(items[index].Number().value_or(fallback))
-                                : fallback;
-}
-
-std::optional<Quaternion> RotationOf(const JsonValue* value) {
-    if (value == nullptr || value->Items().size() != kVec4) {
-        return std::nullopt;
-    }
-    const std::span<const JsonValue> items = value->Items();
-    return Quaternion{.w = FloatAt(items, 0, 1.0F),
-                      .x = FloatAt(items, 1, 0.0F),
-                      .y = FloatAt(items, 2, 0.0F),
-                      .z = FloatAt(items, 3, 0.0F)};
-}
-
-std::optional<Vector3> PointOf(const JsonValue* value) {
-    if (value == nullptr || value->Items().size() != kVec3) {
-        return std::nullopt;
-    }
-    const std::span<const JsonValue> items = value->Items();
-    return Vector3{
-        .x = FloatAt(items, 0, 0.0F), .y = FloatAt(items, 1, 0.0F), .z = FloatAt(items, 2, 0.0F)};
-}
-
-std::span<const JsonValue> ItemsOf(const JsonValue& json, std::string_view key) {
-    const JsonValue* value = json.Find(key);
-    return value != nullptr ? value->Items() : std::span<const JsonValue>();
-}
-
-Quaternion Heading(const Vector3& from, const Vector3& to) {
-    const float yaw = std::atan2(to.y - from.y, to.x - from.x);
-    return {.w = std::cos(yaw / 2.0F), .z = std::sin(yaw / 2.0F)};
 }
 
 std::vector<Vector3> LinePoints(const cgltf_node& node) {
@@ -147,44 +111,6 @@ std::vector<Vector3> LinePoints(const cgltf_node& node) {
         }
     }
     return points;
-}
-
-RaceRoute RouteFrom(std::span<const Vector3> points, const JsonValue& extras,
-                    std::span<const JsonValue> durations) {
-    const std::span<const JsonValue> rotations = ItemsOf(extras, "rotations");
-    const std::span<const JsonValue> widths = ItemsOf(extras, "widths");
-    const std::span<const JsonValue> kinds = ItemsOf(extras, "kinds");
-    RaceRoute route{
-        .startPosition = points.front(),
-        .startRotation =
-            RotationOf(extras.Find("start_rotation")).value_or(Heading(points[0], points[1]))};
-    std::int32_t total = 0;
-    for (std::size_t i = 1; i < points.size(); ++i) {
-        const std::size_t at = i - 1;
-        const bool hasRotation = rotations.size() == (points.size() - 1) * kVec4;
-        const auto duration = static_cast<std::int32_t>(FloatAt(durations, at, 0.0F));
-        total += duration;
-        route.points.push_back(
-            {.offset = points[i] - points[at],
-             .rotation = hasRotation ? Quaternion{.w = FloatAt(rotations, at * kVec4, 1.0F),
-                                                  .x = FloatAt(rotations, (at * kVec4) + 1, 0.0F),
-                                                  .y = FloatAt(rotations, (at * kVec4) + 2, 0.0F),
-                                                  .z = FloatAt(rotations, (at * kVec4) + 3, 0.0F)}
-                                     : Heading(points[at], points[i]),
-             .widthLeft = FloatAt(widths, at * 2, 0.0F),
-             .widthRight = FloatAt(widths, (at * 2) + 1, 0.0F),
-             .kind = static_cast<std::uint8_t>(FloatAt(kinds, at, 0.0F)),
-             .durationMs = duration});
-    }
-    const JsonValue* loopPoint = extras.Find("loop_point");
-    const JsonValue* loopTime = extras.Find("loop_time_ms");
-    route.loopPoint =
-        loopPoint != nullptr ? static_cast<std::size_t>(loopPoint->Number().value_or(0.0)) : 0;
-    route.loopTimeMs =
-        loopTime != nullptr ? static_cast<std::int32_t>(loopTime->Number().value_or(total)) : total;
-    route.loopPosition = PointOf(extras.Find("loop_position")).value_or(route.startPosition);
-    route.loopRotation = RotationOf(extras.Find("loop_rotation")).value_or(route.startRotation);
-    return route;
 }
 
 using OrderedRoute = std::pair<std::tuple<std::size_t, std::size_t, std::size_t>, SlotRoute>;
@@ -249,8 +175,9 @@ private:
     }
 
     void ReadStart(const cgltf_node& node, std::span<const std::string_view> parts) {
-        if (const std::optional<std::size_t> number = Number(node, parts, 1)) {
-            starts_.emplace(*number, PoseOf(node));
+        const std::optional<std::size_t> number = Number(node, parts, 1);
+        if (number && !starts_.emplace(*number, PoseOf(node)).second) {
+            Complain(node.name, "there's another start with this number");
         }
     }
 
@@ -261,12 +188,11 @@ private:
         }
         const JsonValue extras = ExtrasOf(node);
         NumberedGate gate{.number = *number, .pose = PoseOf(node)};
-        for (const JsonValue& link : ItemsOf(extras, "links")) {
+        for (const JsonValue& link : extras.Items("links")) {
             gate.links.emplace_back(link.Text().value_or(""));
         }
         if (const JsonValue* distance = extras.Find("distance")) {
-            gate.distance =
-                distance->Number().transform([](double d) { return static_cast<float>(d); });
+            gate.distance = distance->Float();
         }
         gates_.push_back(std::move(gate));
     }
@@ -285,12 +211,17 @@ private:
             return;
         }
         const JsonValue* respawn = ExtrasOf(node).Find("respawn_ms");
+        const std::optional<Milliseconds::rep> respawnMs =
+            respawn != nullptr ? respawn->Integer<Milliseconds::rep>()
+                               : kDefaultBrickRespawn.count();
+        if (!respawnMs) {
+            Complain(node.name, "respawn_ms needs a whole number in range");
+            return;
+        }
         Ensure(layout).coloured.push_back(
             {.position = position,
              .colour = static_cast<BrickColour>(found - kBrickColourNames.begin()),
-             .respawn = respawn != nullptr ? Milliseconds{static_cast<Milliseconds::rep>(
-                                                 respawn->Number().value_or(0.0))}
-                                           : kDefaultBrickRespawn});
+             .respawn = Milliseconds{*respawnMs}});
     }
 
     void ReadHazard(const cgltf_node& node, std::span<const std::string_view> parts) {
@@ -300,7 +231,12 @@ private:
             Complain(node.name, std::format("there's no hazard kind {}", name));
             return;
         }
-        Hazard hazard{.kind = *kind, .payload = HazardPayloadFrom(*kind, ExtrasOf(node))};
+        Result<HazardPayload> payload = HazardPayloadFrom(*kind, ExtrasOf(node));
+        if (!payload) {
+            Complain(node.name, payload.error().message);
+            return;
+        }
+        Hazard hazard{.kind = *kind, .payload = std::move(*payload)};
         const Vector3 position = PoseOf(node).position;
         if (auto* shot = std::get_if<CannonShot>(&hazard.payload)) {
             shot->launch = position;
@@ -324,21 +260,14 @@ private:
             Complain(node.name, "a route is named route.<slot>.<F, M or S>.<number>");
             return;
         }
-        const std::vector<Vector3> points = LinePoints(node);
-        if (points.size() < 2) {
-            Complain(node.name, "a route needs a line of two points or more");
+        Result<RaceRoute> route = RouteFromLine(LinePoints(node), ExtrasOf(node));
+        if (!route) {
+            Complain(node.name, route.error().message);
             return;
         }
-        const JsonValue extras = ExtrasOf(node);
-        const std::span<const JsonValue> durations = ItemsOf(extras, "durations_ms");
-        if (durations.size() != points.size() - 1) {
-            Complain(node.name, std::format("durations_ms needs {} values", points.size() - 1));
-            return;
-        }
-        RaceRoute route = RouteFrom(points, extras, durations);
-        route.pace = static_cast<RoutePace>(pace);
+        route->pace = static_cast<RoutePace>(pace);
         routes_.emplace_back(std::tuple(*slot, pace, *number),
-                             SlotRoute{.slot = *slot, .route = std::move(route)});
+                             SlotRoute{.slot = *slot, .route = std::move(*route)});
     }
 
     void FinishStarts() {

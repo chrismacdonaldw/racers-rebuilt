@@ -102,6 +102,19 @@ TEST_CASE("a race route rejects bad points") {
     CHECK_FALSE(ParseRaceRoute(Route(0, noRotation)).has_value());
 }
 
+TEST_CASE("a route's steps and loop time must fit its playback") {
+    const RaceRoute valid{.loopTimeMs = 64,
+                          .points = {{.durationMs = 32}, {.durationMs = kMaxRouteStepMs}}};
+    RaceRoute longStep = valid;
+    longStep.points.back().durationMs = kMaxRouteStepMs + 1;
+    RaceRoute lateLoop = valid;
+    lateLoop.loopTimeMs = 32 + kMaxRouteStepMs + 1;
+
+    CHECK(ValidateRoute(valid).has_value());
+    CHECK_FALSE(ValidateRoute(longStep).has_value());
+    CHECK_FALSE(ValidateRoute(lateLoop).has_value());
+}
+
 TEST_CASE("a mirrored race route reflects across the XZ plane and swaps its widths") {
     const Result<RaceRoute> route = ParseRaceRoute(Route(0, PlainPoint()));
     REQUIRE(route.has_value());

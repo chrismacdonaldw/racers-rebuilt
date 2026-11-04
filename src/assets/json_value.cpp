@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <cctype>
 #include <charconv>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <limits>
 #include <system_error>
 
 namespace rr::assets {
@@ -178,7 +180,7 @@ private:
         double number = 0.0;
         const char* first = text_.data() + at_;
         const auto [end, error] = std::from_chars(first, text_.data() + text_.size(), number);
-        if (error != std::errc()) {
+        if (error != std::errc() || !std::isfinite(number)) {
             return Problem("a value isn't JSON");
         }
         at_ += static_cast<std::size_t>(end - first);
@@ -224,6 +226,14 @@ std::optional<double> JsonValue::Number() const {
     return number != nullptr ? std::optional(*number) : std::nullopt;
 }
 
+std::optional<float> JsonValue::Float() const {
+    const std::optional<double> number = Number();
+    if (!number || std::abs(*number) > std::numeric_limits<float>::max()) {
+        return std::nullopt;
+    }
+    return static_cast<float>(*number);
+}
+
 std::optional<std::string_view> JsonValue::Text() const {
     const auto* text = std::get_if<std::string>(&data_);
     return text != nullptr ? std::optional<std::string_view>(*text) : std::nullopt;
@@ -232,6 +242,11 @@ std::optional<std::string_view> JsonValue::Text() const {
 std::span<const JsonValue> JsonValue::Items() const {
     const auto* array = std::get_if<JsonArray>(&data_);
     return array != nullptr ? std::span<const JsonValue>(*array) : std::span<const JsonValue>();
+}
+
+std::span<const JsonValue> JsonValue::Items(std::string_view key) const {
+    const JsonValue* value = Find(key);
+    return value != nullptr ? value->Items() : std::span<const JsonValue>();
 }
 
 Result<JsonValue> ParseJson(std::string_view text) {

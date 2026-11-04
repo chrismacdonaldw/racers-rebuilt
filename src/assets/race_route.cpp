@@ -1,6 +1,7 @@
 #include "assets/race_route.hpp"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <limits>
@@ -20,6 +21,7 @@ constexpr float kWidthScale = 1.0F / 8.0F;
 constexpr int kKindShift = 6;
 constexpr std::int32_t kDurationMask = 0x3F;
 constexpr int kDurationShift = 5;
+static_assert(kMaxRouteStepMs == kDurationMask << kDurationShift);
 
 using PackedPoint = std::array<std::int32_t, 10>;
 
@@ -53,9 +55,6 @@ Result<void> CheckRanges(const PackedPoint& packed) {
                         std::format("route point value {} is out of range", packed.at(i)));
         }
     }
-    if ((packed[9] & kDurationMask) == 0) {
-        return Fail(ErrorCode::InvalidData, "route point has no duration");
-    }
     return {};
 }
 
@@ -84,10 +83,9 @@ Result<RoutePoint> DecodePoint(const PackedPoint& packed) {
 }
 
 Result<RaceRoute> Decode(const StoredRoute& stored) {
-    if (stored.loopPoint < 0 ||
-        std::cmp_greater_equal(stored.loopPoint + 1, stored.points.size())) {
-        return Fail(ErrorCode::InvalidData, std::format("route loops to point {} of {}",
-                                                        stored.loopPoint, stored.points.size()));
+    if (stored.loopPoint < 0) {
+        return Fail(ErrorCode::InvalidData,
+                    std::format("route loops to point {}", stored.loopPoint));
     }
     RaceRoute route{
         .startPosition = stored.startPosition,
@@ -108,12 +106,37 @@ Result<RaceRoute> Decode(const StoredRoute& stored) {
             route.startRotation = start;
             return FromStoredRotation(stored.loopRotation);
         })
-        .transform([&](const Quaternion& loop) {
+        .and_then([&](const Quaternion& loop) {
             route.loopRotation = loop;
-            return std::move(route);
-        });
+            return ValidateRoute(route);
+        })
+        .transform([&] { return std::move(route); });
 }
 
+}
+
+Result<void> ValidateRoute(const RaceRoute& route) {
+    if (route.points.size() < 2 || route.loopPoint >= route.points.size() - 1) {
+        return Fail(ErrorCode::InvalidData, std::format("route loops to point {} of {}",
+                                                        route.loopPoint, route.points.size()));
+    }
+    std::int64_t totalMs = 0;
+    for (const RoutePoint& point : route.points) {
+        if (point.durationMs < 1 || point.durationMs > kMaxRouteStepMs) {
+            return Fail(ErrorCode::InvalidData,
+                        std::format("a route point lasts {} ms, not 1 to {}", point.durationMs,
+                                    kMaxRouteStepMs));
+        }
+        totalMs += point.durationMs;
+    }
+    if (totalMs > std::numeric_limits<std::int32_t>::max()) {
+        return Fail(ErrorCode::InvalidData, std::format("route lasts {} ms", totalMs));
+    }
+    if (route.loopTimeMs < 0 || route.loopTimeMs > totalMs) {
+        return Fail(ErrorCode::InvalidData,
+                    std::format("route loops at {} ms of {}", route.loopTimeMs, totalMs));
+    }
+    return {};
 }
 
 Result<RaceRoute> ParseRaceRoute(std::span<const std::byte> bytes) {

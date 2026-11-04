@@ -82,6 +82,7 @@ rr_add_module(assets
         race_list.cpp
         race_map.cpp
         race_route.cpp
+        route_markers.cpp
         race_voices.cpp
         racer_catalog.cpp
         skeleton_database.cpp

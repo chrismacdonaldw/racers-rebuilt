@@ -77,16 +77,42 @@ TEST_CASE("a short grid, a gap in the gates and an untimed route are problems") 
 }
 
 TEST_CASE("a timed route reads its points as offsets from the start") {
-    const std::array line{Vector3{.y = 1.0F}, Vector3{.x = 2.0F, .y = 1.0F}};
+    const std::array line{Vector3{.y = 1.0F}, Vector3{.x = 2.0F, .y = 1.0F},
+                          Vector3{.x = 2.0F, .y = 3.0F}};
 
     const TrackMarkers markers =
-        MarkersOf({{.name = "route.2.M.0", .extras = R"({"durations_ms":[500]})"}}, line);
+        MarkersOf({{.name = "route.2.M.0", .extras = R"({"durations_ms":[500,300]})"}}, line);
 
     REQUIRE(markers.routes.size() == 1);
     CHECK(markers.routes[0].slot == 2);
     CHECK(markers.routes[0].route.pace == RoutePace::Medium);
     CHECK(markers.routes[0].route.points[0].offset == Vector3{.x = 2.0F});
     CHECK(markers.routes[0].route.loopTimeMs == 500);
+}
+
+TEST_CASE("route timing and numbers out of range are problems") {
+    const std::array line{Vector3{}, Vector3{.x = 1.0F}, Vector3{.x = 2.0F}};
+
+    const TrackMarkers markers = MarkersOf(
+        {{.name = "route.1.F.0", .extras = R"({"durations_ms":[0,100]})"},
+         {.name = "route.1.F.1", .extras = R"({"durations_ms":[100,100],"loop_point":1})"},
+         {.name = "route.1.F.2", .extras = R"({"durations_ms":[1e12,100]})"},
+         {.name = "route.1.F.3", .extras = R"({"durations_ms":[100,100],"kinds":[300,0]})"},
+         {.name = "hazard.cannon.1", .extras = R"({"event":1e10})"},
+         {.name = "brick.red.1", .extras = R"({"respawn_ms":0.5})"}},
+        line);
+
+    CHECK(markers.routes.empty());
+    CHECK_FALSE(markers.hazards.has_value());
+    CHECK(markers.bricks.value_or(BrickLayout{}).coloured.empty());
+    CHECK(markers.problems.size() == 6);
+}
+
+TEST_CASE("two starts with the same number are a problem") {
+    const TrackMarkers markers = MarkersOf({{.name = "start.1"}, {.name = "start.1.001"}});
+
+    REQUIRE_FALSE(markers.problems.empty());
+    CHECK(markers.problems.front() == "start.1.001: there's another start with this number");
 }
 
 }

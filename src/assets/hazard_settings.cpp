@@ -1,5 +1,6 @@
 #include "assets/hazard_settings.hpp"
 
+#include <format>
 #include <optional>
 #include <span>
 #include <string>
@@ -13,21 +14,20 @@ constexpr std::size_t kVectorSize = 3;
 
 class Settings {
 public:
-    explicit Settings(const JsonValue& json) : json_(&json) {}
+    Settings(const JsonValue& json, std::vector<std::string>& problems)
+        : json_(&json), problems_(&problems) {}
 
     [[nodiscard]] float Float(std::string_view key) const {
-        const JsonValue* value = json_->Find(key);
-        return value != nullptr ? static_cast<float>(value->Number().value_or(0.0)) : 0.0F;
+        return Checked(json_->Find(key), key, &JsonValue::Float, 0.0F);
     }
 
     [[nodiscard]] EventId Event(std::string_view key) const {
-        const JsonValue* value = json_->Find(key);
-        return value != nullptr ? static_cast<EventId>(value->Number().value_or(kNoEvent))
-                                : kNoEvent;
+        return Checked(json_->Find(key), key, &JsonValue::Integer<EventId>, kNoEvent);
     }
 
     [[nodiscard]] Milliseconds Duration(std::string_view key) const {
-        return Milliseconds{static_cast<Milliseconds::rep>(Float(key))};
+        return Milliseconds{Checked(json_->Find(key), key, &JsonValue::Integer<Milliseconds::rep>,
+                                    Milliseconds::rep{0})};
     }
 
     [[nodiscard]] std::optional<std::string> OptionalText(std::string_view key) const {
@@ -57,9 +57,10 @@ public:
             return std::nullopt;
         }
         const std::span<const JsonValue> items = value->Items();
-        return Vector3{.x = static_cast<float>(items[0].Number().value_or(0.0)),
-                       .y = static_cast<float>(items[1].Number().value_or(0.0)),
-                       .z = static_cast<float>(items[2].Number().value_or(0.0))};
+        const auto at = [&](std::size_t i) {
+            return Checked(&items[i], key, &JsonValue::Float, 0.0F);
+        };
+        return Vector3{.x = at(0), .y = at(1), .z = at(2)};
     }
 
     [[nodiscard]] Vector3 Point(std::string_view key) const {
@@ -69,16 +70,32 @@ public:
     [[nodiscard]] Settings Child(std::string_view key) const {
         static const JsonValue kNone;
         const JsonValue* value = json_->Find(key);
-        return Settings(value != nullptr ? *value : kNone);
+        return {value != nullptr ? *value : kNone, *problems_};
     }
 
+    [[nodiscard]] Settings Item(const JsonValue& item) const { return {item, *problems_}; }
+
     [[nodiscard]] std::span<const JsonValue> Items(std::string_view key) const {
-        const JsonValue* value = json_->Find(key);
-        return value != nullptr ? value->Items() : std::span<const JsonValue>();
+        return json_->Items(key);
     }
 
 private:
+    template <typename Value>
+    Value Checked(const JsonValue* value, std::string_view key,
+                  std::optional<Value> (JsonValue::*read)() const, Value fallback) const {
+        if (value == nullptr) {
+            return fallback;
+        }
+        const std::optional<Value> number = (value->*read)();
+        if (!number) {
+            problems_->push_back(std::format("{} isn't a number in range", key));
+            return fallback;
+        }
+        return *number;
+    }
+
     const JsonValue* json_;
+    std::vector<std::string>* problems_;
 };
 
 CannonShot ShotFrom(const Settings& settings) {
@@ -89,11 +106,12 @@ CannonShot ShotFrom(const Settings& settings) {
             .event = settings.Event("event")};
 }
 
-std::vector<AimPoint> AimsFrom(std::span<const JsonValue> items) {
+std::vector<AimPoint> AimsFrom(const Settings& settings, std::string_view key) {
+    const std::span<const JsonValue> items = settings.Items(key);
     std::vector<AimPoint> aims;
     aims.reserve(items.size());
     for (const JsonValue& item : items) {
-        const Settings aim(item);
+        const Settings aim = settings.Item(item);
         aims.push_back({.position = aim.Point("position"), .event = aim.Event("event")});
     }
     return aims;
@@ -112,8 +130,8 @@ HazardPayload PayloadFrom(HazardKind kind, const Settings& settings) {
                                .uAmplitude = settings.Float("u_amplitude"),
                                .vAmplitude = settings.Float("v_amplitude")};
         case HazardKind::ShipCannons:
-            return ShipCannons{.launches = AimsFrom(settings.Items("launches")),
-                               .targets = AimsFrom(settings.Items("targets")),
+            return ShipCannons{.launches = AimsFrom(settings, "launches"),
+                               .targets = AimsFrom(settings, "targets"),
                                .shot = ShotFrom(settings.Child("shot"))};
         case HazardKind::SwingingBox:
             return SwingingBox{.entity = settings.Text("entity"),
@@ -146,8 +164,13 @@ HazardPayload PayloadFrom(HazardKind kind, const Settings& settings) {
 
 }
 
-HazardPayload HazardPayloadFrom(HazardKind kind, const JsonValue& settings) {
-    return PayloadFrom(kind, Settings(settings));
+Result<HazardPayload> HazardPayloadFrom(HazardKind kind, const JsonValue& settings) {
+    std::vector<std::string> problems;
+    HazardPayload payload = PayloadFrom(kind, Settings(settings, problems));
+    if (!problems.empty()) {
+        return Fail(ErrorCode::InvalidData, problems.front());
+    }
+    return payload;
 }
 
 }

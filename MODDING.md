@@ -151,10 +151,10 @@ A `TRACK.GLB` in the track's folder can hold its start grid, gates, power-up bri
 - Only a marker's name and place count, not its parent, so group them as you like. Blender's `.001` endings are fine.
 - Starts and gates face along their local X axis, the way to drive. A gate with no `links` leads to the next, and the last back to the first.
 - Moving a cannon, ship cannon or lightning cannon hazard moves where it fires from. Its other settings come from its extras.
-- A route is a line whose extras need `durations_ms`, one per point after the first. The rest of its extras are optional.
+- A route is a line whose extras need `durations_ms`, one per point after the first, each 1 to 2016. The rest of its extras are optional. Without `loop_point`, it carries on from its second point after the last.
 - A track still needs its worlds, collision and other files.
 
-`--check-mods` reports markers it can't read, a grid short of six, gates out of order or linking to no gate, unknown brick colours and hazard kinds, and routes without timing.
+`--check-mods` reports markers it can't read, a grid short of six, starts or gates numbered twice or out of order, gates linking to no gate, unknown brick colours and hazard kinds, numbers out of range, and routes with bad timing.
 
 ## Circuits
 
