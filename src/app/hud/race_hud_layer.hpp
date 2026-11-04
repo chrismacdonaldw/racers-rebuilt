@@ -37,7 +37,7 @@ public:
     /// Takes `language`'s HUD fonts, already loaded.
     void SetLanguage(std::string_view language, UiFonts fonts);
 
-    void UseMissingGlyphs(MissingGlyphs missing);
+    void UseTextFixes(TextFixes fixes);
 
     /// Shows the circuit results from `before`, each racer's points before this race.
     void SetCircuitPoints(std::span<const std::int32_t> before);
@@ -72,7 +72,7 @@ private:
     std::optional<Milliseconds> demoTime_;
     std::string language_;
     UiFonts fonts_;
-    MissingGlyphs missingGlyphs_ = MissingGlyphs::FirstGlyph;
+    TextFixes textFixes_;
     std::vector<std::u16string> names_;
     std::vector<UiImage> images_;
     std::vector<RaceHud> huds_;

@@ -286,6 +286,7 @@ rr_add_module(app
         track_viewer_scene.cpp
         trigger_spheres.cpp
         ui_text/drawn_glyphs.cpp
+        ui_text/font_list_fixes.cpp
         ui_text/text_layout.cpp
         ui_text/ui_font.cpp
         ui_text/ui_image.cpp

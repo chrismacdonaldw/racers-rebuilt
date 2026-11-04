@@ -61,7 +61,7 @@ public:
     void DrawFarScenery(bool isDrawn) { isFarSceneryDrawn_ = isDrawn; }
     /// Full-screen shots stay in the 4:3 area even when races fill a wider window.
     void KeepToCanvas(bool keepsToCanvas) { keepsToCanvas_ = keepsToCanvas; }
-    void UseMissingGlyphs(MissingGlyphs missing) { app::UseMissingGlyphs(parts_.fonts, missing); }
+    void UseTextFixes(TextFixes fixes) { app::UseTextFixes(parts_.fonts, fixes); }
 
     [[nodiscard]] bool IsComplete() const { return parts_.player.IsComplete(); }
     [[nodiscard]] std::span<const sim::EntityClock> Clocks() const {

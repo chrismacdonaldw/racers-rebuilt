@@ -34,7 +34,7 @@ public:
                                                                          const assets::Vfs& vfs,
                                                                          std::string_view track,
                                                                          std::string_view language,
-                                                                         MissingGlyphs missing);
+                                                                         TextFixes fixes);
 
     /// Draws and presents a frame at once.
     void Show(float progress);
@@ -56,6 +56,6 @@ private:
                                                                    const assets::Vfs& vfs,
                                                                    std::string_view track,
                                                                    std::string_view language,
-                                                                   MissingGlyphs missing);
+                                                                   TextFixes fixes);
 
 }

@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "app/ui_text/font_list_fixes.hpp"
 #include "app/ui_text/ui_pixels.hpp"
 #include "assets/game_path.hpp"
 #include "assets/texture_database.hpp"
@@ -18,10 +19,15 @@ Result<UiFont> LoadUiFont(render::Renderer& renderer, const assets::Vfs& vfs,
         return std::unexpected(std::move(image.error()));
     }
     const assets::ImageAsset& layout = image->Layout();
-    UiFont font{.widthPx = layout.widthPx,
-                .heightPx = layout.heightPx,
-                .spacingPx = definition.spacingPx,
-                .glyphs = assets::ScanGlyphs(layout, definition.characters)};
+    UiFont font{
+        .widthPx = layout.widthPx,
+        .heightPx = layout.heightPx,
+        .spacingPx = definition.spacingPx,
+        .glyphs = assets::ScanGlyphs(layout, definition.characters),
+        .fixedGlyphs =
+            FixedCharacters(definition).transform([&](const std::vector<char16_t>& characters) {
+                return assets::ScanGlyphs(layout, characters);
+            })};
     if (definition.colorKey && !image->original) {
         assets::ApplyColorKey(image->pixels, *definition.colorKey);
     }
@@ -56,9 +62,9 @@ const UiFont* FindUiFont(const UiFonts& fonts, std::string_view name) {
     return font == fonts.end() ? nullptr : &font->second;
 }
 
-void UseMissingGlyphs(UiFonts& fonts, MissingGlyphs missing) {
+void UseTextFixes(UiFonts& fonts, TextFixes fixes) {
     for (UiFont& font : fonts | std::views::values) {
-        font.missingGlyphs = missing;
+        font.fixes = fixes;
     }
 }
 

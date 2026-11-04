@@ -21,7 +21,7 @@ UiFont TwoLetterFont() {
 
 UiFont ShapesFont() {
     UiFont font = TwoLetterFont();
-    font.missingGlyphs = MissingGlyphs::Shapes;
+    font.fixes.missingGlyphs = MissingGlyphs::Shapes;
     return font;
 }
 
@@ -115,6 +115,16 @@ TEST_CASE("a font's own dash wins over the drawn one") {
     REQUIRE(sprites.size() == 1);
     CHECK(sprites[0].texture == render::TextureId{3});
     CHECK(sprites[0].bounds.width == 2.0F);
+}
+
+TEST_CASE("fixed glyph lists are used only when the fix is on") {
+    UiFont font = TwoLetterFont();
+    font.fixedGlyphs = assets::FontGlyphs{
+        .spaceWidthPx = 3, .glyphs = {{.character = u'A', .leftPx = 50, .widthPx = 5}}};
+
+    CHECK(TextWidth(font, u"A") == 4.0F);
+    font.fixes.fixesGlyphLists = true;
+    CHECK(TextWidth(font, u"A") == 5.0F);
 }
 
 using Lines = std::vector<std::u16string_view>;

@@ -120,10 +120,10 @@ Result<std::unique_ptr<RaceLoadingScreen>> RaceLoadingScreen::Load(render::Rende
                                                                    const assets::Vfs& vfs,
                                                                    std::string_view track,
                                                                    std::string_view language,
-                                                                   MissingGlyphs missing) {
+                                                                   TextFixes fixes) {
     Result<UiFonts> fonts = LoadUiFonts(renderer, vfs, HudFolder(language), kHudFontList);
     if (fonts) {
-        UseMissingGlyphs(*fonts, missing);
+        UseTextFixes(*fonts, fixes);
     }
     Result<LoadingScreenParts> parts =
         fonts.and_then([](const UiFonts& loaded) { return FindHudFonts(loaded); })
@@ -150,10 +150,9 @@ void RaceLoadingScreen::Show(float progress) {
 
 std::unique_ptr<RaceLoadingScreen> OpenLoadingScreen(render::Renderer& renderer,
                                                      const assets::Vfs& vfs, std::string_view track,
-                                                     std::string_view language,
-                                                     MissingGlyphs missing) {
+                                                     std::string_view language, TextFixes fixes) {
     Result<std::unique_ptr<RaceLoadingScreen>> screen =
-        RaceLoadingScreen::Load(renderer, vfs, track, language, missing);
+        RaceLoadingScreen::Load(renderer, vfs, track, language, fixes);
     if (!screen) {
         log::Warn("{}: {}, loading without a loading screen", track, screen.error().message);
         return nullptr;
