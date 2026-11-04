@@ -26,6 +26,11 @@ Result<std::vector<std::byte>> DrawPrint(assets::LdrawLibrary& library,
     });
 }
 
+bool IsOnlyInGame(const assets::Vfs& vfs, std::string_view path) {
+    const Result<std::vector<assets::FileData>> layers = vfs.ReadEveryLayer(path);
+    return layers && layers->size() == 1;
+}
+
 }
 
 std::optional<assets::LdrawPrint> PrintOfImagePath(std::string_view path) {
@@ -46,15 +51,27 @@ void LdrawDriverPrints::Attach(mods::HookRegistry& hooks, const settings::Regist
         if (event.request.generated || !settings.Get(kLdrawPrintsSetting)) {
             return;
         }
-        const std::optional<assets::LdrawPrint> print = PrintOfImagePath(event.request.path);
-        if (!print) {
-            return;
+        const std::string_view path = event.request.path;
+        std::optional<std::vector<std::byte>> file;
+        if (const std::optional<assets::LdrawPrint> print = PrintOfImagePath(path)) {
+            file = ImageFile(*print, event.vfs, path);
+        } else if (const std::optional<FaceImage> face = FaceOfImagePath(path)) {
+            file = FaceFile(*face, event.vfs, path);
         }
-        if (std::optional<std::vector<std::byte>> file =
-                ImageFile(*print, event.vfs, event.request.path)) {
+        if (file) {
             event.request.generated = std::move(*file);
         }
     });
+}
+
+std::optional<std::vector<std::byte>> LdrawDriverPrints::FaceFile(const FaceImage& face,
+                                                                  const assets::Vfs& vfs,
+                                                                  std::string_view path) {
+    if (!IsOnlyInGame(vfs, path)) {
+        return std::nullopt;
+    }
+    const std::scoped_lock lock(mutex_);
+    return faces_.ImageFile(face, library_);
 }
 
 std::optional<std::vector<std::byte>> LdrawDriverPrints::ImageFile(const assets::LdrawPrint& print,

@@ -62,6 +62,7 @@ add_executable(racers-rebuilt-tests
     app/device_assignment_test.cpp
     app/free_camera_test.cpp
     app/hq_textures_test.cpp
+    app/ldraw_driver_faces_test.cpp
     app/ldraw_driver_prints_test.cpp
     app/ldraw_minifig_models_test.cpp
     app/ldraw_piece_models_test.cpp
@@ -211,6 +212,8 @@ add_executable(racers-rebuilt-tests
     assets/driver_parts_test.cpp
     assets/emitter_library_test.cpp
     assets/event_table_test.cpp
+    assets/face_drawing_test.cpp
+    assets/face_shapes_test.cpp
     assets/sky_file_test.cpp
     assets/font_list_test.cpp
     assets/game_path_test.cpp
@@ -230,6 +233,7 @@ add_executable(racers-rebuilt-tests
     assets/jam_archive_test.cpp
     assets/jam_test.cpp
     assets/ldraw_extra_pieces_test.cpp
+    assets/ldraw_head_test.cpp
     assets/ldraw_minifig_test.cpp
     assets/ldraw_part_test.cpp
     assets/ldraw_pieces_test.cpp
