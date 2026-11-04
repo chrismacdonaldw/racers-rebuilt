@@ -219,6 +219,7 @@ add_executable(racers-rebuilt-tests
     assets/event_table_test.cpp
     assets/face_drawing_test.cpp
     assets/face_shapes_test.cpp
+    assets/figure_rig_test.cpp
     assets/sky_file_test.cpp
     assets/font_list_test.cpp
     assets/game_path_test.cpp
@@ -357,6 +358,7 @@ add_executable(racers-rebuilt-tests
     sim/ai/route_lap_test.cpp
     sim/ai/rubber_band_test.cpp
     sim/ai/speed_plan_test.cpp
+    sim/animation/figure_retarget_test.cpp
     sim/animation/part_clock_test.cpp
     sim/animation/skeleton_pose_test.cpp
     sim/car_build/bench_test.cpp

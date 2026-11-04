@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "app/racer/mod_driver_parts.hpp"
+#include "assets/figure_rig.hpp"
 #include "assets/game_path.hpp"
 #include "assets/geometry_database.hpp"
 #include "assets/merged_table.hpp"
@@ -19,6 +20,7 @@
 #include "assets/skeleton_database.hpp"
 #include "assets/texture_database.hpp"
 #include "core/log.hpp"
+#include "sim/animation/figure_retarget.hpp"
 #include "sim/car_build/built_car.hpp"
 #include "sim/car_build/car_mesh.hpp"
 #include "sim/physics/racer_chassis.hpp"
@@ -141,6 +143,20 @@ void AddModLooks(const assets::Vfs& vfs, const assets::DriverPartCatalog& parts,
     }
 }
 
+std::optional<assets::FigureRig> ReadRig(const assets::Vfs& vfs, const std::string& path) {
+    const Result<assets::FileData> file = vfs.Read(path);
+    if (!file) {
+        return std::nullopt;
+    }
+    Result<assets::FigureRig> rig = assets::ParseFigureRig(file->Bytes());
+    if (!rig) {
+        log::Warn("Posing the minifig on its skeleton because {} is broken: {}", path,
+                  rig.error().message);
+        return std::nullopt;
+    }
+    return std::move(*rig);
+}
+
 }
 
 Result<BuiltCarModel> BuildCarModel(const assets::Vfs& vfs, const assets::CarData& car,
@@ -208,14 +224,22 @@ Result<assets::GeometryAsset> BuildMinifig(const assets::Vfs& vfs,
 }
 
 Result<assets::SkeletonAsset> LoadMenuMinifigSkeleton(const assets::Vfs& vfs,
+                                                      std::string_view body) {
+    const std::string stem = std::format("{}/{}", kMenuMinifig.folder, assets::ToUpperAscii(body));
+    return ReadParsed(vfs, stem + ".SDB", assets::ParseSkeleton)
+        .transform([&](assets::SkeletonAsset skeleton) {
+            if (const std::optional<assets::FigureRig> rig = ReadRig(vfs, stem + ".RIG")) {
+                skeleton.rig = sim::BoundRig(*rig, skeleton);
+            }
+            return skeleton;
+        });
+}
+
+Result<assets::SkeletonAsset> LoadMenuMinifigSkeleton(const assets::Vfs& vfs,
                                                       const assets::DriverPartCatalog& parts,
                                                       const assets::DriverLook& look) {
     return assets::DriverBodyName(parts, look, assets::DriverDetail::Menu)
-        .and_then([&](const std::string& name) {
-            return ReadParsed(
-                vfs, std::format("{}/{}.SDB", kMenuMinifig.folder, assets::ToUpperAscii(name)),
-                assets::ParseSkeleton);
-        });
+        .and_then([&](const std::string& name) { return LoadMenuMinifigSkeleton(vfs, name); });
 }
 
 Result<std::string> MenuMinifigAnimations(const assets::DriverPartCatalog& parts,

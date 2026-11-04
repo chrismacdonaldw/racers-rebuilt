@@ -2,6 +2,7 @@
 
 #include <span>
 
+#include "assets/figure_rig.hpp"
 #include "assets/geometry_asset.hpp"
 #include "assets/ldraw_minifig.hpp"
 #include "assets/part_library.hpp"
@@ -16,8 +17,13 @@ struct FigurePiece {
     GeometryAsset geometry;
 };
 
+struct FittedMinifig {
+    GeometryAsset geometry;
+    FigureRig rig;
+};
+
 /// The first piece is the torso. Original `face` triangles stay so the head still finds its joint.
-[[nodiscard]] Result<GeometryAsset> FitMinifigBody(const GeometryAsset& body,
+[[nodiscard]] Result<FittedMinifig> FitMinifigBody(const GeometryAsset& body,
                                                    const SkeletonAsset& skeleton,
                                                    std::span<const FigurePiece> pieces);
 

@@ -4,7 +4,6 @@
 
 #include "app/cutscene/award_car.hpp"
 #include "app/cutscene/award_driver.hpp"
-#include "app/racer/racer_models.hpp"
 
 namespace rr::app {
 namespace {
@@ -35,18 +34,12 @@ Result<std::optional<JointedModel>> BuildStandCar(render::Renderer& renderer,
 Result<StandRacer> BuildStandDriver(render::Renderer& renderer, const assets::Vfs& vfs,
                                     assets::TrackLoader& loader, const assets::DriverLook& look) {
     Result<AwardDriver> driver = LoadAwardDriver(vfs, loader, look);
-    Result<assets::SkeletonAsset> skeleton = driver.and_then([&](const AwardDriver&) {
-        return LoadDriverParts(vfs).and_then([&](const assets::DriverPartCatalog& parts) {
-            return LoadMenuMinifigSkeleton(vfs, parts, look);
-        });
-    });
-    Result<JointedModel> minifig = skeleton.and_then([&](const assets::SkeletonAsset&) {
-        return Upload(renderer, driver->minifig, driver->looks);
-    });
+    Result<JointedModel> minifig = driver.and_then(
+        [&](const AwardDriver& loaded) { return Upload(renderer, loaded.minifig, loaded.looks); });
     if (!minifig) {
         return std::unexpected(std::move(minifig.error()));
     }
-    return StandRacer{.skeleton = std::move(*skeleton),
+    return StandRacer{.skeleton = std::move(driver->skeleton),
                       .scale = driver->minifig.scale,
                       .driver = std::move(*minifig)};
 }

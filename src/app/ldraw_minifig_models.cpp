@@ -1,10 +1,13 @@
 #include "app/ldraw_minifig_models.hpp"
 
+#include <algorithm>
 #include <array>
 #include <format>
 #include <span>
+#include <string>
 #include <utility>
 
+#include "assets/figure_rig.hpp"
 #include "assets/geometry_database.hpp"
 #include "assets/geometry_writer.hpp"
 #include "assets/ldraw_minifig.hpp"
@@ -21,6 +24,32 @@ constexpr std::array<std::string_view, 2> kMinifigFolders{"MENUDATA/PARTDB/MENUP
 constexpr std::string_view kBodyExtension = ".GDB";
 constexpr std::string_view kSkeletonExtension = ".SDB";
 constexpr std::string_view kHeadsExtension = ".GCB";
+constexpr std::string_view kRigExtension = ".RIG";
+
+using File = std::optional<std::vector<std::byte>>;
+
+struct FittedFiles {
+    std::vector<std::byte> body;
+    std::vector<std::byte> rig;
+};
+
+std::vector<std::byte> BytesOf(std::string_view text) {
+    std::vector<std::byte> bytes(text.size());
+    std::ranges::transform(text, bytes.begin(), [](char c) { return static_cast<std::byte>(c); });
+    return bytes;
+}
+
+std::string WithExtension(std::string_view path, std::string_view extension) {
+    return std::format("{}{}", path.substr(0, path.rfind('.')), extension);
+}
+
+template <typename T>
+void WarnUnfitted(std::string_view path, const Result<T>& fitted) {
+    if (!fitted) {
+        log::Warn("Keeping {} because its LDraw minifig can't be fitted: {}", path,
+                  fitted.error().message);
+    }
+}
 
 std::optional<std::string_view> MinifigFileName(std::string_view path) {
     for (const std::string_view folder : kMinifigFolders) {
@@ -31,9 +60,9 @@ std::optional<std::string_view> MinifigFileName(std::string_view path) {
     return std::nullopt;
 }
 
-Result<std::vector<std::byte>> FitBody(assets::LdrawLibrary& library, const assets::Vfs& vfs,
-                                       const assets::FileData& file, std::string_view path,
-                                       std::span<const assets::MinifigPiece> figure) {
+Result<FittedFiles> FitBody(assets::LdrawLibrary& library, const assets::Vfs& vfs,
+                            const assets::FileData& file, std::string_view path,
+                            std::span<const assets::MinifigPiece> figure) {
     std::vector<assets::FigurePiece> pieces;
     for (const assets::MinifigPiece& piece : figure) {
         Result<assets::GeometryAsset> part = library.LoadPart(piece.file);
@@ -42,8 +71,7 @@ Result<std::vector<std::byte>> FitBody(assets::LdrawLibrary& library, const asse
         }
         pieces.push_back({.piece = &piece, .geometry = std::move(*part)});
     }
-    const std::string skeletonPath = std::format(
-        "{}{}", path.substr(0, path.size() - kBodyExtension.size()), kSkeletonExtension);
+    const std::string skeletonPath = WithExtension(path, kSkeletonExtension);
     const Result<assets::SkeletonAsset> skeleton =
         vfs.ReadOriginal(skeletonPath).and_then([](const assets::FileData& data) {
             return assets::ParseSkeleton(data.Bytes());
@@ -53,8 +81,12 @@ Result<std::vector<std::byte>> FitBody(assets::LdrawLibrary& library, const asse
         .and_then([&](const assets::GeometryAsset& body) {
             return assets::FitMinifigBody(body, *skeleton, pieces);
         })
-        .and_then([](const assets::GeometryAsset& fitted) {
-            return assets::WriteGeometry(fitted, assets::GdbVertices::Lit);
+        .and_then([](const assets::FittedMinifig& fitted) {
+            return assets::WriteGeometry(fitted.geometry, assets::GdbVertices::Lit)
+                .transform([&](std::vector<std::byte> body) {
+                    return FittedFiles{.body = std::move(body),
+                                       .rig = BytesOf(assets::WriteFigureRig(fitted.rig))};
+                });
         });
 }
 
@@ -93,32 +125,33 @@ std::optional<std::vector<std::byte>> LdrawMinifigModels::ModelFile(const assets
         return std::nullopt;
     }
     const bool isHeads = name->ends_with(kHeadsExtension);
+    const bool isBody = name->ends_with(kBodyExtension) || name->ends_with(kRigExtension);
     const std::span<const assets::MinifigPiece> figure =
-        name->ends_with(kBodyExtension)
-            ? assets::MinifigFigureOf(name->substr(0, name->size() - kBodyExtension.size()))
-            : std::span<const assets::MinifigPiece>{};
+        isBody ? assets::MinifigFigureOf(name->substr(0, name->rfind('.')))
+               : std::span<const assets::MinifigPiece>{};
     if (!isHeads && figure.empty()) {
         return std::nullopt;
     }
-    Result<std::vector<assets::FileData>> layers = vfs.ReadEveryLayer(path);
+    const std::string source = isHeads ? std::string(path) : WithExtension(path, kBodyExtension);
+    Result<std::vector<assets::FileData>> layers = vfs.ReadEveryLayer(source);
     if (!layers || layers->size() != 1) {
         return std::nullopt;
     }
     const std::scoped_lock lock(mutex_);
-    const auto [found, isNew] = files_.try_emplace(std::string(path));
-    if (!isNew) {
+    if (const auto found = files_.find(std::string(path)); found != files_.end()) {
         return found->second;
     }
-    Result<std::vector<std::byte>> file =
-        isHeads ? FitHeads(library_, layers->front())
-                : FitBody(library_, vfs, layers->front(), path, figure);
-    if (!file) {
-        log::Warn("Keeping {} because its LDraw minifig can't be fitted: {}", path,
-                  file.error().message);
-        return std::nullopt;
+    if (isHeads) {
+        Result<std::vector<std::byte>> heads = FitHeads(library_, layers->front());
+        WarnUnfitted(source, heads);
+        return files_[source] = heads ? File(std::move(*heads)) : File{};
     }
-    found->second = std::move(*file);
-    return found->second;
+    Result<FittedFiles> fitted = FitBody(library_, vfs, layers->front(), source, figure);
+    WarnUnfitted(source, fitted);
+    const std::string rig = WithExtension(source, kRigExtension);
+    files_[source] = fitted ? File(std::move(fitted->body)) : File{};
+    files_[rig] = fitted ? File(std::move(fitted->rig)) : File{};
+    return files_.at(std::string(path));
 }
 
 }

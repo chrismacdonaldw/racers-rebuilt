@@ -396,6 +396,7 @@ A model at `MENUDATA/PIECEDB/MODELS/<brick name>.GDB`, or a `.glb` there, replac
 - The model draws its own studs: the game adds none on the brick's cells.
 - **LDraw pieces** (`enhancements.ldraw_pieces`) draws the bricks, minifig accessories and other car pieces that match parts in the shipped LDraw library this way. A mod's model wins over it.
 - **LDraw minifigs** (`enhancements.ldraw_minifigs`, beta) rebuilds the driver bodies in `MENUDATA/PARTDB/MENUPART` and `GAMEPART`, and the heads in their `.GCB` libraries, from LDraw minifig parts. A mod's body `.GDB` or head library wins over it.
+  - Each rebuilt body comes with a `.RIG` beside it: the points its arms and legs bend at. A mod that ships its own body `.GDB` can ship a `.RIG` with it, as text: a `rig 1` line, then `pivot <node> <x> <y> <z>` lines in the body's rest pose and unscaled units, and `limb <upper> <middle> <end>` lines naming the nodes that bend with two-bone reach. Without one, the body bends at its skeleton's own joints.
 
 ## New bricks
 

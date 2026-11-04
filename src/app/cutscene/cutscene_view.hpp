@@ -75,6 +75,7 @@ private:
     // NOLINTNEXTLINE(bugprone-exception-escape)
     struct DressedDriver {
         assets::DriverLook look;
+        assets::SkeletonAsset skeleton;
         JointedModel model;
         assets::NameMap<render::Material> materials;
     };

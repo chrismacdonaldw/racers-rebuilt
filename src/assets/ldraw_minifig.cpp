@@ -12,7 +12,7 @@ namespace {
 
 using Rows = std::array<float, 9>;
 using Joints = std::array<std::string_view, 4>;
-using Bones = std::array<std::string_view, 2>;
+using Segments = std::array<std::string_view, 3>;
 
 constexpr Rows kUnturned{1, 0, 0, 0, 1, 0, 0, 0, 1};
 constexpr Rows kSeatedTurn{1, 0, 0, 0, 0, 1, 0, -1, 0};
@@ -44,35 +44,44 @@ constexpr LdrawMatrix Placed(const Rows& rows, Vector3 position) {
 
 constexpr MinifigPiece Piece(std::string_view file, const LdrawMatrix& placement,
                              std::string_view material, const Joints& joints,
-                             std::string_view swingJoint = {}, const Bones& bones = {}) {
+                             std::string_view swingJoint = {}, const Segments& segments = {}) {
     return {.file = file,
             .placement = placement,
+            .pivot = placement.position,
             .material = material,
             .joints = joints,
             .swingJoint = swingJoint,
-            .bones = bones};
+            .segments = segments};
 }
 
-constexpr MinifigPiece kStandingTorso =
-    Piece("973.dat", Placed(kUnturned, {}), kTorso, {"chest", "waist", kRootJoint});
+constexpr MinifigPiece Torso(const Joints& joints) {
+    MinifigPiece torso = Piece("973.dat", Placed(kUnturned, {}), kTorso, joints);
+    torso.pivot = kHips;
+    return torso;
+}
+
+constexpr MinifigPiece kStandingTorso = Torso({"chest", "waist", kRootJoint});
 constexpr MinifigPiece kStandingHips =
     Piece("3815b.dat", Placed(kUnturned, kHips), kLegsMaterial, {kRootJoint});
 constexpr MinifigPiece kRightLeg =
-    Piece("3816c.dat", Placed(kUnturned, kLegs), kLegsMaterial, {"r_th", "r_kn", "r_an", "r_ba"});
+    Piece("3816c.dat", Placed(kUnturned, kLegs), kLegsMaterial, {"r_th", "r_kn", "r_an", "r_ba"},
+          {}, {"r_th", "r_kn", "r_an"});
 constexpr MinifigPiece kLeftLeg =
-    Piece("3817c.dat", Placed(kUnturned, kLegs), kLegsMaterial, {"l_th", "l_kn", "l_an", "l_ba"});
+    Piece("3817c.dat", Placed(kUnturned, kLegs), kLegsMaterial, {"l_th", "l_kn", "l_an", "l_ba"},
+          {}, {"l_th", "l_kn", "l_an"});
 constexpr MinifigPiece kPegLeg =
-    Piece("2532.dat", Placed(kUnturned, kLegs), kLegsMaterial, {"r_th", "r_kn", "r_an", "r_ba"});
+    Piece("2532.dat", Placed(kUnturned, kLegs), kLegsMaterial, {"r_th", "r_kn", "r_an", "r_ba"}, {},
+          {"r_th", "r_kn", "r_an"});
 constexpr MinifigPiece kRightArm = Piece("3818.dat", Placed(kRightArmTurn, kRightShoulder), kTorso,
                                          {"r_sh", "r_el"}, "r_sh", {"r_sh", "r_el"});
 constexpr MinifigPiece kLeftArm = Piece("3819.dat", Placed(kLeftArmTurn, kLeftShoulder), kTorso,
                                         {"l_sh", "l_el"}, "l_sh", {"l_sh", "l_el"});
 constexpr MinifigPiece kRightHand =
-    Piece("3820.dat", Placed(kRightHandTurn, kRightWrist), kTorso, {"r_hand"}, "r_sh", {"r_el"});
+    Piece("3820.dat", Placed(kRightHandTurn, kRightWrist), kTorso, {"r_hand"}, "r_sh");
 constexpr MinifigPiece kLeftHand =
-    Piece("3820.dat", Placed(kLeftHandTurn, kLeftWrist), kTorso, {"l_hand"}, "l_sh", {"l_el"});
+    Piece("3820.dat", Placed(kLeftHandTurn, kLeftWrist), kTorso, {"l_hand"}, "l_sh");
 constexpr MinifigPiece kLeftHook =
-    Piece("2531.dat", Placed(kLeftHookTurn, kLeftWrist), kTorso, {"hook"}, "l_sh", {"l_el"});
+    Piece("2531.dat", Placed(kLeftHookTurn, kLeftWrist), kTorso, {"hook"}, "l_sh");
 
 constexpr std::array kTwoHandsTwoLegs{kStandingTorso, kStandingHips, kRightLeg, kLeftLeg,
                                       kRightArm,      kRightHand,    kLeftArm,  kLeftHand};
@@ -84,7 +93,7 @@ constexpr std::array kHookPegLeg{kStandingTorso, kStandingHips, kPegLeg,  kLeftL
                                  kRightArm,      kRightHand,    kLeftArm, kLeftHook};
 
 constexpr std::array kSeatedFigure{
-    Piece("973.dat", Placed(kUnturned, {}), kTorso, {"chest"}),
+    Torso({"chest"}),
     Piece("3815b.dat", Placed(kUnturned, kHips), kLegsMaterial, {kRootJoint}),
     Piece("3816c.dat", Placed(kSeatedTurn, kLegs), kLegsMaterial, {kRootJoint}),
     Piece("3817c.dat", Placed(kSeatedTurn, kLegs), kLegsMaterial, {kRootJoint}),

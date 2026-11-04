@@ -29,6 +29,15 @@ bool IsPartIndex(std::int32_t index) {
     return std::in_range<std::uint8_t>(index);
 }
 
+bool IsDriverEntity(const sim::TrackEntity& entity) {
+    return assets::ToUpperAscii(entity.name) == kDriverEntity;
+}
+
+bool HasJointsOf(const assets::SkeletonAsset& shown, const assets::SkeletonAsset& driver) {
+    return std::ranges::equal(shown.nodes, driver.nodes, {}, &assets::SkeletonNode::parent,
+                              &assets::SkeletonNode::parent);
+}
+
 void GiveLegs(assets::TrackAssets& assets, std::string_view entity, const std::string& legs) {
     const std::optional<std::string> name = EntityModel(assets, entity);
     const auto model = name ? assets.models.find(*name) : assets.models.end();
@@ -83,8 +92,10 @@ Result<AwardDriver> LoadAwardDriver(const assets::Vfs& vfs, assets::TrackLoader&
         parts.and_then([&](const assets::DriverPartCatalog& catalog) {
             return BuildMinifig(vfs, catalog, look, assets::DriverDetail::Menu);
         });
-    Result<assets::TrackAssets> looks = minifig.and_then(
-        [&](const assets::GeometryAsset&) { return LoadDriverLooks(vfs, loader, *parts); });
+    Result<assets::SkeletonAsset> skeleton = minifig.and_then(
+        [&](const assets::GeometryAsset&) { return LoadMenuMinifigSkeleton(vfs, *parts, look); });
+    Result<assets::TrackAssets> looks = skeleton.and_then(
+        [&](const assets::SkeletonAsset&) { return LoadDriverLooks(vfs, loader, *parts); });
     const std::string face =
         minifig ? parts->faces.parts.at(assets::FitLook(*parts, look).face).name : std::string();
     Result<assets::TrackAssets> faces = looks.and_then([&](const assets::TrackAssets& loaded) {
@@ -94,8 +105,11 @@ Result<AwardDriver> LoadAwardDriver(const assets::Vfs& vfs, assets::TrackLoader&
         return std::unexpected(std::move(faces.error()));
     }
     assets::MergeTrackAssets(*looks, std::move(*faces));
-    return AwardDriver{
-        .look = look, .face = face, .minifig = std::move(*minifig), .looks = std::move(*looks)};
+    return AwardDriver{.look = look,
+                       .face = face,
+                       .minifig = std::move(*minifig),
+                       .skeleton = std::move(*skeleton),
+                       .looks = std::move(*looks)};
 }
 
 std::optional<std::string> DriverModelOf(const assets::TrackAssets& assets) {
@@ -117,6 +131,24 @@ void DressAwardDriver(const AwardDriver& driver, assets::TrackAssets& assets) {
     }
     for (const auto& [name, texture] : driver.looks.textures) {
         assets.textures.insert_or_assign(name, texture);
+    }
+}
+
+void RigAwardDriver(const assets::SkeletonAsset& driver, sim::TrackEntitySources& sources) {
+    for (sim::TrackEntity& entity : sources.entities) {
+        if (!IsDriverEntity(entity) || !HasJointsOf(sources.skeletons[entity.skeleton], driver)) {
+            continue;
+        }
+        const bool isShared =
+            std::ranges::any_of(sources.entities, [&](const sim::TrackEntity& other) {
+                return other.skeleton == entity.skeleton && !IsDriverEntity(other);
+            });
+        if (isShared) {
+            assets::SkeletonAsset own = sources.skeletons[entity.skeleton];
+            sources.skeletons.push_back(std::move(own));
+            entity.skeleton = sources.skeletons.size() - 1;
+        }
+        sources.skeletons[entity.skeleton].rig = driver.rig;
     }
 }
 

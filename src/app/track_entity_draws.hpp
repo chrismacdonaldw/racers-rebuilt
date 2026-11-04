@@ -7,6 +7,7 @@
 
 #include "app/far_models.hpp"
 #include "app/track_model.hpp"
+#include "sim/animation/figure_retarget.hpp"
 #include "sim/track/track_entities.hpp"
 
 namespace rr::app {
@@ -36,6 +37,7 @@ private:
     std::vector<DrawSpan> spans_;
     std::vector<ScrolledDraws> scrolled_;
     std::vector<std::vector<Transform>> poses_;
+    sim::FigureRetargeter retargeter_;
 };
 
 }

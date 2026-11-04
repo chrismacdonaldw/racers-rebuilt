@@ -249,14 +249,14 @@ Result<const DriverKit::Body*> DriverKit::BodyOf(const std::string& name) {
         return found->second.get();
     }
     auto body = std::make_unique<Body>();
-    Result<void> loaded =
-        ReadParsed(*vfs_, ShapePath(name, "GDB"), assets::ParseGeometry)
-            .and_then([&](assets::GeometryAsset geometry) {
-                body->geometry = std::move(geometry);
-                return ReadParsed(*vfs_, ShapePath(name, "SDB"), assets::ParseSkeleton);
-            })
-            .transform(
-                [&](assets::SkeletonAsset skeleton) { body->skeleton = std::move(skeleton); });
+    Result<void> loaded = ReadParsed(*vfs_, ShapePath(name, "GDB"), assets::ParseGeometry)
+                              .and_then([&](assets::GeometryAsset geometry) {
+                                  body->geometry = std::move(geometry);
+                                  return LoadMenuMinifigSkeleton(*vfs_, name);
+                              })
+                              .transform([&](assets::SkeletonAsset skeleton) {
+                                  body->skeleton = std::move(skeleton);
+                              });
     if (!loaded) {
         return std::unexpected(std::move(loaded.error()));
     }

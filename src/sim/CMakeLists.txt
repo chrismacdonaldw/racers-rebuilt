@@ -13,6 +13,7 @@ rr_add_module(sim
         ai/route_effects.cpp
         ai/rubber_band.cpp
         ai/speed_plan.cpp
+        animation/figure_retarget.cpp
         animation/part_clock.cpp
         animation/skeleton_pose.cpp
         car_build/bench.cpp
