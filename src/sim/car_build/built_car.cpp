@@ -1,6 +1,7 @@
 #include "sim/car_build/built_car.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <format>
 
 namespace rr::sim {
@@ -40,6 +41,26 @@ int TopOf(const assets::PieceRecord& piece) {
     const auto tallest = std::ranges::max_element(
         piece.shape.cells, {}, [](assets::ShapeCell cell) { return cell.TopHeight(); });
     return tallest == piece.shape.cells.end() ? 0 : tallest->TopHeight();
+}
+
+bool RestsAsBefore(const CarGrid& grid, const CarPiece& entry) {
+    const std::expected<int, PlacementFailure> height =
+        grid.RestingHeight(*entry.piece, entry.placement, true);
+    return height && *height == entry.height &&
+           !grid.Collides(*entry.piece, entry.placement, entry.height);
+}
+
+bool Fills(const CarPiece& entry, int cellX, int cellY, int plate) {
+    const PiecePlacement at = entry.placement;
+    const int x = cellX - at.x;
+    const int y = cellY - at.y;
+    const assets::CellSize footprint = entry.piece->shape.Footprint(at.rotation);
+    if (x < 0 || y < 0 || x >= footprint.width || y >= footprint.height) {
+        return false;
+    }
+    const assets::ShapeCell cell = entry.piece->shape.GetCell(x, y, at.rotation);
+    return !cell.IsEmpty() && plate >= entry.height + cell.ClampedBottomHeight() &&
+           plate < entry.height + cell.TopHeight();
 }
 
 struct Moments {
@@ -163,12 +184,75 @@ std::optional<CarPiece> BuiltCar::Undo() {
     }
     const CarPiece newest = pieces_.back();
     pieces_.pop_back();
-    grid_.Clear();
-    for (std::size_t index = 0; index < pieces_.size(); ++index) {
-        const CarPiece& entry = pieces_[index];
-        grid_.Stamp(*entry.piece, entry.placement, entry.height, static_cast<int>(index));
-    }
+    Restamp();
     return newest;
+}
+
+std::vector<std::size_t> BuiltCar::Supports(std::size_t index) const {
+    std::vector<std::size_t> held;
+    CarGrid without;
+    for (std::size_t other = 0; other < pieces_.size(); ++other) {
+        const CarPiece& entry = pieces_[other];
+        if (other > index && !RestsAsBefore(without, entry)) {
+            held.push_back(other);
+        }
+        if (other != index) {
+            without.Stamp(*entry.piece, entry.placement, entry.height, static_cast<int>(other));
+        }
+    }
+    return held;
+}
+
+std::expected<CarPiece, PlacementFailure> BuiltCar::Remove(std::size_t index) {
+    if (index >= pieces_.size()) {
+        return std::unexpected(PlacementFailure::NoPiece);
+    }
+    if (pieces_[index].piece->IsChassis()) {
+        return std::unexpected(PlacementFailure::Chassis);
+    }
+    if (!Supports(index).empty()) {
+        return std::unexpected(PlacementFailure::HoldsPieces);
+    }
+    const CarPiece taken = pieces_[index];
+    pieces_.erase(pieces_.begin() + static_cast<std::ptrdiff_t>(index));
+    Restamp();
+    return taken;
+}
+
+void BuiltCar::Insert(std::size_t index, const CarPiece& piece) {
+    const std::size_t at = std::min(index, pieces_.size());
+    pieces_.insert(pieces_.begin() + static_cast<std::ptrdiff_t>(at), piece);
+    Restamp();
+}
+
+std::expected<int, PlacementFailure> BuiltCar::Move(std::size_t index, PiecePlacement placement) {
+    const std::expected<CarPiece, PlacementFailure> taken = Remove(index);
+    if (!taken) {
+        return std::unexpected(taken.error());
+    }
+    const std::expected<int, PlacementFailure> placed =
+        Place(*taken->piece, placement, taken->colour, taken->partType);
+    if (!placed) {
+        Insert(index, *taken);
+    }
+    return placed;
+}
+
+bool BuiltCar::Recolour(std::size_t index, std::uint8_t colour) {
+    if (index >= pieces_.size()) {
+        return false;
+    }
+    pieces_[index].colour = colour;
+    return true;
+}
+
+std::optional<std::size_t> BuiltCar::PieceAt(int cellX, int cellY, int plate) const {
+    for (std::size_t index = pieces_.size(); index > 0; --index) {
+        if (Fills(pieces_[index - 1], cellX, cellY, plate)) {
+            return index - 1;
+        }
+    }
+    return std::nullopt;
 }
 
 void BuiltCar::Clear() {
@@ -204,6 +288,14 @@ bool BuiltCar::Add(const CarPiece& piece, bool allowsEmpty) {
     added.height = *height;
     grid_.Stamp(*added.piece, added.placement, added.height, index);
     return true;
+}
+
+void BuiltCar::Restamp() {
+    grid_.Clear();
+    for (std::size_t index = 0; index < pieces_.size(); ++index) {
+        const CarPiece& entry = pieces_[index];
+        grid_.Stamp(*entry.piece, entry.placement, entry.height, static_cast<int>(index));
+    }
 }
 
 }

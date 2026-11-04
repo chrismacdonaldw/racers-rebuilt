@@ -34,6 +34,9 @@ enum class PlacementFailure : std::uint8_t {
     Collision,
     TooHigh,
     TooManyPieces,
+    NoPiece,
+    Chassis,
+    HoldsPieces,
 };
 
 /// The car builder's 10×6 grid, keeping each cell's top height and the piece on top.
