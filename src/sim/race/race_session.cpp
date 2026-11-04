@@ -81,7 +81,7 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
       reaches_(setup.racers.size()),
       pickupReaches_(setup.racers.size()),
       contactBodies_(setup.racers.size()),
-      lines_(RacingLinesFor(setup, course)) {
+      routes_(setup, course) {
     racers_.reserve(setup.racers.size());
     contactWorlds_.reserve(setup.racers.size());
     localBounds_.reserve(setup.racers.size());
@@ -98,32 +98,45 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
         if (entry.isPlayer) {
             GiveRacerCheats(racer, setup.playerCheats);
         }
-        const std::span<const assets::RaceRoute> routes = RoutesFor(course, setup.firstSlot + i);
         drivers_.emplace_back();
-        if (!entry.isPlayer && !routes.empty()) {
-            const std::size_t variant = random_.Below(static_cast<std::uint32_t>(routes.size()));
-            const assets::RaceRoute& route = routes[variant];
-            if (setup.aiDriving == AiDriving::Physics) {
-                std::optional<SkillProfile> skill;
-                if (setup.aiSkill) {
-                    skillLevels_[i] = LevelFor(*setup.aiSkill, setup.firstSlot + i, route.pace);
-                    skill = ProfileFor(skillLevels_[i]);
-                }
-                RouteDriver& driver =
-                    drivers_.back().emplace(route, setup.aiPace, setup.aiCraft, skill,
-                                            LineFor(setup.firstSlot + i, variant));
-                if (skill && skill->takesShortcuts) {
-                    driver.OfferRoutes(RouteOptionsFor(routes, LinesFor(setup.firstSlot + i)));
-                }
-            } else {
-                racer.FollowRoute(route);
-            }
+        if (!entry.isPlayer) {
+            StartComputer(i, setup);
         }
         isPlayer_.push_back(entry.isPlayer);
         localBounds_.push_back(entry.localBounds);
         aiPowerups_.emplace_back(entry.habits);
         taunts_.emplace_back();
         positions_[i] = racer.Body().motion.position;
+    }
+}
+
+void RaceSession::StartComputer(std::size_t racer, const RaceSetup& setup) {
+    const std::span<const assets::RaceRoute> routes = routes_.Of(racer);
+    if (routes.empty()) {
+        return;
+    }
+    const std::span<const assets::RaceRoute> recorded = routes_.RecordedOf(racer);
+    const std::size_t drawn =
+        recorded.empty() ? 0 : random_.Below(static_cast<std::uint32_t>(recorded.size()));
+    const bool isGatePath = routes_.IsGatePath(racer);
+    const std::size_t variant = isGatePath ? 0 : drawn;
+    const assets::RaceRoute& route = routes[variant];
+    if (setup.aiDriving == AiDriving::Route && !isGatePath) {
+        racers_[racer].FollowRoute(route);
+        return;
+    }
+    std::optional<SkillProfile> skill;
+    if (setup.aiSkill) {
+        const assets::RoutePace pace = drawn < recorded.size() ? recorded[drawn].pace : route.pace;
+        skillLevels_[racer] = LevelFor(*setup.aiSkill, setup.firstSlot + racer, pace);
+        skill = ProfileFor(skillLevels_[racer]);
+    }
+    const std::span<const std::shared_ptr<const RacingLine>> lines = routes_.LinesOf(racer);
+    RouteDriver& driver =
+        drivers_[racer].emplace(route, setup.aiPace, CraftFor(setup, isGatePath), skill,
+                                variant < lines.size() ? lines[variant] : nullptr);
+    if (skill && skill->takesShortcuts && !isGatePath) {
+        driver.OfferRoutes(RouteOptionsFor(routes, lines));
     }
 }
 
@@ -243,19 +256,6 @@ void RaceSession::ResolveContacts() {
     for (const RacerContact& contact : contacts_.Contacts()) {
         ApplyContactEffects(racers_, contact, random_);
     }
-}
-
-std::shared_ptr<const RacingLine> RaceSession::LineFor(std::size_t slot,
-                                                       std::size_t variant) const {
-    const std::span<const std::shared_ptr<const RacingLine>> lines = LinesFor(slot);
-    return variant < lines.size() ? lines[variant] : nullptr;
-}
-
-std::span<const std::shared_ptr<const RacingLine>> RaceSession::LinesFor(std::size_t slot) const {
-    if (slot >= lines_.size()) {
-        return {};
-    }
-    return lines_[slot];
 }
 
 void RaceSession::PaceRoutes(Milliseconds elapsed) {

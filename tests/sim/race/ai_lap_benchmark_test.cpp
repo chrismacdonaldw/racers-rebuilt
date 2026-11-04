@@ -39,12 +39,14 @@ struct Mode {
 };
 
 constexpr AiCraft kCraft{.brakes = true, .passes = true, .unsticks = true, .aims = true};
+constexpr AiCraft kLineCraft{
+    .brakes = true, .passes = true, .unsticks = true, .aims = true, .racingLine = true};
 
 Mode LineMode(std::string_view name, AiSkill skill) {
-    return {.name = name, .driving = AiDriving::Physics, .craft = AiCraft::All(), .skill = skill};
+    return {.name = name, .driving = AiDriving::Physics, .craft = kLineCraft, .skill = skill};
 }
 
-std::array<Mode, 11> Modes() {
+std::array<Mode, 13> Modes() {
     const AiSkill equalExpert{.spread = SkillSpread::Equal, .difficulty = kExpertLevel};
     return {
         Mode{.name = "route"},
@@ -60,12 +62,17 @@ std::array<Mode, 11> Modes() {
              .driving = AiDriving::Physics,
              .craft = kCraft,
              .skill = equalExpert},
-        Mode{.name = "physics+line", .driving = AiDriving::Physics, .craft = AiCraft::All()},
+        Mode{.name = "physics+line", .driving = AiDriving::Physics, .craft = kLineCraft},
         LineMode("skill o3+line", AiSkill{}),
         LineMode("skill e1+line",
                  AiSkill{.spread = SkillSpread::Equal, .difficulty = kEasiestLevel}),
         LineMode("skill e3+line", AiSkill{.spread = SkillSpread::Equal}),
-        LineMode("skill e4+line", equalExpert)};
+        LineMode("skill e4+line", equalExpert),
+        Mode{.name = "gates", .driving = AiDriving::Physics, .craft = AiCraft::All()},
+        Mode{.name = "skill e3+gates",
+             .driving = AiDriving::Physics,
+             .craft = AiCraft::All(),
+             .skill = AiSkill{.spread = SkillSpread::Equal}}};
 }
 
 std::string HomeCircuit(const assets::Vfs& vfs, const std::string& track) {

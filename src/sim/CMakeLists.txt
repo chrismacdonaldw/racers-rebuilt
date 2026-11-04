@@ -6,6 +6,7 @@ rr_add_module(sim
         ai/ai_powerups.cpp
         ai/ai_racer.cpp
         ai/ai_taunts.cpp
+        ai/gate_path.cpp
         ai/powerup_habits.cpp
         ai/racing_line.cpp
         ai/route_choice.cpp
@@ -116,6 +117,7 @@ rr_add_module(sim
         race/race_progress.cpp
         race/race_session.cpp
         race/race_session_powerups.cpp
+        race/racer_routes.cpp
         race/session_parts.cpp
         race/player_cheats.cpp
         race/race_sounds.cpp

@@ -37,9 +37,11 @@
 #include "sim/powerup/weapon_events.hpp"
 #include "sim/race/checkpoint_graph.hpp"
 #include "sim/race/race_clock.hpp"
+#include "sim/race/race_course.hpp"
 #include "sim/race/race_progress.hpp"
 #include "sim/race/race_setup.hpp"
 #include "sim/race/race_sounds.hpp"
+#include "sim/race/racer_routes.hpp"
 #include "sim/race/random.hpp"
 #include "sim/race/respawn.hpp"
 #include "sim/track/event_resources.hpp"
@@ -50,22 +52,6 @@
 #include "sim/track/trigger_lists.hpp"
 
 namespace rr::sim {
-
-/// What a session reads from its track. Everything it points to must outlive the session.
-struct RaceCourse {
-    const CheckpointGraph* checkpoints = nullptr;
-    std::span<const RacerStart> grid;
-    const CollisionQuery* world = nullptr;
-    float lowestTrackZ = 0.0F;
-    const GridRoutes* routes = nullptr;
-    const assets::BrickLayout* bricks = nullptr;
-    std::span<const assets::TargetPoint> targets;
-    const TrackEventSources* events = nullptr;
-    const TrackCollision* collision = nullptr;
-    const TrackEntitySources* entities = nullptr;
-    std::span<const assets::Hazard> hazards;
-    bool isMirrored = false;
-};
 
 class RaceSession {
 public:
@@ -123,6 +109,7 @@ private:
     [[nodiscard]] bool UseButtonCheats(std::size_t racer, const RacerControls& controls);
     [[nodiscard]] bool SkipAhead(std::size_t racer);
     void Taunt(std::size_t racer);
+    void StartComputer(std::size_t racer, const RaceSetup& setup);
     void StartRacing();
     void ReleaseComputerRacers(Milliseconds elapsed);
     void AdvanceClock(Milliseconds elapsed);
@@ -130,10 +117,6 @@ private:
     void ResolveContacts();
     void PaceRoutes(Milliseconds elapsed);
     void TuneSkills();
-    [[nodiscard]] std::shared_ptr<const RacingLine> LineFor(std::size_t slot,
-                                                            std::size_t variant) const;
-    [[nodiscard]] std::span<const std::shared_ptr<const RacingLine>> LinesFor(
-        std::size_t slot) const;
     void MeasureReaches();
     void TickBricks(Milliseconds elapsed);
     void RollChaosBrick(PowerupInventory& inventory);
@@ -199,7 +182,7 @@ private:
     std::vector<BoundingSphere> reaches_;
     std::vector<BoundingSphere> pickupReaches_;
     std::vector<ContactBody> contactBodies_;
-    std::vector<std::vector<std::shared_ptr<const RacingLine>>> lines_;
+    RacerRoutes routes_;
     std::vector<RacerWorldView> contactWorlds_;
     RacerContacts contacts_;
 };

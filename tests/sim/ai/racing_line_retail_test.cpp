@@ -15,7 +15,7 @@
 #include "sim/collision/world_list.hpp"
 #include "sim/race/race_session.hpp"
 #include "sim/race/race_track.hpp"
-#include "sim/race/session_parts.hpp"
+#include "sim/race/racer_routes.hpp"
 
 namespace rr::sim {
 namespace {
@@ -56,14 +56,15 @@ LineSurvey SurveyTrack(const RaceTrack& track, const CollisionQuery& world) {
     RaceSetup setup;
     setup.aiDriving = AiDriving::Physics;
     setup.aiCraft.racingLine = true;
-    const RaceCourse course{.world = &world, .routes = &track.routes};
+    setup.racers.resize(track.routes.size());
+    const RaceCourse course{.grid = track.grid, .world = &world, .routes = &track.routes};
     const auto start = std::chrono::steady_clock::now();
-    const auto lines = RacingLinesFor(setup, course);
+    const RacerRoutes routes(setup, course);
     survey.fitMs =
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
     for (std::size_t slot = 0; slot < track.routes.size(); ++slot) {
         for (std::size_t variant = 0; variant < track.routes[slot].size(); ++variant) {
-            const RacingLine& line = *lines[slot][variant];
+            const RacingLine& line = *routes.LinesOf(slot)[variant];
             ++survey.routes;
             survey.closed += line.IsClosed() ? 1 : 0;
             survey.points += line.Points().size();

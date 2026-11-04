@@ -11,10 +11,12 @@ struct Skill {
     bool AiCraft::* flag;
 };
 
-constexpr std::array kSkills{
-    Skill{.letter = 'b', .flag = &AiCraft::brakes}, Skill{.letter = 'p', .flag = &AiCraft::passes},
-    Skill{.letter = 'u', .flag = &AiCraft::unsticks}, Skill{.letter = 'a', .flag = &AiCraft::aims},
-    Skill{.letter = 'l', .flag = &AiCraft::racingLine}};
+constexpr std::array kSkills{Skill{.letter = 'b', .flag = &AiCraft::brakes},
+                             Skill{.letter = 'p', .flag = &AiCraft::passes},
+                             Skill{.letter = 'u', .flag = &AiCraft::unsticks},
+                             Skill{.letter = 'a', .flag = &AiCraft::aims},
+                             Skill{.letter = 'l', .flag = &AiCraft::racingLine},
+                             Skill{.letter = 'g', .flag = &AiCraft::gatePaths}};
 
 }
 
