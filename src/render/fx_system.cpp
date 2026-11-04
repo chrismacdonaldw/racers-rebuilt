@@ -45,6 +45,11 @@ Vector3 Between(const Vector3& from, const Vector3& to, float share) {
     return from + ((to - from) * share);
 }
 
+Vector3 FlatDirection(float turn) {
+    const float angle = turn * 2.0F * std::numbers::pi_v<float>;
+    return {.x = std::cos(angle), .z = std::sin(angle)};
+}
+
 Color Mix(const Color& from, const Color& to, float share) {
     return {.r = std::lerp(from.r, to.r, share),
             .g = std::lerp(from.g, to.g, share),
@@ -202,9 +207,14 @@ void FxSystem::Spawn(std::uint16_t effect, const Vector3& at, const EmitterPlace
     const Vector3 jitter{.x = definition.spread.x * ((Unit() * 2.0F) - 1.0F),
                          .y = definition.spread.y * ((Unit() * 2.0F) - 1.0F),
                          .z = definition.spread.z * ((Unit() * 2.0F) - 1.0F)};
-    const Vector3 velocity = (placement.velocity * definition.inherit) + definition.launch + jitter;
+    Vector3 velocity = (placement.velocity * definition.inherit) + definition.launch + jitter;
     const float spin = Roll(definition.spinPerSecond) * (Unit() < 0.5F ? -1.0F : 1.0F);
-    const Vector3 start = at + definition.offset;
+    Vector3 start = at + definition.offset;
+    if (definition.spawnRadius > 0.0F || definition.radialSpeed != 0.0F) {
+        const Vector3 outward = FlatDirection(Unit());
+        start += outward * definition.spawnRadius;
+        velocity += outward * definition.radialSpeed;
+    }
     particles_.push_back(
         {.position = start + (velocity * (ageMs / kMillisecondsPerSecond)),
          .velocity = velocity,
@@ -252,7 +262,7 @@ QuadDraw FxSystem::QuadOf(const Particle& particle, const View& view) const {
     const Vector3 along = (up * cos) - (right * sin);
     quad.corners = Corners(particle.position, along, across);
     if (effect.shape != FxShape::Puff) {
-        quad.texture = isFlat ? assets_.ring : assets_.glow;
+        quad.texture = TextureOf(effect.shape);
         quad.uv = kWholeTexture;
         return quad;
     }
@@ -274,6 +284,19 @@ Color FxSystem::ColorAt(const Particle& particle, float share) const {
         start = {.r = paint.r, .g = paint.g, .b = paint.b, .a = start.a};
     }
     return effect.endColor ? Mix(start, *effect.endColor, share) : start;
+}
+
+TextureId FxSystem::TextureOf(FxShape shape) const {
+    switch (shape) {
+        case FxShape::Ring:
+            return assets_.ring;
+        case FxShape::Bubble:
+            return assets_.bubble;
+        case FxShape::Star:
+            return assets_.star;
+        default:
+            return assets_.glow;
+    }
 }
 
 Vector3 FxSystem::RandomAxis() {

@@ -135,6 +135,7 @@ target_sources(racers-rebuilt-tests PRIVATE
     app/powerup/beam_span_test.cpp
     app/powerup/cursed_cars_test.cpp
     app/powerup/effect_trail_test.cpp
+    app/powerup/powerup_fx_test.cpp
     app/powerup/powerup_models_test.cpp
     app/powerup/powerup_particles_test.cpp
     app/powerup/powerup_quads_test.cpp

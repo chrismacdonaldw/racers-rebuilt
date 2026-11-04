@@ -1,8 +1,12 @@
 #include "app/race_fx.hpp"
 
+#include <algorithm>
 #include <array>
+#include <cstddef>
+#include <iterator>
 #include <optional>
 
+#include "app/powerup/powerup_fx_effects.hpp"
 #include "core/log.hpp"
 #include "render/fx_textures.hpp"
 
@@ -295,48 +299,55 @@ std::optional<render::TextureId> Upload(render::Renderer& renderer,
 }
 
 std::vector<render::FxEffect> RaceFxEffects() {
-    return {kTireSmoke,
-            kDriftDust,
-            kExhaustPuff,
-            kTurboSmoke,
-            kLandingDust,
-            kCannonSmoke,
-            Sparks("carsprk", 36),
-            Flash("carsprk", 10.0F),
-            kCrashPuff,
-            Sparks(kWallSparksEffect, 12),
-            Flash(kWallSparksEffect, 6.0F),
-            kFuseSparks,
-            kFuseGlow,
-            kBlastFlash,
-            kFireball,
-            kBlastFire,
-            kBlastSmoke,
-            kEmbers,
-            kShockwave,
-            kFlyingBricks};
+    std::vector<render::FxEffect> effects{kTireSmoke,
+                                          kDriftDust,
+                                          kExhaustPuff,
+                                          kTurboSmoke,
+                                          kLandingDust,
+                                          kCannonSmoke,
+                                          Sparks("carsprk", 36),
+                                          Flash("carsprk", 10.0F),
+                                          kCrashPuff,
+                                          Sparks(kWallSparksEffect, 12),
+                                          Flash(kWallSparksEffect, 6.0F),
+                                          kFuseSparks,
+                                          kFuseGlow,
+                                          kBlastFlash,
+                                          kFireball,
+                                          kBlastFire,
+                                          kBlastSmoke,
+                                          kEmbers,
+                                          kShockwave,
+                                          kFlyingBricks};
+    std::ranges::copy(PowerupFxEffects(), std::back_inserter(effects));
+    return effects;
 }
 
 std::unique_ptr<render::FxSystem> MakeRaceFx(render::Renderer& renderer) {
-    const std::optional<render::TextureId> smoke = Upload(renderer, render::MakeSmokeAtlas());
-    const std::optional<render::TextureId> spark =
-        smoke ? Upload(renderer, render::MakeSparkTexture()) : std::nullopt;
-    const std::optional<render::TextureId> glow =
-        spark ? Upload(renderer, render::MakeGlowTexture()) : std::nullopt;
-    const std::optional<render::TextureId> ring =
-        glow ? Upload(renderer, render::MakeRingTexture()) : std::nullopt;
-    if (!ring) {
-        return nullptr;
+    constexpr std::array kMakers{render::MakeSmokeAtlas,    render::MakeSparkTexture,
+                                 render::MakeGlowTexture,   render::MakeRingTexture,
+                                 render::MakeBubbleTexture, render::MakeStarTexture};
+    std::array<render::TextureId, kMakers.size()> textures{};
+    for (std::size_t i = 0; i < kMakers.size(); ++i) {
+        const std::optional<render::TextureId> texture = Upload(renderer, kMakers.at(i)());
+        if (!texture) {
+            return nullptr;
+        }
+        textures.at(i) = *texture;
     }
+    const auto [smoke, spark, glow, ring, bubble, star] = textures;
     Result<render::MeshId> brick = renderer.UploadMesh(render::MakeBrickGeometry());
     if (!brick) {
         log::Warn("{}, racing without better particles", brick.error().message);
         return nullptr;
     }
-    return std::make_unique<render::FxSystem>(
-        RaceFxEffects(),
-        render::FxAssets{
-            .smoke = *smoke, .spark = *spark, .glow = *glow, .ring = *ring, .brick = *brick});
+    return std::make_unique<render::FxSystem>(RaceFxEffects(), render::FxAssets{.smoke = smoke,
+                                                                                .spark = spark,
+                                                                                .glow = glow,
+                                                                                .ring = ring,
+                                                                                .bubble = bubble,
+                                                                                .star = star,
+                                                                                .brick = *brick});
 }
 
 }

@@ -84,7 +84,7 @@ inline constexpr settings::SettingSpec<bool> kBetterParticlesSetting{
     .defaultValue = false,
     .label = "Better particles",
     .category = "Video",
-    .tooltip = "Replaces the original smoke, dust and sparks with new, richer effects."};
+    .tooltip = "Replaces the original smoke, sparks and power-up effects with new, richer ones."};
 
 /// Draws the player's own car in the cockpit view, which the original leaves out while racing.
 inline constexpr settings::SettingSpec<bool> kCockpitCarSetting{.key = "video.cockpit_car",

@@ -195,6 +195,8 @@ rr_add_module(app
         positional_sound.cpp
         powerup/beam_span.cpp
         powerup/blast_fx.cpp
+        powerup/powerup_fx.cpp
+        powerup/powerup_fx_effects.cpp
         powerup/cursed_cars.cpp
         powerup/effect_trail.cpp
         powerup/powerup_models.cpp
