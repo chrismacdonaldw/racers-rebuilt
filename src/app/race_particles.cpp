@@ -51,9 +51,7 @@ void RaceParticles::Tick(const sim::RaceSession& session, const Transform& camer
     powerups_.Tick(session, Bank(ParticleFile::Common), elapsed);
     hazards_.Tick(session, camera, Bank(ParticleFile::Track), elapsed);
     if (isBetter_) {
-        walls_.Tick(session.Racers(), *fx_, elapsed);
         blasts_.Tick(session, *fx_);
-        powerupFx_.Tick(session, *fx_, elapsed);
     }
 }
 
@@ -110,12 +108,6 @@ void RaceParticles::AppendQuads(const Transform& camera, std::vector<render::Qua
     }
     if (isBetter_) {
         fx_->AppendQuads(camera, out);
-    }
-}
-
-void RaceParticles::AppendMeshes(std::vector<render::MeshDraw>& out) const {
-    if (isBetter_) {
-        fx_->AppendMeshes(out);
     }
 }
 

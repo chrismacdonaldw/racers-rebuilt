@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <span>
 #include <string_view>
 
 #include "core/vector3.hpp"
@@ -16,8 +15,8 @@ enum class FxEffectId : std::uint16_t {};
 
 inline constexpr std::size_t kMaxFxLayers = 8;
 
-/// Rings lie flat on the ground; bricks tumble as solid models, not quads.
-enum class FxShape : std::uint8_t { Puff, Streak, Glow, Ring, Brick, Bubble, Star };
+/// Rings lie flat on the ground.
+enum class FxShape : std::uint8_t { Puff, Streak, Glow, Ring, Bubble, Star };
 
 struct FxRange {
     float min = 0.0F;
@@ -44,7 +43,6 @@ struct FxEffect {
     float floorDrop = 0.0F;
     Color color;
     std::optional<Color> endColor;
-    std::span<const Color> palette;
     Vector3 offset;
     float spawnRadius = 0.0F;
     float radialSpeed = 0.0F;
@@ -52,6 +50,16 @@ struct FxEffect {
     float fadeInShare = 0.1F;
     float fadeOutShare = 0.5F;
     BlendMode blend = BlendMode::Alpha;
+    bool followsEmitter = false;
+};
+
+struct FollowedParticle {
+    Vector3 position;
+    Vector3 velocity;
+    Vector3 acceleration;
+    float lifeMs = 0.0F;
+    float startSize = 0.0F;
+    float endSize = 0.0F;
 };
 
 struct FxEmission {
@@ -67,7 +75,6 @@ struct FxAssets {
     TextureId ring = kWhiteTexture;
     TextureId bubble = kWhiteTexture;
     TextureId star = kWhiteTexture;
-    MeshId brick{};
 };
 
 }

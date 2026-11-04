@@ -22,7 +22,6 @@ constexpr float kBounceFriction = 0.7F;
 constexpr Rect kWholeTexture{.width = 1.0F, .height = 1.0F};
 constexpr Vector3 kGroundRight{.x = 1.0F};
 constexpr Vector3 kGroundAhead{.z = 1.0F};
-constexpr float kBrickAmbientShare = 0.5F;
 
 float SmoothStep(float x) {
     const float t = std::clamp(x, 0.0F, 1.0F);
@@ -96,7 +95,6 @@ std::optional<FxEffectId> FxSystem::EffectFor(std::string_view emitter) const {
 void FxSystem::Emit(FxEffectId effect, const EmitterPlacement& placement, float elapsedMs,
                     FxEmission& emission) {
     const auto first = static_cast<std::size_t>(effect);
-    const std::string_view emitter = effects_.at(first).emitter;
     Vector3 from = emission.lastPosition.value_or(placement.position);
     if (Length(placement.position - from) > kFxMaxEmitStep) {
         from = placement.position;
@@ -104,10 +102,12 @@ void FxSystem::Emit(FxEffectId effect, const EmitterPlacement& placement, float 
     emission.lastPosition = placement.position;
     const bool bursts = !emission.hasBurst;
     emission.hasBurst = true;
-    for (std::size_t layer = 0; layer < kMaxFxLayers && first + layer < effects_.size() &&
-                                effects_[first + layer].emitter == emitter;
-         ++layer) {
+    const std::size_t layers = LayerCount(first);
+    for (std::size_t layer = 0; layer < layers; ++layer) {
         const auto index = static_cast<std::uint16_t>(first + layer);
+        if (effects_[index].followsEmitter) {
+            continue;
+        }
         for (int spawned = 0; bursts && spawned < effects_[index].burst; ++spawned) {
             Spawn(index, placement.position, placement, 0.0F);
         }
@@ -120,6 +120,26 @@ void FxSystem::Burst(FxEffectId effect, const EmitterPlacement& placement) {
     Emit(effect, placement, 0.0F, once);
 }
 
+void FxSystem::Follow(FxEffectId effect, const FollowedParticle& followed) {
+    const auto first = static_cast<std::size_t>(effect);
+    const EmitterPlacement placement{.position = followed.position, .velocity = followed.velocity};
+    const std::size_t layers = LayerCount(first);
+    for (std::size_t layer = 0; layer < layers; ++layer) {
+        const auto index = static_cast<std::uint16_t>(first + layer);
+        if (!effects_[index].followsEmitter) {
+            continue;
+        }
+        Particle* particle = Spawn(index, followed.position, placement, 0.0F);
+        if (particle == nullptr) {
+            return;
+        }
+        particle->acceleration += followed.acceleration;
+        particle->lifeMs *= followed.lifeMs;
+        particle->startSize *= followed.startSize;
+        particle->endSize *= followed.endSize;
+    }
+}
+
 void FxSystem::Update(FloatMilliseconds elapsed) {
     const float ms = elapsed.count();
     const float seconds = ms / kMillisecondsPerSecond;
@@ -130,7 +150,7 @@ void FxSystem::Update(FloatMilliseconds elapsed) {
         }
         const FxEffect& effect = effects_[particle.effect];
         particle.velocity = particle.velocity * std::max(0.0F, 1.0F - (effect.drag * seconds));
-        particle.velocity += effect.acceleration * seconds;
+        particle.velocity += particle.acceleration * seconds;
         particle.position += particle.velocity * seconds;
         particle.angle += particle.spin * seconds;
         Bounce(particle.position, particle.velocity, particle.floor, effect.bounce);
@@ -152,9 +172,6 @@ void FxSystem::AppendQuads(const Transform& camera, std::vector<QuadDraw>& out) 
                     .right = Rotate(camera.rotation, kCameraRight)};
     order_.clear();
     for (std::uint32_t i = 0; i < particles_.size(); ++i) {
-        if (effects_[particles_[i].effect].shape == FxShape::Brick) {
-            continue;
-        }
         const Vector3 toCamera = particles_[i].position - camera.position;
         const float distance = Dot(toCamera, toCamera);
         if (distance < kFxDrawDistance * kFxDrawDistance) {
@@ -167,23 +184,14 @@ void FxSystem::AppendQuads(const Transform& camera, std::vector<QuadDraw>& out) 
     }
 }
 
-void FxSystem::AppendMeshes(std::vector<MeshDraw>& out) const {
-    for (const Particle& particle : particles_) {
-        const FxEffect& effect = effects_[particle.effect];
-        if (effect.shape != FxShape::Brick) {
-            continue;
-        }
-        const float share = particle.lifeMs > 0.0F ? particle.ageMs / particle.lifeMs : 1.0F;
-        const Color paint = ColorAt(particle, share);
-        const Color ambient{.r = paint.r * kBrickAmbientShare,
-                            .g = paint.g * kBrickAmbientShare,
-                            .b = paint.b * kBrickAmbientShare};
-        out.push_back({.mesh = assets_.brick,
-                       .material = {.tint = paint, .ambient = ambient},
-                       .transform = {.position = particle.position,
-                                     .rotation = FromAxisAngle(particle.axis, particle.angle)},
-                       .scale = particle.startSize * FadeOf(effect, share)});
+std::size_t FxSystem::LayerCount(std::size_t first) const {
+    const std::string_view emitter = effects_.at(first).emitter;
+    std::size_t layers = 1;
+    while (layers < kMaxFxLayers && first + layers < effects_.size() &&
+           effects_[first + layers].emitter == emitter) {
+        ++layers;
     }
+    return layers;
 }
 
 void FxSystem::EmitLayer(std::uint16_t layer, float& carry, const Vector3& from,
@@ -198,10 +206,10 @@ void FxSystem::EmitLayer(std::uint16_t layer, float& carry, const Vector3& from,
     }
 }
 
-void FxSystem::Spawn(std::uint16_t effect, const Vector3& at, const EmitterPlacement& placement,
-                     float ageMs) {
+FxSystem::Particle* FxSystem::Spawn(std::uint16_t effect, const Vector3& at,
+                                    const EmitterPlacement& placement, float ageMs) {
     if (particles_.size() >= capacity_) {
-        return;
+        return nullptr;
     }
     const FxEffect& definition = effects_[effect];
     const Vector3 jitter{.x = definition.spread.x * ((Unit() * 2.0F) - 1.0F),
@@ -215,21 +223,19 @@ void FxSystem::Spawn(std::uint16_t effect, const Vector3& at, const EmitterPlace
         start += outward * definition.spawnRadius;
         velocity += outward * definition.radialSpeed;
     }
-    particles_.push_back(
-        {.position = start + (velocity * (ageMs / kMillisecondsPerSecond)),
-         .velocity = velocity,
-         .ageMs = ageMs,
-         .lifeMs = Roll(definition.lifeMs),
-         .startSize = Roll(definition.startSize),
-         .endSize = Roll(definition.endSize),
-         .angle = Unit() * std::numbers::pi_v<float> * 2.0F,
-         .spin = spin,
-         .floor = start.y - definition.floorDrop,
-         .axis = RandomAxis(),
-         .effect = effect,
-         .variant = static_cast<std::uint8_t>(Unit() * static_cast<float>(kSmokeVariants)),
-         .paint =
-             static_cast<std::uint8_t>(Unit() * static_cast<float>(definition.palette.size()))});
+    return &particles_.emplace_back(Particle{
+        .position = start + (velocity * (ageMs / kMillisecondsPerSecond)),
+        .velocity = velocity,
+        .acceleration = definition.acceleration,
+        .ageMs = ageMs,
+        .lifeMs = Roll(definition.lifeMs),
+        .startSize = Roll(definition.startSize),
+        .endSize = Roll(definition.endSize),
+        .angle = Unit() * std::numbers::pi_v<float> * 2.0F,
+        .spin = spin,
+        .floor = start.y - definition.floorDrop,
+        .effect = effect,
+        .variant = static_cast<std::uint8_t>(Unit() * static_cast<float>(kSmokeVariants))});
 }
 
 QuadDraw FxSystem::QuadOf(const Particle& particle, const View& view) const {
@@ -278,12 +284,7 @@ QuadDraw FxSystem::QuadOf(const Particle& particle, const View& view) const {
 
 Color FxSystem::ColorAt(const Particle& particle, float share) const {
     const FxEffect& effect = effects_[particle.effect];
-    Color start = effect.color;
-    if (particle.paint < effect.palette.size()) {
-        const Color& paint = effect.palette[particle.paint];
-        start = {.r = paint.r, .g = paint.g, .b = paint.b, .a = start.a};
-    }
-    return effect.endColor ? Mix(start, *effect.endColor, share) : start;
+    return effect.endColor ? Mix(effect.color, *effect.endColor, share) : effect.color;
 }
 
 TextureId FxSystem::TextureOf(FxShape shape) const {
@@ -297,12 +298,6 @@ TextureId FxSystem::TextureOf(FxShape shape) const {
         default:
             return assets_.glow;
     }
-}
-
-Vector3 FxSystem::RandomAxis() {
-    const Vector3 axis{
-        .x = (Unit() * 2.0F) - 1.0F, .y = (Unit() * 2.0F) - 1.0F, .z = (Unit() * 2.0F) - 1.0F};
-    return Normalized(axis, kCameraUp);
 }
 
 float FxSystem::Roll(FxRange range) {

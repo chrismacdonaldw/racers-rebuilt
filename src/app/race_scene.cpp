@@ -363,7 +363,6 @@ void RaceScene::Render(const sim::RenderSnapshot& interpolated) {
     if (parts_.particles) {
         parts_.particles->Update(parts_.session, std::span(skidding_).first(skids_.size()),
                                  render::FloatMilliseconds{simMs});
-        parts_.particles->AppendMeshes(draws_);
     }
     views_.clear();
     for (std::size_t player = 0; player < cameras_.Count(); ++player) {

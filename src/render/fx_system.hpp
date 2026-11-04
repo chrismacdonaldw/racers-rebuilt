@@ -34,6 +34,8 @@ public:
               FxEmission& emission);
     /// Spawns only the effect's bursts.
     void Burst(FxEffectId effect, const EmitterPlacement& placement);
+    /// Spawns the following layers, scaling `followed`'s life and sizes by their ranges.
+    void Follow(FxEffectId effect, const FollowedParticle& followed);
     void Update(FloatMilliseconds elapsed);
     void Clear();
 
@@ -41,12 +43,12 @@ public:
 
     /// Back to front, leaving out particles past `kFxDrawDistance`.
     void AppendQuads(const Transform& camera, std::vector<QuadDraw>& out) const;
-    void AppendMeshes(std::vector<MeshDraw>& out) const;
 
 private:
     struct Particle {
         Vector3 position;
         Vector3 velocity;
+        Vector3 acceleration;
         float ageMs = 0.0F;
         float lifeMs = 0.0F;
         float startSize = 0.0F;
@@ -54,10 +56,8 @@ private:
         float angle = 0.0F;
         float spin = 0.0F;
         float floor = 0.0F;
-        Vector3 axis;
         std::uint16_t effect = 0;
         std::uint8_t variant = 0;
-        std::uint8_t paint = 0;
     };
 
     struct View {
@@ -68,12 +68,12 @@ private:
 
     void EmitLayer(std::uint16_t layer, float& carry, const Vector3& from,
                    const EmitterPlacement& placement, float elapsedMs);
-    void Spawn(std::uint16_t effect, const Vector3& at, const EmitterPlacement& placement,
-               float ageMs);
+    [[nodiscard]] std::size_t LayerCount(std::size_t first) const;
+    Particle* Spawn(std::uint16_t effect, const Vector3& at, const EmitterPlacement& placement,
+                    float ageMs);
     [[nodiscard]] QuadDraw QuadOf(const Particle& particle, const View& view) const;
     [[nodiscard]] Color ColorAt(const Particle& particle, float share) const;
     [[nodiscard]] TextureId TextureOf(FxShape shape) const;
-    [[nodiscard]] Vector3 RandomAxis();
     [[nodiscard]] float Roll(FxRange range);
     [[nodiscard]] float Unit();
 

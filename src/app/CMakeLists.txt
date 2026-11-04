@@ -191,7 +191,6 @@ rr_add_module(app
         positional_sound.cpp
         powerup/beam_span.cpp
         powerup/blast_fx.cpp
-        powerup/powerup_fx.cpp
         powerup/powerup_fx_effects.cpp
         powerup/cursed_cars.cpp
         powerup/effect_trail.cpp
@@ -248,7 +247,6 @@ rr_add_module(app
         racer/skid_marks.cpp
         racer/skid_trail.cpp
         racer/surface_fx_effects.cpp
-        racer/wall_sparks.cpp
         racer/wheel_spray.cpp
         replay_session.cpp
         scene_music.cpp
