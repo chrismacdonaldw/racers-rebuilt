@@ -158,6 +158,7 @@ add_executable(racers-rebuilt-tests
     app/racer/car_look_test.cpp
     app/racer/champion_car_test.cpp
     app/racer/driver_moves_test.cpp
+    app/racer/mod_driver_parts_test.cpp
     app/racer/racer_light_test.cpp
     app/racer/racer_assets_test.cpp
     app/racer/racer_bounds_test.cpp

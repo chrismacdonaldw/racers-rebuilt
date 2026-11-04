@@ -7,7 +7,6 @@
 #include <format>
 #include <memory>
 #include <optional>
-#include <span>
 #include <string_view>
 #include <utility>
 
@@ -21,7 +20,6 @@
 namespace rr::app {
 namespace {
 
-constexpr std::string_view kPartFolder = "MENUDATA/PARTDB";
 constexpr std::string_view kDriverEntity = "GUY1";
 constexpr std::array<std::string_view, 2> kLegVariants{"SWAP", "PLEG"};
 constexpr std::size_t kLegsSlot = 1;
@@ -68,15 +66,13 @@ Result<assets::DriverLook> AwardLook(const assets::Vfs& vfs, const CutscenePlay&
 
 Result<AwardDriver> LoadAwardDriver(const assets::Vfs& vfs, assets::TrackLoader& loader,
                                     const assets::DriverLook& look) {
-    const assets::ModelFiles files{.materials = "BODYPART", .textures = "BODYPART"};
     const Result<assets::DriverPartCatalog> parts = LoadDriverParts(vfs);
     Result<assets::GeometryAsset> minifig =
         parts.and_then([&](const assets::DriverPartCatalog& catalog) {
             return BuildMinifig(vfs, catalog, look, assets::DriverDetail::Menu);
         });
-    Result<assets::TrackAssets> looks = minifig.and_then([&](const assets::GeometryAsset&) {
-        return loader.LoadModels(kPartFolder, std::span(&files, 1));
-    });
+    Result<assets::TrackAssets> looks = minifig.and_then(
+        [&](const assets::GeometryAsset&) { return LoadDriverLooks(vfs, loader, *parts); });
     const std::string face =
         minifig ? parts->faces.parts.at(assets::FitLook(*parts, look).face).name : std::string();
     Result<assets::TrackAssets> faces = looks.and_then([&](const assets::TrackAssets& loaded) {

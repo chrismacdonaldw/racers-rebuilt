@@ -16,10 +16,8 @@
 namespace rr::app {
 namespace {
 
-constexpr std::string_view kPartFolder = "MENUDATA/PARTDB";
 constexpr std::string_view kShapeFolder = "MENUDATA/PARTDB/MENUPART";
 constexpr std::string_view kHeads = "CBBODIES.GCB";
-constexpr std::string_view kLooks = "BODYPART";
 constexpr std::size_t kBareHeadHat = 0;
 constexpr std::string_view kFaceShape = "HEADS";
 constexpr std::array<std::string_view, 2> kTorsoShapes{"CHESTS", "CHEST_HK"};
@@ -176,17 +174,16 @@ private:
 };
 
 Result<assets::NameMap<render::Material>> UploadLooks(render::Renderer& renderer,
-                                                      assets::TrackLoader& loader) {
-    const assets::ModelFiles files{.materials = std::string(kLooks),
-                                   .textures = std::string(kLooks)};
-    return loader.LoadModels(kPartFolder, std::span(&files, 1))
-        .and_then([&](const assets::TrackAssets& looks) {
-            std::vector<std::string> names;
-            for (const auto& [name, material] : looks.materials) {
-                names.push_back(name);
-            }
-            return UploadMaterials(renderer, looks, names);
-        });
+                                                      const assets::Vfs& vfs,
+                                                      assets::TrackLoader& loader,
+                                                      const assets::DriverPartCatalog& catalog) {
+    return LoadDriverLooks(vfs, loader, catalog).and_then([&](const assets::TrackAssets& looks) {
+        std::vector<std::string> names;
+        for (const auto& [name, material] : looks.materials) {
+            names.push_back(name);
+        }
+        return UploadMaterials(renderer, looks, names);
+    });
 }
 
 }
@@ -203,7 +200,7 @@ Result<std::unique_ptr<DriverKit>> DriverKit::Load(render::Renderer& renderer,
             })
             .and_then([&](assets::PartLibrary heads) {
                 parts.heads = std::move(heads);
-                return UploadLooks(renderer, loader);
+                return UploadLooks(renderer, vfs, loader, parts.catalog);
             })
             .and_then([&](assets::NameMap<render::Material> materials) {
                 parts.materials = std::move(materials);

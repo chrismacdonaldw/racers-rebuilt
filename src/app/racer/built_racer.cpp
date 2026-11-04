@@ -18,7 +18,6 @@ namespace {
 
 constexpr std::string_view kCommonFolder = "GAMEDATA/COMMON";
 constexpr std::string_view kPieceFolder = "MENUDATA/PIECEDB";
-constexpr std::string_view kPartFolder = "MENUDATA/PARTDB";
 constexpr std::string_view kCarModel = "BUILT_CAR";
 constexpr std::string_view kDriverModel = "BUILT_DRIVER";
 constexpr std::int32_t kBuiltStat = 100;
@@ -30,7 +29,8 @@ Result<void> LoadInto(assets::TrackLoader& loader, assets::TrackAssets& into,
             [&](assets::TrackAssets loaded) { assets::MergeTrackAssets(into, std::move(loaded)); });
 }
 
-Result<assets::TrackAssets> LoadModels(assets::TrackLoader& loader,
+Result<assets::TrackAssets> LoadModels(const assets::Vfs& vfs, assets::TrackLoader& loader,
+                                       const assets::DriverPartCatalog& parts,
                                        const assets::ChassisEntry& chassis,
                                        const std::optional<assets::ChampionEntry>& champion) {
     assets::TrackAssets models;
@@ -46,8 +46,9 @@ Result<assets::TrackAssets> LoadModels(assets::TrackLoader& loader,
                             {.materials = "LPIECELO", .textures = "LPIECELO"});
         })
         .and_then([&] {
-            return LoadInto(loader, models, kPartFolder,
-                            {.materials = "BODYPART", .textures = "BODYPART"});
+            return LoadDriverLooks(vfs, loader, parts).transform([&](assets::TrackAssets looks) {
+                assets::MergeTrackAssets(models, std::move(looks));
+            });
         })
         .transform([&] { return std::move(models); });
 }
@@ -95,7 +96,7 @@ Result<RacerAssets> LoadBuiltRacer(const assets::Vfs& vfs, assets::TrackLoader& 
         [&](const BuiltCarModel&) { return ChampionBodyOf(vfs, catalog, racer, carBody); });
     Result<assets::TrackAssets> models =
         champion.and_then([&](const std::optional<assets::ChampionEntry>& found) {
-            return LoadModels(loader, *chassis, found);
+            return LoadModels(vfs, loader, *parts, *chassis, found);
         });
     if (!models) {
         return std::unexpected(std::move(models.error()));

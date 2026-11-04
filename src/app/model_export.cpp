@@ -5,6 +5,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>
@@ -12,8 +13,10 @@
 #include "app/gltf_models.hpp"
 #include "app/image_dump.hpp"
 #include "assets/animation_database.hpp"
+#include "assets/game_path.hpp"
 #include "assets/geometry_database.hpp"
 #include "assets/gltf_export.hpp"
+#include "assets/part_library.hpp"
 #include "assets/skeleton_database.hpp"
 #include "core/log.hpp"
 #include "core/utf8_path.hpp"
@@ -24,6 +27,7 @@ namespace {
 constexpr std::string_view kModelExtension = ".GDB";
 constexpr std::string_view kAnimationExtension = ".ADB";
 constexpr std::string_view kSkeletonExtension = ".SDB";
+constexpr std::string_view kHeadsExtension = ".GCB";
 
 struct ExportCounts {
     std::size_t exported = 0;
@@ -113,8 +117,42 @@ Result<void> WriteBytes(const std::filesystem::path& path, std::span<const std::
     return {};
 }
 
+Result<bool> ExportHeadParts(const assets::Vfs& vfs, std::size_t layer,
+                             const std::filesystem::path& folder, const std::string& gamePath) {
+    Result<std::optional<assets::PartLibrary>> library =
+        ReadGameAsset<assets::PartLibrary>(vfs, layer, gamePath, assets::ParsePartLibrary);
+    if (!library) {
+        log::Warn("Skipping {}: {}", gamePath, library.error().message);
+        return std::unexpected(std::move(library.error()));
+    }
+    if (!*library) {
+        return false;
+    }
+    const std::string_view stem =
+        std::string_view(gamePath).substr(0, gamePath.size() - kHeadsExtension.size());
+    for (const assets::LibraryPart& part : (*library)->parts) {
+        const Result<std::vector<std::byte>> glb =
+            assets::BuildPartGeometry(**library, part.name, 1.0F)
+                .and_then([](const assets::GeometryAsset& geometry) {
+                    return assets::ExportGltf({.geometry = &geometry});
+                });
+        if (!glb) {
+            log::Warn("Skipping {} in {}: {}", part.name, gamePath, glb.error().message);
+            continue;
+        }
+        const std::string path = std::format("{}/{}.GLB", stem, assets::ToUpperAscii(part.name));
+        if (Result<void> written = WriteBytes(folder / PathFromUtf8(path), *glb); !written) {
+            return std::unexpected(std::move(written.error()));
+        }
+    }
+    return true;
+}
+
 Result<bool> ExportGameFile(const assets::Vfs& vfs, std::size_t layer,
                             const std::filesystem::path& folder, const std::string& gamePath) {
+    if (gamePath.ends_with(kHeadsExtension)) {
+        return ExportHeadParts(vfs, layer, folder, gamePath);
+    }
     if (!gamePath.ends_with(kModelExtension)) {
         return false;
     }

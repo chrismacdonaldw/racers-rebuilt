@@ -225,6 +225,7 @@ rr_add_module(app
         racer/racer_draws.cpp
         racer/racer_fx.cpp
         racer/racer_grid.cpp
+        racer/mod_driver_parts.cpp
         racer/racer_lookup.cpp
         racer/racer_ref.cpp
         racer/racer_models.cpp
