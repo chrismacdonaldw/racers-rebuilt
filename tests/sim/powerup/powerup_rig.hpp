@@ -51,12 +51,13 @@ inline sim::CheckpointGraph Line() {
     return std::move(*graph);
 }
 
-/// A line of racers on `world`, with gates every 400 units along +X and one spare white brick.
+/// Racers in a row on `world`, gates from `graph` (every 400 units along +X) and one spare brick.
 class Rig {
 public:
     explicit Rig(std::size_t racerCount = 1, const sim::WarpRules& warp = {},
-                 PlaneWorld world = FlatGround())
-        : world_(std::move(world)),
+                 PlaneWorld world = FlatGround(), sim::CheckpointGraph graph = Line())
+        : graph_(std::move(graph)),
+          world_(std::move(world)),
           progress_(racerCount, 3),
           bricks_(assets::BrickLayout{.white = {kSpareWhite}}),
           inventories_(racerCount),
@@ -206,7 +207,7 @@ private:
         }
     }
 
-    sim::CheckpointGraph graph_ = Line();
+    sim::CheckpointGraph graph_;
     PlaneWorld world_;
     std::vector<sim::Racer> racers_;
     std::vector<Vector3> positions_;

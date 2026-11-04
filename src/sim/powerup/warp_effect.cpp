@@ -118,7 +118,8 @@ void WarpEffect::Land(PowerupContext& context) {
 
 Vector3 WarpEffect::LandingHeading(const PowerupContext& context, const Vector3& ground) const {
     const std::optional<std::size_t> gate = NextGate(context);
-    if (rules_.aimsLanding && !context.racers[racer_].Route()) {
+    if (rules_.aimsLanding && !context.racers[racer_].Route() &&
+        !context.checkpoints->Checkpoints().empty()) {
         return ClearLandingHeading(*context.world, *context.checkpoints, ground, gate.value_or(0));
     }
     return gate ? -context.checkpoints->Checkpoints()[*gate].normal : kHeadingWithoutGate;

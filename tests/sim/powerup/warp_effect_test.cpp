@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <cstddef>
+#include <utility>
 
 #include "../ai/straight_route.hpp"
 #include "powerup_rig.hpp"
@@ -199,6 +200,18 @@ TEST_CASE("Better Warp lands facing away from a wall the gates point into") {
     CHECK(turned.x == doctest::Approx(0.5F));
     CHECK(turned.y == doctest::Approx(0.866F).epsilon(0.001));
     CHECK(better.velocity.y > 0.0F);
+}
+
+TEST_CASE("Better Warp lands a track without checkpoints facing +X") {
+    Result<CheckpointGraph> empty = CheckpointGraph::Create({});
+    REQUIRE(empty.has_value());
+    Rig rig(1, {.aimsLanding = true}, test::FlatGround(), std::move(*empty));
+    rig.Fire(BrickColour::Green, 3);
+
+    rig.TickFor(kWarpTicks, {});
+
+    REQUIRE(rig.Car().Events().hasWarpLanded);
+    CHECK(rig.Car().Body().motion.basis.forward.x == doctest::Approx(1.0F));
 }
 
 TEST_CASE("a fair warp flies a shorter way and lands at top speed") {
