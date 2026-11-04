@@ -27,18 +27,6 @@ constexpr std::string_view kGlbExtension = ".GLB";
 constexpr std::string_view kSkeletonExtension = ".SDB";
 constexpr std::string_view kDriverSkeleton = "PELVIS";
 
-std::vector<std::string> SkeletonPaths(std::string_view model) {
-    const std::string_view stem = model.substr(0, model.size() - kModelExtension.size());
-    std::vector<std::string> paths{std::string(stem).append(kSkeletonExtension)};
-    const std::size_t slash = stem.rfind('/');
-    const std::string_view folder =
-        slash == std::string_view::npos ? "" : stem.substr(0, slash + 1);
-    if (stem.ends_with(kDriverSkeleton) && stem.size() - folder.size() > kDriverSkeleton.size()) {
-        paths.push_back(std::string(folder).append(kDriverSkeleton).append(kSkeletonExtension));
-    }
-    return paths;
-}
-
 std::vector<std::string> JointNames(const assets::Vfs& vfs, std::string_view model) {
     for (const std::string& path : SkeletonPaths(model)) {
         if (!vfs.Contains(path)) {
@@ -140,6 +128,18 @@ std::optional<std::string> GlbSibling(std::string_view path) {
     }
     path.remove_suffix(kModelExtension.size());
     return std::string(path).append(kGlbExtension);
+}
+
+std::vector<std::string> SkeletonPaths(std::string_view model) {
+    const std::string_view stem = model.substr(0, model.size() - kModelExtension.size());
+    std::vector<std::string> paths{std::string(stem).append(kSkeletonExtension)};
+    const std::size_t slash = stem.rfind('/');
+    const std::string_view folder =
+        slash == std::string_view::npos ? "" : stem.substr(0, slash + 1);
+    if (stem.ends_with(kDriverSkeleton) && stem.size() - folder.size() > kDriverSkeleton.size()) {
+        paths.push_back(std::string(folder).append(kDriverSkeleton).append(kSkeletonExtension));
+    }
+    return paths;
 }
 
 void GltfModels::DeclareSettings(settings::Registry& registry) const {

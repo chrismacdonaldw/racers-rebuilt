@@ -10,6 +10,7 @@
 #include "app/circuit_awards.hpp"
 #include "app/game_boot.hpp"
 #include "app/image_dump.hpp"
+#include "app/model_export.hpp"
 #include "app/restart.hpp"
 #include "app/save_import.hpp"
 #include "app/texture_pack.hpp"
@@ -39,6 +40,10 @@ rr::Result<void> Run(std::span<const std::string_view> argv) {
     if (boot->commandLine.texturePackFolder) {
         return rr::app::DumpTexturePack(boot->vfs, boot->extensions.gameLayers - 1,
                                         rr::PathFromUtf8(*boot->commandLine.texturePackFolder));
+    }
+    if (boot->commandLine.gltfExportFolder) {
+        return rr::app::ExportGameModels(boot->vfs, boot->extensions.gameLayers - 1,
+                                         rr::PathFromUtf8(*boot->commandLine.gltfExportFolder));
     }
     rr::Result<rr::app::Application> application = rr::app::Application::Create(std::move(*boot));
     if (!application) {

@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "mods/enhancement.hpp"
 #include "settings/setting_spec.hpp"
@@ -14,6 +15,9 @@ inline constexpr settings::SettingSpec<bool> kGltfModels{
 
 /// `path` is normalized. Only `.GDB` models and `.ADB` animations have one.
 [[nodiscard]] std::optional<std::string> GlbSibling(std::string_view path);
+
+/// `model` is a normalized `.GDB` path. The first of these that exists holds its joints.
+[[nodiscard]] std::vector<std::string> SkeletonPaths(std::string_view model);
 
 /// Builds a game model from a mod's `.glb` in place of the `.GDB` it shares a name with.
 class GltfModels final : public mods::Enhancement {

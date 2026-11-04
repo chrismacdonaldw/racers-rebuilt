@@ -193,6 +193,7 @@ Use the **Bug report** form. Include:
 |---|---|
 | `racers-rebuilt.exe --dump-images <folder>` | Decodes every `BMP` and `TGA` in the game data to PNG, then exits |
 | `racers-rebuilt.exe --dump-textures <data>/mods/<id>` | Writes `LEGO.JAM`'s images as a disabled texture pack mod, with colour keys applied, then exits |
+| `racers-rebuilt.exe --export-gltf <folder>` | Writes `LEGO.JAM`'s models as `.glb`, with skeletons and animations, then exits |
 | `jam-dump <LEGO.JAM>` | Lists every file in the archive with its size |
 | `jam-dump <LEGO.JAM> <folder>` | Extracts the whole archive |
 | `--set dev.play_sound=<path>` | Plays one sound once audio starts, e.g. `GAMEDATA/COMMON/321.PCM` |

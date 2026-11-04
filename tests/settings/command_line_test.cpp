@@ -51,6 +51,16 @@ TEST_CASE("the command line takes a texture pack folder") {
     CHECK_FALSE(commandLine->imageDumpFolder.has_value());
 }
 
+TEST_CASE("the command line takes a glTF export folder") {
+    constexpr std::array<std::string_view, 1> kArgs{"--export-gltf=models"};
+
+    Result<CommandLine> commandLine = ParseCommandLine(kArgs);
+
+    REQUIRE(commandLine.has_value());
+    CHECK(commandLine->gltfExportFolder == "models");
+    CHECK_FALSE(commandLine->texturePackFolder.has_value());
+}
+
 TEST_CASE("the command line takes a track to view") {
     constexpr std::array<std::string_view, 2> kArgs{"--track", "RACEC0R0"};
 
