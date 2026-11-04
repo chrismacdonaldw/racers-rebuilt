@@ -59,6 +59,7 @@ inline constexpr std::int16_t kTriggerPressed = 16000;
 inline constexpr SDL_Keycode kToggleOverlayKey = SDLK_F1;
 inline constexpr SDL_Keycode kCyclePacingKey = SDLK_F9;
 inline constexpr SDL_Keycode kScreenshotKey = SDLK_PRINTSCREEN;
+inline constexpr SDL_Keycode kToggleFullscreenKey = SDLK_F11;
 
 void DeclareInputSettings(settings::Registry& registry);
 

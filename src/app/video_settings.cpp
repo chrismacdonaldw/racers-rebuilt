@@ -6,6 +6,7 @@ void DeclareVideoSettings(settings::Registry& registry) {
     registry.Declare(kVsyncSetting);
     registry.Declare(kFpsCapSetting);
     registry.Declare(kResolutionScaleSetting);
+    registry.Declare(kFullscreenSetting);
     registry.Declare(kStretchUiSetting);
     registry.Declare(kWidescreenSetting);
     registry.Declare(kSmoothTexturesSetting);

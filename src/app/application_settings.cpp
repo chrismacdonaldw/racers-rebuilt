@@ -35,6 +35,12 @@ void Application::CyclePacing() {
     PersistSettings(settingsFile_, settings_, keys);
 }
 
+void Application::ToggleFullscreen() {
+    settings_.Set(kFullscreenSetting, !settings_.Get(kFullscreenSetting));
+    const std::array<std::string_view, 1> keys{kFullscreenSetting.key};
+    PersistSettings(settingsFile_, settings_, keys);
+}
+
 void Application::Persist(const std::vector<std::string>& keys) {
     if (!keys.empty()) {
         const std::vector<std::string_view> views(keys.begin(), keys.end());
@@ -44,6 +50,10 @@ void Application::Persist(const std::vector<std::string>& keys) {
 
 void Application::ApplyVideo() {
     ApplyRendererSettings(settings_, renderer_);
+    if (Result<void> fullscreen = window_.SetFullscreen(settings_.Get(kFullscreenSetting));
+        !fullscreen) {
+        log::Error("{}", fullscreen.error().message);
+    }
     const platform::PacingConfig pacing = PacingFromSettings(settings_);
     if (IsSamePacing(pacing, pacing_)) {
         return;

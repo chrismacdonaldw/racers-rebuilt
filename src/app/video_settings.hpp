@@ -26,6 +26,9 @@ inline constexpr settings::SettingSpec<double> kResolutionScaleSetting{
     .label = "Resolution scale",
     .category = "Video"};
 
+inline constexpr settings::SettingSpec<bool> kFullscreenSetting{
+    .key = "video.fullscreen", .defaultValue = false, .label = "Fullscreen", .category = "Video"};
+
 inline constexpr settings::SettingSpec<bool> kStretchUiSetting{
     .key = "video.stretch_ui", .defaultValue = false, .label = "Stretch UI", .category = "Video"};
 
