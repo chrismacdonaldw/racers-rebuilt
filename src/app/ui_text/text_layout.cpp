@@ -1,6 +1,10 @@
 #include "app/ui_text/text_layout.hpp"
 
 #include <algorithm>
+#include <optional>
+#include <vector>
+
+#include "app/ui_text/drawn_glyphs.hpp"
 
 namespace rr::app {
 namespace {
@@ -33,27 +37,66 @@ const assets::Glyph* GlyphFor(const assets::FontGlyphs& glyphs, char16_t charact
     return glyph;
 }
 
+bool IsLineBreak(char16_t character) {
+    return character == kLineFeed || character == kCarriageReturn;
+}
+
+struct Mark {
+    std::optional<assets::Glyph> glyph;
+    std::optional<DrawnGlyph> drawn;
+    float widthPx = 0.0F;
+};
+
+Mark GlyphMark(const assets::Glyph& glyph) {
+    return {.glyph = glyph, .widthPx = static_cast<float>(glyph.widthPx)};
+}
+
+Mark FirstGlyphMark(const UiFont& font) {
+    const std::vector<assets::Glyph>& glyphs = font.glyphs.glyphs;
+    if (!glyphs.empty() && glyphs.front().character < kSpace) {
+        return GlyphMark(glyphs.front());
+    }
+    return GlyphMark({.character = kSpace, .leftPx = 0, .widthPx = font.glyphs.spaceWidthPx});
+}
+
+std::optional<Mark> MarkFor(const UiFont& font, char16_t character) {
+    if (const assets::Glyph* glyph = GlyphFor(font.glyphs, character)) {
+        return GlyphMark(*glyph);
+    }
+    if (IsLineBreak(character)) {
+        return std::nullopt;
+    }
+    if (font.missingGlyphs == MissingGlyphs::FirstGlyph) {
+        return FirstGlyphMark(font);
+    }
+    if (const std::optional<DrawnGlyph> drawn = DrawnGlyphFor(character)) {
+        return Mark{.drawn = drawn,
+                    .widthPx = DrawnGlyphWidth(*drawn, static_cast<float>(font.heightPx))};
+    }
+    return std::nullopt;
+}
+
 template <typename Visit>
 float ForEachGlyph(const UiFont& font, std::u16string_view text, Visit&& visit) {
     const auto spacing = static_cast<float>(font.spacingPx);
     float pen = 0.0F;
     bool hasAdvanced = false;
     for (const char16_t character : text) {
-        const assets::Glyph* glyph =
-            character == kSpace ? nullptr : GlyphFor(font.glyphs, character);
-        if (character != kSpace && glyph == nullptr) {
+        const std::optional<Mark> mark =
+            character == kSpace ? std::nullopt : MarkFor(font, character);
+        if (character != kSpace && !mark) {
             continue;
         }
         if (hasAdvanced) {
             pen += spacing;
         }
         hasAdvanced = true;
-        if (glyph == nullptr) {
+        if (!mark) {
             pen += static_cast<float>(font.glyphs.spaceWidthPx);
             continue;
         }
-        visit(*glyph, pen);
-        pen += static_cast<float>(glyph->widthPx);
+        visit(*mark, pen);
+        pen += mark->widthPx;
     }
     return pen;
 }
@@ -62,14 +105,8 @@ float Advance(const UiFont& font, char16_t character) {
     if (character == kSpace) {
         return static_cast<float>(font.glyphs.spaceWidthPx) + static_cast<float>(font.spacingPx);
     }
-    const assets::Glyph* glyph = GlyphFor(font.glyphs, character);
-    return glyph == nullptr
-               ? 0.0F
-               : static_cast<float>(glyph->widthPx) + static_cast<float>(font.spacingPx);
-}
-
-bool IsLineBreak(char16_t character) {
-    return character == kLineFeed || character == kCarriageReturn;
+    const std::optional<Mark> mark = MarkFor(font, character);
+    return mark ? mark->widthPx + static_cast<float>(font.spacingPx) : 0.0F;
 }
 
 class LineBreaker {
@@ -139,21 +176,25 @@ private:
 }
 
 float TextWidth(const UiFont& font, std::u16string_view text) {
-    return ForEachGlyph(font, text, [](const assets::Glyph&, float) {});
+    return ForEachGlyph(font, text, [](const Mark&, float) {});
 }
 
 void LayoutText(const UiFont& font, std::u16string_view text, const TextPlacement& placement,
                 std::vector<render::SpriteDraw>& out) {
     const auto imageWidth = static_cast<float>(font.widthPx);
-    ForEachGlyph(font, text, [&](const assets::Glyph& glyph, float pen) {
-        const auto width = static_cast<float>(glyph.widthPx);
+    ForEachGlyph(font, text, [&](const Mark& mark, float pen) {
+        const render::Rect cell{.x = placement.x + (pen * placement.scale),
+                                .y = placement.y,
+                                .width = mark.widthPx * placement.scale,
+                                .height = static_cast<float>(font.heightPx) * placement.scale};
+        if (!mark.glyph) {
+            DrawGlyphShape(mark.drawn.value_or(DrawnGlyph::Dash), cell, placement.tint, out);
+            return;
+        }
         out.push_back({.texture = font.texture,
-                       .bounds = {.x = placement.x + (pen * placement.scale),
-                                  .y = placement.y,
-                                  .width = width * placement.scale,
-                                  .height = static_cast<float>(font.heightPx) * placement.scale},
-                       .uv = {.x = static_cast<float>(glyph.leftPx) / imageWidth,
-                              .width = width / imageWidth,
+                       .bounds = cell,
+                       .uv = {.x = static_cast<float>(mark.glyph->leftPx) / imageWidth,
+                              .width = mark.widthPx / imageWidth,
                               .height = 1.0F},
                        .tint = placement.tint});
     });

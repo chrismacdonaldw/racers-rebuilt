@@ -15,6 +15,7 @@
 
 #include "app/checkpoint_gates.hpp"
 #include "app/collision_wireframe.hpp"
+#include "app/fix_settings.hpp"
 #include "app/frame_loop.hpp"
 #include "app/game_settings.hpp"
 #include "app/hud/race_map_view.hpp"
@@ -154,6 +155,7 @@ void RaceScene::ApplySettings(const settings::Registry& settings) {
     if (parts_.particles) {
         parts_.particles->SetBetter(settings.Get(kBetterParticlesSetting));
     }
+    hud_.UseMissingGlyphs(MissingGlyphsFrom(settings));
     hud_.SetLanguage(SelectedLanguage(settings));
 }
 

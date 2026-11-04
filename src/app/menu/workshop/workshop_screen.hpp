@@ -19,6 +19,7 @@
 #include "app/menu/workshop/orbit_camera.hpp"
 #include "app/menu/workshop/track_backdrops.hpp"
 #include "app/menu/workshop/workshop_panels.hpp"
+#include "app/ui_text/ui_font.hpp"
 #include "assets/car_data.hpp"
 #include "core/duration.hpp"
 #include "core/result.hpp"
@@ -69,6 +70,7 @@ private:
                    render::TextureId groundCell, sim::BuiltCar car, WorkshopPanels panels);
 
     void UseMode(const BuildMode& mode);
+    [[nodiscard]] const UiFont* PanelFont();
     void ChooseBackground(const BackgroundChoice& choice);
     void ShowBackground(std::string_view background);
     void Steer(const sim::MenuPointer& pointer);
@@ -113,6 +115,8 @@ private:
     Vector3 carOffset_;
     OrbitCamera camera_;
     WorkshopPanels panels_;
+    const UiFont* panelFontSource_ = nullptr;
+    UiFont panelFont_;
     bool showsHint_ = true;
     bool isDragging_ = false;
     bool isDone_ = false;

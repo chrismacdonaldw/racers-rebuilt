@@ -272,6 +272,19 @@ void WorkshopScreen::AddLooseBricks() {
     }
 }
 
+const UiFont* WorkshopScreen::PanelFont() {
+    const UiFont* font = services_.text != nullptr ? services_.text->Font(kPanelFont) : nullptr;
+    if (font == nullptr) {
+        return nullptr;
+    }
+    if (font != panelFontSource_ || font->texture != panelFont_.texture) {
+        panelFontSource_ = font;
+        panelFont_ = *font;
+        panelFont_.missingGlyphs = MissingGlyphs::Shapes;
+    }
+    return &panelFont_;
+}
+
 void WorkshopScreen::Render(std::vector<render::RenderView>& views,
                             std::vector<render::SpriteDraw>& sprites) {
     const render::Camera camera = ViewCamera();
@@ -295,7 +308,7 @@ void WorkshopScreen::Render(std::vector<render::RenderView>& views,
                      .quads = backdrop != nullptr ? std::span(quads_).subspan(1) : quads_,
                      .viewport = viewport});
     panels_.Render(models_,
-                   {.font = services_.text != nullptr ? services_.text->Font(kPanelFont) : nullptr,
+                   {.font = PanelFont(),
                     .pieces = bench_.car.Pieces().size(),
                     .plates = bench_.car.Grid().Tallest(),
                     .showsHint = showsHint_,
