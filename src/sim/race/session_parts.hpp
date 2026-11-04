@@ -37,4 +37,9 @@ namespace rr::sim {
 [[nodiscard]] std::vector<std::vector<std::shared_ptr<const RacingLine>>> RacingLinesFor(
     const RaceSetup& setup, const RaceCourse& course);
 
+/// Empty when `lines` doesn't match `routes`.
+[[nodiscard]] std::vector<RouteOption> RouteOptionsFor(
+    std::span<const assets::RaceRoute> routes,
+    std::span<const std::shared_ptr<const RacingLine>> lines);
+
 }

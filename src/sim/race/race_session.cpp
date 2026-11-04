@@ -108,8 +108,12 @@ RaceSession::RaceSession(const RaceSetup& setup, const RaceCourse& course)
                     skillLevels_[i] = LevelFor(*setup.aiSkill, setup.firstSlot + i, route.pace);
                     skill = ProfileFor(skillLevels_[i]);
                 }
-                drivers_.back().emplace(route, setup.aiPace, setup.aiCraft, skill,
-                                        LineFor(setup.firstSlot + i, variant));
+                RouteDriver& driver =
+                    drivers_.back().emplace(route, setup.aiPace, setup.aiCraft, skill,
+                                            LineFor(setup.firstSlot + i, variant));
+                if (skill && skill->takesShortcuts) {
+                    driver.OfferRoutes(RouteOptionsFor(routes, LinesFor(setup.firstSlot + i)));
+                }
             } else {
                 racer.FollowRoute(route);
             }
@@ -242,10 +246,15 @@ void RaceSession::ResolveContacts() {
 
 std::shared_ptr<const RacingLine> RaceSession::LineFor(std::size_t slot,
                                                        std::size_t variant) const {
-    if (slot >= lines_.size() || variant >= lines_[slot].size()) {
-        return nullptr;
+    const std::span<const std::shared_ptr<const RacingLine>> lines = LinesFor(slot);
+    return variant < lines.size() ? lines[variant] : nullptr;
+}
+
+std::span<const std::shared_ptr<const RacingLine>> RaceSession::LinesFor(std::size_t slot) const {
+    if (slot >= lines_.size()) {
+        return {};
     }
-    return lines_[slot][variant];
+    return lines_[slot];
 }
 
 void RaceSession::PaceRoutes(Milliseconds elapsed) {

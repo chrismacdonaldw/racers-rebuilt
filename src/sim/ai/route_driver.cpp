@@ -90,10 +90,10 @@ RouteDriver::RouteDriver(const assets::RaceRoute& route, std::optional<float> pa
 RacerControls RouteDriver::Drive(const Racer& racer, std::span<const Vector3> racers,
                                  std::optional<std::size_t> self, std::optional<Vector3> aim) {
     const BodyMotion& motion = racer.Body().motion;
-    Follow(motion.position);
     if (line_ != nullptr && !plan_ && IsGrounded(motion)) {
-        plan_.emplace(*line_, CarLimits::Of(racer));
+        PlanFor(CarLimits::Of(racer));
     }
+    Follow(motion.position);
     if (craft_.unsticks && stalled_ >= kBackUpFrom && stalled_ < kBackUpUntil) {
         return {.isBrakeHeld = true};
     }
@@ -104,7 +104,8 @@ RacerControls RouteDriver::Drive(const Racer& racer, std::span<const Vector3> ra
     const Vector3 tangent = FlatForward(reference.rotation);
     const float lateral = LateralOf(reference_);
     const float offset =
-        lateral + SideOffset(aim ? AimOffset(*aim) - lateral : PassOffset(motion, racers, self));
+        lateral +
+        SideOffset(aim ? AimOffset(*aim) - lateral : PassOffset(motion, racers, self), lateral);
     const Vector3 target =
         Flat(reference.position) + (tangent * kCorrectionDistance) + (LeftOf(tangent) * offset);
     const Vector3 forward = Normalized(Flat(motion.basis.forward), {.x = 1.0F});
@@ -154,7 +155,7 @@ RouteDriver::Pedal RouteDriver::PedalFor(const BodyMotion& motion) const {
     return craft_.brakes && speed > target * margin ? Pedal::Brake : Pedal::Coast;
 }
 
-float RouteDriver::SideOffset(float wanted) {
+float RouteDriver::SideOffset(float wanted, float lateral) {
     if (!skill_) {
         return wanted;
     }
@@ -165,7 +166,35 @@ float RouteDriver::SideOffset(float wanted) {
     sideOffset_ += std::clamp(wanted - sideOffset_, -step, step);
     const float wobbleAngle =
         (kTwoPi * static_cast<float>(travelled_.count()) / kWobblePeriodMs) + wobblePhase_;
-    return sideOffset_ + (skill_->wobble * std::sin(wobbleAngle));
+    const float side = lateral + sideOffset_ + (skill_->wobble * std::sin(wobbleAngle));
+    const float lowest = std::min(-reference_.WidthRight() * kPassWidthShare, lateral);
+    const float highest = std::max(reference_.WidthLeft() * kPassWidthShare, lateral);
+    return std::clamp(side, lowest, highest) - lateral;
+}
+
+float RouteDriver::ClampedToWidth(float offset) const {
+    return std::clamp(offset, -reference_.WidthRight() * kPassWidthShare,
+                      reference_.WidthLeft() * kPassWidthShare);
+}
+
+void RouteDriver::PlanFor(const CarLimits& car) {
+    plan_.emplace(*line_, car);
+    for (const RouteOption& option : options_) {
+        if (!line_->IsClosed() || option.line == nullptr || !option.line->IsClosed()) {
+            continue;
+        }
+        SpeedPlan plan(*option.line, car);
+        if (plan.LapSeconds() < plan_->LapSeconds()) {
+            plan_ = std::move(plan);
+            line_ = option.line;
+            nearest_ = RoutePlayback(*option.route);
+            reference_ = nearest_;
+            ahead_ = nearest_;
+            referenceLead_ = Milliseconds{0};
+            aheadLead_ = Milliseconds{0};
+        }
+    }
+    options_.clear();
 }
 
 float RouteDriver::BrakeWindowSpeed() const {
@@ -208,8 +237,7 @@ float RouteDriver::PassOffset(const BodyMotion& motion, std::span<const Vector3>
 float RouteDriver::AimOffset(const Vector3& aim) const {
     const Transform reference = reference_.Pose();
     const float side = Dot(Flat(aim - reference.position), LeftOf(FlatForward(reference.rotation)));
-    return std::clamp(side, -reference_.WidthRight() * kPassWidthShare,
-                      reference_.WidthLeft() * kPassWidthShare);
+    return ClampedToWidth(side);
 }
 
 bool RouteDriver::IsStalled(Milliseconds elapsed) {

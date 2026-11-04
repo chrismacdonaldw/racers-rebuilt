@@ -12,10 +12,16 @@ constexpr std::array kProfiles{
         .speedShare = 0.95F, .brakeMargin = 1.06F, .wobble = 1.2F, .reaction = Milliseconds{300}},
     SkillProfile{
         .speedShare = 1.00F, .brakeMargin = 1.10F, .wobble = 0.6F, .reaction = Milliseconds{200}},
-    SkillProfile{
-        .speedShare = 1.04F, .brakeMargin = 1.14F, .wobble = 0.25F, .reaction = Milliseconds{120}},
-    SkillProfile{
-        .speedShare = 1.08F, .brakeMargin = 1.18F, .wobble = 0.0F, .reaction = Milliseconds{60}}};
+    SkillProfile{.speedShare = 1.04F,
+                 .brakeMargin = 1.14F,
+                 .wobble = 0.25F,
+                 .reaction = Milliseconds{120},
+                 .takesShortcuts = true},
+    SkillProfile{.speedShare = 1.08F,
+                 .brakeMargin = 1.18F,
+                 .wobble = 0.0F,
+                 .reaction = Milliseconds{60},
+                 .takesShortcuts = true}};
 
 constexpr float kFarAheadLaps = 0.1F;
 constexpr char kOriginalMark = 'o';
