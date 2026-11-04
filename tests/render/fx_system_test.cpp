@@ -3,6 +3,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <numbers>
@@ -20,8 +21,9 @@ namespace {
 constexpr TextureId kSmoke{3};
 constexpr TextureId kSpark{4};
 constexpr TextureId kGlow{5};
+constexpr TextureId kRing{6};
 constexpr TextureId kOriginal{9};
-constexpr FxTextures kTextures{.smoke = kSmoke, .spark = kSpark, .glow = kGlow};
+constexpr FxAssets kTextures{.smoke = kSmoke, .spark = kSpark, .glow = kGlow, .ring = kRing};
 constexpr Transform kCamera{.position = {.z = -50.0F}};
 
 FxEffect Puff(float rate, int burst = 0) {
@@ -144,6 +146,42 @@ TEST_CASE("particles past the draw distance are left out") {
 
     CHECK(fx.Count() == 1);
     CHECK(Quads(fx).empty());
+}
+
+TEST_CASE("bricks tumble as models in their palette's colours and rings lie flat") {
+    constexpr std::array kPaints{Color{.r = 1.0F, .g = 0.0F, .b = 0.0F}};
+    FxEffect brick = Puff(0.0F, 3);
+    brick.shape = FxShape::Brick;
+    brick.palette = kPaints;
+    FxEffect ring = Puff(0.0F, 1);
+    ring.shape = FxShape::Ring;
+    ring.offset = {.y = -2.0F};
+    FxSystem fx({brick, ring}, kTextures);
+    FxEmission emission;
+    fx.Emit(*fx.EffectFor("puff"), {.position = {.y = 5.0F}}, 0.0F, emission);
+
+    std::vector<MeshDraw> meshes;
+    fx.AppendMeshes(meshes);
+    const std::vector<QuadDraw> quads = Quads(fx);
+
+    REQUIRE(meshes.size() == 3);
+    CHECK(meshes.front().material.tint.g == doctest::Approx(0.0F));
+    REQUIRE(quads.size() == 1);
+    CHECK(quads.front().texture == kRing);
+    CHECK(std::ranges::all_of(quads.front().corners,
+                              [](const Vector3& corner) { return corner.y == 3.0F; }));
+}
+
+TEST_CASE("the brick model is closed and faces outward") {
+    const assets::GeometryAsset brick = MakeBrickGeometry();
+
+    REQUIRE_FALSE(brick.indices.empty());
+    CHECK(brick.indices.size() % 3 == 0);
+    CHECK(std::ranges::all_of(brick.indices,
+                              [&](std::uint32_t index) { return index < brick.vertices.size(); }));
+    CHECK(std::ranges::all_of(brick.vertices, [](const assets::GeometryVertex& vertex) {
+        return Length(vertex.normal) == doctest::Approx(1.0F);
+    }));
 }
 
 TEST_CASE("particles grow, fade and die at the end of their life") {

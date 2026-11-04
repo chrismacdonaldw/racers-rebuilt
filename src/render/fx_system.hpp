@@ -24,8 +24,7 @@ inline constexpr float kFxMaxEmitStep = 30.0F;
 /// Spawns past `capacity` are dropped. Draws randomness from its own stream.
 class FxSystem {
 public:
-    FxSystem(std::vector<FxEffect> effects, FxTextures textures,
-             std::size_t capacity = kFxCapacity);
+    FxSystem(std::vector<FxEffect> effects, FxAssets assets, std::size_t capacity = kFxCapacity);
 
     /// The first of the layers that name `emitter`.
     [[nodiscard]] std::optional<FxEffectId> EffectFor(std::string_view emitter) const;
@@ -42,6 +41,7 @@ public:
 
     /// Back to front, leaving out particles past `kFxDrawDistance`.
     void AppendQuads(const Transform& camera, std::vector<QuadDraw>& out) const;
+    void AppendMeshes(std::vector<MeshDraw>& out) const;
 
 private:
     struct Particle {
@@ -54,8 +54,10 @@ private:
         float angle = 0.0F;
         float spin = 0.0F;
         float floor = 0.0F;
+        Vector3 axis;
         std::uint16_t effect = 0;
         std::uint8_t variant = 0;
+        std::uint8_t paint = 0;
     };
 
     struct View {
@@ -69,11 +71,13 @@ private:
     void Spawn(std::uint16_t effect, const Vector3& at, const EmitterPlacement& placement,
                float ageMs);
     [[nodiscard]] QuadDraw QuadOf(const Particle& particle, const View& view) const;
+    [[nodiscard]] Color ColorAt(const Particle& particle, float share) const;
+    [[nodiscard]] Vector3 RandomAxis();
     [[nodiscard]] float Roll(FxRange range);
     [[nodiscard]] float Unit();
 
     std::vector<FxEffect> effects_;
-    FxTextures textures_;
+    FxAssets assets_;
     std::size_t capacity_;
     std::vector<Particle> particles_;
     mutable std::vector<std::pair<float, std::uint32_t>> order_;

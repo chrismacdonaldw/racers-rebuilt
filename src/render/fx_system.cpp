@@ -7,6 +7,7 @@
 #include <numbers>
 #include <ranges>
 
+#include "core/quaternion.hpp"
 #include "render/fx_textures.hpp"
 
 namespace rr::render {
@@ -19,6 +20,9 @@ constexpr Vector3 kCameraRight{.x = 1.0F};
 constexpr Vector3 kTowardLight = -kDefaultLight.direction;
 constexpr float kBounceFriction = 0.7F;
 constexpr Rect kWholeTexture{.width = 1.0F, .height = 1.0F};
+constexpr Vector3 kGroundRight{.x = 1.0F};
+constexpr Vector3 kGroundAhead{.z = 1.0F};
+constexpr float kBrickAmbientShare = 0.5F;
 
 float SmoothStep(float x) {
     const float t = std::clamp(x, 0.0F, 1.0F);
@@ -41,15 +45,11 @@ Vector3 Between(const Vector3& from, const Vector3& to, float share) {
     return from + ((to - from) * share);
 }
 
-Color ColorOf(const FxEffect& effect, float share) {
-    if (!effect.endColor) {
-        return effect.color;
-    }
-    const Color& end = *effect.endColor;
-    return {.r = std::lerp(effect.color.r, end.r, share),
-            .g = std::lerp(effect.color.g, end.g, share),
-            .b = std::lerp(effect.color.b, end.b, share),
-            .a = std::lerp(effect.color.a, end.a, share)};
+Color Mix(const Color& from, const Color& to, float share) {
+    return {.r = std::lerp(from.r, to.r, share),
+            .g = std::lerp(from.g, to.g, share),
+            .b = std::lerp(from.b, to.b, share),
+            .a = std::lerp(from.a, to.a, share)};
 }
 
 Color Lit(const Color& color, float shade, const Vector3& offset) {
@@ -74,8 +74,8 @@ void Bounce(Vector3& position, Vector3& velocity, float floor, float bounce) {
 
 }
 
-FxSystem::FxSystem(std::vector<FxEffect> effects, FxTextures textures, std::size_t capacity)
-    : effects_(std::move(effects)), textures_(textures), capacity_(capacity) {
+FxSystem::FxSystem(std::vector<FxEffect> effects, FxAssets assets, std::size_t capacity)
+    : effects_(std::move(effects)), assets_(assets), capacity_(capacity) {
     particles_.reserve(capacity_);
     order_.reserve(capacity_);
 }
@@ -147,6 +147,9 @@ void FxSystem::AppendQuads(const Transform& camera, std::vector<QuadDraw>& out) 
                     .right = Rotate(camera.rotation, kCameraRight)};
     order_.clear();
     for (std::uint32_t i = 0; i < particles_.size(); ++i) {
+        if (effects_[particles_[i].effect].shape == FxShape::Brick) {
+            continue;
+        }
         const Vector3 toCamera = particles_[i].position - camera.position;
         const float distance = Dot(toCamera, toCamera);
         if (distance < kFxDrawDistance * kFxDrawDistance) {
@@ -156,6 +159,25 @@ void FxSystem::AppendQuads(const Transform& camera, std::vector<QuadDraw>& out) 
     std::ranges::sort(order_, std::ranges::greater{});
     for (const std::uint32_t index : order_ | std::views::values) {
         out.push_back(QuadOf(particles_[index], view));
+    }
+}
+
+void FxSystem::AppendMeshes(std::vector<MeshDraw>& out) const {
+    for (const Particle& particle : particles_) {
+        const FxEffect& effect = effects_[particle.effect];
+        if (effect.shape != FxShape::Brick) {
+            continue;
+        }
+        const float share = particle.lifeMs > 0.0F ? particle.ageMs / particle.lifeMs : 1.0F;
+        const Color paint = ColorAt(particle, share);
+        const Color ambient{.r = paint.r * kBrickAmbientShare,
+                            .g = paint.g * kBrickAmbientShare,
+                            .b = paint.b * kBrickAmbientShare};
+        out.push_back({.mesh = assets_.brick,
+                       .material = {.tint = paint, .ambient = ambient},
+                       .transform = {.position = particle.position,
+                                     .rotation = FromAxisAngle(particle.axis, particle.angle)},
+                       .scale = particle.startSize * FadeOf(effect, share)});
     }
 }
 
@@ -182,8 +204,9 @@ void FxSystem::Spawn(std::uint16_t effect, const Vector3& at, const EmitterPlace
                          .z = definition.spread.z * ((Unit() * 2.0F) - 1.0F)};
     const Vector3 velocity = (placement.velocity * definition.inherit) + definition.launch + jitter;
     const float spin = Roll(definition.spinPerSecond) * (Unit() < 0.5F ? -1.0F : 1.0F);
+    const Vector3 start = at + definition.offset;
     particles_.push_back(
-        {.position = at + (velocity * (ageMs / kMillisecondsPerSecond)),
+        {.position = start + (velocity * (ageMs / kMillisecondsPerSecond)),
          .velocity = velocity,
          .ageMs = ageMs,
          .lifeMs = Roll(definition.lifeMs),
@@ -191,16 +214,19 @@ void FxSystem::Spawn(std::uint16_t effect, const Vector3& at, const EmitterPlace
          .endSize = Roll(definition.endSize),
          .angle = Unit() * std::numbers::pi_v<float> * 2.0F,
          .spin = spin,
-         .floor = at.y - definition.floorDrop,
+         .floor = start.y - definition.floorDrop,
+         .axis = RandomAxis(),
          .effect = effect,
-         .variant = static_cast<std::uint8_t>(Unit() * static_cast<float>(kSmokeVariants))});
+         .variant = static_cast<std::uint8_t>(Unit() * static_cast<float>(kSmokeVariants)),
+         .paint =
+             static_cast<std::uint8_t>(Unit() * static_cast<float>(definition.palette.size()))});
 }
 
 QuadDraw FxSystem::QuadOf(const Particle& particle, const View& view) const {
     const FxEffect& effect = effects_[particle.effect];
     const float share = particle.lifeMs > 0.0F ? particle.ageMs / particle.lifeMs : 1.0F;
     const float half = 0.5F * std::lerp(particle.startSize, particle.endSize, GrowthOf(share));
-    const Color color = ColorOf(effect, share);
+    const Color color = ColorAt(particle, share);
     QuadDraw quad{.tint = {.a = color.a * FadeOf(effect, share)}, .blend = effect.blend};
     const Color plain{.r = color.r, .g = color.g, .b = color.b};
     quad.cornerTints = {plain, plain, plain, plain};
@@ -211,23 +237,26 @@ QuadDraw FxSystem::QuadOf(const Particle& particle, const View& view) const {
             Normalized(Cross(along, view.position - particle.position), view.right);
         const Vector3 head = particle.position;
         const float length = std::max(half * 2.0F, speed * effect.streakSeconds);
-        quad.texture = textures_.spark;
+        quad.texture = assets_.spark;
         quad.uv = kWholeTexture;
         quad.corners =
             Corners(head - (along * (0.5F * length)), along * (0.5F * length), across * half);
         return quad;
     }
+    const bool isFlat = effect.shape == FxShape::Ring;
+    const Vector3 right = isFlat ? kGroundRight : view.right;
+    const Vector3 up = isFlat ? kGroundAhead : view.up;
     const float cos = std::cos(particle.angle) * half;
     const float sin = std::sin(particle.angle) * half;
-    const Vector3 across = (view.right * cos) + (view.up * sin);
-    const Vector3 along = (view.up * cos) - (view.right * sin);
+    const Vector3 across = (right * cos) + (up * sin);
+    const Vector3 along = (up * cos) - (right * sin);
     quad.corners = Corners(particle.position, along, across);
-    if (effect.shape == FxShape::Glow) {
-        quad.texture = textures_.glow;
+    if (effect.shape != FxShape::Puff) {
+        quad.texture = isFlat ? assets_.ring : assets_.glow;
         quad.uv = kWholeTexture;
         return quad;
     }
-    quad.texture = textures_.smoke;
+    quad.texture = assets_.smoke;
     quad.uv = SmokeCell(particle.variant);
     const std::array<Vector3, 4> offsets{along - across, along + across, -along - across,
                                          -along + across};
@@ -235,6 +264,22 @@ QuadDraw FxSystem::QuadOf(const Particle& particle, const View& view) const {
         quad.cornerTints.at(corner) = Lit(plain, effect.shade, offsets.at(corner));
     }
     return quad;
+}
+
+Color FxSystem::ColorAt(const Particle& particle, float share) const {
+    const FxEffect& effect = effects_[particle.effect];
+    Color start = effect.color;
+    if (particle.paint < effect.palette.size()) {
+        const Color& paint = effect.palette[particle.paint];
+        start = {.r = paint.r, .g = paint.g, .b = paint.b, .a = start.a};
+    }
+    return effect.endColor ? Mix(start, *effect.endColor, share) : start;
+}
+
+Vector3 FxSystem::RandomAxis() {
+    const Vector3 axis{
+        .x = (Unit() * 2.0F) - 1.0F, .y = (Unit() * 2.0F) - 1.0F, .z = (Unit() * 2.0F) - 1.0F};
+    return Normalized(axis, kCameraUp);
 }
 
 float FxSystem::Roll(FxRange range) {
