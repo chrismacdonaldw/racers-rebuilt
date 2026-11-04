@@ -6,8 +6,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
-#include <functional>
-#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -19,7 +17,7 @@
 #include "app/menu/workshop/bench_drag.hpp"
 #include "app/menu/workshop/bench_pick.hpp"
 #include "app/menu/workshop/orbit_camera.hpp"
-#include "app/menu/workshop/track_backdrop.hpp"
+#include "app/menu/workshop/track_backdrops.hpp"
 #include "app/menu/workshop/workshop_panels.hpp"
 #include "assets/car_data.hpp"
 #include "core/duration.hpp"
@@ -130,8 +128,7 @@ private:
     std::vector<std::size_t> blockers_;
     Milliseconds flash_{0};
     std::vector<SettingChange> changes_;
-    std::map<std::string, std::unique_ptr<TrackBackdrop>, std::less<>> backdrops_;
-    TrackBackdrop* backdrop_ = nullptr;
+    TrackBackdrops backdrops_;
     std::vector<render::MeshDraw> draws_;
     std::array<render::QuadDraw, 2> quads_{};
     std::array<render::DirectionalLight, 2> lights_{};

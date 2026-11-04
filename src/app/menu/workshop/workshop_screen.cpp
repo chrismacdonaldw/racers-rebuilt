@@ -47,6 +47,11 @@ sim::MenuPointer Stilled(sim::MenuPointer pointer) {
     return pointer;
 }
 
+Vector3 BenchMiddle(const Vector3& carOffset) {
+    const Vector3 middle = kCarAt + carOffset + kGridMiddle;
+    return {.x = middle.x, .y = middle.y};
+}
+
 Vector3 CarOffset(const sim::BuiltCar& car, const assets::PieceCatalog& catalog) {
     Result<Vector3> offset = sim::CarMeshOffset(car, catalog);
     if (!offset) {
@@ -97,6 +102,7 @@ WorkshopScreen::WorkshopScreen(render::Renderer& renderer, BuildServices service
                .distance = kHomeDistance}),
       panels_(std::move(panels)),
       shownCar_(bench_.car.Save()),
+      backdrops_(renderer, *services_.vfs, BenchMiddle(carOffset_)),
       lights_{kKeyLight, kFillLight} {
     panels_.Fit(renderer_->UiWindow());
     UseMode(services_.mode);
@@ -183,32 +189,19 @@ void WorkshopScreen::ChooseBackground(const BackgroundChoice& choice) {
 }
 
 void WorkshopScreen::ShowBackground(std::string_view background) {
-    backdrop_ = nullptr;
     if (background == kColourBackground) {
-        return;
-    }
-    if (!panels_.Backgrounds().Offers(background)) {
+        backdrops_.Want({});
+    } else if (panels_.Backgrounds().Offers(background)) {
+        backdrops_.Want(background);
+    } else {
         log::Warn("the workshop shows its colour, as {} isn't a race track", background);
-        return;
+        backdrops_.Want({});
     }
-    auto found = backdrops_.find(background);
-    if (found == backdrops_.end()) {
-        const Vector3 spot = CarCorner() + Vector3{.x = kGridMiddle.x, .y = kGridMiddle.y};
-        Result<std::unique_ptr<TrackBackdrop>> loaded =
-            TrackBackdrop::Load(*renderer_, *services_.vfs, services_.stand->Loader(), background,
-                                {.x = spot.x, .y = spot.y});
-        if (!loaded) {
-            log::Warn("the workshop shows its colour, not {}: {}", background,
-                      loaded.error().message);
-            return;
-        }
-        found = backdrops_.emplace(std::string(background), std::move(*loaded)).first;
-    }
-    backdrop_ = found->second.get();
 }
 
 BuildOutcome WorkshopScreen::Tick(const sim::InputFrame& input) {
     panels_.Fit(renderer_->UiWindow());
+    backdrops_.Tick();
     camera_.Tick(kSimTick);
     const bool isFree = !drag_.IsBusy() && !isDragging_;
     const PanelTick panel = panels_.Tick(isFree ? input.pointer : Stilled(input.pointer));
@@ -260,7 +253,8 @@ render::Camera WorkshopScreen::ViewCamera() const {
     camera.target = camera_.Focus();
     camera.fovDegrees = kFovDegrees;
     camera.nearClip = kNearPlane;
-    camera.farClip = backdrop_ != nullptr ? std::max(kFarPlane, backdrop_->FarPlane()) : kFarPlane;
+    const TrackBackdrop* backdrop = backdrops_.Shown();
+    camera.farClip = backdrop != nullptr ? std::max(kFarPlane, backdrop->FarPlane()) : kFarPlane;
     return MenuSceneCamera(camera);
 }
 
@@ -282,8 +276,9 @@ void WorkshopScreen::Render(std::vector<render::RenderView>& views,
                             std::vector<render::SpriteDraw>& sprites) {
     const render::Camera camera = ViewCamera();
     const render::Viewport viewport = render::UiViewport(panels_.Layout().scene);
-    if (backdrop_ != nullptr) {
-        views.push_back(backdrop_->View(camera, viewport));
+    TrackBackdrop* backdrop = backdrops_.Shown();
+    if (backdrop != nullptr) {
+        views.push_back(backdrop->View(camera, viewport));
     }
     draws_.clear();
     services_.stand->AddCarDraws({.position = kCarAt}, {}, draws_);
@@ -297,7 +292,7 @@ void WorkshopScreen::Render(std::vector<render::RenderView>& views,
     views.push_back({.camera = camera,
                      .lighting = {.lights = lights_},
                      .meshes = draws_,
-                     .quads = backdrop_ != nullptr ? std::span(quads_).subspan(1) : quads_,
+                     .quads = backdrop != nullptr ? std::span(quads_).subspan(1) : quads_,
                      .viewport = viewport});
     panels_.Render(models_,
                    {.font = services_.text != nullptr ? services_.text->Font(kPanelFont) : nullptr,

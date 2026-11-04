@@ -28,15 +28,28 @@ struct BackdropTrack {
 [[nodiscard]] std::vector<BackdropTrack> ListBackdropTracks(const assets::Vfs& vfs,
                                                             std::string_view language);
 
+/// `firstSpot` is the track's first grid spot, in game space.
+// NOLINTNEXTLINE(bugprone-exception-escape)
+struct BackdropFiles {
+    assets::TrackAssets assets;
+    assets::SkyFile sky;
+    Vector3 firstSpot;
+};
+
+/// Safe on any thread, as it reads through a loader of its own.
+[[nodiscard]] Result<BackdropFiles> ReadBackdropFiles(const assets::Vfs& vfs,
+                                                      std::string_view track);
+
+/// In engine space. Both spots are in game space.
+[[nodiscard]] Vector3 BackdropShift(const Vector3& firstSpot, const Vector3& spot);
+
 /// A race track's scenery and sky, moved so its first grid spot sits under the workshop's car.
 class TrackBackdrop {
 public:
-    /// `spot` is where the grid spot goes, in game space.
-    [[nodiscard]] static Result<std::unique_ptr<TrackBackdrop>> Load(render::Renderer& renderer,
-                                                                     const assets::Vfs& vfs,
-                                                                     assets::TrackLoader& loader,
-                                                                     std::string_view track,
-                                                                     const Vector3& spot);
+    /// Main thread only. `spot` is where the first grid spot goes, in game space.
+    [[nodiscard]] static Result<std::unique_ptr<TrackBackdrop>> Upload(render::Renderer& renderer,
+                                                                       BackdropFiles files,
+                                                                       const Vector3& spot);
 
     [[nodiscard]] float FarPlane() const { return farPlane_; }
 
