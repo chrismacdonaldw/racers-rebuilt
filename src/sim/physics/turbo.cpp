@@ -19,10 +19,14 @@ constexpr int kWeakNoseLiftMs = 125;
 constexpr int kStrongNoseLiftMs = 250;
 constexpr std::array kBoostMs{1000, 1500, 5000};
 constexpr int kFadeMs = 700;
-constexpr int kEarlyFadeBelowMs = 4500;
+constexpr int kEarlyFadeAfterMs = 500;
 
 void SetMaxSpeed(BodyState& body, const BodyConstants& constants, float maxSpeed) {
     SetDrive(body, constants, body.thrust, maxSpeed);
+}
+
+int BoostMs(const Turbo& turbo) {
+    return kBoostMs.at(static_cast<std::size_t>(turbo.level)) * turbo.boostScale;
 }
 
 }
@@ -51,7 +55,7 @@ bool AdvanceTurbo(Turbo& turbo, int dtMs) {
     switch (turbo.phase) {
         case TurboPhase::Ignition:
             turbo.phase = TurboPhase::Boost;
-            turbo.phaseMs = kBoostMs.at(static_cast<std::size_t>(turbo.level)) * turbo.boostScale;
+            turbo.phaseMs = BoostMs(turbo);
             return true;
         case TurboPhase::Boost:
             FadeTurbo(turbo);
@@ -69,7 +73,7 @@ void FadeTurbo(Turbo& turbo) {
 
 bool CanFadeEarly(const Turbo& turbo) {
     return turbo.level == TurboLevel::Hover && turbo.phase == TurboPhase::Boost &&
-           turbo.phaseMs < kEarlyFadeBelowMs;
+           turbo.phaseMs < BoostMs(turbo) - kEarlyFadeAfterMs;
 }
 
 float TurboThrust(const Turbo& turbo) {
