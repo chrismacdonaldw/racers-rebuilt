@@ -36,6 +36,10 @@ void PowerupInventory::Grant(assets::BrickColour colour, std::size_t level) {
     grantedWhites_ = level;
 }
 
+void PowerupInventory::FillWhites() {
+    grantedWhites_ += kMaxWhiteBricks - WhiteCount();
+}
+
 std::optional<std::size_t> PowerupInventory::LoseWhite() {
     const auto slot = std::ranges::find_if(whites_, IsHeld);
     if (slot == whites_.end()) {

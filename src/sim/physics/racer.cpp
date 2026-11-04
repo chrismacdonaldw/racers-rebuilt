@@ -133,6 +133,7 @@ void Racer::StartTurbo(TurboLevel level) {
             EndTurbo(body_, constants_, stats_);
         }
     }
+    turbo_->boostScale = turboBoostScale_;
     if (level == TurboLevel::Hover) {
         Halt();
     }

@@ -45,7 +45,8 @@ void LavaBlob::Touch(HazardContext& context) const {
     }
     for (std::size_t i = 0; i < context.racers.size(); ++i) {
         Racer& racer = context.racers[i];
-        if (Touches(reach, context.reaches[i]) && !racer.IsSpinning() && !racer.IsStopped()) {
+        if (Touches(reach, context.reaches[i]) && !racer.IsSpinning() && !racer.IsStopped() &&
+            !racer.IsInvincible()) {
             racer.StartSpin(kSpinTurns, kSpinRatePerMs);
             racer.ReactToHit();
             racer.React(VoiceReaction::Negative);

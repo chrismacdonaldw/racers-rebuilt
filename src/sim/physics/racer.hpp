@@ -94,6 +94,10 @@ public:
     /// Also scales acceleration. Only before the race starts.
     void ScaleSpeed(float scale);
 
+    void MakeInvincible() { isInvincible_ = true; }
+    void LengthenTurboBoosts(int scale) { turboBoostScale_ = scale; }
+    void PerfectStarts() { startBoost_.MakePerfect(); }
+
     /// Replaces any turbo already running. A hover turbo halts the racer until it ends.
     void StartTurbo(TurboLevel level);
     void CancelTurbo();
@@ -190,6 +194,11 @@ public:
 
     [[nodiscard]] bool IsStopped() const;
     [[nodiscard]] bool IsShielded() const { return status_.shield.level.has_value(); }
+    [[nodiscard]] bool IsInvincible() const { return isInvincible_; }
+
+    /// Weapons, hazards, curses and shields pass a shielded or invincible racer by.
+    [[nodiscard]] bool IsProtected() const { return IsShielded() || isInvincible_; }
+
     [[nodiscard]] const RacerStatus& Status() const { return status_; }
 
     /// From now on the racer replays `route` from its start, ignoring controls and the world.
@@ -244,6 +253,8 @@ private:
     RacerStatus status_;
     bool wasBrakeHeld_ = false;
     std::uint32_t turboCount_ = 0;
+    int turboBoostScale_ = 1;
+    bool isInvincible_ = false;
     float watchedSpeed_ = 0.0F;
     Milliseconds suddenStopLength_{0};
     Milliseconds suddenStopLeft_{0};

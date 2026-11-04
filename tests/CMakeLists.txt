@@ -65,6 +65,7 @@ add_executable(racers-rebuilt-tests
     app/install_discovery_test.cpp
     app/loop_sidecar_test.cpp
     app/modifier_settings_test.cpp
+    app/player_cheat_settings_test.cpp
     app/menu/attract_demo_test.cpp
     app/menu/award_scene_name_test.cpp
     app/menu/best_time_panel_test.cpp
@@ -368,6 +369,7 @@ add_executable(racers-rebuilt-tests
     sim/powerup/lightning_effect_test.cpp
     sim/powerup/magnet_effect_test.cpp
     sim/powerup/missile_effect_test.cpp
+    sim/powerup/invincible_test.cpp
     sim/powerup/oil_slick_effect_test.cpp
     sim/powerup/powerup_cheats_test.cpp
     sim/powerup/powerup_inventory_test.cpp
@@ -383,6 +385,7 @@ add_executable(racers-rebuilt-tests
     sim/race/lap_tracker_test.cpp
     sim/race/lap_zones_test.cpp
     sim/race/race_clock_test.cpp
+    sim/race/player_cheats_test.cpp
     sim/race/race_modifiers_test.cpp
     sim/race/race_progress_test.cpp
     sim/race/race_session_test.cpp

@@ -32,7 +32,8 @@ void Crane::Touch(HazardContext& context) const {
     const BoundingSphere sphere{.centre = ball, .radius = kBallRadius};
     for (std::size_t i = 0; i < context.racers.size(); ++i) {
         Racer& racer = context.racers[i];
-        if (Touches(sphere, context.reaches[i]) && !racer.IsSpinning() && !racer.IsStopped()) {
+        if (Touches(sphere, context.reaches[i]) && !racer.IsSpinning() && !racer.IsStopped() &&
+            !racer.IsInvincible()) {
             racer.StartSpin(kSpinTurns, kSpinRatePerMs);
             context.events->FireStartAndEnd(kCraneHitEvent, racer.Pose().position);
         }

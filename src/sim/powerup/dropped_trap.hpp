@@ -35,7 +35,7 @@ struct Trap {
 /// Ghosts and the owner can't touch a trap.
 [[nodiscard]] bool IsTouching(const PowerupContext& context, const Trap& trap, std::size_t racer);
 
-/// A shielded racer absorbs the touch instead of `touch`. Returns true once the trap is used up.
+/// A shielded racer absorbs the touch and an invincible one ignores it. True once used up.
 template <typename Touch>
 [[nodiscard]] bool TouchRacers(PowerupContext& context, const Trap& trap, Touch touch) {
     for (std::size_t i = 0; i < context.racers.size(); ++i) {
@@ -48,7 +48,7 @@ template <typename Touch>
             if (trap.level < kMaxPowerupLevel) {
                 return true;
             }
-        } else if (touch(racer, static_cast<std::uint8_t>(i))) {
+        } else if (!racer.IsInvincible() && touch(racer, static_cast<std::uint8_t>(i))) {
             return true;
         }
     }

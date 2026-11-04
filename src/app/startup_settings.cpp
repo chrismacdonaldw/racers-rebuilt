@@ -10,6 +10,7 @@
 #include "app/game_settings.hpp"
 #include "app/input_bindings.hpp"
 #include "app/modifier_settings.hpp"
+#include "app/player_cheat_settings.hpp"
 #include "app/race_settings.hpp"
 #include "app/trigger_spheres.hpp"
 #include "app/video_settings.hpp"
@@ -30,6 +31,7 @@ settings::Registry DeclaredRegistry(const Extensions& extensions) {
     registry.Declare(kShowTriggerSpheres);
     DeclareRaceSettings(registry);
     DeclareCheatSettings(registry);
+    DeclarePlayerCheatSettings(registry);
     DeclareModifierSettings(registry);
     DeclareFixSettings(registry);
     DeclareDeveloperSettings(registry);

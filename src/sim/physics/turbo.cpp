@@ -51,7 +51,7 @@ bool AdvanceTurbo(Turbo& turbo, int dtMs) {
     switch (turbo.phase) {
         case TurboPhase::Ignition:
             turbo.phase = TurboPhase::Boost;
-            turbo.phaseMs = kBoostMs.at(static_cast<std::size_t>(turbo.level));
+            turbo.phaseMs = kBoostMs.at(static_cast<std::size_t>(turbo.level)) * turbo.boostScale;
             return true;
         case TurboPhase::Boost:
             FadeTurbo(turbo);

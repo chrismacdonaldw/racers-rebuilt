@@ -49,7 +49,7 @@ void Ghost::Touch(HazardContext& context) const {
     for (std::size_t i = 0; i < context.racers.size(); ++i) {
         Racer& racer = context.racers[i];
         if (!Touches(reach, context.reaches[i]) || racer.IsSpinning() || racer.IsStopped() ||
-            racer.IsShielded()) {
+            racer.IsProtected()) {
             continue;
         }
         racer.StartSpin(kSpinTurns, kSpinRatePerMs);

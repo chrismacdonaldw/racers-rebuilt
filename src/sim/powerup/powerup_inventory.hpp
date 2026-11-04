@@ -31,6 +31,9 @@ public:
     /// For an empty inventory only. Granted white bricks belong to no brick on the track.
     void Grant(assets::BrickColour colour, std::size_t level);
 
+    /// Tops the white bricks up to `kMaxWhiteBricks` with granted ones.
+    void FillWhites();
+
     /// Returns the brick lost, or nothing when it held none or lost a granted one.
     [[nodiscard]] std::optional<std::size_t> LoseWhite();
 

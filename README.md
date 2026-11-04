@@ -151,6 +151,14 @@ Every setting lives in `<data>/settings.toml` and shows in the overlay.
 | `race.opponents` | `5` | `0` to `5`. Computer racers in a single race, from the options screen. Applies from the next race. |
 | `race.versus_laps` | `3` | `1` to `5`. Laps in a versus race, from the options screen. |
 | `cheats.<plate>` | `false` | `true`, `false`. Keeps a license plate cheat on, such as `cheats.mxpmx`. Entered after the license's own cheats, from the next single race, versus race or test drive. Circuits and time trials ignore them, as the original does, and so does the attract demo. |
+| `cheats.invincible` | `false` | `true`, `false`. Weapons, hazards and curses can't touch a player's racer, and a shield still works. Every cheat below applies to players from the next race of any kind, circuits and time trials too, but not test drives or the attract demo. |
+| `cheats.bottomless_brick` | `false` | `true`, `false`. Using a power-up keeps it. |
+| `cheats.full_white` | `false` | `true`, `false`. Players always hold 3 white bricks. |
+| `cheats.brick_magnet` | `false` | `true`, `false`. Players pick up bricks from 3 times as far. |
+| `cheats.long_turbo` | `false` | `true`, `false`. Players' turbo boosts last 3 times as long. |
+| `cheats.perfect_start` | `false` | `true`, `false`. Players get the strong start boost at every go, with no timing. |
+| `cheats.free_warp` | `false` | `true`, `false`. Every green power-up a player uses warps, whatever the white bricks. |
+| `cheats.head_start` | `0` | `0` to `10`. Seconds the computer racers wait after the go. |
 | `modifiers.gravity` | `100` | `25` to `100`. Gravity as a percentage, for floatier jumps. Every `modifiers` key applies to all racers from the next race of any kind, circuits and time trials too, but not test drives or the attract demo. |
 | `modifiers.speed` | `100` | `100` to `200`. Every racer's top speed and acceleration as a percentage. |
 | `modifiers.mirror` | `false` | `true`, `false`. Mirrors every track. |

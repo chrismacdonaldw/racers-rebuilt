@@ -52,7 +52,7 @@ void ShieldActsOn(std::uint8_t level, Racer& other, const Vector3& point) {
 
 bool CanPassCurse(const Racer& from, const Racer& to) {
     return from.Status().isCursed && from.Status().curseMs > 0 && !to.Status().isCursed &&
-           !to.IsShielded();
+           !to.IsProtected();
 }
 
 void PassCurse(std::span<Racer> racers, std::size_t from, std::size_t to) {
@@ -69,10 +69,10 @@ void ApplyContactEffects(std::span<Racer> racers, const RacerContact& contact, R
     const Vector3& point = contact.point;
     ScrapeOrShrink(first, second, point, random);
     if (const std::optional<std::uint8_t> level = first.Status().shield.level;
-        level && !second.IsShielded()) {
+        level && !second.IsProtected()) {
         ShieldActsOn(*level, second, point);
     } else if (const std::optional<std::uint8_t> other = second.Status().shield.level;
-               other && !first.IsShielded()) {
+               other && !first.IsProtected()) {
         ShieldActsOn(*other, first, point);
     }
     if (CanPassCurse(first, second)) {

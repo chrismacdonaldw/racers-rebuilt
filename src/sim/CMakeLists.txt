@@ -105,6 +105,7 @@ rr_add_module(sim
         race/race_progress.cpp
         race/race_session.cpp
         race/session_parts.cpp
+        race/player_cheats.cpp
         race/race_sounds.cpp
         race/race_track.cpp
         race/random.cpp

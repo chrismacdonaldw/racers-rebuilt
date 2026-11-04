@@ -17,6 +17,10 @@ void StartBoost::HoldAtStart() {
 
 std::optional<TurboLevel> StartBoost::Go() {
     state_.isHeldAtStart = false;
+    if (isPerfect_) {
+        state_.windowMs = 0;
+        return TurboLevel::Strong;
+    }
     if (state_.windowMs != 0) {
         return TakeWindow();
     }
